@@ -18,6 +18,7 @@ models:
     capabilities:
       - tool_use
       - image_input
+      - thinking
   - name: qwen3.8:27b-mlx
     provider: ollama
     model: qwen3.8:27b-mlx
@@ -29,8 +30,9 @@ models:
       contextLength: 100000
       maxTokens: 64000
     capabilities:
-      - tool_use
-      - image_input
+       - tool_use        # Llamada de herramientas
+       - image_input     # Comprensión de imágenes
+       - thinking       # Modo de razonamiento extendido -
   - name: Autodetect
     provider: ollama
     model: AUTODETECT
