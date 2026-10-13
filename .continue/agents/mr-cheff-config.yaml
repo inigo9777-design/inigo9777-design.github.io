@@ -1,0 +1,39 @@
+# This is an example configuration file
+# To learn more, see the full config.yaml reference: https://docs.continue.dev/reference
+
+name: Mr Cheff Config
+version: 1.0.0
+schema: v1
+models:
+  - name: qwen3.5:9b-mlx
+    provider: ollama
+    model: qwen3.5:9b-mlx
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      contextLength: 65000
+      maxTokens: 30000
+    capabilities:
+      - tool_use
+      - image_input
+  - name: qwen3.8:27b-mlx
+    provider: ollama
+    model: qwen3.8:27b-mlx
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      contextLength: 100000
+      maxTokens: 64000
+    capabilities:
+      - tool_use
+      - image_input
+  - name: Autodetect
+    provider: ollama
+    model: AUTODETECT
+
+file_context_size: large
+auto_import_files: true

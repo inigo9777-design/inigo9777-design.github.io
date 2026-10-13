@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "exportedAt": "2026-10-11T12:00:00.000Z",
+  "foods": [
+    {
+      "id": "ejemplo-huevos",
+      "name": "Huevos",
+      "score": 9,
+      "qty": 3,
+      "min": 6,
+      "checked": false,
+      "createdAt": 1760217600000
+    },
+    {
+      "id": "ejemplo-leche",
+      "name": "Leche",
+      "score": 8,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1760217600000
+    },
+    {
+      "id": "ejemplo-tomate",
+      "name": "Tomate",
+      "score": 6,
+      "qty": 4,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1760217600000
+    }
+  ],
+  "recipes": [
+    {
+      "id": "ejemplo-huevosrevueltos",
+      "title": "Huevos — Desayuno",
+      "meal": "desayuno",
+      "ingredients": [
+        "Huevos (a tu gusto)",
+        "Sal y pimienta al gusto",
+        "Aceite de oliva virgen extra"
+      ],
+      "method": [
+        "Paso 1: Prepara los ingredientes y ten todo listo.",
+        "Paso 2: Bate los huevos con una pizca de sal.",
+        "Paso 3: Calienta una sartén con un poco de aceite.",
+        "Paso 4: Cocina a fuego medio, removiendo de vez en cuando.",
+        "Paso 5: Sirve caliente y disfruta."
+      ],
+      "createdAt": 1760217600000
+    }
+  ],
+  "innovations": [],
+  "innovDate": "2026-10-11"
+}

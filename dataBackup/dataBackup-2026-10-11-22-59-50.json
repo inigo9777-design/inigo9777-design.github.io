@@ -1,0 +1,464 @@
+{
+  "version": 1,
+  "exportedAt": "2026-10-11T21:16:29.839Z",
+  "foods": [
+    {
+      "id": "mv3no03n7ivyy",
+      "name": "Huevos",
+      "score": 10,
+      "qty": 2,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1791713012099
+    },
+    {
+      "id": "mv3o1v9abvqlf",
+      "name": "Guanchiale",
+      "score": 8,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1791713659006
+    },
+    {
+      "id": "mv3o2ai72rcah",
+      "name": "Leche Tamara",
+      "score": 9,
+      "qty": 4,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1791713678767
+    },
+    {
+      "id": "mv3o2vs4ui35b",
+      "name": "Solomillo",
+      "score": 7,
+      "qty": 1,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1791713706340
+    },
+    {
+      "id": "mv3o35632y0eb",
+      "name": "Patatas",
+      "score": 8,
+      "qty": 6,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1791713718507
+    },
+    {
+      "id": "mv3o3jupcabn3",
+      "name": "Yogures pastoret",
+      "score": 7,
+      "qty": 0,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1791713737537
+    },
+    {
+      "id": "mv3o4d0d15ulb",
+      "name": "Calabacín",
+      "score": 6,
+      "qty": 1,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1791713775325
+    },
+    {
+      "id": "mv3obe6u4pbb8",
+      "name": "Jamón ibérico",
+      "score": 7,
+      "qty": 0,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1791714103446
+    },
+    {
+      "id": "mv3odgvvk3iib",
+      "name": "AOVE Garrafa 5L",
+      "score": 9,
+      "qty": 3,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1791714200251
+    },
+    {
+      "id": "mv3xqtbvx4p6u",
+      "name": "Miel",
+      "score": 5,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1791729939451
+    }
+  ],
+  "recipes": [
+    {
+      "id": "mv48humpdiyh5",
+      "title": "Huevos — Desayuno",
+      "meal": "desayuno",
+      "ingredients": [
+        "Huevos (a tu gusto)",
+        "Guanchiale (a tu gusto)",
+        "Sal y pimienta al gusto"
+      ],
+      "method": [
+        "Paso 1: Prepara los ingredientes y ten todo listo.",
+        "Paso 2: Corta y limpia los alimentos.",
+        "Paso 3: Calienta una sartén con un poco de aceite.",
+        "Paso 4: Cocina a fuego medio, removiendo de vez en cuando.",
+        "Paso 5: Añade sal y pimienta. Prueba y ajusta el punto.",
+        "Paso 6: Sirve caliente y disfruta."
+      ],
+      "createdAt": 1791747997009
+    },
+    {
+      "id": "mv48i0fm4peg7",
+      "title": "Reto de Huevos — Desayuno: un toque cítrico de naranja",
+      "meal": "desayuno",
+      "ingredients": [
+        "Calabacín (sustituye a un ingrediente)",
+        "Guanchiale (a tu gusto)",
+        "Sal y pimienta al gusto"
+      ],
+      "method": [
+        "Innova: añade un toque cítrico de naranja.",
+        "Paso 1: Prepara los ingredientes y ten todo listo.",
+        "Paso 2: Corta y limpia los alimentos.",
+        "Paso 3: Calienta una sartén con un poco de aceite.",
+        "Paso 4: Cocina a fuego medio, removiendo de vez en cuando.",
+        "Paso 5: Añade sal y pimienta. Prueba y ajusta el punto.",
+        "Paso 6: Sirve caliente y disfruta.",
+        "Toca final: un toque cítrico de naranja."
+      ],
+      "createdAt": 1791748004530
+    },
+    {
+      "id": "mv48i1cy01tbw",
+      "title": "Versión de Huevos — Desayuno: una pizca de miel para equilibrar",
+      "meal": "desayuno",
+      "ingredients": [
+        "Huevos (a tu gusto)",
+        "Jamón ibérico (sustituye a un ingrediente)",
+        "Sal y pimienta al gusto",
+        "AOVE Garrafa 5L para decorar"
+      ],
+      "method": [
+        "Innova: añade una pizca de miel para equilibrar.",
+        "Paso 1: Prepara los ingredientes y ten todo listo.",
+        "Paso 2: Corta y limpia los alimentos.",
+        "Paso 3: Calienta una sartén con un poco de aceite.",
+        "Paso 4: Cocina a fuego medio, removiendo de vez en cuando.",
+        "Paso 5: Añade sal y pimienta. Prueba y ajusta el punto.",
+        "Paso 6: Sirve caliente y disfruta.",
+        "Toca final: una pizca de miel para equilibrar."
+      ],
+      "createdAt": 1791748005730
+    },
+    {
+      "id": "mv48i503xkijc",
+      "title": "Vigoroso Batido de Jamón ibérico",
+      "meal": "desayuno",
+      "ingredients": [
+        "Jamón ibérico",
+        "Yogures pastoret",
+        "Guanchiale",
+        "Comino"
+      ],
+      "method": [
+        "Pon los ingredientes en la batidora.",
+        "Tritura hasta obtener una textura cremosa.",
+        "Sirve frío y disfruta.",
+        "Añade un toque de ajo.",
+        "Perfecto como entrante ligero."
+      ],
+      "createdAt": 1791748010451
+    },
+    {
+      "id": "mv48i76w31drb",
+      "title": "Crocante Al horno de Patatas",
+      "meal": "cena",
+      "ingredients": [
+        "Solomillo",
+        "Guanchiale",
+        "Leche Tamara",
+        "Patatas",
+        "Ajo"
+      ],
+      "method": [
+        "Precalienta el horno a 200°C.",
+        "Unta los ingredientes con un poco de aceite y especias.",
+        "Añade unas gotas de limón.",
+        "Asa hasta que estén dorados por fuera y tiernos por dentro.",
+        "Servido con arroz o pan a elegir."
+      ],
+      "createdAt": 1791748013288
+    },
+    {
+      "id": "mv48iknix00qm",
+      "title": "Reinventado de Vigoroso Batido de Jamón ibérico: un toque cítrico de naranja",
+      "meal": "desayuno",
+      "ingredients": [
+        "Jamón ibérico",
+        "AOVE Garrafa 5L (sustituye a un ingrediente)",
+        "Guanchiale",
+        "Comino",
+        "Solomillo para decorar"
+      ],
+      "method": [
+        "Pon los ingredientes en la batidora.",
+        "Tritura hasta obtener una textura cremosa.",
+        "Sirve frío y disfruta.",
+        "Innova: añade un toque cítrico de naranja.",
+        "Añade un toque de ajo.",
+        "Perfecto como entrante ligero.",
+        "Toca final: un toque cítrico de naranja."
+      ],
+      "createdAt": 1791748030734
+    },
+    {
+      "id": "mv48inht97ezt",
+      "title": "Improviso de Versión de Huevos — Desayuno: una pizca de miel para equilibrar: un toque picante",
+      "meal": "desayuno",
+      "ingredients": [
+        "AOVE Garrafa 5L (sustituye a un ingrediente)",
+        "Jamón ibérico (sustituye a un ingrediente)",
+        "Sal y pimienta al gusto",
+        "AOVE Garrafa 5L para decorar",
+        "Patatas para decorar"
+      ],
+      "method": [
+        "Innova: añade una pizca de miel para equilibrar.",
+        "Innova: añade un toque picante.",
+        "Paso 1: Prepara los ingredientes y ten todo listo.",
+        "Paso 2: Corta y limpia los alimentos.",
+        "Paso 3: Calienta una sartén con un poco de aceite.",
+        "Paso 4: Cocina a fuego medio, removiendo de vez en cuando.",
+        "Paso 5: Añade sal y pimienta. Prueba y ajusta el punto.",
+        "Paso 6: Sirve caliente y disfruta.",
+        "Toca final: una pizca de miel para equilibrar.",
+        "Toca final: un toque picante."
+      ],
+      "createdAt": 1791748034417
+    }
+  ],
+  "innovations": [
+    {
+      "id": "mv48mwpfjkrky",
+      "title": "Improviso de Vigoroso Batido de Jamón ibérico: un toque cítrico de naranja: un chorrito de aceite de oliva virgen extra",
+      "meal": "desayuno",
+      "ingredients": [
+        "Jamón ibérico",
+        "AOVE Garrafa 5L (sustituye a un ingrediente)",
+        "Guanchiale",
+        "Yogures pastoret (sustituye a un ingrediente)",
+        "Solomillo para decorar",
+        "Jamón ibérico para decorar"
+      ],
+      "method": [
+        "Pon los ingredientes en la batidora.",
+        "Tritura hasta obtener una textura cremosa.",
+        "Sirve frío y disfruta.",
+        "Innova: añade un toque cítrico de naranja.",
+        "Añade un toque de ajo.",
+        "Innova: añade un chorrito de aceite de oliva virgen extra.",
+        "Perfecto como entrante ligero.",
+        "Toca final: un toque cítrico de naranja.",
+        "Toca final: un chorrito de aceite de oliva virgen extra."
+      ],
+      "source": "variacion",
+      "uses": [
+        "Yogures pastoret",
+        "Jamón ibérico"
+      ],
+      "from": "Reinventado de Vigoroso Batido de Jamón ibérico: un toque cítrico de naranja",
+      "createdAt": 1791748232979
+    },
+    {
+      "id": "mv48mwpf1u434",
+      "title": "Equilibrado A la plancha de Solomillo",
+      "meal": "cena",
+      "ingredients": [
+        "Yogures pastoret",
+        "Solomillo",
+        "Huevos",
+        "Aceite de oliva virgen extra",
+        "Perejil fresco",
+        "Albahaca"
+      ],
+      "method": [
+        "Calienta muy bien la plancha o la sartén.",
+        "Pasa los ingredientes por la plancha unos minutos por cada lado.",
+        "Sazona al gusto y sirve enseguida.",
+        "Añade un toque umami con un poco de salsa de soja.",
+        "Servido con arroz o pan a elegir."
+      ],
+      "source": "libre",
+      "uses": [
+        "Yogures pastoret",
+        "Solomillo",
+        "Huevos"
+      ],
+      "from": "",
+      "createdAt": 1791748232979
+    },
+    {
+      "id": "mv48mwpfxvdlb",
+      "title": "Auténtico Al vapor de Jamón ibérico",
+      "meal": "desayuno",
+      "ingredients": [
+        "Patatas",
+        "AOVE Garrafa 5L",
+        "Solomillo",
+        "Jamón ibérico",
+        "Ajo"
+      ],
+      "method": [
+        "Calienta una cazuela con un poco de agua.",
+        "Coloca los ingredientes sobre el vapor y tapa.",
+        "Añade un punto ahumado.",
+        "Cocina hasta que estén suaves y listos.",
+        "Sirve bien caliente."
+      ],
+      "source": "libre",
+      "uses": [
+        "Patatas",
+        "AOVE Garrafa 5L",
+        "Solomillo",
+        "Jamón ibérico"
+      ],
+      "from": "",
+      "createdAt": 1791748232979
+    },
+    {
+      "id": "mv48mwpg1bmyg",
+      "title": "Variación de Versión de Huevos — Desayuno: una pizca de miel para equilibrar: un toque picante: unas gotas de limón",
+      "meal": "desayuno",
+      "ingredients": [
+        "AOVE Garrafa 5L (sustituye a un ingrediente)",
+        "Jamón ibérico (sustituye a un ingrediente)",
+        "Sal y pimienta al gusto",
+        "AOVE Garrafa 5L para decorar",
+        "Patatas para decorar",
+        "Guanchiale para decorar"
+      ],
+      "method": [
+        "Innova: añade una pizca de miel para equilibrar.",
+        "Innova: añade un toque picante.",
+        "Paso 1: Prepara los ingredientes y ten todo listo.",
+        "Paso 2: Corta y limpia los alimentos.",
+        "Paso 3: Calienta una sartén con un poco de aceite.",
+        "Innova: añade unas gotas de limón.",
+        "Paso 4: Cocina a fuego medio, removiendo de vez en cuando.",
+        "Paso 5: Añade sal y pimienta. Prueba y ajusta el punto.",
+        "Paso 6: Sirve caliente y disfruta.",
+        "Toca final: una pizca de miel para equilibrar.",
+        "Toca final: un toque picante.",
+        "Toca final: unas gotas de limón."
+      ],
+      "source": "variacion",
+      "uses": [
+        "Guanchiale"
+      ],
+      "from": "Improviso de Versión de Huevos — Desayuno: una pizca de miel para equilibrar: un toque picante",
+      "createdAt": 1791748232980
+    },
+    {
+      "id": "mv48mwpg78ws7",
+      "title": "Twist de Huevos — Desayuno: hierbas frescas picadas",
+      "meal": "desayuno",
+      "ingredients": [
+        "Leche Tamara (sustituye a un ingrediente)",
+        "Guanchiale (a tu gusto)",
+        "Sal y pimienta al gusto"
+      ],
+      "method": [
+        "Paso 1: Prepara los ingredientes y ten todo listo.",
+        "Paso 2: Corta y limpia los alimentos.",
+        "Paso 3: Calienta una sartén con un poco de aceite.",
+        "Paso 4: Cocina a fuego medio, removiendo de vez en cuando.",
+        "Innova: añade hierbas frescas picadas.",
+        "Paso 5: Añade sal y pimienta. Prueba y ajusta el punto.",
+        "Paso 6: Sirve caliente y disfruta.",
+        "Toca final: hierbas frescas picadas."
+      ],
+      "source": "variacion",
+      "uses": [
+        "Leche Tamara"
+      ],
+      "from": "Huevos — Desayuno",
+      "createdAt": 1791748232980
+    },
+    {
+      "id": "mv48mwpg5i59w",
+      "title": "A la plancha de Patatas",
+      "meal": "comida",
+      "ingredients": [
+        "Patatas",
+        "Comino",
+        "Albahaca",
+        "Perejil fresco"
+      ],
+      "method": [
+        "Calienta muy bien la plancha o la sartén.",
+        "Pasa los ingredientes por la plancha unos minutos por cada lado.",
+        "Sazona al gusto y sirve enseguida.",
+        "Añade un toque cítrico de naranja.",
+        "Termina con un chorrito de aceite de oliva virgen extra."
+      ],
+      "source": "protagonista",
+      "uses": [
+        "Patatas"
+      ],
+      "from": "",
+      "createdAt": 1791748232980
+    },
+    {
+      "id": "mv48mwpgbw93u",
+      "title": "Crema de Guanchiale",
+      "meal": "cena",
+      "ingredients": [
+        "Guanchiale",
+        "Perejil fresco"
+      ],
+      "method": [
+        "Hierve el agua con la base aromática.",
+        "Añade los ingredientes y cocina hasta que estén tiernos.",
+        "Tritura si quieres una crema y sazona al gusto.",
+        "Termina con una pizca de miel para equilibrar."
+      ],
+      "source": "protagonista",
+      "uses": [
+        "Guanchiale"
+      ],
+      "from": "",
+      "createdAt": 1791748232980
+    },
+    {
+      "id": "mv48mwpg1slje",
+      "title": "En crudo de Calabacín",
+      "meal": "cena",
+      "ingredients": [
+        "Calabacín",
+        "Unas gotas de limón",
+        "Pimentón",
+        "Aceite de oliva virgen extra"
+      ],
+      "method": [
+        "Corta todo de forma fina y uniforme.",
+        "Colócalo con cuidado en el plato.",
+        "Añade un toque exótico de comino o cúrcuma.",
+        "Termina con un buen aliño y un toque de sal.",
+        "Termina con un chorrito de aceite de oliva virgen extra."
+      ],
+      "source": "protagonista",
+      "uses": [
+        "Calabacín"
+      ],
+      "from": "",
+      "createdAt": 1791748232980
+    }
+  ],
+  "innovDay": "2026-10-11"
+}

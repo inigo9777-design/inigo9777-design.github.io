@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mr Cheff · Asistente de Cocina</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <img class="brand-logo" src="logo.png" alt="Mr Cheff">
+            <span class="brand-name">Mr Cheff</span>
+        </div>
+        <nav class="tabs" role="tablist">
+            <button class="tab active" data-view="foods" role="tab">📦 Alimentos</button>
+            <button class="tab" data-view="recipes" role="tab">📝 Recetas</button>
+            <button class="tab" data-view="innovation" role="tab">💡 Innovación</button>
+            <button class="tab" data-view="seasonal" role="tab">🥦 Temporada</button>
+            <button class="tab" data-view="backup" role="tab">🗄️ Copia de seguridad</button>
+        </nav>
+    </header>
+
+    <main class="content">
+
+        <!-- ============ VISTA: ALIMENTOS ============ -->
+        <section id="view-foods" class="view active">
+            <div class="card">
+                <h2>Control de Alimentos en Casa</h2>
+                 <p class="muted">Añade lo que tienes en casa. Cada alimento se controla por tres cosas:
+                    <strong>cantidad</strong> (cuánto tienes), un <strong>mínimo para avisar</strong> (cuándo hay que reponer) y una
+                    <strong>puntuación de 1 a 10</strong> de indispensabilidad que decide la urgencia de la alerta
+                    (<span class="urg urg-red">rojo 8-10</span> · <span class="urg urg-orange">naranja 6-7</span> · <span class="urg urg-green">verde &lt;6</span>).
+                </p>
+                <form id="food-form" class="row-form">
+                    <input type="text" id="food-name" placeholder="Nombre del alimento (p. ej. Huevos)" required>
+                    <div class="qty-group">
+                        <label for="food-qty">En casa: <span id="food-qty-val">0</span> uds</label>
+                        <input type="number" id="food-qty" min="0" step="1" value="0" title="Cuántos tienes">
+                    </div>
+                    <div class="qty-group">
+                        <label for="food-min">Mínimo para avisar: <span id="food-min-val">1</span> uds</label>
+                        <input type="number" id="food-min" min="0" step="1" value="1" title="Cuándo reponer">
+                    </div>
+                    <div class="slider-group">
+                        <label for="food-score">Importancia: <span id="food-score-val">5</span></label>
+                        <input type="range" id="food-score" min="1" max="10" value="5">
+                    </div>
+                    <button type="submit" class="btn primary">Añadir</button>
+                </form>
+            </div>
+
+            <div id="weekly-alert" class="card alert-card hidden"></div>
+
+            <div class="card">
+                <h2>Inventario actual</h2>
+                <div class="toolbar">
+                    <input type="text" id="food-filter" placeholder="Filtrar alimentos...">
+                    <button id="toggle-check" class="btn ghost" title="Marca todo">✓ Todo</button>
+                </div>
+                <ul id="food-list" class="food-list"></ul>
+                <p id="food-empty" class="empty muted hidden">No tienes alimentos registrados. Añade el primero arriba.</p>
+            </div>
+        </section>
+
+        <!-- ============ VISTA: RECETAS ============ -->
+        <section id="view-recipes" class="view">
+            <div class="card">
+                <h2>Crear Receta</h2>
+                <p class="muted">Describe la receta con tus palabras y Mr Cheff la convierte en una receta estructurada con ingredientes y método. <span class="tag">Modo simulado</span>: se genera una plantilla estructurada a partir de tu descripción.</p>
+                <textarea id="recipe-desc" rows="4" placeholder="Ej: Tomé dos huevos, los bati con sal y cociné en la sartén con un poco de aceite hasta que estuvieron cuajados..."></textarea>
+                <div class="row-form">
+                    <select id="recipe-meal">
+                        <option value="desayuno">🌅 Desayuno</option>
+                        <option value="comida">🍽️ Comida</option>
+                        <option value="cena">🌙 Cena</option>
+                    </select>
+                    <button id="btn-generate" class="btn primary">Generar receta</button>
+                </div>
+            </div>
+
+            <div id="recipe-preview" class="card hidden">
+                <h2>Previsualización</h2>
+                <p class="muted">Revisa la receta generada antes de guardarla. Puedes editar los campos.</p>
+                <div class="recipe-edit">
+                    <label>Título
+                        <input type="text" id="pv-title">
+                    </label>
+                    <label>Ingredientes (uno por línea)
+                        <textarea id="pv-ingredients" rows="5"></textarea>
+                    </label>
+                    <label>Método de preparación
+                        <textarea id="pv-method" rows="6"></textarea>
+                    </label>
+                </div>
+                <div class="row-form">
+                    <button id="btn-save-recipe" class="btn primary">💾 Guardar receta</button>
+                    <button id="btn-discard" class="btn ghost">Descartar</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Mis Recetas</h2>
+                <div class="toolbar">
+                    <input type="text" id="recipe-filter" placeholder="Buscar receta...">
+                    <select id="recipe-meal-filter">
+                        <option value="all">Todas</option>
+                        <option value="desayuno">Desayuno</option>
+                        <option value="comida">Comida</option>
+                        <option value="cena">Cena</option>
+                    </select>
+                </div>
+                <div id="recipe-list" class="recipe-grid"></div>
+                <p id="recipe-empty" class="empty muted hidden">Aún no tienes recetas guardadas.</p>
+            </div>
+        </section>
+
+        <!-- ============ VISTA: INNOVACIÓN ============ -->
+        <section id="view-innovation" class="view">
+            <div class="card">
+                <h2>Innovación</h2>
+                <p class="muted">Mr Cheff <strong>inventa</strong> recetas nuevas a partir de <strong>lo que tienes en casa</strong> y crea <strong>variaciones</strong> de tus recetas. Cada "Generar ideas" tira un <strong>nuevo lote al azar</strong>: cuantos más alimentos tengas, más ideas y más sorprendentes. Ajusta cuántas ideas y de qué tipo quieres.</p>
+                <div class="row-form">
+                    <div class="qty-group">
+                        <label for="innov-count">Ideas por lote: <span id="innov-count-val">8</span></label>
+                        <select id="innov-count">
+                            <option value="4">4 ideas</option>
+                            <option value="8" selected>8 ideas</option>
+                            <option value="12">12 ideas</option>
+                            <option value="20">20 ideas</option>
+                        </select>
+                    </div>
+                    <div class="qty-group">
+                        <label for="innov-focus">Tipo de ideas</label>
+                        <select id="innov-focus">
+                            <option value="todo">Todo mezclado</option>
+                            <option value="nuevas">Solo recetas nuevas (de casa)</option>
+                            <option value="variaciones">Solo variaciones de mis recetas</option>
+                        </select>
+                    </div>
+                    <button id="btn-generate-innov" class="btn primary">✨ Generar ideas</button>
+                    <button id="btn-clear-innov" class="btn ghost">Limpiar</button>
+                </div>
+                <p id="innov-summary" class="muted hidden"></p>
+            </div>
+
+            <div id="innov-day-note" class="card note hidden">
+                ⏰ Las ideas no guardadas se <strong>eliminan al acabar el día</strong>. Guarda las que te gusten.
+            </div>
+
+            <div id="innovation-list" class="recipe-grid"></div>
+            <p id="innovation-empty" class="empty muted hidden">Pulsa "Generar ideas" para crear variaciones con lo que tienes en casa.</p>
+        </section>
+
+        <!-- ============ VISTA: TEMPORADA ============ -->
+        <section id="view-seasonal" class="view">
+            <div class="card">
+                <h2>Buscador de Temporada</h2>
+                <p class="muted">Descubre qué fruta y verdura está en su mejor momento según el mes actual.</p>
+                <div class="toolbar">
+                    <input type="text" id="season-filter" placeholder="Buscar fruta o verdura...">
+                    <select id="season-month"></select>
+                </div>
+            </div>
+            <div id="season-grid" class="season-grid"></div>
+            <p id="season-empty" class="empty muted hidden">No hay coincidencias con ese filtro.</p>
+        </section>
+
+        <!-- ============ VISTA: COPIA DE SEGURIDAD ============ -->
+        <section id="view-backup" class="view">
+            <div class="card">
+                <h2>🗄️ Copia de seguridad</h2>
+                <p class="muted">Los datos se guardan en <strong>este navegador</strong>. Para que también
+                    aparezcan en <strong>otro navegador o dispositivo</strong>, exporta un archivo y vuelve a
+                    importarlo allí. <strong>⬇️ Exportar</strong> descarga un archivo con nombre
+                    <code>dataBackup-fecha-hora.json</code> en <strong>Descargas</strong> (puedes moverlo a la
+                    carpeta <code>dataBackup/</code> si quieres); si tu navegador no descarga nada,
+                    <strong>📋 Copiar</strong> te da el contenido para pegarlo en un archivo a mano.</p>
+                <div class="row-form">
+                    <button id="btn-export" class="btn primary" type="button">⬇️ Exportar</button>
+                    <button id="btn-import" class="btn ghost" type="button">⬆️ Importar</button>
+                    <button id="btn-copy-json" class="btn ghost" type="button" title="Copia el JSON para pegarlo en un archivo">📋 Copiar</button>
+                    <input type="file" id="import-file" accept="application/json,.json" hidden>
+                </div>
+                <p id="import-note" class="muted hidden"></p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal detalle receta -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-backdrop" data-close></div>
+        <div class="modal-box">
+            <button class="modal-close" data-close>&times;</button>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

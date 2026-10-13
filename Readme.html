@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mr Cheff - README</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --accent: #16a34a;
+            --accent-dark: #15803d;
+            --border: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 0;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+            color: #fff;
+            padding: 48px 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            padding: 5px 14px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .container {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            color: var(--accent-dark);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h2 .icon {
+            font-size: 1.5rem;
+        }
+
+        p {
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+
+        ul {
+            margin-left: 20px;
+            margin-bottom: 12px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .tag {
+            display: inline-block;
+            background: #dcfce7;
+            color: var(--accent-dark);
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .note {
+            background: #f0fdf4;
+            border-left: 4px solid var(--accent);
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            color: var(--muted);
+        }
+
+        .footer {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.85rem;
+            padding: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🍳 Mr Cheff</h1>
+        <p>Tu asistente de cocina inteligente en tu bolsillo</p>
+        <div class="badges">
+            <span class="badge">Kotlin Multiplatform</span>
+            <span class="badge">Android</span>
+            <span class="badge">iOS</span>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <section>
+            <h2><span class="icon">📦</span> Control de Alimentos en Casa</h2>
+            <p>Mantén un inventario actualizado de los alimentos que tienes en casa. La aplicación te envía un <strong>recordatorio semanal</strong> indicando qué productos faltan.</p>
+            <ul>
+                <li>Cada alimento tiene una <span class="tag">puntuación de 1 a 10</span> que indica qué tan indispensable es.</li>
+                <li>Basándose en esa puntuación, Mr Cheff te avisa <strong>cuándo es necesario ir a reponer</strong> un alimento.</li>
+                <li>Control sencillo para saber siempre qué tienes y qué necesitas comprar.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2><span class="icon">📝</span> Recetas Estructuradas</h2>
+            <p>Cada vez que cocines algo, descríbelo con tus palabras y Mr Cheff lo convierte en una <strong>receta estructurada</strong> con ingredientes y método de preparación.</p>
+            <ul>
+                <li>Etiqueta cada receta como <span class="tag">Desayuno</span>, <span class="tag">Comida</span> o <span class="tag">Cena</span>.</li>
+                <li>Se almacenan de forma permanente para consultarlas en el futuro.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2><span class="icon">💡</span> Sección de Innovación</h2>
+            <p>Descubre <strong>variaciones de tus recetas actuales</strong> y nuevas recetas generadas cada mes usando los productos que ya tienes en casa.</p>
+            <ul>
+                <li>Se generan en el <strong>mismo formato</strong> en que se guardan tus recetas.</li>
+                <li>Puedes <strong>guardarlas para siempre</strong> si te gustan.</li>
+                <li>Si no las guardas, se eliminan automáticamente <strong>al acabar el día</strong>.</li>
+            </ul>
+            <div class="note">
+                Ideal para evitar el aburrimiento en la cocina y aprovechar los ingredientes que ya tienes.
+            </div>
+        </section>
+
+        <section>
+            <h2><span class="icon">🥦</span> Buscador de Temporada</h2>
+            <p>Consulta qué <strong>fruta y verdura de temporada</strong> está disponible.</p>
+            <ul>
+                <li>Busca cualquier producto y descubre cuándo está en su mejor momento.</li>
+                <li>Perfecto para comprar productos frescos y de calidad al mejor precio.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2><span class="icon">🗄️</span> Copia de Seguridad</h2>
+            <p>Los datos se guardan en <strong>este navegador</strong>. Como cada navegador los guarda por separado, para que también aparezcan en <strong>otro navegador o dispositivo</strong> los exportas a un archivo y los vuelves a importar allí.</p>
+            <ul>
+                <li>En la pestaña <span class="tag">Alimentos</span> pulsa <strong>⬇️ Exportar</strong>: se descarga un archivo <span class="tag">.json</span> con tus alimentos, recetas e ideas.</li>
+                <li>Guárdalo en la carpeta <span class="tag">dataBackup/</span> (opcional; el navegador lo descarga a Descargas).</li>
+                <li>Para llevarlo a otro lugar, abre <span class="tag">index.html</span> en ese navegador o dispositivo y pulsa <strong>⬆️ Importar</strong> eligiendo el archivo.</li>
+                <li>Al importar, los alimentos se suman <strong>sin duplicar</strong> por nombre y las recetas se añaden: no se borra nada de lo que ya había.</li>
+            </ul>
+            <div class="note">
+                La app es una página web estática: no puede escribir por sí sola en la carpeta <span class="tag">dataBackup/</span>; el navegador descarga el archivo y moverlo ahí es opcional. El archivo <span class="tag">ejemplo.json</span> es una copia de muestra para probar el botón <strong>⬆️ Importar</strong>.
+            </div>
+        </section>
+
+    </div>
+
+    <div class="footer">
+        Mr Cheff · Hecho con Kotlin Multiplatform
+    </div>
+</body>
+</html>
