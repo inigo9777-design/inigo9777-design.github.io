@@ -1,10 +1,21 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mr Cheff · Asistente de Cocina</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Aplicar el tema guardado ANTES de pintar para evitar el parpadeo -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("mrcheff.theme");
+          document.documentElement.dataset.theme = t || "dark";
+        } catch (e) {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
 </head>
 <body>
     <header class="topbar">
@@ -19,6 +30,9 @@
             <button class="tab" data-view="seasonal" role="tab">🥦 Temporada</button>
             <button class="tab" data-view="backup" role="tab">🗄️ Copia de seguridad</button>
         </nav>
+
+        <!-- Nuevo: botón de alternar tema -->
+        <button id="theme-toggle" class="theme-toggle" title="Cambiar a modo claro" aria-label="Cambiar tema">🌙</button>
     </header>
 
     <main class="content">

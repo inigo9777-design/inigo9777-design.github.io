@@ -4,6 +4,29 @@
 */
 
 document.addEventListener("DOMContentLoaded", () => {
+   // ===== TEMA (claro / oscuro) =====
+  const LS_THEME = "mrcheff.theme";
+  const root = document.documentElement;
+  const themeBtn = document.getElementById("theme-toggle");
+
+  function applyTheme(t) {
+    root.dataset.theme = t;
+    if (themeBtn) {
+      themeBtn.textContent = t === "dark" ? "🌙" : "☀️";
+      themeBtn.title = t === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
+    }
+    try { localStorage.setItem(LS_THEME, t); } catch (e) {}
+  }
+
+  // Sincroniza el icono con el tema ya aplicado por el <script> del <head>
+  applyTheme(root.dataset.theme || "dark");
+
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      applyTheme(root.dataset.theme === "dark" ? "light" : "dark");
+    });
+  }
+  
   // ===== ESTADO Y PERSISTENCIA =====
   const LS = {
     foods: "mrcheff.foods",
