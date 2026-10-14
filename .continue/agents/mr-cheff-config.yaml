@@ -33,6 +33,20 @@ models:
        - tool_use        # Llamada de herramientas
        - image_input     # Comprensión de imágenes
        - thinking       # Modo de razonamiento extendido -
+  - name: qwen3.8:27b-fast
+    provider: ollama
+    model: qwen3.8:27b-fast
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      contextLength: 18000
+      maxTokens: 10000
+    capabilities:
+       - tool_use        
+       - image_input  
+       - thinking   
   - name: Autodetect
     provider: ollama
     model: AUTODETECT
