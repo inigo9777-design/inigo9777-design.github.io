@@ -81,7 +81,7 @@
         <section id="view-recipes" class="view">
             <div class="card">
                 <h2>Crear Receta</h2>
-                <p class="muted">Describe la receta con tus palabras y Mr Cheff la convierte en una receta estructurada con ingredientes y método. <span class="tag">Modo simulado</span>: se genera una plantilla estructurada a partir de tu descripción.</p>
+                <p class="muted">Describe la receta con tus palabras: Mr Cheff lee tu texto y saca, en orden, los <strong>ingredientes que mencionas</strong> y los <strong>pasos que describes</strong> — claro y conciso, sin pasos genéricos. <span class="tag">Análisis del texto · sin red</span>: todo se interpreta localmente con heurísticas en español, sin IA externa ni conexión.</p>
                 <textarea id="recipe-desc" rows="4" placeholder="Ej: Tomé dos huevos, los bati con sal y cociné en la sartén con un poco de aceite hasta que estuvieron cuajados..."></textarea>
                 <div class="row-form">
                     <select id="recipe-meal">
@@ -104,9 +104,10 @@
                         <textarea id="pv-ingredients" rows="5"></textarea>
                     </label>
                     <label>Método de preparación
-                        <textarea id="pv-method" rows="6"></textarea>
+                        <textarea id="pv-method" rows="6" placeholder="Si no detectamos pasos, escríbelos tú — no inventamos pasos genéricos"></textarea>
                     </label>
                 </div>
+                <div id="recipe-possible" class="possible hidden"></div>
                 <div class="row-form">
                     <button id="btn-save-recipe" class="btn primary">💾 Guardar receta</button>
                     <button id="btn-discard" class="btn ghost">Descartar</button>

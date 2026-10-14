@@ -391,8 +391,22 @@ textarea { resize: vertical; min-height: 80px; }
 
 .recipe-card .recipe-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; } .recipe-card .recipe-actions button { background: transparent; border: none; font-size: 1rem; cursor: pointer; padding: 2px 4px; border-radius: 6px; } .recipe-card .recipe-actions button:hover { background: var(--border); }
 
-/* Edición de previsualización */ 
+/* Edición de previsualización */
 .recipe-edit { display: flex; flex-direction: column; gap: 12px; margin: 14px 0; } .recipe-edit label { display: flex; flex-direction: column; gap: 6px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
+
+/* Ingredientes "posibles": fila de confirmación (toca para añadir) */
+.possible { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.possible .possible-label { margin-bottom: 8px; font-size: 0.85rem; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin: 0 6px 6px 0; padding: 5px 12px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--card); color: var(--text);
+  font-size: 0.82rem; font-weight: 600; font-family: inherit; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.05s;
+}
+.chip:hover { border-color: var(--accent); background: var(--info-light); }
+.chip:active { transform: translateY(1px); }
 
 /* ========== MODAL ========== */ 
 .modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; } .modal.hidden { display: none; }
