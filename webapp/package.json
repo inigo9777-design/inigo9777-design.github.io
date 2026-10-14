@@ -1,0 +1,13 @@
+{
+  "name": "mr-cheff-webapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mr Cheff — asistente de cocina (tests)",
+  "scripts": {
+    "test": "jest",
+    "coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2"
+  }
+}
