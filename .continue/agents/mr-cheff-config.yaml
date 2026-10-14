@@ -33,16 +33,16 @@ models:
        - tool_use        # Llamada de herramientas
        - image_input     # Comprensión de imágenes
        - thinking       # Modo de razonamiento extendido -
-  - name: qwen3.8:27b-fast
+  - name: qwen3.8:27b-mlx-fast
     provider: ollama
-    model: qwen3.8:27b-fast
+    model: qwen3.8:27b-mlx-fast
     roles:
       - chat
       - edit
       - apply
     defaultCompletionOptions:
-      contextLength: 18000
-      maxTokens: 10000
+      contextLength: 32000
+      maxTokens: 22000
     capabilities:
        - tool_use        
        - image_input  
