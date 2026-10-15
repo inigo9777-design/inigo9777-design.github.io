@@ -130,7 +130,8 @@ forma es un change breaking a nivel contrato** y necesita: test + nota en esta s
   recortada a las 30 ideas más recientes. Ambos invariantes están sujetos a test de integración (§6).
 - Payload de copia de seguridad = `{ version, exportedAt, foods[], recipes[], innovations[], innovDate }`.
   IMPORT **anexa** los datos de otra copia: alimentos deduplicados por nombre, recetas/innovaciones añadidas 
-  al final del histórico (nada de lo guardado desaparece) y cada elemento nuevo recibe un `uid()`. Este 
+  al final del histórico (nada de lo guardado desaparece) y cada una recibe un `uid()` fresco; el histórico previo no se borra. No romper este flujo — debe seguir cubierto por un test de integración (§6).
+
 
 (Nota sobre tipado: hoy no usamos TS ni tipos estáticos en la app, pero las pruebas de integración actúan como
 nuestro "contract test": si un shape cambia, el test roto es el aviso.)
