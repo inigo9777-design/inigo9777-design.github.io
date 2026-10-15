@@ -220,6 +220,10 @@
     <script src="modules/priority.js"></script>
     <script src="modules/classify.js"></script>
     <script src="modules/recipe-analysis.js"></script>
+    <!-- Módulos de lógica pura extraídos del antiguo monolito app.js. El orden entre ellos no importa porque
+         cada uno sólo consume otro módulo vía su API global (p.ej. innovations → window.MRCheff.classify) y esas
+         llamadas se realizan al pulsar un botón, ya con TODOS los <script> cargados. -->
+    <script src="modules/innovations.js"></script>
     
 </body>
 </html>
