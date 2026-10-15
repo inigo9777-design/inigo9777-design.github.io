@@ -55,6 +55,11 @@ document.addEventListener("DOMContentLoaded", () => {
     save(LS.innovDate, innovDay);
   }
 
+
+  // "Vista Recetas sucia": true si ha entrado una receta nueva DESDE FUERA de esta vista (hoy: el boton estrella en
+  // Innovacion) y aun no la hemos repintado. Evita un re-render innecesario en cada cambio de tab; solo se pinta
+  // cuando efectivamente hay algo nuevo que mostrar. Precedente identico al 'innovDay !== today' mas arriba (ver DIP, sec 2-D).
+  let recetasDirty = false;
   // ===== HELPERS =====
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
@@ -81,6 +86,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const view = tab.dataset.view;
       tabs.forEach(t => t.classList.toggle("active", t === tab));
       $$(".view").forEach(v => v.classList.toggle("active", v.id === `view-${view}`));
+      // Volver al tab de Recetas sin nada nuevo no debe re-pintar la lista (ineficiente y a ciegas, tal como pide el
+      //que piden los usuarios); solo lo hacemos si ha entrado una receta nueva desde fuera: entonces 'recipes' ya esta sincronizado en
+      // memoria y basta con re-pintar. Ver el origen del flag en el boton estrella de Innovacion (arriba) y la
+      // invariante final que lo limpia, dentro de renderRecipes().
+      if (view === "recipes" && recetasDirty) {
+        renderRecipes();
+      }
     });
   });
 
@@ -365,6 +377,10 @@ document.addEventListener("DOMContentLoaded", () => {
         toast("Receta eliminada");
       });
     });
+    // Invariante: cada vez que la vista Recetas se pinta (cualquier camino -- nav-gate, filtros o borrado de una
+    // tarjeta), dejamos el flag limpio por aqui, de cara a que solo volvra a marcarse cuando entre real otra receta
+    //nueva desde fuera; evita un repintado redundante en el siguiente cambio de tab si no paso nada nuevo.
+    recetasDirty = false;
   }
 
   // ===== MODAL DETALLE =====
@@ -506,6 +522,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!idea) return;
         recipes.push({ id: uid(), title: idea.title, meal: idea.meal, ingredients: idea.ingredients.slice(), method: idea.method.slice(), createdAt: Date.now() });
         save(LS.recipes, recipes);
+        // No repintamos la vista "Recetas" a ciegas aqui (probablemente estamos mirando Innovacion ahora y su lista
+        // iria oculta/innecesaria de pintar): solo marcamos la vista como sucia. El propio cambio de tab al volver a
+        // Recetas decidira si hay que re-pintarla; ver el nav handler / 'recetasDirty' en renderRecipes(), abajo.
+        recetasDirty = true;
         innovations = innovations.filter(x => x.id !== idea.id);
         save(LS.innov, innovations);
         renderInnovations();
