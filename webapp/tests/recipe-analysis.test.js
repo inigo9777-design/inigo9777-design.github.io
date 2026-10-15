@@ -35,12 +35,12 @@ describe("ingredients: orden de aparicion en el texto y dedup por nombre ya vist
   });
 
   test("la MISMA frase repetida con distinto caso colapsa a un ÚNICO paso por dedup de clave normalizada", () => {
-    const desc = "Bat ir los huev os\nBAT IR LOS HUEVOS.";
+    const desc = "Batir los huevos\nBATIR LOS HUEVOS.";
     const out = analyzeRecipe(desc, { meal: "comida" });
     expect(out.method).toHaveLength(1);
     expect(out.method[0]).toMatch(/^1\./);
     // Y los ingredientes también dedupan por nombre (una sola 'Huevos', no dos):
-    expect(out.ingredients.filter((i) => /^h uevos$/i.test(i))).toHaveLength(1);
+    expect(out.ingredients.filter((i) => /^huevos$/i.test(i))).toHaveLength(1);
   });
 });
 
@@ -62,7 +62,7 @@ describe("pasos: tope máximo del módulo es 10, con numeración incremental has
   });
 
   test("sin verbo reconocible en el texto el método sale VACIO aunque haya pantry presente", () => {
-    const out = analyzeRecipe("Poner el plato en la mesa y dejar que repose un poco", { meal: "comida", pantry: ["queso","vino"] });
+    const out = analyzeRecipe("el plato en la mesa y que un poco", { meal: "comida", pantry: ["queso","vino"] });
     expect(out.method).toEqual([]);
   });
 });

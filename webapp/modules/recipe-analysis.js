@@ -63,10 +63,25 @@
       "laminar","exprimir","escalfar","salpimentar","rematar","decorar","preparar","poner",
       "echar","retirar","voltear"
     ];
-    const vroots = [...new Set(VERBOS.map(v => v.slice(0, 3)))];
+    // Raíz mínima de 4 letras (no 3): con solo 3, raíces como "poc" (pochar), "pon", "col"... colisionan con
+    // palabras comunes ("muchos", "porque", "comidas") y las toman erróneamente por verbos. A 4 se evita la
+    // colisión sin perder verbos cortos del diccionario (el más corto, "asar", tiene exactamente 4).
+    const ROOT_MIN = 4;
+    // Verbos MUY CORTOS o imperativos ambiguos (≤3 letras) que NO pueden reconocerse por el prefijo raíz de
+    // ROOT_MIN=4 sin colisionar con palabras comunes: se reconocen SOLO por coincidencia EXACTA del token completo
+    // (igualdad total, no "empieza a ser igual"), así siguen sin generar falsos positivos como los que daba la
+    // raíz 3-letras anterior. Curado y ampliable conforme surjan. Ejemplos: pon (imperativo de poner), ver (=comprobar).
+    const VERBOS_EXACTOS = new Set(["pon", "ver"]);
+    const vroots = [...new Set(VERBOS.map(v => v.slice(0, Math.min(ROOT_MIN, v.length))))];
     const hasVerb = t => {
       const toks = strip(t.toLowerCase()).split(/[^a-z0-9]+/).filter(Boolean);
-      return toks.some(tk => tk.length >= 4 && vroots.some(r => tk.startsWith(r)));
+      // Vía 1 — raíz larga (≥ ROOT_MIN letras): reconoce verbos conjugados ("cocinar", "reposar"…) sin colisionar.
+      const porRaiz = toks.some(tk => tk.length >= ROOT_MIN && vroots.some(r => tk.startsWith(r)));
+      if (porRaiz) return true;
+      // Vía 2 — coincidencia EXACTA para los pocos verbos/imperativos muy cortos que no caben en la vía raíz,
+      // sin riesgo de falsos positivos (comparación de palabra completa, no de prefijo). Extensible.
+      const porExacto = toks.some(tk => VERBOS_EXACTOS.has(tk));
+      return porExacto;
     };
     const FILLER = /^(ya|entonces|después|ahora|finalmente|por último|luego|primero|empezamos|seguimos|para terminar|al final|una vez)\s+/i;
     const cleanStep = s => {
