@@ -15,8 +15,13 @@ prose is in `CLAUDE.md`. When docs and code disagree, **trust this file + the co
   There is no linter/formatter/typecheck for the app itself; "verify a change" = open index.html
   and exercise the affected tab.
 - **Tests:** `cd webapp && npm test` (`jest`) / `npm run coverage` (`jest --coverage`). Jest IS a
-  declared devDependency with installed `node_modules/`, but **no spec files exist yet** (git log:
-  "WIP unit tests"). Today `npm test` finds nothing — do not treat its presence as a passing suite.
+  declared devDependency with installed `node_modules/`. Spec files now **do** exist under
+  `webapp/tests/` — one per module so far: `classify.test.js`, `priority.test.js`, `recipe-analysis.test.js`,
+  `innovations.test.js`, plus harness scaffolding (`boot.js` / `setup.js`). As of the last run on 2026-10-16,
+  the whole suite is green (`4 passed / 60 tests total`) — verify with a fresh run before trusting it: **logic
+  rewrites to any module that these specs cover (see `webapp/feature_plans/plan-inovacion-recetas-espanolas.md`
+  for the in-progress Innovation-redesign plan) are expected to leave some of those specs obsolete, pending their
+  own Phase-2 rewrite; a red suite after such a change is an intentional, documented intermediate state, not a regression.**
 - Note: there is **no `.gitignore`** and `webapp/node_modules/` is **untracked** — never `git add -A`
   it. `dataBackup/*.json` backups *are* tracked.
 
@@ -33,6 +38,26 @@ by `// ===== SECTION =====` banners. Files:
 Views: **Alimentos** (pantry/restock alerts) · **Recetas** (free-text → structured recipe) ·
 **Innovación** (invent recipes from the pantry) · **Temporada** (in-season fruit/veg by month) ·
 **Copia de seguridad** (cross-browser Export/Import — its own tab).
+
+### In-progress: `innovations.js` redesign (Phase 1 planned, not yet coded)
+See `webapp/feature_plans/plan-inovacion-recetas-espanolas.md` for the full approved design. Summary so a future
+reader isn't fooled by still-old code on disk until that PR lands:
+
+- New module **`webapp/modules/recetas-espanolas.data.js`** (IIFE + dual-export identical to `classify.js`/`priority.js`,
+  loaded before `innovations.js`) holds a curated catalog of real, plausible everyday Spanish recipes. Each record is minimal:
+  `{ id, title, meal: "desayuno"|"comida"|"cena", ingredients[], method[] }`.
+- `modules/innovations.js` `generate(count, focus, state)` keeps its **exact public signature** (the sole call-site at
+  `app.js:~445` is unaffected), but internally stops assembling random ingredient combinations from `STYLES`/`TWISTS`/
+  `ARCHETYPES`. Instead it scores the curated catalog deterministically and ranks the top 6 by a named-weighted formula
+  (`haveRatio` + variety-nudge − fuzzy-duplicate penalty, stable tiebreak by dataset `id`); **beyond slot 6** (only if more are
+  requested) a uniformly random pick fills the rest from the remaining non-excluded pool — closing the "feature goes static / no
+  discovery freshness" concern while keeping every output real. An optional injected `rng` provider (`ctx.rng`, defaulting to
+  `Math.random()`) mirrors the already-existing `uid` injection precedent, so tests stay fully reproducible (see
+  CODING_STANDARDS §6 determinism rule).
+- Recipes the user has starred into **Mis Recetas** are hard-excluded from every slot via an absolute pre-filter (ingredient-set
+  Jaccard = 1.0 match, language/order-invariant) — they vanish until manually deleted from their own recipes list.
+- Open/Closed note: abandoning the legacy multi-generator-by-`source` pattern **for this one feature only** is a logged decision
+  (CODING_STANDARDS §8), not an open silent deviation; same for shipping this logic without yet re-writing its co-located specs.
 
 ## Data model & gotchas
 - Persistence = localStorage via `load(key, default)`/`save(key, val)` helpers and keys in `LS`:
@@ -61,7 +86,8 @@ Views: **Alimentos** (pantry/restock alerts) · **Recetas** (free-text → struc
   it) — the team's coding/testing standards going forward: SOLID, per-feature modular architecture mandate
   (`modules/domain|infra|views`; `app.js` stays the legacy composition-root), and mandatory unit testing. **Follow it.**
   Per PR: new logic ships a co-located `tests/*.test.js` spec (jsdom harness exists in `webapp/jest.config.js` +
-  `tests/boot.js`/`setup.js`, but no specs yet); integration tests are required when a change crosses modules or touches
+  `tests/boot.js`/`setup.js`, and per-module specs already exist under `webapp/tests/` — see the "Tests" bullet above for current
+  suite status); integration tests are required when a change crosses modules or touches
   storage+DOM; UI/E2E via Playwright is "if possible" / add a stub whenever you introduce a new user-visible flow.
 - `.claude/` and `.continue/` hold Claude Code & Continue.dev agents, commands, rules and prompts —
   e.g. `.continue/prompts/unit-tests.md` encodes the team's test workflow (write specs → run with
