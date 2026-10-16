@@ -1,7 +1,6 @@
 # AGENTS.md — Mr Cheff
 
-Compact guide for AI agents. For product vision read `Readme.html`; the longer (partly stale)
-prose is in `CLAUDE.md`. When docs and code disagree, **trust this file + the code**.
+Compact guide for AI agents, now the single canonical in-repo reference (its former sibling, the stale `CLAUDE.md`, was folded into it and removed). For product vision read `Readme.html`; team coding/testing standards live in `CODING_STANDARDS.md`, referenced below. When docs and code disagree, **trust this file + the code**.
 
 ## What this actually is
 - A kitchen-assistant prototype. `Readme.html` badges it "Kotlin Multiplatform · Android · iOS",
@@ -75,16 +74,21 @@ Views: **Alimentos** (pantry/restock alerts) · **Recetas** (free-text → struc
   their accents. Mind this when adding foods or seasonal items.
 
 ## Other instruction / config sources worth knowing
-- **`CODING_STANDARDS.md`** (repo root, canonical; `.claude/rules/CodingStandards.md` is a short pointer into
-  it) — the team's coding/testing standards going forward: SOLID, per-feature modular architecture mandate
+- **`CODING_STANDARDS.md`** (repo root, canonical) — the team's coding/testing standards going forward: SOLID, per-feature modular architecture mandate
   (`modules/domain|infra|views`; `app.js` stays the legacy composition-root), and mandatory unit testing. **Follow it.**
   Per PR: new logic ships a co-located `tests/*.test.js` spec (jsdom harness exists in `webapp/jest.config.js` +
   `tests/boot.js`/`setup.js`, and per-module specs already exist under `webapp/tests/` — see the "Tests" bullet above for current
   suite status); integration tests are required when a change crosses modules or touches
   storage+DOM; UI/E2E via Playwright is "if possible" / add a stub whenever you introduce a new user-visible flow.
-- `.claude/` and `.continue/` hold Claude Code & Continue.dev agents, commands, rules and prompts —
-  e.g. `.continue/prompts/unit-tests.md` encodes the team's test workflow (write specs → run with
-  coverage → iterate until all pass). These are not auto-loaded by OpenCode; check them for intent.
-- `CLAUDE.md` is the older guide but has gone stale in spots (it predates the Jest setup and some
-  clean-ups, and its top-level `@.claude/rules/Accesibilidad.md` include no longer resolves — that file was
-  renamed to `CodingStandards.md`) — prefer this file / `CODING_STANDARDS.md` when they disagree.
+- `.continue/` (Continue.dev) still exists and holds cross-tool rules/prompts — e.g.
+  `.continue/prompts/unit-tests.md` encodes the team's test workflow (write specs → run with
+  coverage → iterate until all pass). It is not auto-loaded by OpenCode; check it when intent across tools matters rather than assuming Claude-only config still drives agent behavior in this repo.
+- **Claude Code config was removed**: both `CLAUDE.md` and the whole `.claude/` folder are gone, after first migrating the two useful artifacts into OpenCode's own folders so nothing is lost — these are now auto-discovered by OpenCode:
+  - `/unittest` command → `.opencode/commands/unittest.md` (was `.claude/commands/unittest.md`; Claude-only frontmatter fields `argument-hint`/`allowed-tools` were dropped as unsupported by OpenCode, body kept 1:1)
+  - `code-reviewer` skill → `.opencode/skills/code-reviewer/SKILL.md` (only change vs source: `CLAUDE.md` reference inside it now points at this file / `AGENTS.md`)
+
+  Remaining Claude-only items (`diff-reviewer` and `userexperience` custom agents, the old
+  `rules/CodingStandards.md` pointer, and its broken top-level `@.claude/rules/Accesibilidad.md`
+  include) were dropped outright — nothing auto-loads or references them now that `.claude/` no longer
+  exists; their intent lives in this file + `CODING_STANDARDS.md` instead. If you later need those two
+  agents back, OpenCode's equivalent lives under `.opencode/agents/*.md` (or the `agents` config field).

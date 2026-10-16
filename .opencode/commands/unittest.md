@@ -83,10 +83,10 @@ Sigue la **convención del framework**, no inventes rutas:
 - Si el proyecto **tiene** el framework y puede correr los tests, **ejecútalos** con la línea
   habitual (`./gradlew test`, `mvn test`, `npm test`, `pytest`, `go test ./...`, `cargo test`, …)
   y **arregla** los fallos hasta que pasen o, si no se pueden pasar, explica por qué.
-- Si el proyecto **no tiene** framework instalado (p. ej. un prototipo JS sin `package.json` ni
-  tests), **no fuerces** una instalación: indica claramente qué falta (fichero de build +
-  dependencia + comando) y entrega el test listo para ejecutarse en cuanto se añada, eligiendo la opción
-  de **cero configuración** si el lenguaje la tiene (`node:test`).
+- Si el proyecto **no tiene** framework instalado (p. ej. el prototipo JS de este repo, que no
+  trae `package.json` ni tests), **no fuerces** una instalación: indica claramente qué falta
+  (fichero de build + dependencia + comando) y entrega el test listo para ejecutarse en cuanto
+  se añada, eligiendo la opción de **cero configuración** si el lenguaje la tiene (`node:test`).
 - **No rompas** ficheros existentes: solo crea/añade el test y (si procede) la dependencia.
 
 ## 7. Reporta

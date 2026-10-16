@@ -1,9 +1,9 @@
 # Código & testing — Estándares del proyecto Mr Cheff (webapp)
 
-Vigentes a partir de 2026-10. Esta es la **fuente única** de los estándares de código y
-testing del MVP. `.claude/rules/CodingStandards.md` es un *pointer* hacia este archivo para
-que las herramientas que solo leen reglas (Claude Code, Continue dev) la carguen como include
-automático; este archivo tiene siempre prioridad si alguna versión está desactualizada.
+Vigentes a partir de 2026-10. Esta es la **fuente única** y canónica de los estándares de código y
+testing del MVP; `AGENTS.md` lo referencia como tal (sustituyendo al *pointer* previo
+`.claude/rules/CodingStandards.md`, ya eliminado junto a toda la carpeta `.claude/`). Este archivo
+tiene siempre prioridad si alguna versión está desactualizada.
 
 Aplica **solo a `webapp/`** del MVP de Mr Cheff. No aplica a `Scripts-Utilities/`, ni a ningún
 proyecto KMP/Android/iOS (no existe — ver AGENTS.md).
@@ -204,7 +204,7 @@ Antes de dar un change como terminable:
 - [ ] No se ha añadido dependencias (`package.json`) sin PR explícito justificándole; `node_modules/` sigue sin
       tracking por git (no `.gitignore` hoy — ver AGENTS.md, **nunca** `git add -A`).
 - [ ] Cambios de UI: texto en español + escapeHTML aplicado a nuevo contenido injectable.
-- [ ] `CLAUDE.md` / `AGENTS.md` actualizados si cambió arquitectura o comandos, para no quedar desactualizados.
+- [ ] `AGENTS.md` actualizado si cambió arquitectura o comandos/directorio de config (p. ej. `.opencode/commands/`, `.opencode/skills/`) para no quedar desactualizados; `CLAUDE.md` fue eliminado, ya no existe como referencia aparte.
 
 ---
 

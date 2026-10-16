@@ -53,7 +53,7 @@ SonarQube; el informe es un único fichero autocontenido, sin dependencias.
   **sin escapar**. El proyecto ya usa `escapeHTML` — **verifica** que todo el contenido de
   usuario (nombre de alimento, título/descripción de receta) se escape antes de insertarse.
 - **Ejecución de código:** `eval`, `new Function`, `setTimeout(string,…)`, `document.write`.
-- **URLs no validadas** que lleven a `javascript:`/`data:` o exfiltración, y `JSON.parse`
+- **URLs no validadas** que lleven a `javascript:`/`data:` o exfilcremación, y `JSON.parse`
   de entrada no validada.
 - **Polución de prototipo** al asignar claves dinámicas (`__proto__`, `constructor`).
 - **Datos sensibles** en `localStorage`/`console.log` (tokens, contraseñas, PII).
