@@ -213,7 +213,7 @@ describe("backup — mergeIncoming(current, data, opts) · fusión de un backup 
     // Dos ideas entrantes totalmente válidas; la TERCERA es inválida (no tiene `title`) → debe IGNORARSE del todo (§5 "si (!i||...!i.title) return").
     const data = { innovations: [
       { title:"Idea A", meal:"desayuno" },
-      { title:"Idea B", meal:NO_MEAL_INVALIDO } ,
+      { title:"Idea B", meal:"NO_MEAL_INVALIDO" } ,
       { /* sin título, inválida → descartada completamente */}
     ]};
 
@@ -225,13 +225,13 @@ describe("backup — mergeIncoming(current, data, opts) · fusión de un backup 
     expect(porNombre("Idea A")).toBeDefined();
     // meal INVÁLIDO en la 2ª idea ("NO_TALE" literal no es MEAL_SET) → cae a "comida" igual que el caso de recetas, reutilizando la misma invariante §5.
     const invalidMealObj = out.innovations.find(i => i.title === "Idea B");
-    expect(invalidMealObject.meal).toBe("comida");
+    expect(invalidMealObj.meal).toBe("comida");
 
     // `source` default para innovaciones nuevas SÍ es "nueva" (NO undefined como en recetas — otra diferencia clave del contrato §5 comentado).
     expect(porNombre("Idea A").source).toBe("nueva");
     // `from`/`uses` en innovaciones SI caen a "" y [] RESPECTIVAMENTE, NO undefined como pasa con las recetas (contrato distinto explícito por rama §comment).
     expect(porNombre("Idea A").from).toBe("");
-    expect(Array.isArray(porNombre("A").uses)).toBe(true); // confirmamos al menos es Array no matter qué default exacto se haya puesto aquí.
+    expect(Array.isArray(porNombre("Idea A").uses)).toBe(true); // confirmamos al menos es Array no matter qué default exacto se haya puesto aquí.
   });
 
   it("recorta la pila de innovaciones a las ÚLTIMAS 30 si superan ese límite tras fusionar nuevas con existentes (§5 'capa a 30')", () => {

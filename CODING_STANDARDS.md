@@ -157,7 +157,9 @@ Clipboard/FileReader). Umbrales de cobertura configurados: statements 70 / branc
 - Sin jsdom lo antes posible para estas unidades: si un "unit test" necesita lanzar `tests/boot.js` y cargar el
   app completo es señal que la lógica **no está bien separada del DOM** — refactorizar hasta lograr
   requerirla directa (esto es literalmente lo que §2-D pide).
-- Cobertura mínima por módulo nuevo/refactorizado: **≥80 lines / ≥75 branches** para el código *nuevo* de ese
+- Cobertura mínima por módulo nuevo/refactorizado: **≥80 lines / ≥75 branches** para el código 
+- Si creamos un nuevo fichero de tests tenemos que añadir la clase correspondiente sobre la que se hacen los tests en jest.config.js en collectCoverageFrom como una nueva entrada.
+*nuevo* de ese
   PR. Las cifras de cobertura globales (~65/70 %) se mantienen como piso del proyecto; pueden subirse 
   lentamente pero nunca reducirse sin justificación en §8.
 - Workflow del equipo (ver `.continue/prompts/unit-tests.md`): escribir specs → correr `cd webapp && npm run coverage`
@@ -165,6 +167,7 @@ Clipboard/FileReader). Umbrales de cobertura configurados: statements 70 / branc
 - **Determinismo**: tests no pueden depender de fecha real (`new Date()`), ni de `Date.now()`/random para ids en
   lógica: inyectar "hoy" y un `uid` provider cuando el código lo permita; si algún path exige reloj real, usar
   mocks/fakes de jsdom que ya existen en `tests/setup.js`.
+
 
 ### Capa 2 — Integración vía jsdom/harness · **OBLIGATORIA cuando el cambio atraviesa módulos**
 - Requerida cada vez que un PR toca más de uno módulo o altera el flujo DOM↔localStorage: guardar→recargar→re-render,

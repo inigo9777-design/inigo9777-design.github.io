@@ -30,8 +30,8 @@ models:
     context:
       - provider: code
     defaultCompletionOptions:
-      contextLength: 100000
-      maxTokens: 64000
+      contextLength: 65000
+      maxTokens: 60000
       keep_alive: 2800
     capabilities:
        - tool_use        # Llamada de herramientas
