@@ -19,9 +19,6 @@ prose is in `CLAUDE.md`. When docs and code disagree, **trust this file + the co
   `webapp/tests/` — one per module so far: `classify.test.js`, `priority.test.js`, `recipe-analysis.test.js`,
   `innovations.test.js`, plus harness scaffolding (`boot.js` / `setup.js`). As of the last run on 2026-10-16,
   the whole suite is green (`4 passed / 60 tests total`) — verify with a fresh run before trusting it: **logic
-  rewrites to any module that these specs cover (see `webapp/feature_plans/plan-inovacion-recetas-espanolas.md`
-  for the in-progress Innovation-redesign plan) are expected to leave some of those specs obsolete, pending their
-  own Phase-2 rewrite; a red suite after such a change is an intentional, documented intermediate state, not a regression.**
 - Note: there is **no `.gitignore`** and `webapp/node_modules/` is **untracked** — never `git add -A`
   it. `dataBackup/*.json` backups *are* tracked.
 
@@ -38,10 +35,6 @@ by `// ===== SECTION =====` banners. Files:
 Views: **Alimentos** (pantry/restock alerts) · **Recetas** (free-text → structured recipe) ·
 **Innovación** (invent recipes from the pantry) · **Temporada** (in-season fruit/veg by month) ·
 **Copia de seguridad** (cross-browser Export/Import — its own tab).
-
-### In-progress: `innovations.js` redesign (Phase 1 planned, not yet coded)
-See `webapp/feature_plans/plan-inovacion-recetas-espanolas.md` for the full approved design. Summary so a future
-reader isn't fooled by still-old code on disk until that PR lands:
 
 - New module **`webapp/modules/recetas-espanolas.data.js`** (IIFE + dual-export identical to `classify.js`/`priority.js`,
   loaded before `innovations.js`) holds a curated catalog of real, plausible everyday Spanish recipes. Each record is minimal:

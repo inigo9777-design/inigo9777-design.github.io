@@ -7,7 +7,11 @@ module.exports = {
   setupFilesAfterEnv: ["<rootDir>/tests/setup.js"],
   collectCoverageFrom: [
     "<rootDir>/app.js",
-    "<rootDir>/data/data.js"
+    "<rootDir>/data/data.js",
+    "<rootDir>/modules/classify.js",
+    "<rootDir>/modules/innovations.js",
+    "<rootDir>/modules/priority.js",
+    "<rootDir>/modules/recipe-analysis.js"
   ],
   coverageThreshold: {
     global: { statements: 70, branches: 65, functions: 70, lines: 70 }

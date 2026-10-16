@@ -2,7 +2,7 @@
 // Lógica PURe en cuanto a DOM y localStorage: NO toca el DOM ni almacena nada → testeable con Node/Jest sin jsdom,
 // igual que priority.js / classify.js / recipe-analysis.js. Ver CODING_STANDARDS §3 option A / DIP (§2-D).
 //
-// Nueva arquitectura (ver feature_plans/plan-inovacion-recetas-espanolas.md, Fase 1):
+// Nueva arquitectura:
 //   * Causa raíz del defecto reportado ("combos inventados no verosímiles", p.ej. "revuelto de ajos con yogur y cilantro"):
 //     los antiguos generadores COMBO/LIBRE/PROTAGONISTA ensamblaban ingredientes EN VIVO sobre arquetipos + estilos aleatorios,
 //     sin ninguna garantía culinaria en la salida. Se retiran en bloque (STYLES/TWISTS/FINISH/SEASONINGS/PREFIXES/ADJ/ARCHETYPES +
