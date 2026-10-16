@@ -1147,6 +1147,246 @@ return [
       "Rellena con salmón y queso.",
       "Decora con cebollino picado."
     ]
+  },
+  {
+    "id": "chuletillas-cordero-brasa",
+    "title": "Chuletillas de cordero a la brasa",
+    "meal": "comida",
+    "ingredients": ["Chuletillas de cordero", "Ajos", "Perejil", "Aceite de oliva", "Sal gorda", "Limón"],
+    "method": [
+      "Machaca ajos y perejil con aceite y pinta las chuletillas.",
+      "Calienta la parrilla o plancha hasta que humee.",
+      "Asa 3-4 minutos por cada lado según grosor.",
+      "Reposa un minuto y sirve con sal gorda y limón."
+    ]
+  },
+  {
+    "id": "pollo-ajillo",
+    "title": "Pollo al ajillo",
+    "meal": "comida",
+    "ingredients": ["Pollo troceado", "Ajos", "Vino blanco", "Laurel", "Aceite de oliva", "Sal"],
+    "method": [
+      "Dora el pollo en aceite con los ajos laminados.",
+      "Retira los ajos cuando estén dorados para que no amarguen.",
+      "Añade vino blanco y una hoja de laurel.",
+      "Cocina 25 minutos hasta que reduzca la salsa."
+    ]
+  },
+  {
+    "id": "merluza-romana",
+    "title": "Merluza a la romana",
+    "meal": "cena",
+    "ingredients": ["Lomos de merluza", "Harina", "Huevos", "Aceite de oliva", "Limón", "Sal"],
+    "method": [
+      "Seca bien los lomos de merluza y sálalos.",
+      "Pásalos por harina y luego por huevo batido.",
+      "Fríe en aceite bien caliente hasta dorar.",
+      "Escurre sobre papel y sirve con limón."
+    ]
+  },
+  {
+    "id": "revuelto-ajetes",
+    "title": "Revuelto de ajetes tiernos",
+    "meal": "cena",
+    "ingredients": ["Ajetes tiernos", "Huevos", "Aceite de oliva", "Sal", "Pan tostado"],
+    "method": [
+      "Limpia y trocea los ajetes.",
+      "Sofríe en aceite hasta que estén tiernos.",
+      "Añade los huevos batidos y remueve a fuego suave.",
+      "Retira cuando cuaje y sirve con pan tostado."
+    ]
+  },
+  {
+    "id": "empanadillas-atun",
+    "title": "Empanadillas de atún",
+    "meal": "comida",
+    "ingredients": ["Obleas de empanadilla", "Atún en aceite", "Cebolla", "Tomate frito", "Huevo", "Aceite"],
+    "method": [
+      "Pocha la cebolla picada fina hasta que esté transparente.",
+      "Añade tomate frito y atún escurrido, y cocina 5 minutos.",
+      "Rellena las obleas y ciérralas con un tenedor.",
+      "Fríe en aceite caliente o hornea 15 minutos a 200°C."
+    ]
+  },
+  {
+    "id": "san-jacobo",
+    "title": "San Jacobos de jamón y queso",
+    "meal": "comida",
+    "ingredients": ["Filetes finos de cerdo", "Jamón cocido", "Queso en lonchas", "Harina", "Huevo", "Pan rallado"],
+    "method": [
+      "Coloca jamón y queso entre dos filetes finos.",
+      "Presiona los bordes para que queden bien cerrados.",
+      "Empana pasando por harina, huevo y pan rallado.",
+      "Fríe en aceite caliente hasta que estén dorados."
+    ]
+  },
+  {
+    "id": "pechuga-empanada",
+    "title": "Pechuga de pollo empanada",
+    "meal": "comida",
+    "ingredients": ["Pechugas de pollo", "Harina", "Huevos", "Pan rallado", "Aceite de oliva", "Sal", "Pimienta"],
+    "method": [
+      "Abre las pechugas en filetes finos y salpimiéntalas.",
+      "Pasa cada filete por harina, huevo y pan rallado.",
+      "Fríe 3 minutos por lado en aceite caliente.",
+      "Escurre sobre papel absorbente y sirve."
+    ]
+  },
+  {
+    "id": "pollo-cerveza",
+    "title": "Pollo guisado a la cerveza",
+    "meal": "comida",
+    "ingredients": ["Muslos de pollo", "Cerveza", "Cebolla", "Ajos", "Laurel", "Aceite de oliva"],
+    "method": [
+      "Dora los muslos de pollo por todas sus caras.",
+      "Sofríe la cebolla y los ajos picados en la misma cazuela.",
+      "Añade la cerveza y el laurel, y lleva a ebullición.",
+      "Cocina a fuego lento 30 minutos hasta espesar."
+    ]
+  },
+  {
+    "id": "huevos-plato-tomate",
+    "title": "Huevos al plato con tomate",
+    "meal": "cena",
+    "ingredients": ["Huevos", "Tomates maduros", "Cebolla", "Ajo", "Aceite de oliva", "Perejil"],
+    "method": [
+      "Sofríe cebolla y ajo picados hasta dorar.",
+      "Añade tomate triturado y cocina 15 minutos.",
+      "Casca los huevos sobre la salsa y tapa la sartén.",
+      "Cocina 5 minutos hasta que cuajen y espolvorea perejil."
+    ]
+  },
+  {
+    "id": "chipirones-tinta",
+    "title": "Chipirones en su tinta",
+    "meal": "comida",
+    "ingredients": ["Chipirones", "Cebolla", "Ajos", "Tinta de calamar", "Caldo de pescado", "Harina", "Aceite"],
+    "method": [
+      "Sofríe cebolla y ajo picados muy finos.",
+      "Añade los chipirones limpios y enteros.",
+      "Disuelve la tinta en caldo y añádela.",
+      "Cocina 30 minutos y espesa con un poco de harina."
+    ]
+  },
+  {
+    "id": "boquerones-fritos",
+    "title": "Boquerones fritos",
+    "meal": "cena",
+    "ingredients": ["Boquerones frescos", "Harina", "Aceite de oliva", "Limón", "Sal"],
+    "method": [
+      "Limpia los boquerones quitando cabeza y tripas.",
+      "Pásalos por harina sacudiendo el exceso.",
+      "Fríe en aceite muy caliente en tandas pequeñas.",
+      "Escurre y sirve con unas gotas de limón."
+    ]
+  },
+  {
+    "id": "carne-guisada-patatas",
+    "title": "Carne guisada con patatas",
+    "meal": "comida",
+    "ingredients": ["Ternera para guisar", "Patatas", "Cebolla", "Zanahoria", "Vino tinto", "Caldo", "Aceite"],
+    "method": [
+      "Dora la carne troceada en aceite caliente.",
+      "Sofríe cebolla y zanahoria picadas.",
+      "Añade vino, caldo y cocina 1 hora y media.",
+      "Incorpora las patatas y cuece 25 minutos más."
+    ]
+  },
+  {
+    "id": "salchichas-sidra",
+    "title": "Salchichas a la sidra",
+    "meal": "cena",
+    "ingredients": ["Salchichas frescas", "Sidra", "Cebolla", "Ajos", "Aceite de oliva", "Pimienta"],
+    "method": [
+      "Dora las salchichas enteras en una sartén.",
+      "Retíralas y pocha cebolla y ajo en el mismo aceite.",
+      "Devuélvelas a la sartén y cubre con sidra.",
+      "Cocina 15 minutos hasta que la salsa reduzca."
+    ]
+  },
+  {
+    "id": "gambas-gabardina",
+    "title": "Gambas a la gabardina",
+    "meal": "cena",
+    "ingredients": ["Gambas peladas", "Harina", "Huevo", "Cerveza fría", "Levadura", "Aceite", "Sal"],
+    "method": [
+      "Prepara una masa ligera con harina, cerveza y levadura.",
+      "Seca bien las gambas y sálalas.",
+      "Pásalas por la masa dejando que escurra el exceso.",
+      "Fríe en aceite muy caliente hasta que doren."
+    ]
+  },
+  {
+    "id": "paletilla-cordero-horno",
+    "title": "Paletilla de cordero al horno",
+    "meal": "comida",
+    "ingredients": ["Paletilla de cordero", "Ajos", "Romero", "Vino blanco", "Aceite de oliva", "Sal"],
+    "method": [
+      "Adoba la paletilla con ajo, romero, aceite y sal.",
+      "Colócala en bandeja con un chorro de vino blanco.",
+      "Hornea tapada con papel a 170°C durante 2 horas.",
+      "Destapa los últimos 20 minutos para dorar la superficie."
+    ]
+  },
+  {
+    "id": "sepia-plancha",
+    "title": "Sepia a la plancha con alioli",
+    "meal": "cena",
+    "ingredients": ["Sepia limpia", "Ajos", "Perejil", "Aceite de oliva", "Limón", "Alioli"],
+    "method": [
+      "Seca bien la sepia y córtala en tiras gruesas.",
+      "Calienta la plancha a fuego muy fuerte.",
+      "Marca 3 minutos por lado sin moverla.",
+      "Sirve con alioli, perejil picado y limón."
+    ]
+  },
+  {
+    "id": "bacalao-dorado",
+    "title": "Bacalao dorado con patatas paja",
+    "meal": "comida",
+    "ingredients": ["Lomos de bacalao desalado", "Patatas", "Cebolla", "Huevos", "Aceite de oliva", "Aceitunas negras"],
+    "method": [
+      "Desmiga el bacalao desalado y resérvalo.",
+      "Fríe las patatas en tiras muy finas y escurre.",
+      "Pocha la cebolla y añade bacalao, patatas y huevos batidos.",
+      "Remueve a fuego suave hasta cuajar y decora con aceitunas."
+    ]
+  },
+  {
+    "id": "pinchos-morunos",
+    "title": "Pinchos morunos",
+    "meal": "cena",
+    "ingredients": ["Lomo de cerdo", "Pimentón dulce", "Comino", "Orégano", "Ajos", "Aceite de oliva", "Limón"],
+    "method": [
+      "Corta el lomo en dados regulares.",
+      "Marina con pimentón, comino, orégano, ajo y aceite 2 horas.",
+      "Ensarta los dados en brochetas apretados.",
+      "Hazlos a la plancha 8 minutos girando continuamente."
+    ]
+  },
+  {
+    "id": "trucha-navarra",
+    "title": "Trucha a la navarra con jamón",
+    "meal": "cena",
+    "ingredients": ["Truchas", "Jamón serrano", "Harina", "Aceite de oliva", "Limón", "Sal"],
+    "method": [
+      "Abre las truchas en mariposa y sazónalas.",
+      "Coloca una loncha de jamón dentro de cada una.",
+      "Pásalas por harina y dóralas en aceite caliente.",
+      "Cocina 4 minutos por lado y sirve con limón."
+    ]
+  },
+  {
+    "id": "huevos-plato-chorizo",
+    "title": "Huevos al plato con chorizo",
+    "meal": "desayuno",
+    "ingredients": ["Huevos", "Chorizo", "Pimentón dulce", "Aceite de oliva", "Pan de pueblo", "Sal"],
+    "method": [
+      "Corta el chorizo en rodajas y dóralas en cazuelita de barro.",
+      "Casca los huevos encima del chorizo.",
+      "Hornea 8 minutos a 200°C hasta que cuajen las claras.",
+      "Espolvorea pimentón y sirve con pan para mojar."
+    ]
   }
 ];
 
