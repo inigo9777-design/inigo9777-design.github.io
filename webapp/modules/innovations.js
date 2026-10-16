@@ -1,215 +1,326 @@
-// modules/innovations.js — Generación de "ideas" (recetas nuevas + variaciones) a partir del inventario.
+// modules/innovations.js — Propuesta de recetas ESPAÑOLAS REALES y cotidianas, sacadas del catálogo curado.
 // Lógica PURe en cuanto a DOM y localStorage: NO toca el DOM ni almacena nada → testeable con Node/Jest sin jsdom,
-// igual que priority.js / classify.js / recipe-analysis.js. Ver CODING_STANDARDS.md §3 option A / DIP (§2-D).
-// Se inyecta el estado por CONTEXTO en cada llamada (ctx = { foods, recipes, uid }) en lugar de cerrar sobre variables
-// del closure anterior de app.js: así el módulo es autónomo y testeable. `uid` se puede sobreescribir para pruebas
-// deterministas; si no se pasa cae a la misma fórmula que usaba app.js (comportamiento idéntico).
-// La clasificación por tipo se sigue consumiendo vía window.MRCheff.classify (mismo patrón de módulo-cruzado
-// por namespace que ya hacía app.js con makeCombo), para mantener el comportamiento bit-a-bit.
+// igual que priority.js / classify.js / recipe-analysis.js. Ver CODING_STANDARDS §3 option A / DIP (§2-D).
+//
+// Nueva arquitectura (ver feature_plans/plan-inovacion-recetas-espanolas.md, Fase 1):
+//   * Causa raíz del defecto reportado ("combos inventados no verosímiles", p.ej. "revuelto de ajos con yogur y cilantro"):
+//     los antiguos generadores COMBO/LIBRE/PROTAGONISTA ensamblaban ingredientes EN VIVO sobre arquetipos + estilos aleatorios,
+//     sin ninguna garantía culinaria en la salida. Se retiran en bloque (STYLES/TWISTS/FINISH/SEASONINGS/PREFIXES/ADJ/ARCHETYPES +
+//     makeVariation/makeCombo/makeFreeform/makeSolo). NO se fabrica jamás nada nuevo al vuelo: todo sale del catálogo curado fijo
+//     `window.MRCheff.recetasEspanolas` (ver data/recetas-espanolas-data.js), contenido que puede seguir creciendo con el tiempo.
+//   * Determinismo TOTAL de las primeras PRIORITY_SLOTS ideas (ranking estricto + tie-break estable) + un SLOTO ALEATORIO controlado
+//     sólo para descubrimiento genuino cuando se piden MÁS de 6, inyectable vía `ctx.rng` — precedente simétrico a la ya existente
+//     inyección opcional de `uid`; cierra elegantemente la tensión reproducibilidad(tests/CI) vs variabilidad-genuina(producción). §3.7.
+//   * La receta "guardada con estrella" en Mis Recetas queda EXCLUIDA absolutamente por un pre-filtro universal ANTES de cualquier método
+//     (§4.1): Jaccard=1.0 sobre el conjunto-ingredientes normalizado, + respaldo secundario por título exacto normalizado. Desaparece hasta
+//     que el usuario la elimina manualmente (auto-sanidad §3-extra: cada llamada recompute fresh sin caché → reaparece sola al borrarla).
+//   * Open/Closed: abandonar aquí el antiguo patrón multi-generador-por-`source` es una decisión EXPLÍCITAMENTE REGISTRADA para §8 de
+//     CODING_STANDARDS.md (ver §4.5 del plan), NO una omisión silenciosa; y la reescritura co-local obligatoria de sus specs se difiere a Fase 2.
+//
+// `generate(count, focus, state)` MANTIENE SU FIRMA PÚBLICA INVARIANTE: el único call-site es app.js (`~L445`), que sólo pasa
+// `{ foods, recipes }`; no necesita tocar nada (§7). Añade en `state` la opción opcional `rng` (default = Math.random real) y conserva
+// la inyección previa de `uid`. Cualquier campo extra desconocido en `focus`/`state` se ignora de forma tolerante (fallback defensivo §2).
 (function (root, factory) {
   const api = factory();
-  if (typeof module === "object" && module.exports) module.exports = api; // Jest / Node: require() directo desde tests.
-  root.MRCheff = root.MRCheff || {};                                        // Namespace global único y coherente.
+  if (typeof module === "object" && module.exports) module.exports = api; // Jest / Node: require() directo desde tests. API cerrada a sólo { generate }.
+  root.MRCheff = root.MRCheff || {};                                        // Namespace global único y coherente con el resto de módulos.
   Object.assign(root.MRCheff, { innovations: api });
 })(typeof self !== "undefined" ? self : this, function () {
 
-  // ---- Utilidades aleatorias (copiadas literal de app.js para no cambiar la semántica) ----
-  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-  const chance = p => Math.random() < p;
-  const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-  function shuffle(arr) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
+  // ---------------------------------------------------------------------------
+  // Constantes nombradas del scoring (NO números-mágicos ocultos). Valores INICIALES sugeridos / baselines, explícitamente
+  // etiquetados como baslines sujetas a re-sintonía posterior con feedback real de uso — coherente con "cambiaré la lógica probablemente".
+  // ---------------------------------------------------------------------------
+  const PRIORITY_SLOTS = 6;                 // (A) primeras posiciones SIEMPRE por ranking determinista estricto (§3.5). Umbral fijo, NO escala con `count`.
+  const W_HAVE_RATION      = 0.55;          // peso de "ya tengo en casa" vs total ingredientes del plato dentro del score pipeline.
+  const W_VARIETY_NUDGE    = 0.25;          // sesgo suave/serendipia hacia categorías alimentarias SUB-representadas en el historial de recetas guardadas.
+  const P_DUP_PENALTY      = 0.20;          // down-weight SUAVE (nunca exclusión) por Jaccard difuso [threshold,1.0) vs tus propias recetas.
+  // Umbral Jaccard para tratar una receta curada como "cuasi-duplicado conceptual NO idéntico" → penalización SUAVE sólo dentro de [threshold, 1.0).
+  const FUZZY_JACCARD_DUP_THRESHOLD = 0.65;
+  const IDEA_SOURCE_CANONICO = "curada";    // §4.4: nuevo valor canónico de `source` para esta feature (la UI Fase-2 añadirá su etiqueta en SOURCE_LABEL).
+  const NEUTRAL_VARIETY      = 0.5;         // value neutral del nudge cuando no hay historial de recetas guardadas → no distorsiona el ranking al inicio.
+
+  // Categorías alimentarias enumeradas FIJAS para el histograma del nudge. Nota: sólo la ENUMERACIÓN es interna; toda TAGGUEO/
+  // clasificación real se delega en `classify.classifyFood()` del módulo par (NUNCA re-inventamos taxonomía nueva, §4.2).
+  const CATEGORIES = ["proteina", "lacteo", "cereal", "fruta", "verdura", "especia", "otros"];
+
+  // ---------------------------------------------------------------------------
+  // Utilidad aleatoria por defecto (id): idéntica a la que usaba app.js; sólo entra en juego si no se inyecta un `uid` por contexto.
+  // ---------------------------------------------------------------------------
+  const defaultUid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  // ---------------------------------------------------------------------------
+  // Resolución de herramientas compartidas (normalizador + clasificador), una vez por llamada y de forma tolerante/decoduplable:
+  //   (1) inyectado por contexto (precedente uid/rng → desacopla a tests del cableado global, §3.7);
+  //   (2) namespace cruzado ya cargado en el navegador vía window.MRCheff (mismo idiom que heredaban los generadores viejos con `classify`);
+  //   (3) último reducto interno seguro si el módulo par no está cableado (ejecución aislada sin setup): normalizador NFD idéntico al de
+  //   classify.js + clasificador que devuelve siempre "otros" (degradación suave: varietyNudge cae a NEUTRAL, ranking intacto y determinista).
+  // ---------------------------------------------------------------------------
+  function resolveTooling(ctx) {
+    // (1) inyección por contexto — preferida para pruebas en aislamiento total.
+    if (ctx && typeof ctx.classifier === "function") {
+      return { norm: resolveNorm(ctx, null), classifyFood: ctx.classifier };
     }
-    return a;
+    // namespace global del resto de módulos (ya cargados ANTES que este módulo vía <script> en index.html).
+    const ns = pickGlobalMRCheff();
+    if (ns && ns.classify && typeof ns.classify.classifyFood === "function") {
+      return { norm: resolveNorm(ctx, ns), classifyFood: ns.classify.classifyFood };
+    }
+    // (3) reducto seguro sin taxonomía reinventada.
+    const norm = inlineNormalize;
+    return { norm, classifyFood: () => "otros" };
   }
-  const sample = (arr, n) => shuffle(arr).slice(0, Math.min(n, arr.length));
-  // Elige n alimentos distintos dándoles más probabilidad a los de mayor puntuación
-  function byScore(arr, n) {
-    const bag = [];
-    arr.forEach(f => { const w = Math.max(1, f.score || 5); for (let i = 0; i < w; i++) bag.push(f); });
-    const out = []; const used = new Set(); let attempts = 0;
-    while (out.length < n && attempts < n * 25) {
-      attempts++;
-      const f = pick(bag);
-      if (!used.has(f.id)) { used.add(f.id); out.push(f); }
+
+  function resolveNorm(ctx, ns) {
+    if (ctx && typeof ctx.norm === "function") return ctx.norm;               // inyección explícita
+    if (ns && ns.classify && typeof ns.classify.norm === "function") return ns.classify.norm; // reutiliza literalmente el de classify.js
+    return inlineNormalize;                                                  // mismo NFD+strip-combining-marks que el suyo
+  }
+
+  function pickGlobalMRCheff() {
+    if (typeof globalThis !== "undefined" && globalThis.MRCheff) return globalThis.MRCheff;
+    if (typeof window !== "undefined" && window.MRCheff) return window.MRCheff; // navegador / jsdom (tests que lo siemran)
+    if (typeof self !== "undefined" && self.MRCheff) return self.MRCheff;
+    return undefined;
+  }
+
+  // Normalizador fallback: idéntico en espíritu al de modules/classify.js (NFD + quitar combining marks).
+  const inlineNormalize = s => String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  // ---------------------------------------------------------------------------
+  // Resolución del catálogo curado (dataset real de recetas españolas): inyectable por contexto (tests) o tomado del namespace global
+  // cableado en index.html ANTES que este módulo. Sin catálogo => nada qué proponer NUNCA inventar (§1/§3.5: no se fabrica al vuelo).
+  // ---------------------------------------------------------------------------
+  function resolveCatalog(ctx) {
+    if (ctx && Array.isArray(ctx.recetasEspanolas)) return ctx.recetasEpan;      // inyección para tests
+    const ns = pickGlobalMRCheff();
+    if (ns && Array.isArray(ns.recetasEspan)) return ns.recetasEspan;            // window.MRCheff.recetasEspan
+    return undefined;
+  }
+
+  function getCatalogOrEmpty(ctx) {
+    const cat = resolveCatalog(ctx);
+    return Array.isArray(cat) ? cat : [];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helpers puros de scoring / filtrado §4.2 (reciben `norm`/`classifyFood` explicitamente para NO ocultar dependencias → testeables).
+  // ---------------------------------------------------------------------------
+
+  // Normaliza para comparación SIN acentos ni caracteres no alfanuméricos, colapsa espacios y recorta (para match de títulos/ingredientes).
+  function normForMatch(normFn, s) {
+    return String(s == null ? "" : s).normalize().trim();
+  }
+
+  // Clave/fingerprint ESTABLE e invariante-al-orden del conjunto-ingredientes normalizado; base para el Jaccard=1.0 absoluto (§4.3) y la
+  // dedup intra-lote. Usa `norm` compartido → acentos/orden/reordenamiento de lista no rompen ni falsean coincidencias.
+  function recipeIngredientKey(ingredients, normFn) {
+    const parts = (Array.isArray(ingredients) ? ingredients : [])
+      .map(x => normForMatch(normFn, x))
+      .filter(Boolean);
+    return parts.sort().join("¦"); // separador "¦" improbable en nombres de ingredientes → sin colisiones de concatenación
+  }
+
+  // ¿Esta receta curada ya está (exactamente) guardada por el usuario? Pre-filtro absoluto §4.1/§4.3:
+  //   - clave principal  == Jaccard=1.0 sobre su conjunto-ingredientes normalizado (userKeys);
+  //   - clave de respaldo == título exacto (normalizado, invariante en acentos) por si dos platos fueran idénticos de forma textualmente menor que la anterior.
+  function isHardExcludedByUser(recipe, userKeys, userTitles, normFn) {
+    const key = recipeIngredientKey(recipe && recipe.ingredients, normFn);
+    if (key && userKeys.has(key)) return true;
+    const title = normForMatch(normFn, recipe && recipe.title);
+    return !!title && userTitles.has(title);
+  }
+
+  // Jaccard entre dos conjuntos-ingredientes normalizados: |A∩B| / |A∪B| (0 si ambos vacíos).
+  function jaccard(aSet, bSet) {
+    if (!aSet.size && !bSet.size) return 0;
+    let inter = 0;
+    for (const x of aSet) if (bSet.has(x)) inter++;
+    const union = aSet.size + bSet.size - inter;
+    return union ? inter / union : 0;
+  }
+
+  // Máximo Jaccard de esta receta curada contra CUALQUIER receta guardada del usuario (§4.2 helper puro).
+  function maxJaccardWithAnyUserRecipe(recipe, userRecipes, normFn) {
+    if (!Array.isArray(userRecipes) || !userRecipes.length) return 0;
+    const aSet = new Set(
+      (recipe && recipe.ingredients ? recipe.ingredients : [])
+        .map(x => normForMatch(normFn, x)).filter(Boolean)
+    );
+    let max = 0;
+    for (const ur of userRecipes) {
+      if (!ur || !Array.isArray(ur.ingredients)) continue;
+      const bSet = new Set(ur.ingredients.map(x => normForMatch(normFn, x)).filter(Boolean));
+      max = Math.max(max, jaccard(aSet, bSet));
+    }
+    return max;
+  }
+
+  // "¿Qué ingredientes de este plato ya tienes de casa?". Match tolerante por nombre-normalizado (subcadena bidireccional ≥3 chars),
+  // para no penalizar en exceso plurales/prefijos menores (§4.2 not "haveRatio es NO bloqueante"). Vuelve los NOMBRES reales de alimentos
+  // que sí se usan, ya deduplicados → alimenta el campo `uses` ("🥣 Usa de tu casa") de la idea resultada.
+  function pantryMatchesForRecipe(recipe, foods, normFn) {
+    const out = [];
+    if (!(Array.isArray(foods) && foods.length)) return out;                 // "0 si foods vacío" (§4.2) → array vacío (haveRatio=0 implícito)
+    const ingrs = Array.isArray(recipe && recipe.ingredients) ? recipe.ingredients : [];
+    for (const raw of ingrs) {
+      const inNorm = normForMatch(normFn, raw);
+      if (!inNorm || inNorm.length < 2) continue; // ignora basura/vacío en el ingredientes del plato mismo
+      let matchedFoodName = null;
+      for (const f of foods) {
+        const fnNorm = normForMatch(normFn, f && f.name);
+        if (!fnNorm || fnNorm.length < 2) continue;
+        // Coinciden si un nombre contiene al otro (bimérico tolera plurales/prefijos como Ajo↔Ajos, "Pan"↔"Pan de barra").
+        if (inNorm.includes(fnNorm) || fnNorm.includes(inNorm)) { matchedFoodName = String(f.name); break; }
+      }
+      if (matchedFoodName != null && out.indexOf(matchedFoodName) === -1) out.push(matchedFoodName);
     }
     return out;
   }
-  const joinNames = list => list.length <= 1 ? list.join("") : list.slice(0, -1).join(", ") + " y " + list[list.length - 1];
 
-  // Generador de ids por defecto: idéntico al que usaba app.js (únicamente se usa si no se inyecta `uid`.
-  const defaultUid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-
-  // ---- Plantillas de cocina (estilo, toques y remates) ----
-  const STYLES = {
-    salteado: { name: "Salteado de", steps: ["Calienta aceite a fuego vivo.", "Saltea los ingredientes cortados hasta que queden tiernos y dorados.", "Ajusta de sal y pimienta y remueve."] },
-    alvapor:  { name: "Al vapor de", steps: ["Calienta una cazuela con un poco de agua.", "Coloca los ingredientes sobre el vapor y tapa.", "Cocina hasta que estén suaves y listos."] },
-    horno:    { name: "Al horno de", steps: ["Precalienta el horno a 200°C.", "Unta los ingredientes con un poco de aceite y especias.", "Asa hasta que estén dorados por fuera y tiernos por dentro."] },
-    plancha:  { name: "A la plancha de", steps: ["Calienta muy bien la plancha o la sartén.", "Pasa los ingredientes por la plancha unos minutos por cada lado.", "Sazona al gusto y sirve enseguida."] },
-    crudo:    { name: "En crudo de", steps: ["Corta todo de forma fina y uniforme.", "Colócalo con cuidado en el plato.", "Termina con un buen aliño y un toque de sal."] },
-    guiso:    { name: "Guiso de", steps: ["Pocha la base aromática a fuego lento.", "Añade el resto y cubre con un poco de líquido.", "Remueve de vez en cuando hasta integrar los sabores."] },
-    frito:    { name: "Frito de", steps: ["Calienta aceite en cantidad suficiente.", "Fríe con cuidado hasta que quede crujiente.", "Escurre en papel y salpimienta."] },
-    batido:   { name: "Batido de", steps: ["Pon los ingredientes en la batidora.", "Tritura hasta obtener una textura cremosa.", "Sirve frío y disfruta."] },
-    sopa:     { name: "Crema de", steps: ["Hierve el agua con la base aromática.", "Añade los ingredientes y cocina hasta que estén tiernos.", "Tritura si quieres una crema y sazona al gusto."] }
-  };
-  const STYLE_KEYS = Object.keys(STYLES);
-  const TWISTS = [
-    "un toque picante", "unas gotas de limón", "un chorrito de aceite de oliva virgen extra",
-    "hierbas frescas picadas", "un toque de ajo", "un punto ahumado",
-    "una pizca de miel para equilibrar", "pimentón para dar color",
-    "unas semillas por encima para textura", "un toque exótico de comino o cúrcuma",
-    "un toque cítrico de naranja", "un toque umami con un poco de salsa de soja"
-  ];
-  const FINISH = [
-    "Sirve bien caliente.", "Ideal como plato principal.", "Perfecto como entrante ligero.",
-    "Queda genial como snack.", "Servido con arroz o pan a elegir.", "También va bien en frío."
-  ];
-  const SEASONINGS = ["Sal", "Pimienta negra", "Aceite de oliva virgen extra", "Ajo", "Cebolla", "Perejil fresco", "Unas gotas de limón", "Pimentón", "Albahaca", "Comino"];
-  const PREFIXES = ["Variación", "Twist", "Reinventado", "Retoque", "Toque", "Versión", "Remix", "Relevo", "Improviso", "Relectura", "Reto"];
-  const ADJ = ["Exprés", "Casero", "de Mercado", "Fácil", "Sorprendente", "Vigoroso", "Crocante", "Suave", "Auténtico", "Creativo", "Del Día", "Improvisado", "Equilibrado", "Apetecible", "Rústico", "Festivo", "Ligero"];
-
-  // Archetipos: combinaciones que Mr Cheff monta si tiene alimentos del tipo correspondiente
-  const ARCHETYPES = [
-    { name: "Ensalada", meal: "comida", type: "verdura", min: 2, style: "crudo", finish: "aliñada con aceite, sal y un toque de limón" },
-    { name: "Salteado", meal: "cena", type: "verdura", min: 2, style: "salteado", finish: "servido con arroz o pasta de acompañamiento" },
-    { name: "Guiso", meal: "cena", type: "verdura", min: 2, style: "guiso", finish: "gustoso, servido bien caliente" },
-    { name: "Sopa o crema", meal: "cena", type: "verdura", min: 2, style: "sopa", finish: "caliente, con un chorrito de aceite" },
-    { name: "Batido", meal: "desayuno", type: "fruta", min: 1, style: "batido", finish: "frío, cremoso y refrescante" },
-    { name: "Fruta al horno", meal: "comida", type: "fruta", min: 1, style: "horno", finish: "con un poco de miel y canela" },
-    { name: "Fruta salteada", meal: "desayuno", type: "fruta", min: 1, style: "salteado", finish: "espolvoreada con canela" },
-    { name: "Tostada", meal: "desayuno", type: "lacteo", min: 1, style: "crudo", finish: "con tomate, un poco de aceite y sal" },
-    { name: "Repostería", meal: "desayuno", type: "cereal", min: 1, style: "horno", finish: "espolvoreada con azúcar" }
-  ];
-
-  // ---- Generadores de ideas (cada uno recibe el contexto { foods, recipes, uid }) ----
-  function baseIdea(source, meal, mkId) {
-    return { id: mkId(), title: "", meal, ingredients: [], method: [], source, uses: [], from: "", createdAt: Date.now() };
-  }
-  function buildMethod(style, finish) {
-    const steps = style.steps.slice();
-    if (chance(0.7)) steps.splice(randInt(1, steps.length), 0, `Añade ${pick(TWISTS)}.`);
-    steps.push(finish || pick(FINISH));
-    return steps;
+  // Fracción de ingredientes del plato ya presentes en el aforo del usuario: [0,1]. No bloquea nunca nada (§4.2).
+  function haveRatio(recipe, foods, normFn) {
+    const ingrs = Array.isArray(recipe && recipe.ingredients) ? recipe.ingredients : [];
+    if (!ingrs.length || !(Array.isArray(foods) && foods.length)) return 0;
+    return pantryMatchesForRecipe(recipe, foods, normFn).length / ingrs.length;
   }
 
-  // 1) Variación de una receta guardada al azar, cambiando un ingrediente por uno de casa
-  function makeVariation(ctx) {
-    const recipes = ctx.recipes;
-    if (!recipes.length) return null;
-    const r = pick(recipes);
-    const foods = ctx.foods;
-    const prefix = pick(PREFIXES);
-    const twist = pick(TWISTS);
-    const baseTitle = r.title.replace(/^(variacion|twist|reinventado|retoque|toque|version|remix|relevo|improviso|relectura|reto)\s+de\s+/i, "");
-    const ingredients = r.ingredients.slice();
-    const uses = [];
-    // Sustituye un ingrediente al azar por uno del inventario
-    if (foods.length && chance(0.75)) {
-      const home = pick(foods);
-      if (ingredients.length) ingredients[randInt(0, ingredients.length - 1)] = `${home.name} (sustituye a un ingrediente)`;
-      else ingredients.push(home.name);
-      uses.push(home.name);
+  // Histograma de categorías alimentarias a partir del historial de recetas guardadas del usuario (reusa classifyFood del módulo par para taggear,
+  // sin reinventar taxonomía nueva — §4.2). Vuelve { counts por categoría, total } normalizable en el consumidor.
+  function buildIngredientCategoryHistogram(userRecipes, classifyFood) {
+    const counts = {};
+    for (const c of CATEGORIES) counts[c] = 0;
+    let total = 0;
+    if (!Array.isArray(userRecipes)) return { counts, total };
+    for (const ur of userRecipes) {
+      if (!ur || !Array.isArray(ur.ingredients)) continue;
+      for (const ing of ur.ingredients) {
+        const cat = classifyFood(String(ing));
+        if (CATEGORIES.indexOf(cat) === -1) continue; // defensa: categoría externa inesperada
+        counts[cat]++; total++;
+      }
     }
-    // Añade un alimento de casa como guarnición
-    if (foods.length && chance(0.5)) {
-      const g = pick(foods);
-      if (!uses.includes(g.name)) { ingredients.push(`${g.name} para decorar`); uses.push(g.name); }
+    return { counts, total };
+  }
+
+  // Sesgo/serendipia hacia categorías alimentarias CON MENOS presencia en el historial del usuario (§4.2). Vuelve en [0,1]; más alto =
+  // "más raro" para ese usuário en esta categoría → discovery controlada. Si no hay histórico (total=0) o la receta no aporta ninguna
+  // categoría alimentaria identificable, cae a NEUTRAL_VARIETY: no debe distorsionar un ranking que aún no tiene nada de lo sesgar.
+  function varietyNudge(recipe, hist, classifyFood) {
+    if (!hist || !(hist.total > 0)) return NEUTRAL_VARIETY;
+    const dishCats = new Set();
+    const ingrs = Array.isArray(recipe && recipe.ingredients) ? recipe.ingredients : [];
+    for (const ing of ingrs) {
+      const cat = classifyFood(String(ing));
+      if (cat !== "otros" && CATEGORIES.indexOf(cat) !== -1) dishCats.add(cat);
     }
-    const method = r.method.slice();
-    method.splice(randInt(0, method.length), 0, `Innova: añade ${twist}.`);
-    method.push(`Toca final: ${twist}.`);
-    const idea = baseIdea("variacion", r.meal, ctx.uid);
-    idea.title = `${prefix} de ${baseTitle}: ${twist}`;
-    idea.ingredients = ingredients;
-    idea.method = method;
-    idea.uses = uses;
-    idea.from = r.title;
-    return idea;
+    if (!dishCats.size) return NEUTRAL_VARIETY; // ingredientes sin categoría alimentaria identificable → neutral, no sesgo artificial
+    let sum = 0;
+    for (const c of dishCats) {
+      const share = hist.counts[c] / hist.total;              // presencia relativa en el historial: [0,1]
+      sum += (1 - share);                                     // cuanto MENOS presente → mayor contribución al nudge
+    }
+    return sum / dishCats.size;                               // media ponderada por número de categorías que usa la receta ∈ [0,1]
   }
 
-  // 2) Combinación de un arquetipo con los alimentos que tienes en casa
-  function makeCombo(ctx) {
-    const foods = ctx.foods;
-    if (!foods.length) return null;
-    const arch = pick(ARCHETYPES);
-    const matching = foods.filter(f => window.MRCheff.classify.classifyFood(f.name) === arch.type);
-    if (matching.length < arch.min) return null;
-    const stars = sample(matching, randInt(arch.min, arch.min + 2));
-    const style = STYLES[arch.style] || pick(STYLES);
-    const extras = sample(SEASONINGS, randInt(1, 3));
-    const ingredients = [...stars.map(f => f.name), ...extras];
-    if (chance(0.5)) { const ex = sample(foods.filter(f => !stars.includes(f)), 1)[0]; if (ex) ingredients.push(`${ex.name} de extra`); }
-    const idea = baseIdea("combo", arch.meal, ctx.uid);
-    idea.title = `${pick(ADJ)} ${arch.name} ${joinNames(sample(stars, Math.min(2, stars.length)).map(f => f.name))}`.trim();
-    idea.ingredients = ingredients;
-    idea.method = buildMethod(style, arch.finish);
-    idea.uses = stars.map(f => f.name);
-    return idea;
+  // Score determinista completo del pipeline (§4.2), usado SOLO para las primeras PRIORITY_SLOTS ideas (NUNCA en el slot aleatorio):
+  //   score = W_HAVE_RATION·haveRatio + W_VARIETY_NUDGE·varietyNudge − P_DUP_PENALTY·(Jaccard difuso si ≥ umbral, 0 en caso contrario)
+  // El down-weight de "cuasi-duplicado" sólo actúa dentro del rango FUZZY [threshold,1.0): un match EXACTO ya fue excluido por el pre-filtro
+  // absoluto (§4.3), así que aquí `jd` siempre cae e (0,1) y no hay caso de exclusión — este helper es red de seguridad defensiva, no la vía principal.
+  function computeRecipeScore(recipe, ctx, hist, normFn, classifyFood) {
+    const hr = haveRatio(recipe, ctx.foods, normFn);
+    const vNudge = varietyNudge(recipe, hist, classifyFood);
+    let jd = maxJaccardWithAnyUserRecipe(recipe, ctx.recipes || [], normFn); // 0 si no hay histórico para comparar (sin penalización)
+    const penaltyTerm = jd >= FUZZY_JACCARD_DUP_THRESHOLD ? P_DUP_PENALTY * jd : 0; // solo dentro del rango difuso (§4.2 nota "solo cuenta si cae en [threshold,1.0)")
+    return W_HAVE_RATION * hr + W_VARIETY_NUDGE * vNudge - penaltyTerm;
   }
 
-  // 3) Creación libre: mezcla al azar de lo que hay en casa
-  function makeFreeform(ctx) {
-    const foods = ctx.foods;
-    if (foods.length < 2) return null;
-    const stars = byScore(foods, randInt(2, Math.min(4, foods.length)));
-    const style = STYLES[pick(STYLE_KEYS)];
-    const main = pick(stars);
-    const extras = sample(SEASONINGS, randInt(1, 3));
-    const idea = baseIdea("libre", pick(["desayuno", "comida", "cena"]), ctx.uid);
-    idea.title = `${pick(ADJ)} ${style.name} ${main.name}`.trim();
-    idea.ingredients = [...stars.map(f => f.name), ...extras];
-    idea.method = buildMethod(style);
-    idea.uses = stars.map(f => f.name);
-    return idea;
+  // Mapea una receta curada a la forma "idea" que ya consume app.js (compatibilidad de contrato §4.4/§5: id/title/meal/ingredients/method/source/uses/+from+createdAt).
+  // `uses` son las coincidencias reales del aforo (para el "🥣 Usa de tu casa"); `source` toma el nuevo valor canónico IDEA_SOURCE_CANONICO.
+  function toIdeaFromRecipe(recipe, ctx, uses) {
+    const mkId = (ctx.uid && typeof ctx.uid === "function") ? ctx.uid : defaultUid;
+    return {
+      id: mkId(),                                              // inyectable para tests deterministas (§2-D / §3.7); default idéntico al previo
+      title: String((recipe && recipe.title) || ""),
+      meal: recipe && recipe.meal || "comida",                 // el dataset garantiza dominio {desayuno,comida,cena} (verificado en validación del archivo curado)
+      ingredients: Array.isArray(recipe && recipe.ingredients) ? recipe.ingredients.slice() : [],
+      method: Array.isArray(recipe && recipe.method) ? recipe.method.slice() : [],
+      source: IDEA_SOURCE_CANONICO,                            // §4.4 — la UI lo tolera vía fallback "Idea" hasta Fase 2; no rompe el call-site de app.js
+      uses: (Array.isArray(uses)) ? uses.slice() : [],         // alimentos de casa que ya se usan en este plato (§ "Usa de tu casa")
+      from: "",                                                // NO hay receta-base para una propuesta curada → falsy, app.js no lo pinta (guard ${r.from? ...}) pero mantiene la forma §5 intacta
+      createdAt: Date.now()                                    // marca temporal del lote actual por llamada — sin caché entre llamadas (§3-extra auto-sanidad)
+    };
   }
 
-  // 4) Plato centrado en un solo ingrediente de casa
-  function makeSolo(ctx) {
-    const foods = ctx.foods;
-    if (!foods.length) return null;
-    const star = byScore(foods, 1)[0];
-    const style = STYLES[pick(STYLE_KEYS)];
-    const twist = pick(TWISTS);
-    const idea = baseIdea("protagonista", pick(["desayuno", "comida", "cena"]), ctx.uid);
-    idea.title = `${style.name} ${star.name}`.trim();
-    idea.ingredients = [star.name, ...sample(SEASONINGS, randInt(1, 3))];
-    idea.method = buildMethod(style, `Termina con ${twist}.`);
-    idea.uses = [star.name];
-    return idea;
-  }
-
-  // Monta un lote de ideas repartiendo entre los generadores que permitan el foco.
-  // Recibe el estado actual { foods, recipes } y (opcionalmente) un `uid` inyectable por contexto;
-  // la orquestación/dedup contra lo ya guardado y el recorte a 30 quedan en app.js (son mutación +
-  // persistencia = capa controladora, no lógica pura de "proponer").
+  // ---------------------------------------------------------------------------
+  // generate(count, focus, state) — FIRMA PÚBLICA INVARIANTE (§4.2 / §7). El único call-site es app.js que sólo pasa { foods, recipes }.
+  // `focus` se recibe para mantener compatibilidad con el contrato público, PERO ya no discrimina ramas: con un pool unificado de dataset+serendipia
+  // controlada (§3-extra, decisión §5 Fase-2 diferida), cualquier valor (incl. "todo"/"nuevas"/"variaciones"/desconocido) cae al mismo comportamiento total,
+  // sin romper nada: es la degradación segura por defecto que el plan exige explícitamente ("un focus desconocido se comporta como el modo por defecto 'todo'").
   function generate(count, focus, state) {
     const ctx = {
       foods: Array.isArray(state && state.foods) ? state.foods : [],
       recipes: Array.isArray(state && state.recipes) ? state.recipes : [],
-      uid: (state && typeof state.uid === "function") ? state.uid : defaultUid,
+      uid: (state && typeof state.uid === "function") ? state.uid : defaultUid,   // precedence existente
+      rng: (state && typeof state.rng === "function") ? state.rng : Math.random    // NUEVO: inyección opcional simétrica (§3.7); real en producción
     };
-    const gens = [];
-    if (focus !== "nuevas") gens.push(makeVariation);
-    if (focus !== "variaciones") gens.push(makeCombo, makeFreeform, makeSolo);
-    if (gens.length === 0) return [];
-    const out = [];
-    const seen = new Set();
-    let attempts = 0;
-    const maxAttempts = count * 40 + 50;
-    while (out.length < count && attempts < maxAttempts) {
-      attempts++;
-      const idea = pick(gens)(ctx);   // cada generador recibe el mismo contexto de estado
-      if (!idea) continue;
-      const key = idea.title.toLowerCase().trim();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(idea);
+
+    if (!Number.isFinite(count) || count < 1) return []; // guard: cantidad no válida/negativa → nada que proponer (equivale al viejo `maxAttempts` con 0 repeticiones)
+
+    const { norm: normFn, classifyFood } = resolveTooling(ctx);
+    const catalog = getCatalogOrEmpty(ctx);
+    if (!catalog.length) return [];                       // sin catálogo curado → nunca inventar nada (§1 coherencia total; no fabricamos al vuelo NUNCA)
+
+    // ---- PRE-FILTRO UNIVERSAL ABSOLUTO ANTES de cualquier método de selección ni prioridad ni azar lo saltan) ----
+    const userKeys = new Set((ctx.recipes || []).map(r => recipeIngredientKey(r && r.ingredients, normFn)).filter(Boolean));
+    const userTitles = new Set((ctx.recipes || []).map(r => normForMatch(normFn, r && r.title)).filter(Boolean));
+    const pool = catalog.filter(r => !isHardExcludedByUser(r, userKeys, userTitles, normFn)); // auto-sanidad §3-extra si se borra una guardada: reaparece al recomputar fresh
+    if (!pool.length) return [];                          // catálogo vacío o 100% exacto-guardado → nada que proponer sin inventar (§1 coherencia total)
+
+    // Histograma de preferencias por categorías para el nudge/serendipia (reusa classifyFood del módulo par; §4.2 "varietyNudge").
+    const hist = buildIngredientCategoryHistogram(ctx.recipes, classifyFood);
+
+    // ---------- (A) Primeras PRIORITY_SLOTS: RANKING DETERMINISTA ESTRUCTO + tie-break estable por `id` de dataset (§3.5) ----------
+    // Para cada receta del pool ya-no-excluido calculamos su score determinista y su lista "usos" (una sola pasada) y guardamos ambos en el objeto,
+    // evitando re-escanear 94×N ingredientes repetidamente; sólo las finalistas pasan por toIdeaFromRecipe al mapear la salida.
+    const rated = pool.map(r => {
+      return { recipe: r, uses: pantryMatchesForRecipe(r, ctx.foods, normFn), score: computeRecipeScore(r, ctx, hist, normFn, classifyFood) };
+    });
+    // Stable sort por (score desc, id asc): la comparación final cae al `id` del dataset, que es único y estable → orden determinista total garantizado SIN inyectar randomness.
+    rated.sort((a, b) => {
+      const s = (b.score - a.score);
+      if (s !== 0 && Number.isFinite(s)) return s;                 // por score principal desc
+      const ida = String(a.recipe.id || "");
+      const idb = String(b.recipe.id || "");
+      if (ida === idb) return 0;                                   // empate exacto de IDs
+      return ida < idb ? -1 : 1;                                   // tie-break estable por `id` del dataset (§3.5)
+    });
+
+    const outIdeas = [];
+    const alreadyPickedKeys = new Set();                          // garantiza NO repetir un plato ya elegido DENTRO del mismo lote (§3.5, "salida limpia")
+    const nPriority = Math.min(PRIORITY_SLOTS, count, rated.length);
+    for (let i = 0; i < rated.length && outIdeas.length < nPriority; i++) {
+      const key = recipeIngredientKey(rated[i].recipe.ingredients, normFn);
+      if (key && alreadyPickedKeys.has(key)) continue;            // salta duplicados de conjunto-ingredientes dentro del mismo lote (§3.5) — no repite el plato
+      outIdeas.push(toIdeaFromRecipe(rated[i].recipe, ctx, rated[i].uses));
+      if (key) alreadyPickedKeys.add(key);
     }
-    return out;
+
+    // ---------- (B) Si se pido MÁS de PRIORITY_SLOTS: SLOTO ALEATORIO UNIFORME del pool no-excluido y NO-yá-selected (§3.5/§4.2) ----------
+    // IGNORA TODO lo anterior (scoring/nudge/dedup-difuso): uniformemente sobre `remainingPool` = pool curado ya-no-eleccionado, con el único requisito extra de "no repetir un plato ya
+    // elegido" (garantía natural: al `splice` del array, nunca se repite por construcción). Respeta SOLO el pre-filtro absoluto absoluto y la dedup intra-lote.
+    if (count > PRIORITY_SLOTS && outIdeas.length < count) {
+      let remainingPool = pool.filter(r => !alreadyPickedKeys.has(recipeIngredientKey(r.ingredients, normFn)));
+      while (outIdeas.length < count && remainingPool.length > 0) {
+        const idx = Math.floor(ctx.rng() * remainingPool.length); // selección UNIFORME pura + inyectable via ctx.rng (§3.7)
+        const picked = remainingPool.splice(idx, 1)[0];           // splice: salida sin repeticiones intra-lote por construcción (splice consume la posición usada)
+        outIdeas.push(toIdeaFromRecipe(picked, ctx, pantryMatchesForRecipe(picked, ctx.foods, normFn)));
+      }
+    }
+
+    return outIdeas;
   }
 
+  // API PÚBLICA CERRADA (§5/§8: exposición estricta; no fugas de helpers internos) — el único export es `generate`.
   return { generate };
 });
