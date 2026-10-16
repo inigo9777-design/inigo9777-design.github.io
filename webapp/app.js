@@ -431,7 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const innovSummary = $("#innov-summary");
 
   innovCount.addEventListener("input", () => innovCountVal.textContent = innovCount.value);
-  const SOURCE_LABEL = { variacion: "Variación", combo: "Combinación", libre: "Creada", protagonista: "Enfocado", nueva: "Nueva" };
+  const SOURCE_LABEL = { curada: "Receta española", variacion: "Variación", combo: "Combinación", libre: "Creada", protagonista: "Enfocado", nueva: "Nueva" };
 
   btnGenerateInnov.addEventListener("click", () => {
     if (foods.length === 0 && recipes.length === 0) {

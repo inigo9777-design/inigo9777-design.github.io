@@ -45,6 +45,24 @@
   const CATEGORIES = ["proteina", "lacteo", "cereal", "fruta", "verdura", "especia", "otros"];
 
   // ---------------------------------------------------------------------------
+  // Perfiles de sesgo opcional por modo de selección (Fase 2 — §5 del plan + registro en CODING_STANDARDS §8). Mismo patrón ya
+  // establecido con uid/rng (§3.7): NO cambia nunca los baslines globales arriba (eso sigue siendo el DEFAULT equilibrado tal cual Fase
+  // 1); sólo modula el split ponderado haveRatio↔varietyNudge cuando una opción concreta de la UI lo activa por clave literal, sin distorsión
+  // alguna al modo omisión existente ("un focus desconocido cae a 'todo'" — invariante ya testada §3.5 se mantiene intacta).
+  // ---------------------------------------------------------------------------
+  const BIAS_PROFILES = {
+    // DEFAULT equilibrada: idéntica a los baslines globales de Fase 1, tal cual.
+    todo:        { haveRatioWeight: W_HAVE_RATION,   varietyNudgeWeight: W_VARIETY_NUDGE },
+    // Sesgo hacia NOVELTY / descubrimiento (reintepretación honesta del viejo "Solo recetas nuevas"): menos peso al "ya lo tienes en casa",
+    // más al nudge de serendipia → categorías poco cocinadas antes.
+    nuevas:      { haveRatioWeight: 0.35,            varietyNudgeWeight: 0.45 },
+    // Sesgo hacia FAMILIARIDAD (reintepretación honesta del viejo "Solo variaciones de mis recetas": mecanismo literal de "variar propia" ya no
+    // existe tras Fase 1; lo honesto superviviente = más platos cercanos a lo que se cocina ya, menos sorpresa).
+    variaciones: { haveRatioWeight: 0.75,            varietyNudgeWeight: 0.10 }
+  };
+
+
+  // ---------------------------------------------------------------------------
   // Utilidad aleatoria por defecto (id): idéntica a la que usaba app.js; sólo entra en juego si no se inyecta un `uid` por contexto.
   // ---------------------------------------------------------------------------
   const defaultUid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -82,6 +100,15 @@
     if (typeof window !== "undefined" && window.MRCheff) return window.MRCheff; // navegador / jsdom (tests que lo siemran)
     if (typeof self !== "undefined" && self.MRCheff) return self.MRCheff;
     return undefined;
+  }
+
+  // Resolver perfil de sesgo (Fase 2, §3.7/§8 CODING_STANDARDS): mismo precedent de inyección opcional por contexto que uid/rng, pero ADEMAS
+  // acepta directamente la clave literal del valor ya existente en la UI (`focus` = "todo"/"nuevas"/"variaciones") con el MISMO nombre exacto,
+  // sin necesidad de cambiar NADA en app.js (la wiring positional ya envía exactamente ese token — sólo se le da SIGNIFICADO nuevo).
+  function resolveBiasProfile(ctx) {
+    if (!ctx || !BIAS_PROFILES || !ctx.biasKey) return BIAS_PROFILES.todo;            // por OMISIÓN = DEFAULT equilibrado, tal cual Fase 1
+    const prof = BIAS_PROFILES[ctx.biasKey];
+    return prof && typeof prof.haveRatioWeight === "number" ? prof : BIAS_PROFILES.todo;  // desconocido/caído → sin distorsión alguna (§3.5)
   }
 
   // Normalizador fallback: idéntico en espíritu al de modules/classify.js (NFD + quitar combining marks).
@@ -229,15 +256,18 @@
   }
 
   // Score determinista completo del pipeline (§4.2), usado SOLO para las primeras PRIORITY_SLOTS ideas (NUNCA en el slot aleatorio):
-  //   score = W_HAVE_RATION·haveRatio + W_VARIETY_NUDGE·varietyNudge − P_DUP_PENALTY·(Jaccard difuso si ≥ umbral, 0 en caso contrario)
+  //   score = profile.haveRatioWeight·haveRatio + profile.varietyNudgeWeight·varietyNudge − P_DUP_PENALTY·(Jaccard difuso si ≥ umbral, 0 c.s.)
+  // El `profile` es OPCIONAL y DEFAULT = perfil "todo" idénico a los baslines globales de Fase 1 (sin distorsión por omisión, §5); sólo cambia el
+  // split ponderado haveRatio↔varietyNudge cuando la UI/llamada activa explícitamente otra clave (§3.7).
   // El down-weight de "cuasi-duplicado" sólo actúa dentro del rango FUZZY [threshold,1.0): un match EXACTO ya fue excluido por el pre-filtro
   // absoluto (§4.3), así que aquí `jd` siempre cae e (0,1) y no hay caso de exclusión — este helper es red de seguridad defensiva, no la vía principal.
-  function computeRecipeScore(recipe, ctx, hist, normFn, classifyFood) {
+  function computeRecipeScore(recipe, ctx, hist, normFn, classifyFood, profile) {
+    const p = profile || BIAS_PROFILES.todo;   // nunca cae a valores arbitrarios: DEFAULT equilibrado por omisión (§3.5/§5 Fase 2)
     const hr = haveRatio(recipe, ctx.foods, normFn);
     const vNudge = varietyNudge(recipe, hist, classifyFood);
     let jd = maxJaccardWithAnyUserRecipe(recipe, ctx.recipes || [], normFn); // 0 si no hay histórico para comparar (sin penalización)
     const penaltyTerm = jd >= FUZZY_JACCARD_DUP_THRESHOLD ? P_DUP_PENALTY * jd : 0; // solo dentro del rango difuso (§4.2 nota "solo cuenta si cae en [threshold,1.0)")
-    return W_HAVE_RATION * hr + W_VARIETY_NUDGE * vNudge - penaltyTerm;
+    return p.haveRatioWeight * hr + p.varietyNudgeWeight * vNudge - penaltyTerm;
   }
 
   // Mapea una receta curada a la forma "idea" que ya consume app.js (compatibilidad de contrato §4.4/§5: id/title/meal/ingredients/method/source/uses/+from+createdAt).
@@ -258,16 +288,19 @@
   }
 
   // ---------------------------------------------------------------------------
-  // generate(count, focus, state) — FIRMA PÚBLICA INVARIANTE (§4.2 / §7). El único call-site es app.js que sólo pasa { foods, recipes }.
-  // `focus` se recibe para mantener compatibilidad con el contrato público, PERO ya no discrimina ramas: con un pool unificado de dataset+serendipia
-  // controlada (§3-extra, decisión §5 Fase-2 diferida), cualquier valor (incl. "todo"/"nuevas"/"variaciones"/desconocido) cae al mismo comportamiento total,
-  // sin romper nada: es la degradación segura por defecto que el plan exige explícitamente ("un focus desconocido se comporta como el modo por defecto 'todo'").
+  // generate(count, focus, state) — FIRMA PÚBLICA INVARIANTE (§4.2 / §7): el único call-site es app.js que sólo pasa { foods, recipes },
+  // y NADA de la wiring positional ni de sus claves ya usadas (uid/rng/focus) tiene que cambiar ahí para este mecanismo — `focus` ya llevaba
+  // exactamente la clave literal ("todo"/"nuevas"/"variaciones") que ahora SÍ se le da SIGNIFICADO concreto (perfil de sesgo ponderado, §5).
+  // Un valor NO reconocido cae al DEFAULT equilibrado "todo" tal cual Fase 1 (invariante defensivo intacto; coherencia con el test ya existente).
   function generate(count, focus, state) {
     const ctx = {
       foods: Array.isArray(state && state.foods) ? state.foods : [],
       recipes: Array.isArray(state && state.recipes) ? state.recipes : [],
       uid: (state && typeof state.uid === "function") ? state.uid : defaultUid,   // precedence existente
-      rng: (state && typeof state.rng === "function") ? state.rng : Math.random    // NUEVO: inyección opcional simétrica (§3.7); real en producción
+      rng: (state && typeof state.rng === "function") ? state.rng : Math.random    // inyección opcional simétrica (§3.7); real en producción
+      , norm: (state && typeof state.norm === "function") ? state.norm : undefined            // inyección aislada para tests (§3.7, par classify.js)
+      , classifier: (state && typeof state.classifier === "function") ? state.classifier : undefined // clasificación por ingrediente inyectable (varietyNudge/histogram, §4.2)
+      , recetasEspanolas: Array.isArray(state && state.recetasEspanolas) ? state.recetasEspanolas : undefined // catálogo inyectable en aislamiento total (§3.7/§4.1); NUNCA usado por la vía de producción (app.js sólo pasa {foods, recipes})
     };
 
     if (!Number.isFinite(count) || count < 1) return []; // guard: cantidad no válida/negativa → nada que proponer (equivale al viejo `maxAttempts` con 0 repeticiones)
@@ -285,11 +318,18 @@
     // Histograma de preferencias por categorías para el nudge/serendipia (reusa classifyFood del módulo par; §4.2 "varietyNudge").
     const hist = buildIngredientCategoryHistogram(ctx.recipes, classifyFood);
 
+    // Perfil de sesgo ponderado opcional (Fase 2, §5): DEFAULT equilibrado tal cual Fase 1 si no se activa ninguna clave reconocida; SÓLO afecta
+    // al SCORE del ranking, NUNCA al pre-filtro/dedup/serendipia (§B) — la exclusión absoluta y el pool ya-no-repeat siguen idénticos para todo perfil.
+    const biasKey = (state && typeof state.bias === "string" ? state.bias
+                  : (typeof focus === "string" ? focus : undefined));   // override opcional por inyección explícita (precedente uid/rng, §3.7)
+    ctx.biasKey = biasKey;
+    const profile = resolveBiasProfile(ctx);
+
     // ---------- (A) Primeras PRIORITY_SLOTS: RANKING DETERMINISTA ESTRUCTO + tie-break estable por `id` de dataset (§3.5) ----------
     // Para cada receta del pool ya-no-excluido calculamos su score determinista y su lista "usos" (una sola pasada) y guardamos ambos en el objeto,
     // evitando re-escanear 94×N ingredientes repetidamente; sólo las finalistas pasan por toIdeaFromRecipe al mapear la salida.
     const rated = pool.map(r => {
-      return { recipe: r, uses: pantryMatchesForRecipe(r, ctx.foods, normFn), score: computeRecipeScore(r, ctx, hist, normFn, classifyFood) };
+      return { recipe: r, uses: pantryMatchesForRecipe(r, ctx.foods, normFn), score: computeRecipeScore(r, ctx, hist, normFn, classifyFood, profile) };
     });
     // Stable sort por (score desc, id asc): la comparación final cae al `id` del dataset, que es único y estable → orden determinista total garantizado SIN inyectar randomness.
     rated.sort((a, b) => {

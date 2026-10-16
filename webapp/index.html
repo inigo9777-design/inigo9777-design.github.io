@@ -134,7 +134,7 @@
         <section id="view-innovation" class="view">
             <div class="card">
                 <h2>Innovación</h2>
-                <p class="muted">Mr Cheff <strong>inventa</strong> recetas nuevas a partir de <strong>lo que tienes en casa</strong> y crea <strong>variaciones</strong> de tus recetas. Cada "Generar ideas" tira un <strong>nuevo lote al azar</strong>: cuantos más alimentos tengas, más ideas y más sorprendentes. Ajusta cuántas ideas y de qué tipo quieres.</p>
+                <p class="muted">Mr Cheff te propone <strong>recetas españolas reales</strong> de un catálogo curado, ordenadas por lo que mejor encaja con <strong>lo que ya tienes en casa y la cocina que sueles hacer</strong>. Puedes pedir más o menos ideas y ajustar el sesgo: mezcla equilibrada, descubrir platos nuevos/distintos a los que repites, o priorizar parientes cercanos de lo que ya manejas bien. Cada lote incluye un toque de serendipia para no quedarse siempre en lo mismo.</p>
                 <div class="row-form">
                     <div class="qty-group">
                         <label for="innov-count">Ideas por lote: <span id="innov-count-val">8</span></label>
@@ -147,10 +147,10 @@
                     </div>
                     <div class="qty-group">
                         <label for="innov-focus">Tipo de ideas</label>
-                        <select id="innov-focus">
-                            <option value="todo">Todo mezclado</option>
-                            <option value="nuevas">Solo recetas nuevas (de casa)</option>
-                            <option value="variaciones">Solo variaciones de mis recetas</option>
+                        <select id="innov-focus" title="Ajusta qué tipo de receta española prefiere proponerte (todos los datos salen de un catálogo curado, nunca de combinaciones inventadas al vuelo)">
+                            <option value="todo">Mezcla equilibrada (por defecto)</option>
+                            <option value="nuevas">Prioriza platos nuevos / distintos a lo que repites</option>
+                            <option value="variaciones">Prioriza platos parecidos a los que ya manejas bien</option>
                         </select>
                     </div>
                     <button id="btn-generate-innov" class="btn primary">✨ Generar ideas</button>
