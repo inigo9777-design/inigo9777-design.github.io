@@ -11,7 +11,9 @@ module.exports = {
     "<rootDir>/modules/classify.js",
     "<rootDir>/modules/innovations.js",
     "<rootDir>/modules/priority.js",
-    "<rootDir>/modules/recipe-analysis.js"
+    "<rootDir>/modules/recipe-analysis.js",
+    "<rootDir>/modules/backup.js",
+    "<rootDir>/modules/util.js",
   ],
   coverageThreshold: {
     global: { statements: 70, branches: 65, functions: 70, lines: 70 }
