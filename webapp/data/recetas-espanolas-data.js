@@ -907,6 +907,246 @@ return [
       "Añade huevo y coco.",
       "Refrigerar 4 horas mínimo."
     ]
+  },
+  {
+    "id": "lengua-bistec",
+    "title": "Lengua a la bisteca",
+    "meal": "comida",
+    "ingredients": ["Lengua de ternera", "Cebolla", "Tomate triturado", "Vino blanco", "Caldo", "Pimienta"],
+    "method": [
+      "Cuece la lengua 2 horas hasta tierna.",
+      "Pela y corta en tiras.",
+      "Dora cebolla en cazuela.",
+      "Añade lengua, tomate y vino."
+    ]
+  },
+  {
+    "id": "solomillo-pepitoria",
+    "title": "Solomillo en pepitoria",
+    "meal": "comida",
+    "ingredients": ["Solomillo cerdo", "Leche", "Amarillos huevo", "Almendras tostadas", "Azafrán", "Pan frito"],
+    "method": [
+      "Dora el solomillo troceado.",
+      "Tritura almendras con pan frito.",
+      "Mezcla con leche caliente.",
+      "Incorpora yemas y azafrán."
+    ]
+  },
+  {
+    "id": "hamburguesa-sevilla",
+    "title": "Hamburguesa de carne sevillana",
+    "meal": "comida",
+    "ingredients": ["Carne vacuno picada", "Huevo", "Pan rallado", "Ajo", "Perejil", "Aceite oliva"],
+    "method": [
+      "Mezcla carne con huevo y especias.",
+      "Forma hamburguesas a mano.",
+      "Fríe 4 minutos por lado.",
+      "Sirve con patatas alioli."
+    ]
+  },
+  {
+    "id": "trucha-río",
+    "title": "Trucha al horno con limón",
+    "meal": "cena",
+    "ingredients": ["Truchas frescas", "Limones", "Ajos", "Perejil", "Vino blanco", "Aceite"],
+    "method": [
+      "Limpia y sazona las truchas.",
+      "Coloca rodajas de limón encima.",
+      "Rocía con aceite y ajo picado.",
+      "Hornear 20 minutos a 180°C."
+    ]
+  },
+  {
+    "id": "conejo-salsa",
+    "title": "Conejo a la cazuela",
+    "meal": "comida",
+    "ingredients": ["Conejo troceado", "Zanahorias", "Cebolla", "Vino tinto", "Tomate", "Laurel"],
+    "method": [
+      "Sella el conejo en todas sus caras.",
+      "Dora cebolla y zanahorias.",
+      "Añade vino y tomate triturado.",
+      "Cocina lento 1 hora y media."
+    ]
+  },
+  {
+    "id": "lubina-papel",
+    "title": "Lubina en papillote",
+    "meal": "cena",
+    "ingredients": ["Lubina filetes", "Pimiento rojo", "Pimiento verde", "Cebolla", "Limón", "Eneldo"],
+    "method": [
+      "Filetea la lubina sin piel.",
+      "Trocea vegetales finamente.",
+      "Envuelve en papel aluminio.",
+      "Hornea 15 minutos a 200°C."
+    ]
+  },
+  {
+    "id": "sextuple-omelette",
+    "title": "Huevos rotos con jamón",
+    "meal": "comida",
+    "ingredients": ["Patatas", "Huevos", "Jamón serrano", "Aceite oliva", "Sal"],
+    "method": [
+      "Frié patatas en láminas finas.",
+      "Fry dos huevos aparte.",
+      "Coloca patatas en plato.",
+      "Rompe huevos encima y añade jamón."
+    ]
+  },
+  {
+    "id": "bacalao-albahaca",
+    "title": "Bacalao con tomate y albahaca",
+    "meal": "cena",
+    "ingredients": ["Lomos bacalao", "Tomates maduros", "Albahaca fresca", "Ajo", "Aceite", "Vinagre"],
+    "method": [
+      "Desala bacalao 24 horas.",
+      "Tuesta tomates al fuego.",
+      "Pelea tomates y tritura.",
+      "Cocina bacalao con salsa 10 min."
+    ]
+  },
+  {
+    "id": "filete-marsala",
+    "title": "Filete de ternera al marsala",
+    "meal": "comida",
+    "ingredients": ["Filetes ternera", "Vino marsala", "Setas", "Mantequilla", "Perejil", "Harina"],
+    "method": [
+      "Pasa filetes por harina.",
+      "Sella a fuego fuerte.",
+      "Añade setas y vino.",
+      "Reduce y termina con mantequilla."
+    ]
+  },
+  {
+    "id": "salmón-plancha",
+    "title": "Salmón con mantequilla cítrica",
+    "meal": "cena",
+    "ingredients": ["Filetes salmón", "Mantequilla", "Limón", "Eneldo", "Pimienta negra", "Sal"],
+    "method": [
+      "Sazona salmón por ambos lados.",
+      "Sella piel abajo primero.",
+      "Gira y cocina 3 minutos más.",
+      "Termina con mantequilla derretida."
+    ]
+  },
+  {
+    "id": "pollo-estofado",
+    "title": "Pollo estofado con verduras",
+    "meal": "comida",
+    "ingredients": ["Pollo troceado", "Pimientos", "Zanahoria", "Cebolla", "Vino blanco", "Tomate"],
+    "method": [
+      "Dora pollo en cazuela.",
+      "Sofríe verduras picadas.",
+      "Añade vino y tomate.",
+      "Cocina lento 45 minutos."
+    ]
+  },
+  {
+    "id": "huevos-huevo",
+    "title": "Huevos rellenos de atún",
+    "meal": "cena",
+    "ingredients": ["Huevos duros", "Atún en conserva", "Mayonesa", "Cebolleta", "Pimentón", "Aceite"],
+    "method": [
+      "Cuece huevos 10 minutos.",
+      "Partir y quitar yemas.",
+      "Mezcla yemas con atún.",
+      "Rellena y pica cebolleta."
+    ]
+  },
+  {
+    "id": "carnes-asadas",
+    "title": "Carne asada a la brasa",
+    "meal": "comida",
+    "ingredients": ["Costillar cerdo", "Romero", "Tomillo", "Ajo", "Sal gorda", "Aceite"],
+    "method": [
+      "Marina carne 2 horas con hierbas.",
+      "Precalienta parrilla muy caliente.",
+      "Asa 20 minutos girando.",
+      "Deja reposar antes cortar."
+    ]
+  },
+  {
+    "id": "mejillones-vapor",
+    "title": "Mejillones al vapor",
+    "meal": "cena",
+    "ingredients": ["Mejillones vivos", "Vino blanco", "Cebolla", "Ajos", "Perejil", "Tomates"],
+    "method": [
+      "Lava mejillones bajo agua fría.",
+      "Dora cebolla y ajo en olla.",
+      "Añade vino y coloca mejillones.",
+      "Cocina tapado 5 minutos."
+    ]
+  },
+  {
+    "id": "cigala-salsa",
+    "title": "Cigalas en salsa marinera",
+    "meal": "comida",
+    "ingredients": ["Cigalas", "Vino blanco", "Cebolla", "Tomate", "Ajos", "Perejil"],
+    "method": [
+      "Sofríe cebolla y ajo.",
+      "Añade tomate y reduce.",
+      "Introduce cigalas vivas.",
+      "Cocina 8 minutos removiendo."
+    ]
+  },
+  {
+    "id": "cerdo-lomo",
+    "title": "Lomo de cerdo a la mostaza",
+    "meal": "comida",
+    "ingredients": ["Lomo cerdo entero", "Mostaza antigua", "Vino blanco", "Nata", "Pimienta negra"],
+    "method": [
+      "Sella lomo en todas caras.",
+      "Mezcla mostaza con vino.",
+      "Cuece lomo 40 minutos.",
+      "Termina salsa con nata."
+    ]
+  },
+  {
+    "id": "huevos-costra",
+    "title": "Huevos a la costra",
+    "meal": "comida",
+    "ingredients": ["Huevos", "Jamón york", "Queso fundir", "Pimiento", "Cebolla", "Aceite"],
+    "method": [
+      "Saltea pimiento y cebolla.",
+      "Añade jamón cortado.",
+      "Incorpora huevos batidos.",
+      "Gratina queso hasta dorar."
+    ]
+  },
+  {
+    "id": "dorada-horno",
+    "title": "Dorada al horno estilo griego",
+    "meal": "cena",
+    "ingredients": ["Doradas enteras", "Tomates cherry", "Aceitunas negras", "Orégano", "Limón", "Aceite"],
+    "method": [
+      "Limpia y haz cortes en dorada.",
+      "Rellena con rodajas limón.",
+      "Coloca tomates y aceitunas.",
+      "Hornear 25 minutos a 190°C."
+    ]
+  },
+  {
+    "id": "huevos-perdidos",
+    "title": "Huevos perdidos con morcilla",
+    "meal": "cena",
+    "ingredients": ["Huevos", "Morcilla asturiana", "Pan casero", "Cebolla", "Aceite", "Sal"],
+    "method": [
+      "Freír pan hasta crujiente.",
+      "Saltea morcilla sin piel.",
+      "Añade cebolla caramelizada.",
+      "Cubre con huevos pochados."
+    ]
+  },
+  {
+    "id": "tortilla-campos",
+    "title": "Tortilla francesa con salmón",
+    "meal": "desayuno",
+    "ingredients": ["Huevos", "Salmón ahumado", "Queso crema", "Cebollino", "Mantequilla", "Pimienta"],
+    "method": [
+      "Bate huevos con sal.",
+      "Cocina tortilla en mantequilla.",
+      "Rellena con salmón y queso.",
+      "Decora con cebollino picado."
+    ]
   }
 ];
 
