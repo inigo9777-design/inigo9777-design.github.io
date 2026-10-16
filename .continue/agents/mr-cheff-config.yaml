@@ -27,6 +27,8 @@ models:
       - edit
       - apply
       - autocomplete
+    context:
+      - provider: code
     defaultCompletionOptions:
       contextLength: 100000
       maxTokens: 64000
