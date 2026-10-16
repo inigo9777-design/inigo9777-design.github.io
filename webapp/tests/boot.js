@@ -30,7 +30,7 @@ function bootApp(opts = {}) {
 
   // Load data.js then app.js in the SAME global context as the DOM.
   const { window } = dom;
-  runScriptInWindow(window, read("data.js"));
+  runScriptInWindow(window, read("data/data.js"));
   runScriptInWindow(window, read("app.js"));
 
   // Fire DOMContentLoaded so app.js' big callback runs.

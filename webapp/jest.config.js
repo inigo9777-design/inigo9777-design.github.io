@@ -7,7 +7,7 @@ module.exports = {
   setupFilesAfterEnv: ["<rootDir>/tests/setup.js"],
   collectCoverageFrom: [
     "<rootDir>/app.js",
-    "<rootDir>/data.js"
+    "<rootDir>/data/data.js"
   ],
   coverageThreshold: {
     global: { statements: 70, branches: 65, functions: 70, lines: 70 }
