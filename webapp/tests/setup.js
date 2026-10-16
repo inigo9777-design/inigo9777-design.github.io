@@ -35,3 +35,17 @@ if (!window.FileReader) {
     abort() {}
   };
 }
+
+// Matcher mínimo toHaveSize (Jest core no lo incluye y no hay jest-extended en deps):
+// comprueba el tamaño de un array/Set/Map/objeto con propiedad length o size.
+expect.extend({
+  toHaveSize(received, expected) {
+    const pass = received != null &&
+      (typeof received.length === "number" || typeof received.size === "number") &&
+      ((received.size ?? received.length) === expected);
+    return {
+      pass,
+      message: () => `expected ${this.utils.printReceived(received)} to have size ${expected}`,
+    };
+  },
+});
