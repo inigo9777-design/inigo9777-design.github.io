@@ -22,5 +22,22 @@
     return q <= m;
   };
 
-  return { urgencyLevel, needsRestock };
+  // Decide CÓMO SE PRESENTA la alerta semanal de reposición a partir del inventario: qué alimentos entran, en qué orden
+  // (más importante primero), con qué ICONO/TÍTULO y nivel visual dominante (el de AL primer elemento tras ordenar).
+  // Lógica PURA sin DOM/localStorage (testeable aislado como el resto del módulo): devuelve { show, level, icon, title,
+  // items }; la capa de vista sólo pinta `items` a HTML. El "capa a 8" (§5: "el aviso semanal ... CApa A 8") vive aquí, no en la UI.
+  const buildWeeklyAlert = function (foods) {
+    // Sale en la alerta si NO está marcado y necesita reponer; ordenamos desc por importancia para que el más urgente mande color/título.
+    const toRestock = foods.filter(f => !f.checked && needsRestock(f)).slice().sort((a, b) => b.score - a.score);
+    if (!toRestock.length) return { show: false };
+    // El color de la alerta lo marca la importancia del alimento MÁS URGENTE (el primero tras el sort por score).
+    const level = urgencyLevel(toRestock[0].score);
+    const icon  = level === "red" ? "🚨" : level === "orange" ? "⚠️" : "🛒";
+    const title = level === "red" ? "Repuestos urgentes esta semana"
+               : level === "orange" ? "Reposición recomendada"
+               : "Sugerencia de compra";
+    return { show: true, level, icon, title, items: toRestock.slice(0, 8) };
+  };
+
+  return { urgencyLevel, needsRestock, buildWeeklyAlert };
 });

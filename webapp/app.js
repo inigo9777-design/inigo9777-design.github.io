@@ -61,10 +61,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // cuando efectivamente hay algo nuevo que mostrar. Precedente identico al 'innovDay !== today' mas arriba (ver DIP, sec 2-D).
   let recetasDirty = false;
   // ===== HELPERS =====
+  // uid() y escapeHTML() viven en modules/util.js, lógica PURa (sin DOM ni localStorage) anti-XSS e id-generación; ver
+  // CODING_STANDARDS.md §3 option A / DIP y el patrón idéntico de priority.classify.recipeAnalysis.innovations bajo window.MRCheff.*.
+  const { escapeHTML, uid } = window.MRCheff.util;
+
+  // $/$$ son helpers DE VISTA (manipulan el DOM) → NO lógica de decisión: quedan en este closure como antes.
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
-  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  const escapeHTML = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 
   // Toast
   const toastEl = $("#toast");
@@ -150,9 +153,10 @@ document.addEventListener("DOMContentLoaded", () => {
     renderWeeklyAlert();
   });
 
-  // Lógica de urgencia/reposición extraída al módulo puro modules/priority.js (sin DOM ni localStorage).
-  // Se consume aquí para que el resto de la app se comporte idénticamente. Ver CODING_STANDARDS.md §3 option A / DIP:
-  const { urgencyLevel, needsRestock } = window.MRCheff.priority;
+  // Lógica de urgencia/reposición extraída al módulo puro modules/priority.js (sin DOM ni localStorage). Se consume para que el
+  // resto de la app se comporte idénticamente. Ver CODING_STANDARDS.md §3 option A / DIP y §5 "alimentos/alerta semanal":
+  // urgencyLevel = color por item; buildWeeklyAlert = decide qué entra/presenta (icono/título/orden/CAPA-A-8) — lógica PURe, testeable sin DOM.
+  const { urgencyLevel, buildWeeklyAlert } = window.MRCheff.priority;
 
   function renderFoods() {
     const q = foodFilter.value.trim().toLowerCase();
@@ -211,30 +215,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderWeeklyAlert() {
-    // Un alimento sale en la alerta si está por debajo de su mínimo para avisar
-    const toRestock = foods
-      .filter(f => !f.checked && needsRestock(f))
-      .slice()
-      .sort((a, b) => b.score - a.score);
+    // La DECISIÓN de qué entra la alerta y cómo se presenta (nivel/icono/título/orden/CAPA a 8) es lógica PURe extraída a
+    // modules/priority.js → buildWeeklyAlert. Aquí sólo PINTAMOS el HTML resultante (§2-D DIp: separar decidir del render).
+    const m = buildWeeklyAlert(foods);
+    if (!m.show) { weeklyAlert.className = "card alert-card hidden"; weeklyAlert.innerHTML = ""; return; }
 
-    if (toRestock.length === 0) {
-      weeklyAlert.className = "card alert-card hidden";
-      weeklyAlert.innerHTML = "";
-      return;
-    }
-
-    // El color de la alerta lo marca la importancia del alimento MÁS URGENTE
-    const topLevel = urgencyLevel(toRestock[0].score);
-    const levelIcon = topLevel === "red" ? "🚨" : topLevel === "orange" ? "⚠️" : "🛒";
-    const levelTitle = topLevel === "red" ? "Repuestos urgentes esta semana"
-                      : topLevel === "orange" ? "Reposición recomendada"
-                      : "Sugerencia de compra";
-
-    weeklyAlert.className = `card alert-card alert-${topLevel}`;
+    // El color de la alerta lo marca la importancia del alimento MÁS URGENTE → ya resuelto por `m.level`/icon/título, pero el
+    // per-fila todavía consulta urgencyLevel(f.score) para su propio badge, idéntico al código heredado.
+    weeklyAlert.className = `card alert-card alert-${m.level}`;
     weeklyAlert.innerHTML = `
-      <h3>${levelIcon} ${levelTitle}</h3>
-      <ul class="alert-list-${topLevel}">
-        ${toRestock.slice(0, 8).map(f => `
+      <h3>${m.icon} ${m.title}</h3>
+      <ul class="alert-list-${m.level}">
+        ${m.items.map(f => `
           <li class="alert-row urg-${urgencyLevel(f.score)}">
             <span class="alert-name"><strong>${escapeHTML(f.name)}</strong></span>
             <span class="alert-meta">tienes <b>${f.qty ?? 0}</b> · mínimo <b>${f.min ?? 0}</b> · importancia <b>${f.score}/10</b></span>
@@ -588,36 +580,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // navegador, para llevarlos a otro navegador o dispositivo se exportan a un .json y se
   // importan de vuelta. No hay ninguna base de datos local que comparta datos entre
   // navegadores por sí sola (IndexedDB/sql.js son privados de un solo navegador también).
-  const MEAL_SET = new Set(["desayuno", "comida", "cena"]);
-  const clampScore = v => { const n = parseInt(v, 10); return Number.isNaN(n) ? 5 : Math.min(10, Math.max(1, n)); };
+  // === LÓGICA DECISIONAL DE COPIA DE SEGURIDAD EXTRAÍDA A modules/backup.js (función PURe) ===
+  // buildBackApi = window.MRCheff.backup: construye el payload exportable, nombra "dataBackup-YYYY-MM-DD-HH-MM-SS.json" y fusiona un
+  // backup importado sin destruir lo ya guardado — lógica PURA con inyección opcional de uid/hoy para tests (§5 / §2-D). En la app
+  // sólo orquestamos: guardar (save) + re-renderizar + toast. Los dos "aliases" locales dejan intocados los call-sites existentes
+  // ("buildBackup()" / "backupFilename()") delegando en el módulo — sin tocar ni una línea de esos handlers.
+  const buildBackApi = window.MRCheff.backup;
+  const buildBackup  = () => buildBackApi.buildBackup({ foods, recipes, innovations, innovDay });
+  const backupFilename = () => buildBackApi.makeFilename();   // hora REAL por defecto inyectable por el módulo (tests §6)
 
   const btnExport = $("#btn-export");
   const btnImport = $("#btn-import");
   const importFile = $("#import-file");
   const importNote = $("#import-note");
 
-  // Reúne todo lo exportable en un objeto único con versión y fecha
-  function buildBackup() {
-    return {
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      foods,
-      recipes,
-      innovations,
-      innovDay
-    };
-  }
-
-  // Nombre de la copia: "dataBackup" + fecha y hora REALES del momento en que se exporta
-  // (p. ej. dataBackup-2026-10-11-17-10-49.json). No es una cadena fija.
-  const pad2 = n => String(n).padStart(2, "0");
-  function backupFilename() {
-    const d = new Date();
-    const stamp = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}-${pad2(d.getHours())}-${pad2(d.getMinutes())}-${pad2(d.getSeconds())}`;
-    return `dataBackup-${stamp}.json`;
-  }
-
-  // Último recurso si el navegador no descarga ni deja elegir carpeta: muestra el
   // contenido en un cuadro para copiarlo a un archivo a mano.
   function showBackupFallback(filename, content) {
     modalContent.innerHTML = `
@@ -692,7 +668,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      try { applyBackup(JSON.parse(String(reader.result))); }
+      try { commitImport(JSON.parse(String(reader.result))); }
       catch { toast("No se pudo leer el archivo", "error"); }
     };
     reader.onerror = () => toast("No se pudo leer el archivo", "error");
@@ -700,76 +676,30 @@ document.addEventListener("DOMContentLoaded", () => {
     e.target.value = ""; // permite volver a importar el mismo archivo
   });
 
-  // Fusiona un backup importado en los datos actuales (no destruye lo que ya había)
-  function applyBackup(data) {
-    if (!data || typeof data !== "object") { toast("Archivo no válido", "error"); return; }
-    const inFoods = Array.isArray(data.foods) ? data.foods : [];
-    const inRecipes = Array.isArray(data.recipes) ? data.recipes : [];
-    const inInnov = Array.isArray(data.innovations) ? data.innovations : [];
+  // Wrapper de CAPA VISTA sobre la fusión PURA del módulo: sólo decide CUÁNDO/CÓMO persistir/re-renderizar + toast; TODA la lógica
+  // decisoria (dedup por nombre, normalización MEAL_SET/recorte a 30, uids frescos) vive en modules/backup.js. Ver CODING_STANDARDS.md §5 / DIp:
+  function commitImport(data) {
+    const plan = buildBackApi.mergeIncoming({ foods, recipes, innovations }, data, { today });
+    if (!plan) { toast("Archivo no válido", "error"); return; }   // el módulo devuelve null si la entrada NO es un objeto
+    foods = plan.foods;        // las referencias LOCALES se reasignan: son exactamente lo que luego pintan los renders de abajo.
+    recipes = plan.recipes;
+    innovations = plan.innovations;
 
-    // Alimentos: se suman los que no existan ya (evita duplicados por nombre)
-    const knownFoods = new Set(foods.map(f => f.name.toLowerCase()));
-    let addedFoods = 0;
-    inFoods.forEach(f => {
-      if (!f || typeof f !== "object" || !f.name) return;
-      const key = String(f.name).toLowerCase();
-      if (knownFoods.has(key)) return;
-      knownFoods.add(key);
-      foods.push({
-        id: uid(), name: String(f.name), score: clampScore(f.score),
-        qty: f.qty ?? 0, min: f.min ?? 0, checked: !!f.checked,
-        createdAt: f.createdAt || Date.now()
-      });
-      addedFoods++;
-    });
-
-    // Recetas: se añaden todas las importadas
-    let addedRecipes = 0;
-    inRecipes.forEach(r => {
-      if (!r || typeof r !== "object" || !r.title) return;
-      recipes.push({
-        id: uid(), title: String(r.title),
-        meal: MEAL_SET.has(r.meal) ? r.meal : "comida",
-        ingredients: Array.isArray(r.ingredients) ? r.ingredients.map(String) : [],
-        method: Array.isArray(r.method) ? r.method.map(String) : [],
-        source: r.source || undefined,
-        from: r.from || undefined,
-        uses: Array.isArray(r.uses) ? r.uses.map(String) : undefined,
-        createdAt: r.createdAt || Date.now()
-      });
-      addedRecipes++;
-    });
-
-    // Ideas de innovación: se suman y se recorta la pila al máximo de 30
-    if (inInnov.length) {
-      inInnov.forEach(i => {
-        if (!i || typeof i !== "object" || !i.title) return;
-        innovations.push({
-          id: uid(), title: String(i.title),
-          meal: MEAL_SET.has(i.meal) ? i.meal : "comida",
-          ingredients: Array.isArray(i.ingredients) ? i.ingredients.map(String) : [],
-          method: Array.isArray(i.method) ? i.method.map(String) : [],
-          source: i.source || "nueva",
-          from: i.from || "",
-          uses: Array.isArray(i.uses) ? i.uses.map(String) : [],
-          createdAt: i.createdAt || Date.now()
-        });
-      });
-      if (innovations.length > 30) innovations = innovations.slice(innovations.length - 30);
+    save(LS.foods, foods);
+    save(LS.recipes, recipes);
+    if (plan.persistInnov) {   // solo si la entrada trajo innovaciones nuevas: marca "hoy" para que el auto-expiry del cierre DOMContentLoaded no las borre en la próxima carga (§5 "Alcance de expiración automática")
       innovDay = today;
       save(LS.innov, innovations);
       save(LS.innovDate, innovDay);
     }
 
-    save(LS.foods, foods);
-    save(LS.recipes, recipes);
     renderFoods();
     renderWeeklyAlert();
     renderRecipes();
     renderInnovations();
-    importNote.textContent = `Se añadieron ${addedFoods} alimento(s) y ${addedRecipes} receta(s).`;
+    importNote.textContent = `Se añadieron ${plan.addedFoods} alimento(s) y ${plan.addedRecipes} receta(s).`;
     importNote.classList.remove("hidden");
-    toast(`Importados: ${addedFoods} alimento(s), ${addedRecipes} receta(s)`);
+    toast(`Importados: ${plan.addedFoods} alimento(s), ${plan.addedRecipes} receta(s)`);
   }
 
   // ===== INICIALIZACIÓN =====

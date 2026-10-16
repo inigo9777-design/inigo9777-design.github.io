@@ -111,6 +111,11 @@ nueva ya nace completa en el patrón elegido.
   helpers conviven con un objeto `Storage` inyectado que ya las encapsula por dentro; no duplicar la lógica.
 - **Concurrencia de estado** — No asumir atomicidad entre leer + escribir localStorage si dos pestañas abren
   el app a la vez (no hay transacción); documentar esta limitación si algún feature dependiera de ella.
+- **Naming** - Los nombres de las variables de las funciones y de las clases tienen que ser autoExplicativos que
+  leas el código y se parezca más a leer en español que tener variables con nombres p2, x1 etc o funciones como
+  play a secas, a que se refiere a jugar? a reproducir?. Si una función es muy larga extraer trozos de ella a 
+  funciones privadas con nombres coherentes.
+- **Comentarios** - No abusar de los comentarios el código debe entenderse según se lee
 
 ---
 
