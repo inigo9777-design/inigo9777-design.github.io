@@ -92,9 +92,9 @@
   // cableado en index.html ANTES que este módulo. Sin catálogo => nada qué proponer NUNCA inventar (§1/§3.5: no se fabrica al vuelo).
   // ---------------------------------------------------------------------------
   function resolveCatalog(ctx) {
-    if (ctx && Array.isArray(ctx.recetasEspanolas)) return ctx.recetasEpan;      // inyección para tests
+    if (ctx && Array.isArray(ctx.recetasEspanolas)) return ctx.recetasEspanolas;   // inyección para tests (§3.7 / §4.2)
     const ns = pickGlobalMRCheff();
-    if (ns && Array.isArray(ns.recetasEspan)) return ns.recetasEspan;            // window.MRCheff.recetasEspan
+    if (ns && Array.isArray(ns.recetasEspanolas)) return ns.recetasEspanolas;            // window.MRCheff.recetasEsp
     return undefined;
   }
 
@@ -107,9 +107,14 @@
   // Helpers puros de scoring / filtrado §4.2 (reciben `norm`/`classifyFood` explicitamente para NO ocultar dependencias → testeables).
   // ---------------------------------------------------------------------------
 
-  // Normaliza para comparación SIN acentos ni caracteres no alfanuméricos, colapsa espacios y recorta (para match de títulos/ingredientes).
+  // Normaliza para comparación SIN acentos ni caracteres no alfanuméricos, colapsa espacios y recorta (para match de títulos/ingredientes):
+  // ruta SIEMPRE por `normFn` (idéntico al NFD-skip del módulo par `classify.js`, ya sea el inyectado o su reducto seguro) →
+  // acentos/reordenamiento/repetidos de listas NO falsean ni rompen la coincidencia del pre-filtro absoluto (§4.1/§4.3).
   function normForMatch(normFn, s) {
-    return String(s == null ? "" : s).normalize().trim();
+    const cleaned = String(s == null ? "" : s).replace(/[^0-9a-zA-Z\s]/g, " ").trim().replace(/\s+/g, " ");
+    // Ruteo por el normalizador en vigor (inyectado en context de tests, o `classify.norm` cuando el módulo par está cabledo, o
+    // su reducto NFD idénico a él): hace lo que hace classify.js internamente — minúsculas + strip combining marks de 0300-036F.
+    return normFn ? normFn(cleaned).toLowerCase().normalize("NFC") : cleaned;
   }
 
   // Clave/fingerprint ESTABLE e invariante-al-orden del conjunto-ingredientes normalizado; base para el Jaccard=1.0 absoluto (§4.3) y la
