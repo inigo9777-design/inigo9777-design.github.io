@@ -1,12 +1,13 @@
-// modules/menu-semanal.js — Lógica PURe (sin DOM ni localStorage) de la vista "Menú semanal + lista de la compra"
+// modules/menu-semanal.js — Lógica PURe (sin DOM ni localStorage) de "Menú semanal + lista de la compra"
 // (ver webapp/feature-plans/planFeatureRecetasSugeridasYPlanSemana.md §2 Card 2 + Card 3 y CODING_STANDARDS.md §2-D / §3 option A).
 //
-// API PÚBLICA CERRADA (3 funciones, sin fugas de helpers internos):
-//   shoppingListFor(needyFoods, foods)   → dedup por nombre-normalizado vs aforo; shape {name, qty:0, min:0, score:5}
+// API PÚBLICA CERRADA (6 funciones, sin fugas de helpers internos):
+//   shoppingListFor(needyFoods, foods)           → dedup por nombre-normalizado vs aforo; shape {name, qty:0, min:0, score:5}
 //   approveMenu(preview, cooked, today, cookEntryFor, uid)   → { cooked, weekmenu } inmutables; ancla HOY real
 //   markItemBought(foods, weekmenu, itemName, uid, now)      → { foods, weekmenu, alreadyExists } inmutables
-//
-// Todas las funciones son puras: no tocan DOM ni localStorage. El caller (app.js) decide cuándo persistir/re-renderizar.
+//   cookEntry(recipe, cooked, today, cookEntryFor, uid)      → { cooked } inmutable; anota una receta como cocinada hoy
+//   regenerateAfterCook(recipe, ctx)                         → { cooked, weekmenu } inmutables; flujo "🍳 Cocinar hoy" DESDE el menú
+//   clearMenu()                                               → estado limpio para reiniciar el menú
 
 (function (root, factory) {
   const api = factory();
@@ -86,10 +87,73 @@
     return { foods: nextFoods, weekmenu: nextWeekmenu, alreadyExists: false };
   }
 
-  // API PÚBLICA CERRADA (§5/§8 — solo estas 3 funciones, sin fuga de helpers internos como defaultUid).
+  // ---------------------------------------------------------------------------
+  // cookEntry — anota una receta como cocinada hoy en cooked (inmutable).
+  //   * `cookEntryFor` e `uid` se inyectan por contexto.
+  // ---------------------------------------------------------------------------
+  function cookEntry(recipe, cooked, today, cookEntryFor, uid) {
+    const mkId = typeof uid === "function" ? uid : defaultUid;
+    const nextCooked = (Array.isArray(cooked) ? cooked : []).slice();
+    nextCooked.push(cookEntryFor(recipe, { today, uid: mkId }));
+    return { cooked: nextCooked };
+  }
+
+  // ---------------------------------------------------------------------------
+  // regenerateAfterCook — decisión completa del flujo "🍳 Cocinar hoy" DESDE una card del MENÚ:
+  //   1) anota la receta como cocinada hoy (entra en cooldown de 7 días),
+  //   2) regenera el plan de 7 días respetando el cooldown (ya no puede volverse a sugerir),
+  //   3) reconstruye weekmenu manteniendo el estado `approved` previo y el toggle actual.
+  //   Sin DOM ni localStorage: devuelve { cooked, weekmenu } NUEVOS y el caller (app.js) sólo
+  //   hace save() + render() (Capa vista). `planner` llega inyectado por ctx (§2-D composición:
+  //   el módulo NO hace require de planner; `cookEntryFor`/`uid` inyectables §6 determinismo).
+  //   ctx = { cooked, foods, recipes, catalog, today, includeUnavailable, prevWeekmenu, planner, uid }
+  // ---------------------------------------------------------------------------
+  function regenerateAfterCook(recipe, ctx) {
+    const c = ctx || {};
+    const plannerInj = c.planner || {};
+
+    // 1) cooked nuevo con la entrada de hoy (inmutable sobre la lista de entrada).
+    const mkEntry = typeof plannerInj.cookEntryFor === "function" ? plannerInj.cookEntryFor : null;
+    const base = mkEntry
+      ? cookEntry(recipe, c.cooked, c.today, mkEntry, c.uid)
+      : { cooked: (Array.isArray(c.cooked) ? c.cooked.slice() : []) };   // guard §2-A: sin cookEntryFor no se fabrica la entrada
+    const cooked = base.cooked;
+
+    // 2) re-generación del plan con el cooked actualizado (el plato cocinado NUNCA se re-sugiere el mismo día).
+    const buildPool = typeof plannerInj.buildCandidatePool === "function" ? plannerInj.buildCandidatePool : null;
+    const buildMenu = typeof plannerInj.buildWeeklyMenu === "function" ? plannerInj.buildWeeklyMenu : null;
+    const pool = buildPool
+      ? buildPool(c.foods || [], c.recipes || [], c.catalog || [], { cooked, today: c.today })
+      : [];
+    const menu = buildMenu
+      ? buildMenu(pool, c.foods || [], { includeUnavailable: !!c.includeUnavailable, today: c.today })
+      : { plan: [] };
+
+    // 3) weekmenu reconstruido: mismo shape del preview + estado aprobado previo intacto + ancla HOY real.
+    const prevApproved = !!(c.prevWeekmenu && c.prevWeekmenu.approved);
+    const weekmenu = Object.assign({}, menu, {
+      approved: prevApproved,
+      includeUnavailable: !!c.includeUnavailable,
+      generatedOn: String(c.today)
+    });
+
+    return { cooked, weekmenu };
+  }
+
+  // ---------------------------------------------------------------------------
+  // clearMenu — estado limpio para reiniciar el menú (preview borrado, approved=false).
+  // ---------------------------------------------------------------------------
+  function clearMenu() {
+    return { weeklyMenu: null };
+  }
+
+  // API PÚBLICA CERRADA (§5/§8 — solo estas 6 funciones, sin fuga de helpers internos como defaultUid).
   return {
     shoppingListFor,
     approveMenu,
-    markItemBought
+    markItemBought,
+    cookEntry,
+    regenerateAfterCook,
+    clearMenu
   };
 });

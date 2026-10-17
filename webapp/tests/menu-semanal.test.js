@@ -2,7 +2,7 @@
 // Lógica PURe de "Menú semanal + lista de la compra": probada SIN DOM ni jsdom, determinista, en Node/Jest directo.
 // Nunca toca localStorage ni la vista. Los inyectables cookEntryFor/uid/now hacen que los tests sean 100 % reproducibles.
 
-const { shoppingListFor, approveMenu, markItemBought } = require("../modules/menu-semanal.js");
+const { shoppingListFor, approveMenu, markItemBought, cookEntry, regenerateAfterCook, clearMenu } = require("../modules/menu-semanal.js");
 
 // cookEntryFor determinista para tests (imita planner.cookEntryFor pero inyectable).
 function cookEntryFor(recipe, opts) {
@@ -156,4 +156,111 @@ describe("modules/menu-semanal.js", () => {
     });
   });
 
+  describe("cookEntry — anota una receta como cocinada hoy, inmutable", () => {
+    const rec = { title: "Tortilla", ingredients: ["Huevos", "Patatas"] };
+
+    it("devuelve { cooked } con la nueva entrada añadida, sin mutar cooked original", () => {
+      const cookedIn = [{ id: "ant", title: "Antiguo", keyFingerprint: "abc", on: "2030-01-10" }];
+      const result = cookEntry(rec, cookedIn, TODAY, cookEntryFor, () => "uid-1");
+
+      expect(result.cooked).toHaveLength(2);
+      expect(result.cooked[1].title).toBe("Tortilla");
+      expect(result.cooked[1].on).toBe(TODAY);
+
+      expect(cookedIn).toHaveLength(1);
+    });
+
+    it("usar cookEntryFor inyectado para uid determinista", () => {
+      const result = cookEntry(rec, [], TODAY, cookEntryFor, () => "uid-det");
+      expect(result.cooked[0].id).toBe("uid-det");
+      expect(result.cooked[0].on).toBe(TODAY);
+    });
+
+    it("cooked undefined → crea array con una sola entrada", () => {
+      const result = cookEntry(rec, undefined, TODAY, cookEntryFor, () => "uid-1");
+      expect(result.cooked).toHaveLength(1);
+    });
+  });
+
+  describe("clearMenu — reinicia el estado del menú", () => {
+    it("devuelve { weeklyMenu: null }", () => {
+      expect(clearMenu()).toEqual({ weeklyMenu: null });
+    });
+  });
+
+  describe("regenerateAfterCook — flujo '🍳 Cocinar hoy' desde el menú, puro e inmutable", () => {
+    const REC = { title: "Tortilla", ingredients: ["Huevos", "Patatas"] };
+
+    // planner FALSO inyectado (§2-D composición): cuento las llamadas y devuelvo shapes sin azar.
+    function makeFakePlanner(menuPlan) {
+      const calls = { pool: 0, menu: 0, entry: 0 };
+      return {
+        calls,
+        cookEntryFor(recipe, opts) { calls.entry++; return cookEntryFor(recipe, opts); },
+        buildCandidatePool(foods2, recipes2, catalog2, opts) {
+          calls.pool++;
+          if (opts.cooked.length === 1) {
+            expect(opts.cooked[0].title).toBe("Tortilla");   // el pool SIEMPRE recibe el cooked YA actualizado
+          }
+          return ["pool-con-cooked-actualizado"];
+        },
+        buildWeeklyMenu(pool, foods2, opts) {
+          calls.menu++;
+          expect(pool).toEqual(["pool-con-cooked-actualizado"]);
+          return { plan: menuPlan, needyFoods: [{ name: "Prueba" }] };
+        }
+      };
+    }
+
+    it("anota cocinado hoy + regenera con cooldown + mantiene approved/includeUnavailable del toggle", () => {
+      const cookedIn = [{ id: "ant", title: "Antiguo", keyFingerprint: "abc", on: "2030-01-10" }];
+      const fake = makeFakePlanner([{ dayLabel: "Lunes", recipe: REC, missing: [] }]);
+      const result = regenerateAfterCook(REC, {
+        cooked: cookedIn, today: TODAY, includeUnavailable: true,
+        prevWeekmenu: { approved: true, needyFoods: [] }, planner: fake, uid: () => "uid-det"
+      });
+
+      // cooked: entrada nueva con ancla HOY real + NADA se muta
+      expect(result.cooked).toHaveLength(2);
+      expect(result.cooked[1].title).toBe("Tortilla");
+      expect(result.cooked[1].on).toBe(TODAY);
+      expect(cookedIn).toHaveLength(1);
+
+      // weekmenu reconstruido desde el plan del planner falso + estado previo
+      expect(result.weekmenu.plan).toHaveLength(1);
+      expect(result.weekmenu.approved).toBe(true);      // el plan YA estaba aprobado → sigue aprobado
+      expect(result.weekmenu.includeUnavailable).toBe(true);
+      expect(result.weekmenu.generatedOn).toBe(TODAY);  // ancla HOY real
+
+      // orden de uso del planner: 1 entry, 1 pool, 1 menu
+      expect(fake.calls).toEqual({ pool: 1, menu: 1, entry: 1 });
+    });
+
+    it("prevWeekmenu SIN aprobar (preview) → el nuevo weekmenu queda approved=false", () => {
+      const fake = makeFakePlanner([{ dayLabel: "Lunes", recipe: REC, missing: [] }]);
+      const result = regenerateAfterCook(REC, {
+        cooked: [], today: TODAY, includeUnavailable: false,
+        prevWeekmenu: { approved: false }, planner: fake
+      });
+      expect(result.weekmenu.approved).toBe(false);
+      expect(result.weekmenu.includeUnavailable).toBe(false);
+      expect(result.cooked).toHaveLength(1);
+    });
+
+    it("prevWeekmenu ausente/undefined → approved=false sin lanzar (guard §2-A)", () => {
+      const fake = makeFakePlanner([]);
+      const result = regenerateAfterCook(REC, { cooked: [], today: TODAY, planner: fake });
+      expect(result.weekmenu.approved).toBe(false);
+      expect(result.weekmenu.plan).toEqual([]);
+    });
+
+    it("guards defensivos: ctx sin planner → no lanza, cooked clonado SIN entrada y weekmenu con plan vacío", () => {
+      const cookedIn = [{ id: "ant", title: "Antiguo", keyFingerprint: "abc", on: "2030-01-10" }];
+      const result = regenerateAfterCook(REC, { cooked: cookedIn, today: TODAY });   // sin planner
+      expect(result.cooked).toEqual(cookedIn);   // no se fabrica entrada (sin cookEntryFor) pero tampoco se muta
+      expect(result.weekmenu.approved).toBe(false);
+      expect(result.weekmenu.plan).toEqual([]);
+      expect(Array.isArray(result.cooked)).toBe(true);
+    });
+  });
 });

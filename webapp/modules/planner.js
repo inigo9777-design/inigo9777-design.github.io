@@ -263,18 +263,25 @@
     let cursor = 0;                 // posición dentro del ranking estricto para la ram-A principal (§ coherente con "first N by rank, NO por azar" §4/§6 determinismo SIN rng en este tramo).
     const usedKeys = new Set();     // dedup intra-lote (§3.5 "salida limpia": un plato NO se repite en más de 1 día del mismo menú — misma garantía exacta que innovaciones "yaPicked").
 
-    for (let i = 0; i < plan.length && cursor < rated.length; i++) {
-      const candidate = rated[cursor];
-      cursor++;                       // §coherencia con Innovación tramo A: cada slot consume un slot del ranking estrictamente ordenado (§, SIN saltar por azar — determinismo puro).
+    for (let i = 0; i < plan.length; i++) {
+      // Re-escaneo del ranking: cada slot 'i' busca el SIGUIENTE candidato asignable SIN consumir
+      // el día con los descartados (fix §: antes un descartado avanzaba 'cursor' y 'i' a la vez y
+      // dejaba días vacíos — p.ej. del jueves en adelante — aunque el ranking tuviera más recetas
+      // plenamente disponibles más allá).
+      while (cursor < rated.length) {
+        const candidate = rated[cursor];
+        cursor++;
 
-      if (!includeUnavailable && !candidate.fullyAvailable) continue;   // §3 "menú Estricto": si NO se permiten ausentes, saltamos a siguiente en el ranking hasta encontrar UNO pleinement disponible (NO forzar un plato con ingredientes faltantes §1 "no fabricar al vuelo", coherencia con §4 nota).
-      const kfprnt = recipeIngredientKey((candidate.recipe == null ? undefined : candidate.recipe.ingredients), normFn);
-      if (!kfprnt) continue;                          // guard §2-A: receta sin fingerprint válido → no la asignamos a ningún día (§, coherente con todo el módulo).
-      if (usedKeys.has(kfprnt)) continue;             // dedup intra-meny (§3.5 "salida limpia" idénico exacto al patrón de "yaPicked" en Innovación Fase-1): un plato NO se repite entre dos días distintos del mismo menú generado.
-      usedKeys.add(kfprnt);
+        if (!includeUnavailable && !candidate.fullyAvailable) continue;   // §3 "menú Estricto": si NO se permiten ausentes, seguimos escaneando el ranking SIN ocupar el día actual (NO forzar un plato con ingredientes faltantes §1 "no fabricar al vuelo", coherencia con §4 nota).
+        const kfprnt = recipeIngredientKey((candidate.recipe == null ? undefined : candidate.recipe.ingredients), normFn);
+        if (!kfprnt) continue;                          // guard §2-A: receta sin fingerprint válido → no la asignamos a ningún día (§, coherente con todo el módulo).
+        if (usedKeys.has(kfprnt)) continue;             // dedup intra-meny (§3.5 "salida limpia" idénico exacto al patrón de "yaPicked" en Innovación Fase-1): un plato NO se repite entre dos días distintos del mismo menú generado.
+        usedKeys.add(kfprnt);
 
-      plan[i].recipe = toSuggestionIdeaFromRecipe(candidate.recipe, Object.assign({ uses: candidate.uses }, opts || {}));   // Mismo shape de "idea" §5/§4.4 que ya usa el resto del app UI (coherencia Liskov con innovación's `toIdeaFromRecipe`, idénticas 9 claves).
-      plan[i].missing = candidate.missing.slice();    // ingredientes-ausentes (nombres raw) para alimentar la lista de compra `needyFoods` (§3 Card-3 / § "a comprar" coherente con el shape exacto que ya hace auto-inyectar en foods, igual como nuevo alimento de backup.mergeIncoming).
+        plan[i].recipe = toSuggestionIdeaFromRecipe(candidate.recipe, Object.assign({ uses: candidate.uses }, opts || {}));   // Mismo shape de "idea" §5/§4.4 que ya usa el resto del app UI (coherencia Liskov con innovación's `toIdeaFromRecipe`, idénticas 9 claves).
+        plan[i].missing = candidate.missing.slice();    // ingredientes-ausentes (nombres raw) para alimentar la lista de compra `needyFoods` (§3 Card-3 / § "a comprar" coherente con el shape exacto que ya hace auto-inyectar en foods, igual como nuevo alimento de backup.mergeIncoming).
+        break;                                          // slot 'i' asignado: pasamos al siguiente día
+      }
     }
 
     // --- RAMA B aleatoria controlada (§3.7 precedent EXACTO a innovaciones.js ram-B) SOLO si includeUnavailable=true Y faltan slots vacíos tras la ram-A estricta.

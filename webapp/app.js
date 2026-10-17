@@ -600,12 +600,12 @@ document.addEventListener("DOMContentLoaded", () => {
         e.stopPropagation();
         const idea = ideas.find(x => x.id === btn.dataset.cook);
         if (!idea) return;
-        const entry = planner.cookEntryFor(idea);
-        const cooked = load(LS.cooked, []);
-        cooked.push(entry);
-        save(LS.cooked, cooked);
+        // La lógica (fabricar la entrada de cooked, inmutable) vive en menuSemanal.cookEntry;
+        // aquí sólo persistencia + re-sugerencia vía planner.
+        const result = menuSemanal.cookEntry(idea, load(LS.cooked, []), today, planner.cookEntryFor, uid);
+        save(LS.cooked, result.cooked);
         // Volver a sugerir: el plato recién cocinado entra en cooldown de 7 días y deja de aparecer
-        const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
+        const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked: result.cooked, today });
         renderSuggestCards(planner.suggestToday(pool, foods));
         toast("Registrado: se cocinó hoy");
       });
@@ -632,6 +632,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // la alerta semanal. No toca recipes[] / Mis Recetas.
   const btnMenuGenerate = $("#btn-menu-generate");
   const btnMenuApprove = $("#btn-menu-approve");
+  const btnMenuClear = $("#btn-menu-clear");
   const menuInclude = $("#menu-include-unavailable");
   const menuStatus = $("#menu-status");
   const menuPlanList = $("#menu-plan-list");
@@ -642,6 +643,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let weeklyMenu = load(LS.weekmenu, null);
 
   // Render de las 7 filas del preview de menú (Card 2) o del plan aprobado.
+  // Cada receta se pinta como recipe-card con el día bien visible, botón "🍳 Cocinar hoy"
+  // y es clickeable para abrir el detalle. Siempre se pintan los 7 slots (Lunes..Domingo).
   function renderWeeklyMenu(plan) {
     menuPlanList.innerHTML = "";
     if (!Array.isArray(plan) || plan.length === 0) {
@@ -654,13 +657,51 @@ document.addEventListener("DOMContentLoaded", () => {
       const rec = slot && slot.recipe;
       const missing = Array.isArray(slot && slot.missing) ? slot.missing : [];
       const li = document.createElement("li");
-      li.className = "alert-row";
+      li.className = "menu-day";
       if (rec) {
         li.innerHTML = `
-          <span class="alert-name"><strong>${escapeHTML(day)}:</strong> ${escapeHTML(rec.title)}</span>
-          ${missing.length ? `<span class="alert-meta">⚠️ falta: ${missing.map(escapeHTML).join(", ")}</span>` : `<span class="alert-meta">✅ todos los ingredientes en casa</span>`}`;
+          <div class="menu-day-header">${escapeHTML(day)}</div>
+          <div class="recipe-card">
+            <div class="recipe-actions">
+              <button data-cook="${rec.id}" title="Cocinar hoy">🍳 Cocinar hoy</button>
+            </div>
+            <h3>${escapeHTML(rec.title)}</h3>
+            <div class="recipe-meta">
+              <span class="tag meal-${rec.meal}">${mealLabels[rec.meal] || ""}</span>
+              ${rec.source ? `<span class="tag tag-${String(rec.source)}">${SOURCE_LABEL[rec.source] || SOURCE_LABEL.sugerenciaHoy}</span>` : ""}
+              <span class="muted" style="font-size:.8rem">${rec.ingredients.length} ingr.</span>
+            </div>
+            ${rec.uses && rec.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${rec.uses.map(escapeHTML).join(" · ")}</div>` : ""}
+            ${missing.length ? `<div class="innov-uses" style="color:var(--danger);">⚠️ Falta: ${missing.map(escapeHTML).join(", ")}</div>` : `<div class="innov-uses" style="color:var(--accent);">✅ Todos los ingredientes en casa</div>`}
+          </div>`;
+        li.addEventListener("click", (e) => {
+          if (e.target.closest("[data-cook]")) return;
+          openRecipeModal(rec, { highlightMissing: true });
+        });
+        li.querySelector("[data-cook]").addEventListener("click", (e) => {
+          e.stopPropagation();
+          // Toda la DECISIÓN (anotar cocinado + regenerar el plan respetando cooldown + mantener
+          // el estado aprobado) vive en menuSemanal.regenerateAfterCook. Aquí sólo persistencia + render.
+          const result = menuSemanal.regenerateAfterCook(rec, {
+            cooked: load(LS.cooked, []),
+            foods,
+            recipes,
+            catalog: catalogoEspanol,
+            today,
+            includeUnavailable: menuInclude.checked,
+            prevWeekmenu: weeklyMenu,
+            planner,
+            uid
+          });
+          save(LS.cooked, result.cooked);
+          weeklyMenu = result.weekmenu;
+          // Re-render del menú: el plato cocinado entra en cooldown y deja de sugerirse
+          renderWeeklyMenu(result.weekmenu.plan);
+          if (weeklyMenu.approved) renderShoppingList();
+          toast("Registrado: se cocinó hoy");
+        });
       } else {
-        li.innerHTML = `<span class="alert-name">${escapeHTML(day)}:</span> <span class="alert-meta muted">sin plato asignado</span>`;
+        li.innerHTML = `<div class="menu-day-header">${escapeHTML(day)}</div><span class="alert-meta muted" style="flex:1; padding-left: 12px;">sin plato asignado</span>`;
       }
       menuPlanList.appendChild(li);
     });
@@ -713,7 +754,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
     const menu = planner.buildWeeklyMenu(pool, foods, { includeUnavailable, today });
     const filled = menu.plan.filter(s => s.recipe).length;
-    menuStatus.textContent = `Se asignaron ${filled} de 7 días${includeUnavailable ? "" : " (modo estricto: sólo platos plenamente disponibles)"}.`;
+    menuStatus.textContent = includeUnavailable
+      ? (filled < 7
+        ? `Se asignaron ${filled} de 7 días: tu despensa + recetas guardadas no dan para más. Activa "Sugerencias" o añade más alimentos para ampliarlo.`
+        : `Se asignaron los 7 días. Lo que falte está anotado en la lista de la compra.`)
+      : `Se asignaron ${filled} de 7 días (modo estricto: sólo platos con TODO disponible hoy). Marca la casilla de arriba para completar la semana.`;
     menuStatus.classList.remove("hidden");
     renderWeeklyMenu(menu.plan);
     menuEmpty.classList.add("hidden");
@@ -742,6 +787,22 @@ document.addEventListener("DOMContentLoaded", () => {
   if (weeklyMenu && weeklyMenu.approved && weeklyMenu.needyFoods && weeklyMenu.needyFoods.length) {
     renderShoppingList();
   }
+
+  btnMenuClear.addEventListener("click", () => {
+    // El estado limpio lo decide menuSemanal.clearMenu(); aquí sólo persistencia (vía helpers,
+    // NUNCA localStorage crudo) + render. save(key,null)+load(key,def) round-tripea a null.
+    weeklyMenu = menuSemanal.clearMenu().weekmenu;
+    save(LS.weekmenu, weeklyMenu);
+    menuPlanList.innerHTML = "";
+    menuPlanList.classList.add("hidden");
+    menuEmpty.classList.remove("hidden");
+    menuStatus.classList.add("hidden");
+    btnMenuApprove.disabled = true;
+    btnMenuApprove.textContent = "Aprobar plan";
+    shoppingListEl.innerHTML = "";
+    shoppingListEl.classList.add("hidden");
+    toast("Menú limpiado");
+  });
 
   // ===== TEMPORADA =====
   const seasonFilter = $("#season-filter");

@@ -215,6 +215,29 @@ describe("modules/planner.js", () => {
        expect(out.needyFoods.length).toBe(0);             // § guard EXACTO 100% de que `needyFoods` VACÍO en este caso estrictamente (NUNCA "auto-añade" algo al inventario SIN consentimiento del usuario vía el toggle, coherencia total LITERAL del plan `includeUnavailable=false → exige hoy-disponible`, § guard exacto verificado SÍ sin exepción alguna)
      });
 
+     it("menú Estricto: un candidato NO-disponible en el ranking NO consume el día (fix 'del jueves en adelante no se genera nada' § ram-A re-escaneo) — el siguiente plenamente-disponible ocupa ESE día", () => {
+       // Fixture determinista con EMPATE de score (0.5 ambos) para forzar que el NO-disponible quede
+       // ANTES en el ranking que un disponible (tie-break por título asc): "Plato A" < "Plato Z".
+       const catalog = [
+         { id: "x-a", title: "Plato A", meal: "cena", ingredients: ["Sal", "Merluza"], method: [] },      // parcial: uses=["Sal"] + missing=["Merluza"] → score 0.5, fullyAvailable=false
+         { id: "x-z", title: "Plato Z", meal: "comida", ingredients: ["Aceite", "Aceite extra"], method: [] } // completo: match bidireccional de AMBOS contra el alimento "Aceite" → uses dedup=["Aceite"], missing=[] → score 0.5, fullyAvailable=true
+       ];
+       const pantry = [ { name: "Sal", qty: 1 }, { name: "Aceite", qty: 1 } ];
+
+       const pool = planner.buildCandidatePool(pantry, [], catalog, { today: TODAY });   // dedup por fingerprint: 2 claves distintas → ambos entran
+       const out = planner.buildWeeklyMenu(pool, pantry, { includeUnavailable: false });
+
+       expect(out.plan).toHaveLength(7);
+       // Lunes recibe el SIGUIENTE plenamente-disponible (el parcial NO roba el día):
+       expect(out.plan[0].recipe).not.toBeNull();
+       expect(out.plan[0].recipe.title).toBe("Plato Z");
+       // El resto queda NULL intencionalmente (modo Estricto sin más capacidad), SIN huecos intermedios causados por descartes:
+       expect(out.plan.slice(1).every(s => s.recipe === null)).toBe(true);
+       const filled = out.plan.filter(s => s.recipe).length;
+       expect(filled).toBe(1);
+       expect(out.needyFoods).toEqual([]);   // estricto: el parcial NUNCA entra → no hay needy
+     });
+
      it("includeUnavailable=TRUE + FALTA CAPACIDAD estricta: ram-B aleatoria controlada (idénico a innovaciones.js rama B, SIN inventar nada nuevo — MISM0 patrón ya validado con rng-inyectado en las tests Capa-1 de Innovación Fase-1/2) rellena los slots restantes SIN repetir § coherencia 1:1 EXACTA y reproducible determinísticamente", () => {
        // Catálogo DETERMINISTICO con 4 recetas (de las cuales 3 son plenamente-disponibles contra el aforo; la 4ª PUEDE estar "parcial" para forzar ram-B cuando falten más de 7 slots... pero aquí usamos un caso DETERMINISTA de 9 > 3 disponibles para NO depender de rama-b accidental en este caso específico de PRUEBA — coherencia estricta SIN exepción accidental §guard EXACTO).
        const catalog = [

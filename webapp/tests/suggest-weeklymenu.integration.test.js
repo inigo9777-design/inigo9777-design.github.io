@@ -31,14 +31,13 @@ describe("Card 2+3 'Menú semanal + lista de la compra' — integración", () =>
     tab.click();
     expect(document.getElementById("view-suggest").classList.contains("active")).toBe(true);
 
-    // 2) Activar el toggle de incluir no disponibles
+    // 2) El toggle de incluir no disponibles va ACTIVADO por defecto (semana completa; no hay que re-marcarlo)
     const include = document.getElementById("menu-include-unavailable");
-    include.click();
     expect(include.checked).toBe(true);
 
     // 3) Generar menú → 7 filas renderizadas
     document.getElementById("btn-menu-generate").click();
-    const slots = document.querySelectorAll("#menu-plan-list .alert-row");
+    const slots = document.querySelectorAll("#menu-plan-list .menu-day");
     expect(slots.length).toBe(7);
     expect(document.getElementById("btn-menu-approve").disabled).toBe(false);
 

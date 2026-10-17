@@ -194,12 +194,13 @@
                     semana. Si activas la opción de abajo, Mr Cheff también rellena los días en los que no tienes todo el
                     ingrediente necesario y te lo deja anotado como pendiente a comprar.</p>
                 <label class="check-inline">
-                    <input type="checkbox" id="menu-include-unavailable">
-                    Incluir aunque no estén ahora disponibles (se añaden como pendientes de compra)
+                    <input type="checkbox" id="menu-include-unavailable" checked>
+                    Incluir aunque no estén ahora disponibles (se añaden como pendientes de compra) — recomendado activada para que la semana salga completa
                 </label>
                 <div class="row-form">
                     <button id="btn-menu-generate" class="btn primary">Generar menú</button>
                     <button id="btn-menu-approve" class="btn ghost" disabled>Aprobar plan</button>
+                    <button id="btn-menu-clear" class="btn ghost">Limpiar</button>
                 </div>
                 <p id="menu-status" class="muted hidden"></p>
             </div>
