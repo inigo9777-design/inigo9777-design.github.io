@@ -15,6 +15,7 @@ module.exports = {
     "<rootDir>/modules/backup.js",
     "<rootDir>/modules/util.js",
     "<rootDir>/modules/planner.js",
+    "<rootDir>/modules/menu-semanal.js",
     "<rootDir>/modules/recipe-missing.js"
   ],
   coverageThreshold: {

@@ -33,7 +33,8 @@ document.addEventListener("DOMContentLoaded", () => {
     recipes: "mrcheff.recipes",
     innov: "mrcheff.innov",
     innovDate: "mrcheff.innov.date",
-    cooked: "mrcheff.cooked"
+    cooked: "mrcheff.cooked",
+    weekmenu: "mrcheff.weekmenu"
   };
 
   const load = (key, def) => {
@@ -564,6 +565,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const suggestEmpty = $("#suggest-empty");
   const catalogoEspanol = window.MRCheff.recetasEspanolas || [];
   const planner = window.MRCheff.planner;
+  const menuSemanal = window.MRCheff.menuSemanal;
 
   function renderSuggestCards(ideas) {
     suggestList.innerHTML = "";
@@ -621,6 +623,125 @@ document.addEventListener("DOMContentLoaded", () => {
     suggestEmpty.classList.remove("hidden");
     toast("Sugerencia limpiada");
   });
+
+  // ===== SUGERENCIAS Y MENÚ — CARD 2: menú semanal (7 días) + CARD 3: lista de la compra =====
+  // Previsualiza un plan de 7 días (Lunes..Domingo) respetando el cooldown de 7 días. "Aprobar plan" guarda
+  // mrcheff.weekmenu (aprobado=true, ancla de fecha=HOY real) y registra cada receta del plan en mrcheff.cooked.
+  // Card 3 aparece sólo si el plan aprobado trae ingredientes ausentes (needyFoods); marcar un ítem como comprado
+  // lo auto-añade al inventario (qty=0/min=0/score=5, dedup por nombre, idéntico a backup.mergeIncoming) y refresca
+  // la alerta semanal. No toca recipes[] / Mis Recetas.
+  const btnMenuGenerate = $("#btn-menu-generate");
+  const btnMenuApprove = $("#btn-menu-approve");
+  const menuInclude = $("#menu-include-unavailable");
+  const menuStatus = $("#menu-status");
+  const menuPlanList = $("#menu-plan-list");
+  const menuEmpty = $("#menu-empty");
+  const shoppingListEl = $("#shopping-list");
+
+  // Estado del menú semanal cargado de localStorage (persistencia entre pestañas / recargas).
+  let weeklyMenu = load(LS.weekmenu, null);
+
+  // Render de las 7 filas del preview de menú (Card 2) o del plan aprobado.
+  function renderWeeklyMenu(plan) {
+    menuPlanList.innerHTML = "";
+    if (!Array.isArray(plan) || plan.length === 0) {
+      menuPlanList.classList.add("hidden");
+      return;
+    }
+    menuPlanList.classList.remove("hidden");
+    plan.forEach((slot, idx) => {
+      const day = slot && slot.dayLabel ? slot.dayLabel : `Día ${idx + 1}`;
+      const rec = slot && slot.recipe;
+      const missing = Array.isArray(slot && slot.missing) ? slot.missing : [];
+      const li = document.createElement("li");
+      li.className = "alert-row";
+      if (rec) {
+        li.innerHTML = `
+          <span class="alert-name"><strong>${escapeHTML(day)}:</strong> ${escapeHTML(rec.title)}</span>
+          ${missing.length ? `<span class="alert-meta">⚠️ falta: ${missing.map(escapeHTML).join(", ")}</span>` : `<span class="alert-meta">✅ todos los ingredientes en casa</span>`}`;
+      } else {
+        li.innerHTML = `<span class="alert-name">${escapeHTML(day)}:</span> <span class="alert-meta muted">sin plato asignado</span>`;
+      }
+      menuPlanList.appendChild(li);
+    });
+  }
+
+  // Render de Card 3 (lista de la compra derivada). Sólo se pinta si hay plan aprobado con ítems pendientes.
+  function renderShoppingList() {
+    shoppingListEl.innerHTML = "";
+    const needy = weeklyMenu && weeklyMenu.approved ? weeklyMenu.needyFoods : [];
+    const list = menuSemanal.shoppingListFor(needy, foods);
+    if (!list.length) {
+      shoppingListEl.classList.add("hidden");
+      return;
+    }
+    shoppingListEl.classList.remove("hidden");
+    shoppingListEl.innerHTML = `
+      <h3>🛒 Lista de la compra</h3>
+      <ul class="alert-list-green">
+        ${list.map(item => `
+          <li class="alert-row urg-green">
+            <span class="alert-name"><strong>${escapeHTML(item.name)}</strong></span>
+            <span class="alert-meta">qty <b>${item.qty}</b> · mínimo <b>${item.min}</b> · importancia <b>${item.score}/10</b></span>
+            <button class="btn ghost small" data-buy="${escapeHTML(item.name)}" title="Marcar como comprada">✅ comprado</button>
+          </li>`).join("")}
+      </ul>`;
+    shoppingListEl.querySelectorAll("[data-buy]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const name = btn.dataset.buy;
+        const result = menuSemanal.markItemBought(foods, weeklyMenu, name, uid);
+        if (result.alreadyExists) {
+          toast(`"${escapeHTML(name)}" ya está en tu despensa`, "error");
+          return;
+        }
+        foods = result.foods;
+        weeklyMenu = result.weekmenu;
+        save(LS.foods, foods);
+        save(LS.weekmenu, weeklyMenu);
+        renderFoods();
+        renderWeeklyAlert();
+        renderShoppingList();
+        toast(`"${escapeHTML(name)}" añadido a la despensa (qty 0)`);
+      });
+    });
+  }
+
+  btnMenuGenerate.addEventListener("click", () => {
+    const cooked = load(LS.cooked, []);
+    const includeUnavailable = menuInclude.checked;
+    const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
+    const menu = planner.buildWeeklyMenu(pool, foods, { includeUnavailable, today });
+    const filled = menu.plan.filter(s => s.recipe).length;
+    menuStatus.textContent = `Se asignaron ${filled} de 7 días${includeUnavailable ? "" : " (modo estricto: sólo platos plenamente disponibles)"}.`;
+    menuStatus.classList.remove("hidden");
+    renderWeeklyMenu(menu.plan);
+    menuEmpty.classList.add("hidden");
+    btnMenuApprove.disabled = filled === 0;
+    btnMenuApprove.title = filled === 0 ? "Genera primero un menú con al menos un plato" : "Aprueba este plan";
+    // Guarda el preview para aprobar después (no persistimos aún hasta "Aprobar plan").
+    weeklyMenu = { ...menu, approved: false, includeUnavailable, generatedOn: today };
+  });
+
+  btnMenuApprove.addEventListener("click", () => {
+    if (!weeklyMenu || weeklyMenu.approved) return;
+    const cookedIn = load(LS.cooked, []);
+    const result = menuSemanal.approveMenu(weeklyMenu, cookedIn, today, planner.cookEntryFor, uid);
+    const cooked = result.cooked;
+    weeklyMenu = result.weekmenu;
+    save(LS.cooked, cooked);
+    save(LS.weekmenu, weeklyMenu);
+    btnMenuApprove.disabled = true;
+    btnMenuApprove.textContent = "✅ Plan aprobado";
+    menuStatus.textContent = `Plan aprobado y ${weeklyMenu.plan.filter(s => s.recipe).length} plato(s) anotados como cocinados hoy (${today}).`;
+    renderShoppingList();
+    toast("Menú semanal aprobado");
+  });
+
+  // Auto-render de Card 3 si al cargar la app ya hay un plan aprobado con ítems pendientes.
+  if (weeklyMenu && weeklyMenu.approved && weeklyMenu.needyFoods && weeklyMenu.needyFoods.length) {
+    renderShoppingList();
+  }
 
   // ===== TEMPORADA =====
   const seasonFilter = $("#season-filter");

@@ -53,8 +53,13 @@ Views: **Alimentos** (pantry/restock alerts) · **Recetas** (free-text → struc
 
 ## Data model & gotchas
 - Persistence = localStorage via `load(key, default)`/`save(key, val)` helpers and keys in `LS`:
-  `mrcheff.foods`, `mrcheff.recipes`, `mrcheff.innov`, `mrcheff.innov.date`. **Use the helpers, not
+  `mrcheff.foods`, `mrcheff.recipes`, `mrcheff.innov`, `mrcheff.innov.date` +
+  (feature sugerencias/menú semana) `mrcheff.cooked` y `mrcheff.weekmenu`. **Use the helpers, not
   raw localStorage**, so JSON handling + defaults stay consistent.
+  - `mrcheff.cooked`: `Array<{ id, title, keyFingerprint, on: "YYYY-MM-DD" }>` — ancla del cooldown de 7 días
+    (fingerprint de ingredientes, no el `id` interno de recipes[]).
+  - `mrcheff.weekmenu`: `{ approved, includeUnavailable, generatedOn, plan[7], needyFoods[] }` — ancla = HOY real
+    al aprobar, no el día visual marcado.
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
   red 8–10, orange 6–7, green 1–5; weekly alert caps the list at 8.
 - Innovations auto-expire: on load, if `mrcheff.innov.date != today`, wipe `mrcheff.innov`; also
