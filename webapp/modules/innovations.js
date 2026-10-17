@@ -188,22 +188,34 @@
     return max;
   }
 
-  // "¿Qué ingredientes de este plato ya tienes de casa?". Match tolerante por nombre-normalizado (subcadena bidireccional ≥3 chars),
-  // para no penalizar en exceso plurales/prefijos menores (§4.2 not "haveRatio es NO bloqueante"). Vuelve los NOMBRES reales de alimentos
-  // que sí se usan, ya deduplicados → alimenta el campo `uses` ("🥣 Usa de tu casa") de la idea resultada.
+  // Matcher compartido (modules/ingredient-matching.js): FIX del falso positivo por subcadena-cruda
+  // ("Sal" ⊂ "Salchichón ibérico"). Resolución por entorno igual que planner.js: namespace global en
+  // navegador, require relativo en Node/Jest. Sin matcher disponible → NO inventa matches (falla visible).
+  function matchIngredienteAlimento(ingrediente, alimento) {
+    const global = typeof self !== "undefined" ? self : null;
+    if (global && global.MRCheff && global.MRCheff.ingredientMatching) {
+      return global.MRCheff.ingredientMatching.matchIngredientToFood(ingrediente, alimento);
+    }
+    if (typeof module !== "undefined" && module.exports) {
+      try { return require("./ingredient-matching.js").matchIngredientToFood(ingrediente, alimento); } catch { return false; }
+    }
+    return false;
+  }
+
+  // "¿Qué ingredientes de este plato ya tienes de casa?". Match vía el matcher compartido (modules/ingredient-matching.js,
+  // por TOKENS con deplural — FIX del falso positivo "Sal" ⊂ "Salchichón ibérico" de la subcadena-cruda). Devuelve los NOMBRES
+  // reales de alimentos que sí se usan, ya deduplicados → alimenta el campo `uses` ("🥣 Usa de tu casa") de la idea resultada.
   function pantryMatchesForRecipe(recipe, foods, normFn) {
     const out = [];
     if (!(Array.isArray(foods) && foods.length)) return out;                 // "0 si foods vacío" (§4.2) → array vacío (haveRatio=0 implícito)
     const ingrs = Array.isArray(recipe && recipe.ingredients) ? recipe.ingredients : [];
     for (const raw of ingrs) {
       const inNorm = normForMatch(normFn, raw);
-      if (!inNorm || inNorm.length < 2) continue; // ignora basura/vacío en el ingredientes del plato mismo
+      if (!inNorm || inNorm.length < 2) continue; // ignora basura/vacío en el ingrediente del plato mismo
       let matchedFoodName = null;
       for (const f of foods) {
-        const fnNorm = normForMatch(normFn, f && f.name);
-        if (!fnNorm || fnNorm.length < 2) continue;
-        // Coinciden si un nombre contiene al otro (bimérico tolera plurales/prefijos como Ajo↔Ajos, "Pan"↔"Pan de barra").
-        if (inNorm.includes(fnNorm) || fnNorm.includes(inNorm)) { matchedFoodName = String(f.name); break; }
+        if (!f || typeof f !== "object") continue;   // guard §2-A: entrada corrupta del aforo NO rompe.
+        if (matchIngredienteAlimento(raw, f && f.name)) { matchedFoodName = String(f.name); break; }
       }
       if (matchedFoodName != null && out.indexOf(matchedFoodName) === -1) out.push(matchedFoodName);
     }

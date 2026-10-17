@@ -272,6 +272,9 @@
     <!-- Nuevos modules PURe (este refactor): utilidades compartidas y copia de seguridad. -->
     <script src="modules/util.js"></script>
     <script src="modules/backup.js"></script>
+    <!-- Matcher PURe compartido ingrediente↔alimento (tokens+plural, NO subcadena cruda): lo consumen planner.js (uses/missing con qty>0),
+         innovations.js (uses/haveRatio para ideas) y menu-semanal.js (dedup de la lista de compra). DEBE ir ANTES de planner.js. -->
+    <script src="modules/ingredient-matching.js"></script>
     <!-- Nueva capa modular de "Sugerencias y menú" (planFeatureRecetasSugeridasYPlanSemana.md): lógica PURe SIN DOM,
          consumida por la wiring de app.js sólo en tiempo de click (no se desestructura al parsear el closure). -->
     <script src="modules/planner.js"></script>

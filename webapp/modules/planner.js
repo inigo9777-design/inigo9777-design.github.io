@@ -1,11 +1,12 @@
 // modules/planner.js — Lógica PURe (sin DOM ni localStorage) de la vista "Sugerencias y menú"
 //   (ver webapp/feature-plans/planFeatureRecetasSugerdasYPlanSemana.md §1 + CODING_STANDARDS.md §3 option A / DIP §2-D).
 //
-// API PÚBLICA CERRADA (§5/§8 — no se filtran helpers internos; sólo estas 5):
+// API PÚBLICA CERRADA (§5/§8 — no se filtran helpers internos; sólo estas 6):
 //   fingerprintOf(recipe, opts)                          // = recipeIngredientKey (compatibilidad Jaccard cross-módulo con innovaciones.js)
 //   buildCandidatePool(foods, recipes, catalog, opts?)   // fusión "Mis Recetas ∪ catálogo" dedup+cooldown-filtrado ANTES del scoring (§3/§4 del plan)
 //   suggestToday(pool, foods, opts?)                    // ideas con TODOS los ingredientes qty>0 ahora, ordenadas por haveRatio desc + tiebreak estable
-//   buildWeeklyMenu(pool, foods, opts?, rng?)           // menú de 7 días (determinista; rama aleatoria SÓLO si includeUnavailable=true falta capacidad)
+//   buildWeeklyMenu(pool, foods, opts?)                 // menú de 7 días × 3 comidas (desayuno/comida/cena = 21 platos, DETERMINISTA sin azar)
+//   pickRecipeForSlot(pool, foods, opts)                // mejor candidato de UNA comida excluyendo usados — motor del "🔄 Cambiar" por día (feature 2026-10-18)
 //   cookEntryFor(recipe, opts?)                        // registro exacto para mrcheff.cooked[] { id, title, keyFingerprint, on=HOY-real } (§3 Card-1/Card-2)
 //
 // Diferencia vs innovaciones.js: aquí NO se inventa NADA al vuelo Y el filtro de "cantidad REAL disponible" exige qty>0 del aforo (§4 del plan),
@@ -57,6 +58,30 @@
   // Longitud mínima normalizada para considerar VÁLIDO un ingrediente en match/tallerado (§guard del helper heredado de innovaciones, línea 200/204).
   const MATCH_MIN_LEN = 2;
 
+  // Matcher compartido (nuevo módulo ingredient-matching.js): FIX del falso positivo por subcadena-cruda
+  // ("Sal" ⊂ "Salchichón ibérico") — correspondencia por TOKENS con deplural, sin prefijos sueltos.
+  // Resolución por entorno: navegador → window.MRCheff.ingredientMatching (cargado antes por index.html);
+  // Node/Jest → require('./ingredient-matching.js') para que los tests Capa-1 de este módulo sigan siendo
+  // require-directo sin cargar la app entera (§2-D). Si no existiese en ningún sitio → NO-match total
+  // (menu vacío, error VISIBLE) en vez de volver silenciosamente al matcher buggy.
+  function resolveIngredientMatcher(rootParam) {
+    if (rootParam && rootParam.MRCheff && rootParam.MRCheff.ingredientMatching) {
+      return rootParam.MRCheff.ingredientMatching;
+    }
+    if (typeof module !== "undefined" && module.exports) {
+      try { return require("./ingredient-matching.js"); } catch { /* degradación real: null ⇒ no-match, falla visible */ }
+    }
+    return null;
+  }
+
+  function matchIngredienteAlimento(ingrediente, alimento) {
+    const matcher = resolveIngredientMatcher(typeof self !== "undefined" ? self : null);
+    if (matcher && typeof matcher.matchIngredientToFood === "function") {
+      return matcher.matchIngredientToFood(ingrediente, alimento);
+    }
+    return false;   // sin matcher disponible NO inventamos matches (fallos visibles > falsos usos)
+  }
+
   // Detalle de match por ingrediente CONTRA el aforo actual: reutiliza el patrón bidireccional-tolerante heredado de innovaciones.js PERO con NUEVO
   // filtro `qty>0` (§4 del plan "cantidad REAL disponible exige qty>0, no basta con estar en la lista"). Devuelve listas de nombres reales que SÍ usamos (`uses`)
   // y los que FALTAN o su aforo tiene qty=0 (`missing`) — alimentan tanto suggestToday (usa[] debe ser TOTAL para que el plato entre) como buildWeeklyMenu.
@@ -69,10 +94,9 @@
 
       let matchedName = null;
       for (const f of Array.isArray(foods) ? foods : []) {
-        const fnNorm = normForMatch(normFn, f && f.name);
-        if (!fnNorm || fnNorm.length < MATCH_MIN_LEN) continue;                       // guarda: nombre de comida vacío/ilegal NO cuenta.
-        // Coincidencia bidireccional-tolerante (idéalica a innovaciones.js línea 206) + NUEVO gate estricto `qty>0` (§4): no basta estar en la lista del aforo, hay que TENER stock real.
-        if ((inNorm.includes(fnNorm) || fnNorm.includes(inNorm)) && Number(f.qty ?? 0) > 0) {
+        if (!f || typeof f !== "object") continue;                                    // guard §2-A: entrada corrupta del aforo NO rompe.
+        // Correspondencia por TOKENS vía el matcher compartido (§ FIX "Sal"⊆"Salchichón") + NUEVO gate estricto `qty>0` (§4): no basta estar en la lista del aforo, hay que TENER stock real.
+        if (matchIngredienteAlimento(raw, f.name) && Number(f.qty ?? 0) > 0) {
           matchedName = f.name; break;   // primera coincidencia con qty>0 gana (orden de `foods` preservado, coherencia determinista §3.5).
         }
       }
@@ -229,100 +253,116 @@
   //   idéntico semántica a "normForMatch(normFn, b.recipe.title)". Mismo patrón de claridad de lectura que ya usa innovaciones.js sin exponer.
   function normOrMatch_title_b(b, normFn) { return normForMatch(normFn, b && b.recipe && b.recipe.title || ""); }
 
-  // (4) buildWeeklyMenu — MENÚ fijo de 7 días (labels "Lunes".. "Domingo"). POR DEFECTO DETERMINISTA estricto (§3.5/§6: ranking + tiebreak estable por título).
-  //     La rama ALEATORIA controlable (ram-B, igual a innovaciones.js) SÓLO se activa SI `includeUnavailable=true` Y el pool de recetas plenamente-disponibles no da para llenar los 7 slots.
-  const DAY_LABELS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]; // fijos §3 del plan: ANCLA REAL de fecha al APROBAR es HOY (§3 Card-2), NO el label que se pinta visualmente (sólo etiqueta en pantalla).
+  // (4) buildWeeklyMenu — MENÚ de 7 días × 3 platos (desayuno/comida/cena = 21 slots, labels "Lunes".."Domingo").
+  //     DETERMINISTA SIEMPRE (ranking por haveRatio desc + tie-break estable por título, SIN azar): cada slot
+  //     recibe el MEJOR candidato de SU tipo de comida aún no usado en el menú (dedup global §3.5); si el pool
+  //     sin usar se agota, se permite repetir un plato de OTRO día sólo si el MISMO día no duplica ya comida.
+  //     Cambio de shape vs la versión de 1 plato/día: ahora cada día lleva `meals[3]` = { meal, recipe, missing }
+  //     (contrato ampliado de la feature 2026-10-18; ver nota §8 en CODING_STANDARDS.md y plan-feature).
+  const DAY_LABELS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]; // fijos §3 del plan: ANCLA REAL de fecha al APROBAR es HOY (§3 Card-2).
+  const DAY_MEALS = ["desayuno", "comida", "cena"];   // las 3 comidas de cada día (§ "3 recetas por día: desayuno, comida y cena").
+
+  function menuVacio() {
+    return {
+      plan: DAY_LABELS.map(dayLabel => ({ dayLabel, meals: DAY_MEALS.map(m => ({ meal: m, recipe: null, missing: [] })) })),
+      needyFoods: []
+    };
+  }
+
+  // Detalle de cada receta del pool vs aforo (UNA sola pasada; mismo mecanismo que suggestToday — §3) + ranking
+  // ESTRICTO: score desc + tie-break estable por título normalizado (§ coherente 1:1 con el sort de suggestToday).
+  function rateRecipes(pool, foods, normFn) {
+    return (Array.isArray(pool) ? pool : []).map(r => {
+      if (!r || typeof r !== "object") return null;          // guard §2-A defensivo, coherente con el resto del módulo.
+      const details = pantryMatchDetails(r, foods, normFn);  // UN sólo lugar calcula uses/missing + gate qty>0 (§3/§4).
+      return { recipe: r, uses: details.uses, missing: details.missing.slice(), fullyAvailable: details.missing.length === 0, score: haveRatio(r, foods, normFn) };
+    }).filter(Boolean)
+      .sort((a, b) => {
+        const diff = b.score - a.score;
+        if (Number.isFinite(diff) && diff !== 0) return diff;
+        const ta = normForMatch(normFn, a.recipe.title || "");
+        const tb = normOrMatch_title_b(b, normFn);
+        if (ta === tb) return 0;
+        return ta < tb ? -1 : 1;
+      });
+  }
 
   function buildWeeklyMenu(pool, foods, opts) {
     const normFn = resolveNorm(opts || {});
-    const includeUnavailable = !!(opts && opts.includeUnavailable);   // §3 "toggle: incluir aunque no estén ahora disponibles → se añaden como a-comprar".
-    const rng = (opts && typeof opts.rng === "function") ? opts.rng : Math.random;  // inyección opcional (§3.7, mismo precedent que innovaciones.js ctx.rng); default real por omisión (§ producción sin seed fijo).
-    void rng;
+    const includeUnavailable = !!(opts && opts.includeUnavailable);   // §3 toggle: incluir platos con ingredientes ausentes (van a needyFoods).
+    if (!Array.isArray(pool)) return menuVacio();                     // guard §2-A defensivo.
 
-    if (!Array.isArray(pool)) return { plan: DAY_LABELS.map(dayLabel => ({ dayLabel, recipe: null, missing: [] })), needyFoods: [] }; // guard §2-A defensivo.
+    const ranked = rateRecipes(pool, foods, normFn);
+    const plan = DAY_LABELS.map(dayLabel => ({ dayLabel, meals: DAY_MEALS.map(m => ({ meal: m, recipe: null, missing: [] })) }));
+    const usadosGlobal = new Set();          // fingerprints ya presentes en el menú: NO repetir mientras haya alternativas.
 
-    // Detalle de cada receta del pool vs aforo actual (§3 "una sola pasada" idénica al patrón de innovaciones.js tramo A — eficiencia + coherencia).
-    const rated = pool.map(r => {
-      if (!r || typeof r !== "object") return null;   // guard §2-A guard defensivo (coherente con toda la capa ya escrita arriba, NO un defecto local nuevo)
-      const details = pantryMatchDetails(r, foods, normFn);       // reutiliza el MISMO detalle ya probado en suggestToday (§3 "no hay dos mecanismos distintos" — UN sólo lugar calcula bien uses/missing + qty-gate §4).
-      return { recipe: r, uses: details.uses, missing: details.missing.slice(), fullyAvailable: details.missing.length === 0, score: haveRatio(r, foods, normFn) };   // `fullyAvailable` alimenta el filtro estricto cuando includeUnavailable=false (§3 toggle del "menú sólo con lo que se puede CERRAR ahora").
-    }).filter(Boolean);
-
-    // Ranking principal ESTRICTO por `score`(haveRatio desc) + tie-break estable por título normalizado (§ coherente 1:1 con el sort de suggestToday arriba — SAME code shape for determinism, §6 Capa-1 reproducible SIN rng en este tramo "A").
-    rated.sort((a, b) => {
-      const diff = b.score - a.score;
-      if (Number.isFinite(diff) && diff !== 0) return diff;   // ranking estricto principal (§3.5).
-      const ta = normForMatch(normFn, a.recipe.title || "");  // §coherencia lexicográfica determinista SIN azar (§6 / §coherente con la ram-A de innovaciones.js, Fase-1 "NO repite por ruido").
-      const tb = normOrMatch_title_b(b, normFn);              // helper privado compartido (ver nota arriba) — Mismo orden lexicográfico ↑ (§3.5/§6).
-      if (ta === tb) return 0;                                // empate total: 0 → sort estable V8 (§coherencia con la "salida limpia" ya validada por Innovación Fase-1/2 tests Capa-1 idénicos).
-      return ta < tb ? -1 : 1;                                  // § coherente: NO se introduce azar en el tramo A de este menú (diferencia SÓLO vs la ram-B de includeUnavailable, abajo)
-    });
-
-    // --- Relleno de los 7 slots del día (§3 "7 filas por día") ---------------------------------------
-    const plan = DAY_LABELS.map(dayLabel => ({ dayLabel, recipe: null, missing: [] }));   // §3 exacto: SIEMPRE 7 filas (nº fijo), sea o no con receta asignada.
-    let cursor = 0;                 // posición dentro del ranking estricto para la ram-A principal (§ coherente con "first N by rank, NO por azar" §4/§6 determinismo SIN rng en este tramo).
-    const usedKeys = new Set();     // dedup intra-lote (§3.5 "salida limpia": un plato NO se repite en más de 1 día del mismo menú — misma garantía exacta que innovaciones "yaPicked").
-
-    for (let i = 0; i < plan.length; i++) {
-      // Re-escaneo del ranking: cada slot 'i' busca el SIGUIENTE candidato asignable SIN consumir
-      // el día con los descartados (fix §: antes un descartado avanzaba 'cursor' y 'i' a la vez y
-      // dejaba días vacíos — p.ej. del jueves en adelante — aunque el ranking tuviera más recetas
-      // plenamente disponibles más allá).
-      while (cursor < rated.length) {
-        const candidate = rated[cursor];
-        cursor++;
-
-        if (!includeUnavailable && !candidate.fullyAvailable) continue;   // §3 "menú Estricto": si NO se permiten ausentes, seguimos escaneando el ranking SIN ocupar el día actual (NO forzar un plato con ingredientes faltantes §1 "no fabricar al vuelo", coherencia con §4 nota).
-        const kfprnt = recipeIngredientKey((candidate.recipe == null ? undefined : candidate.recipe.ingredients), normFn);
-        if (!kfprnt) continue;                          // guard §2-A: receta sin fingerprint válido → no la asignamos a ningún día (§, coherente con todo el módulo).
-        if (usedKeys.has(kfprnt)) continue;             // dedup intra-meny (§3.5 "salida limpia" idénico exacto al patrón de "yaPicked" en Innovación Fase-1): un plato NO se repite entre dos días distintos del mismo menú generado.
-        usedKeys.add(kfprnt);
-
-        plan[i].recipe = toSuggestionIdeaFromRecipe(candidate.recipe, Object.assign({ uses: candidate.uses }, opts || {}));   // Mismo shape de "idea" §5/§4.4 que ya usa el resto del app UI (coherencia Liskov con innovación's `toIdeaFromRecipe`, idénticas 9 claves).
-        plan[i].missing = candidate.missing.slice();    // ingredientes-ausentes (nombres raw) para alimentar la lista de compra `needyFoods` (§3 Card-3 / § "a comprar" coherente con el shape exacto que ya hace auto-inyectar en foods, igual como nuevo alimento de backup.mergeIncoming).
-        break;                                          // slot 'i' asignado: pasamos al siguiente día
+    for (let dia = 0; dia < plan.length; dia++) {
+      const usadoHoy = new Set(usadosGlobal);   // el dedup "por día" hereda lo global: sólo permite repetir algo ya usado OTRO día.
+      for (const slot of plan[dia].meals) {
+        const mismosDelTipo = ranked.filter(c => (c.recipe.meal || "comida") === slot.meal);   // cada slot pide SU comida (desayuno/comida/cena).
+        // ram-A determinista: el mejor candidato del ranking aún NO usado en TODO el menú.
+        let elegido = primerAsignable(mismosDelTipo, { includeUnavailable, normFn, yaUsados: usadosGlobal });
+        // ram-B (degradación acordada): si el pool global se agotó, repetir un plato de otro día
+        // siempre que el MISMO día no duplique ( brunch 2 veces el mismo día no es un menú serio ).
+        if (!elegido) elegido = primerAsignable(mismosDelTipo, { includeUnavailable, normFn, yaUsados: usadoHoy });
+        if (elegido) asignarCandidato(slot, elegido, usadosGlobal, usadoHoy);
       }
     }
 
-    // --- RAMA B aleatoria controlada (§3.7 precedent EXACTO a innovaciones.js ram-B) SOLO si includeUnavailable=true Y faltan slots vacíos tras la ram-A estricta.
-    if (includeUnavailable && rated.length > 0) {
-      const fullyFilledSoFar = plan.filter(s => s.recipe).length;   // cuantos ya están llenos DESPUÉS de la ram-A (§ coherente con "primeras N por ranking estricto", §3 "tramo A" idénico a innovaciones.js — sólo ahora SÍ se permite relleno aleatorio uniforme sobre lo que "falta").
-      let idx = 0;   // posición de RE-ESCAN del `rated` completo para la rama B uniform-random (§coherencia con ram-B de Innovaciones: NO "splice" el array base, sólo consume índices NO-yet-usados via usedKeys).
+    return { plan, needyFoods: unirAusencias(plan, normFn) };
+  }
 
-      for (let i = fullyFilledSoFar; i < plan.length && idx < rated.length; ) {
-        // Selección UNIFORME con rng inyectable (§3.7) sobre los candidatos aúN disponibles de la ram-A (§ coherencia 1:1 con `Math.floor(rng()*remainingPool.length)` de Innovaciones Fase-1/2 — MISMA fórmula, NO reinvención).
-        const candidateIndex = Math.floor(rng() * rated.length);   // § coherencia exacta con Innovación line ~360 (rama B) — SIN inventar nueva fórmula de aleatoriedad (§3.7 precedent simétrico a "uid/rng" ya existiente en TODO el repo).
-        const cdt = rated[candidateIndex];
-        if (!cdt || !cdt.recipe || !Array.isArray(cdt.missing)) { idx++; continue; }   // guard §2-A defensivo (§ coherencia con todo lo anterior): candidata inválida del re-escan NO rompe nada ni consume el slot actual (avanzando idx sin ocupar 'i').
-        const kfprnt = recipeIngredientKey((cdt.recipe == null ? undefined : cdt.recipe.ingredients), normFn);
-        if (!kfprnt || usedKeys.has(kfprnt)) { idx++; continue; }   // dedup intra-meny (§3.5 coherencia): nunca se repite un plato ya asignado a otro día en la ram-B (§6 "reprodibilidad" garantizada igual que Innovación Fase-1/2 con su rng inyectable).
+  function primerAsignable(candidatos, ctx) {
+    for (const c of candidatos) {
+      if (!ctx.includeUnavailable && !c.fullyAvailable) continue;   // §3 modo estricto: sólo platos cerrables HOY.
+      const clave = recipeIngredientKey((c.recipe == null ? undefined : c.recipe.ingredients), ctx.normFn);
+      if (!clave || ctx.yaUsados.has(clave)) continue;              // dedup intra-menú (§3.5 "salida limpia").
+      return { candidate: c, clave };
+    }
+    return null;
+  }
 
-        plan[i].recipe = toSuggestionIdeaFromRecipe(cdt.recipe, Object.assign({ uses: cdt.uses }, opts || {}));
-        plan[i].missing = cdt.missing.slice();
-        usedKeys.add(kfprnt);   // registro tras asignar para que la ram-B SIGA sin repetir (§3.5 "salida limpia" garantizada igual que en Innovación Fase-1/2 ya validada con su rng determinista testado)
-        i++;
+  function asignarCandidato(slot, elegido, usadosGlobal, usadoHoy) {
+    usadosGlobal.add(elegido.clave);
+    usadoHoy.add(elegido.clave);
+    slot.recipe = toSuggestionIdeaFromRecipe(elegido.candidate.recipe, { uses: elegido.candidate.uses });
+    slot.missing = elegido.candidate.missing.slice();
+  }
+
+  // needyFoods = unión dedup por nombre-normalizado de los ausentes de TODOS los slots con receta (§4 del plan).
+  function unirAusencias(plan, normFn) {
+    const vistas = new Set();
+    const salida = [];
+    for (const dia of plan) {
+      for (const slot of dia.meals) {
+        if (!slot.recipe) continue;   // un slot SIN receta no aporta nada a la lista de compra (§3).
+        for (const raw of Array.isArray(slot.missing) ? slot.missing : []) {
+          const clave = normForMatch(normFn, raw);
+          if (!clave || vistas.has(clave)) continue;
+          vistas.add(clave);
+          salida.push({ name: raw == null ? "" : String(raw) });   // shape mínimo {name}; el caller rellena el resto del food.
+        }
       }
-
-    } else if (!includeUnavailable) {
-      // Coherencia §2-A/§6 defensiva: si el menú Estricto NO pudo llenar los 7 días (pool plenamente-disponible insuficiente) dejamos los restantes en `null` intencionalmente
-      // (§1 "nunca fabricar al vuelo / no inventa") — NO forzamos relleno aleatorio SIN consentimiento del usuario vía el toggle (§3 coherencia con § "includeUnavailable=false → exige hoy disponible, NO hay ram-B en estricto").
     }
+    return salida;
+  }
 
-    // --- needyFoods = UNION dedup por nombre-normalizado de ingredientes-ausentes de TODOS los slots asignados (§4 del plan "unión dedup", idénico al patrón de `uses` dedup-por-nombre en innovaciones.js)
-    const seenMissingNames = new Set();              // § coherencia 1:1 con la dedup interna por NOMBRE que ya usa pantryMatchDetails arriba (§3 no repite el mismo "needy" dos veces en la lista de compra).
-    const needyFoodsList = [];
-    for (let i = 0; i < plan.length; i++) {
-      const slot = plan[i];
-      if (!slot.recipe) continue;   // sólo los slots que SÍ tienen receta asignada pueden aportar ingredientes-ausentes (§3 coherencia: un día SIN receta NO aporta nada a la lista de compra).
-      for (const raw of Array.isArray(slot.missing) ? slot.missing : []) {         // § coherencia con el shape exacto `missing[]` ya validado en suggestToday/buildWeeklyMenu ram-A arriba (§2-A degradación suave si faltara por algún motivo — no debería pasar dado el flow, pero el guard evita crash).
-        const keyName = normForMatch(normFn, raw);                                 // § coherencia 1:1 con dedup-por-NOMBRE-normalizado de innovaciones.js línea ~208 (§3/§dedupeada "unión", NO por objeto crudo → misma lógica exacta de toda la capa ya existente).
-        if (!keyName || seenMissingNames.has(keyName)) continue;                   // §guard idénico: dedup real por nombre-normalizado (§4 del plan literal: "unión dedup por nombre-normalizado"), coherencia garantizada con todo lo anterior escrito en esta misma función.
-        seenMissingNames.add(keyName);                                              // registro post-dedup (§3 coherente con el patrón exacto ya probado en Innovación's `uses` — no repite NUNCA un mismo nombre de ingrediente-ausente dos veces en la lista final §"coherencia global", ver nota §5/§8 del plan-doc).
-        needyFoodsList.push({ name: raw == null ? "" : String(raw) });              // shape MINÍMO {name} — el caller (app.js Card-3 / flujo de auto-añadir igual que para nuevos alimentos por mergeIncoming-style, §3 "auto-inyección" exacto de backup.mergeIncoming)
-      }                                                                                     //rellena el resto del food objeto (`score:5`, `qty:0`, `min:0`, id+checkmark+createdAt) igual que lo hace addFoodThroughForm de app.js hoy (§ coherencia global, NO un nuevo shape inventado de "fila checkable").
-    }
-
-    return { plan, needyFoods: needyFoodsList };   // contrato del §1: `plan` SIEMRE.length===7 (nunca menos/más); `needyFoods` = [] si ningún slot con receta trae ingredientes-ausentes (§3 "a compra sólo si hay algo que FALTE de verdad, NO por defecto vacío forzado").
+  // (4b) pickRecipeForSlot — el MEJOR candidato de UNA comida determinada excluyendo las claves dadas. Es el motor
+  //     puro de la funcionalidad "🔄 Cambiar" (receta individual por día+comida). DETERMINISTA: mismo ranking que
+  //     buildWeeklyMenu; devuelve { recipe: idea, missing } o null si ya no quedan candidatos sin usar.
+  //     opts = { meal, excludeKeys?, includeUnavailable?, uid?, today? }.
+  function pickRecipeForSlot(pool, foods, opts) {
+    const normFn = resolveNorm(opts || {});
+    if (!Array.isArray(pool) || !(opts && opts.meal)) return null;
+    const excluidas = new Set(Array.isArray(opts.excludeKeys) ? opts.excludeKeys.filter(Boolean) : []);
+    const mismosDelTipo = rateRecipes(pool, foods, normFn).filter(c => (c.recipe.meal || "comida") === opts.meal);
+    // Swap hereda el modo del menú que lo llama: estricto (includeUnavailable=false) o tolerante (default).
+    const hit = primerAsignable(mismosDelTipo, { includeUnavailable: opts.includeUnavailable !== false, normFn, yaUsados: excluidas });
+    if (!hit) return null;
+    return {
+      recipe: toSuggestionIdeaFromRecipe(hit.candidate.recipe, { uses: hit.candidate.uses, uid: opts.uid }),
+      missing: hit.candidate.missing.slice()
+    };
   }
 
   // (5) cookEntryFor: registro EXACTO de mrcheff.cooked[] para "🍳 Cocinar hoy" (§3 Card-1) y para APROBAR cada día del MENÚ semanal (§3 Card-2).
@@ -345,7 +385,8 @@
     fingerprintOf,        // (1) coherencia cross-módulo Jaccard idénica a innovaciones.js (§3.5/§4 "coherente con isHardExcludedByUser existente") — usado para dedup intra-lote + alimentar cookEntryFor.keyFingerprint.
     buildCandidatePool,   // (2) fusión+cooldown ANTES del scoring compartido entre suggestToday/buildWeeklyMenu (§3 / § "UN solo mecanismo pre-filtro absoluto", NO dos).
     suggestToday,         // (3) ideas con TODOS ingredientes qty>0 (§4 estricto), ordenadas por haveRatio desc + tiebreak estable SIN azar (§ coherencia con innovaciones Fase-1/2 determinismo estricto de tramo A).
-    buildWeeklyMenu,      // (4) menú 7-días fijo; ram-A estricta DETERMINISTA + ram-B aleatoria controlable SÓLO si includeUnavailable=true falta capacidad (§3.7 precedent EXACTO a Innovaciones' ram-B ya validada con rng inyectado en sus tests Capa-1 existentes).
+    buildWeeklyMenu,      // (4) menú 7×3 (21 platos desayuno/comida/cena) DETERMINISTA ram-A + degradación ram-B por repetición inter-día (SIN rng: opción retirada de este contrato).
+    pickRecipeForSlot,    // (4b) mejor candidato de UNA comida excluyendo claves dadas — motor puro del "🔄 Cambiar" de un día (feature 2026-10-18; nuevo ítem API, ver §8).
     cookEntryFor          // (5) registro mrcheff.cooked[] exacto {id,title,keyFingerprint,on=HOY-real-injetable} (§3 Card-1/Card-2 literal del plan; §6 determinista vía opts.today/uid inyectables igual que mergeIncoming today).
   };
 });
