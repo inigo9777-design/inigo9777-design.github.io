@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/config.json", //TODO FIX
+  // Use this model by default.
+  "model": "qwen3.8:27b-mlx-fast",
+  "autoupdate": true,
+  //TODO change for the one of playwright to do the UI tests etc
+  "mcp": {
+    "jira": {
+      "type": "remote",
+      "url": "https://jira.example.com/mcp",
+      "enabled": false
+    }
+  },
+  "compaction": {
+    "auto": true, //Lo hace solo al llenarse el contexto
+    "prune": false
+  },
+  "instructions": [".opencode/rules/*.md"]
+}
