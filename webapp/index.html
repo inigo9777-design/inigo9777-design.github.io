@@ -275,6 +275,11 @@
     <!-- Nueva capa modular de "Sugerencias y menú" (planFeatureRecetasSugeridasYPlanSemana.md): lógica PURe SIN DOM,
          consumida por la wiring de app.js sólo en tiempo de click (no se desestructura al parsear el closure). -->
     <script src="modules/planner.js"></script>
+    <!-- Lógica PURe de Menú semanal (Card 2/3): approveMenu / regenerateAfterCook / markItemBought / clearMenu.
+         CONSUMIDA por app.js en los clicks de la tarjeta (aprobar / cocinar desde el menú / limpiar / comprar).
+         ¡OJO: debe ir SIEMPRE tras planner.js y ANTES de que app.js dispare eventos — si este tag falta,
+         window.MRCheff.menuSemanal queda undefined y los botones de la tarjeta rompen en silencio! -->
+    <script src="modules/menu-semanal.js"></script>
     <!-- PURe "¿qué ingredientes faltan en casa?" para el modal de detalle (highlightMissing) — ver planFeature… §2 Modal + módulo recipe-missing.js.
          Sólo se usa en tiempo de click dentro del cierre de `openRecipeModal` (§ Liskov: su API queda cerrada a 2 funciones, SIN fuga de helpers). -->
     <script src="modules/recipe-missing.js"></script>

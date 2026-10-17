@@ -625,8 +625,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ===== SUGERENCIAS Y MENÚ — CARD 2: menú semanal (7 días) + CARD 3: lista de la compra =====
-  // Previsualiza un plan de 7 días (Lunes..Domingo) respetando el cooldown de 7 días. "Aprobar plan" guarda
-  // mrcheff.weekmenu (aprobado=true, ancla de fecha=HOY real) y registra cada receta del plan en mrcheff.cooked.
+  // Previsualiza un plan de 7 días (Lunes..Domingo) respetando el cooldown. "Aprobar plan" guarda
+  // mrcheff.weekmenu (aprobado=true, ancla de fecha=HOY real) y registra en mrcheff.cooked cada
+  // receta del plan ANCLADA a la fecha de su día de la semana (próxima ocurrencia desde HOY).
   // Card 3 aparece sólo si el plan aprobado trae ingredientes ausentes (needyFoods); marcar un ítem como comprado
   // lo auto-añade al inventario (qty=0/min=0/score=5, dedup por nombre, idéntico a backup.mergeIncoming) y refresca
   // la alerta semanal. No toca recipes[] / Mis Recetas.
@@ -771,6 +772,8 @@ document.addEventListener("DOMContentLoaded", () => {
   btnMenuApprove.addEventListener("click", () => {
     if (!weeklyMenu || weeklyMenu.approved) return;
     const cookedIn = load(LS.cooked, []);
+    // Toda la decisión vive en menuSemanal.approveMenu: una entrada en mrcheff.cooked por cada
+    // receta del plan, ANCLADA a la fecha de calendario de su día de la semana (no todas a HOY).
     const result = menuSemanal.approveMenu(weeklyMenu, cookedIn, today, planner.cookEntryFor, uid);
     const cooked = result.cooked;
     weeklyMenu = result.weekmenu;
@@ -778,14 +781,23 @@ document.addEventListener("DOMContentLoaded", () => {
     save(LS.weekmenu, weeklyMenu);
     btnMenuApprove.disabled = true;
     btnMenuApprove.textContent = "✅ Plan aprobado";
-    menuStatus.textContent = `Plan aprobado y ${weeklyMenu.plan.filter(s => s.recipe).length} plato(s) anotados como cocinados hoy (${today}).`;
+    menuStatus.textContent = `Plan aprobado: ${weeklyMenu.plan.filter(s => s.recipe).length} plato(s) anotados en su día de la semana (aprobado el ${today}).`;
     renderShoppingList();
     toast("Menú semanal aprobado");
   });
 
-  // Auto-render de Card 3 si al cargar la app ya hay un plan aprobado con ítems pendientes.
-  if (weeklyMenu && weeklyMenu.approved && weeklyMenu.needyFoods && weeklyMenu.needyFoods.length) {
-    renderShoppingList();
+  // Persistencia al recargar: si ya había un plan APROBADO en mrcheff.weekmenu, re-pintamos el menú
+  // de 7 días y Card 3 (con sus ítems pendientes) y dejamos el botón Aprobar en estado final.
+  // Los previews NO aprobados NO se persisten (contrato §3 Card 2): tras recargar se regeneran con
+  // "Generar menú".
+  if (weeklyMenu && weeklyMenu.approved) {
+    if (Array.isArray(weeklyMenu.plan) && weeklyMenu.plan.length) {
+      renderWeeklyMenu(weeklyMenu.plan);
+    }
+    btnMenuApprove.disabled = true;
+    btnMenuApprove.textContent = "✅ Plan aprobado";
+    menuEmpty.classList.add("hidden");
+    renderShoppingList();   // sólo pinta si hay needyFoods no comprados (el render filtra por sí, guard §2-A)
   }
 
   btnMenuClear.addEventListener("click", () => {
@@ -798,6 +810,7 @@ document.addEventListener("DOMContentLoaded", () => {
     menuEmpty.classList.remove("hidden");
     menuStatus.classList.add("hidden");
     btnMenuApprove.disabled = true;
+    btnMenuApprove.title = "Genera primero un menú con al menos un plato";
     btnMenuApprove.textContent = "Aprobar plan";
     shoppingListEl.innerHTML = "";
     shoppingListEl.classList.add("hidden");

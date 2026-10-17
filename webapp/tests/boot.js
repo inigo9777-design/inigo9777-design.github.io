@@ -37,30 +37,24 @@ function bootApp(opts = {}) {
 
   // Fresh localStorage per boot (JSDOM gives a clean one already).
 
-  // Load EVERY browser script in the SAME order as index.html (<body>, lines ~217-227), all BEFORE firing
-  // DOMContentLoaded. Order matters: app.js destructures window.MRCheff.<module> synchronously inside its big
-  // DOMContentLoaded closure (util @ L66, priority @ L159, backup @ L588) and lazily calls innovations.generate /
-  // recipeAnalysis.analyzeRecipe on later button clicks — every one of these modules/... + data/recetas-espanolas-data.js
-  // scripts MUST therefore be registered before we dispatch the event. This mirrors index.html because a mismatch between
-  // "what CI loads" and "what production ships" is exactly the latent bug that hid for weeks (commit a558d47 extracted
-  // util+backup to modules but left this bootstrap stale; Capa-2 tests only now guard against future drift).
+  // Cargar TODOS los <script src="..."> en el ORDEN EXACTO en el que los declara index.html (fuente única de verdad
+  // § DRY/Open-Closed: la lista se PARSEA del HTML real, NUNCA se hardcodea aquí dos veces — el drift CI↔prod que
+  // ocultó semanas era exactamente una lista duplicada: a558d47 extrajo util+backup a módulos y dejó este bootstrap
+  // desactualizado, y en 2026-10-18 index.html llegó a faltar el <script> de modules/menu-semanal.js, rompiendo
+  // "Limpiar/Aprobar plan" en producción mientras CI pasaba verde porque SU lista sí lo tenía. Al parsear del propio
+  // HTML, añadir un módulo nuevo basta y las dos cargas no pueden divergir). Los inline (p.ej. el head de tema) se
+  // ignoran como hasta ahora. app.js destruye (destructuring) window.MRCheff.<module> sincrónicamente dentro de su
+  // closure de DOMContentLoaded (util @ L66, priority @ L159, backup @ L588, planner/menuSemanal sólo en clicks) —
+  // TODO debe estar registrado ANTES de disparar el evento.
   const { window } = dom;
 
   // Semear localStorage ANTES de disparar DOMContentLoaded: los closures de app.js leen foods/recipes/innov/cooked
   // al inicializarse, así que el estado precargado debe estar ya en localStorage (ver seedState más abajo).
   if (opts.seed) seedState(opts.seed, window);
-  runScriptInWindow(window, read("data/data.js"));                  // L217 → window.MR_CHEFF_DATA          (MESES/TEMPORADA de temporada; ver app.js L543)
-  runScriptInWindow(window, read("app.js"));                        // L218
-  runScriptInWindow(window, read("modules/priority.js"));           // L220 → window.MRCheff.priority         @ app.js L159
-  runScriptInWindow(window, read("modules/classify.js"));           // L221 → window.MRCheff.classify        (norm reutilizado por recipeAnalysis/innovations)
-  runScriptInWindow(window, read("modules/recipe-analysis.js"));    // L222 → window.MRCheff.recipeAnalysis  @ app.js L258
-  runScriptInWindow(window, read("data/recetas-espanolas-data.js"));// L223 → window.MRCheff.recetasEspanolas   (catálogo curado) — DEBE ir ANTES de innovations (la consume vía generate@L437)
-  runScriptInWindow(window, read("modules/innovations.js"));        // L224 → window.MRCheff.innovations     @ app.js L437 · DEPENDENCIA: recetasEspanolas previo
-  runScriptInWindow(window, read("modules/util.js"));               // L226 → window.MRCheff.util            @ app.js L66 (escapeHTML+uid) — CARGAR ANTES del DCL por destructuring sincrónico
-  runScriptInWindow(window, read("modules/backup.js"));             // L227 → window.MRCheff.backup          @ app.js L588
-  runScriptInWindow(window, read("modules/planner.js"));            // index.html (tras backup) → window.MRCheff.planner — consumido sólo en tiempo de click por la wiring de app.js (§ plan Feature Sugerencias/menú); no se desestructura al parsear el closure
-  runScriptInWindow(window, read("modules/menu-semanal.js"));       // tras planner → window.MRCheff.menuSemanal — lógica PURe de Card 2/Card 3 (sin DOM ni storage); consumida por app.js en tiempo de click
-  runScriptInWindow(window, read("modules/recipe-missing.js"));     // index.html (tras planner) → window.MRCheff.recipeMissing — PURe "¿qué ingredientes faltan en casa?" que openRecipeModal reutilise sólo tras un click DOM (§ plan Feature §2 Modal + Liskov: API cerrada a 2 fns); carga ANTES del DCL por coherencia CI↔prod
+
+  const srcScripts = [...html.matchAll(/<script\s+src="([^"]+)"><\/script>/g)].map(m => m[1]);
+  if (srcScripts.length === 0) throw new Error("[boot.js] index.html no declara ningún <script src> — parseo roto");
+  for (const src of srcScripts) runScriptInWindow(window, read(src));   // read lanza si el path no existe → falla ruidoso en CI
 
   // Fire DOMContentLoaded so app.js' big callback runs.
   fireEvent(window, "DOMContentLoaded");
@@ -87,6 +81,7 @@ function seedState(seed, window) {
   if (Array.isArray(seed.innov))   ls.setItem("mrcheff.innov", JSON.stringify(seed.innov));
   if (seed.innovDate != null)      ls.setItem("mrcheff.innov.date", String(seed.innovDate));
   if (Array.isArray(seed.cooked))  ls.setItem("mrcheff.cooked", JSON.stringify(seed.cooked));
+  if (seed.weekmenu != null)       ls.setItem("mrcheff.weekmenu", JSON.stringify(seed.weekmenu));   // plan APROBADO persistido → permite probar el re-render al recargar
 }
 
 // Run a script string inside the given jsdom window, sharing its globals.

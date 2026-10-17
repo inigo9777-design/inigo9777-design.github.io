@@ -3,11 +3,11 @@
 //
 // API PÚBLICA CERRADA (6 funciones, sin fugas de helpers internos):
 //   shoppingListFor(needyFoods, foods)           → dedup por nombre-normalizado vs aforo; shape {name, qty:0, min:0, score:5}
-//   approveMenu(preview, cooked, today, cookEntryFor, uid)   → { cooked, weekmenu } inmutables; ancla HOY real
+//   approveMenu(preview, cooked, today, cookEntryFor, uid)   → { cooked, weekmenu } inmutables; ancla = FECHA de cada día planificado
 //   markItemBought(foods, weekmenu, itemName, uid, now)      → { foods, weekmenu, alreadyExists } inmutables
 //   cookEntry(recipe, cooked, today, cookEntryFor, uid)      → { cooked } inmutable; anota una receta como cocinada hoy
 //   regenerateAfterCook(recipe, ctx)                         → { cooked, weekmenu } inmutables; flujo "🍳 Cocinar hoy" DESDE el menú
-//   clearMenu()                                               → estado limpio para reiniciar el menú
+//   clearMenu()                                               → { weekmenu: null } inmutable; reinicia el menú
 
 (function (root, factory) {
   const api = factory();
@@ -18,6 +18,28 @@
 
   // Id único por omisión (reloj real); inyectable vía opts.uid para tests deterministas (§6).
   const defaultUid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  // ---------------------------------------------------------------------------
+  // dateForPlanDay — fecha de calendario (ISO "YYYY-MM-DD") del DÍA DE LA SEMANA planificado:
+  //   la PRÓXIMA ocurrencia de ese weekday contando desde `today` (HOY incluido como día 0).
+  //   Ej.: aprobado el miércoles 2026-10-21 → "Lunes" ancla 2026-10-26, "Miércoles" ancla HOY,
+  //   "Domingo" ancla 2026-10-25. Débil ante acentos/caso ("Miércoles" → "miercoles") y con
+  //   fallback al índice del slot (0=Lunes..6=Domingo) si el label no es reconocible.
+  //   Aritmética en UTC para no depender de la zona horaria del host (§6 determinismo).
+  // ---------------------------------------------------------------------------
+  const DAY_GETDAY = { lunes: 1, martes: 2, miercoles: 3, jueves: 4, viernes: 5, sabado: 6, domingo: 0 };
+
+  function dateForPlanDay(dayLabel, slotIndex, todayISO) {
+    const key = String(dayLabel == null ? "" : dayLabel)
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const target = Object.prototype.hasOwnProperty.call(DAY_GETDAY, key)
+      ? DAY_GETDAY[key]
+      : ((slotIndex + 1) % 7);   // fallback: índice del slot (0=Lunes..6=Domingo) → getDay() (Domingo=0)
+    const base = new Date(String(todayISO) + "T00:00:00Z");
+    if (isNaN(base.getTime())) return String(todayISO);      // guard §2-A: hoy inválido → ancla HOY tal cual
+    const diff = (target - base.getUTCDay() + 7) % 7;
+    return new Date(base.getTime() + diff * 86400000).toISOString().slice(0, 10);
+  }
 
   // ---------------------------------------------------------------------------
   // shoppingListFor — dedup por nombre-normalizado de needyFoods contra el aforo actual.
@@ -39,16 +61,22 @@
 
   // ---------------------------------------------------------------------------
   // approveMenu — construye el resultado de aprobar el preview de menú SIN tocar localStorage ni DOM.
-  //   * clona cooked y le añade una entrada por cada receta del plan aprobado (ancla = HOY real, no label visual).
+  //   * clona cooked y le añade UNA entrada por cada receta del plan, cada una anclada a SU FECHA
+  //     de calendario del día de la semana planificado (próxima ocurrencia de ese weekday desde
+  //     HOY; si HOY es ese día, la ancla es HOY). NO se marca todo a HOY: cada plato queda
+  //     "cocinado el día que le toca" (p.ej. aprobado el miércoles → Lunes ancla al lunes siguiente).
   //   * devuelve weekmenu con approved=true y generatedOn=hoy (inmutables: no muta `preview` ni `cooked`).
   //   * `cookEntryFor` e `uid` se inyectan por contexto (§2-D / §6 determinismo).
   // ---------------------------------------------------------------------------
   function approveMenu(preview, cooked, today, cookEntryFor, uid) {
     const mkId = typeof uid === "function" ? uid : defaultUid;
     const nextCooked = (Array.isArray(cooked) ? cooked : []).slice();
-    for (const slot of Array.isArray(preview && preview.plan) ? preview.plan : []) {
+    const slots = Array.isArray(preview && preview.plan) ? preview.plan : [];
+    for (let i = 0; i < slots.length; i++) {
+      const slot = slots[i];
       if (slot && slot.recipe) {
-        nextCooked.push(cookEntryFor(slot.recipe, { today, uid: mkId }));
+        const anchor = dateForPlanDay(slot.dayLabel, i, today);
+        nextCooked.push(cookEntryFor(slot.recipe, { today: anchor, uid: mkId }));
       }
     }
     const weekmenu = Object.assign({}, preview, { approved: true, generatedOn: String(today) });
@@ -144,7 +172,7 @@
   // clearMenu — estado limpio para reiniciar el menú (preview borrado, approved=false).
   // ---------------------------------------------------------------------------
   function clearMenu() {
-    return { weeklyMenu: null };
+    return { weekmenu: null };   // `weekmenu` (misma convención de naming que approveMenu/markItemBought)
   }
 
   // API PÚBLICA CERRADA (§5/§8 — solo estas 6 funciones, sin fuga de helpers internos como defaultUid).

@@ -57,7 +57,8 @@ Views: **Alimentos** (pantry/restock alerts) · **Recetas** (free-text → struc
   (feature sugerencias/menú semana) `mrcheff.cooked` y `mrcheff.weekmenu`. **Use the helpers, not
   raw localStorage**, so JSON handling + defaults stay consistent.
   - `mrcheff.cooked`: `Array<{ id, title, keyFingerprint, on: "YYYY-MM-DD" }>` — ancla del cooldown de 7 días
-    (fingerprint de ingredientes, no el `id` interno de recipes[]).
+    (fingerprint de ingredientes, no el `id` interno de recipes[]). En "Aprobar plan", cada entrada se ancla a la
+    FECHA de su día planificado (próxima ocurrencia de ese weekday desde HOY, HOY incluido como día 0).
   - `mrcheff.weekmenu`: `{ approved, includeUnavailable, generatedOn, plan[7], needyFoods[] }` — ancla = HOY real
     al aprobar, no el día visual marcado.
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —

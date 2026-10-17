@@ -58,7 +58,7 @@ describe("modules/menu-semanal.js", () => {
     });
   });
 
-  describe("approveMenu — aprueba preview, inmutabilidad y ancla HOY", () => {
+  describe("approveMenu — aprueba preview; cada plato se ancla a la FECHA de SU día planificado", () => {
     const preview = {
       plan: [
         { dayLabel: "Lunes", recipe: { title: "Tortilla", ingredients: ["Huevos", "Patatas"] } },
@@ -67,20 +67,61 @@ describe("modules/menu-semanal.js", () => {
       ],
       needyFoods: [{ name: "Aceite" }]
     };
-
-    it("devuelve { cooked, weekmenu } sin mutar preview ni cooked", () => {
+    // TODAY = "2030-01-15" es MARTES. Anclas = próxima ocurrencia de cada weekday desde HOY (día 0):
+    //   Lunes → 2030-01-21 (lunes siguiente), Miércoles → 2030-01-16 (mañana), el propio día → HOY.
+    it("devuelve { cooked, weekmenu } sin mutar preview ni cooked y anclando cada plato a SU día", () => {
       const cookedIn = [{ id: "ant", title: "Antiguo", keyFingerprint: "abc", on: "2030-01-10" }];
       const result = approveMenu(preview, cookedIn, TODAY, cookEntryFor, () => "uid-1");
 
       expect(result.cooked).toHaveLength(3); // 1 previa + 2 recetas del plan (Martes es null → salta)
       expect(result.cooked[1].title).toBe("Tortilla");
-      expect(result.cooked[1].on).toBe(TODAY); // ancla HOY real, no "Lunes"
+      expect(result.cooked[1].on).toBe("2030-01-21"); // aprobado martes → "Lunes" ancla al LUNES SIGUIENTE
       expect(result.cooked[2].title).toBe("Merluza");
-      expect(result.cooked[2].on).toBe(TODAY);
+      expect(result.cooked[2].on).toBe("2030-01-16"); // aprobado martes → "Miércoles" ancla al MIÉRCOLES próximo
 
       // inmutabilidad: preview y cookedIn no se mutan
       expect(preview.approved).toBeUndefined();
       expect(cookedIn).toHaveLength(1);
+    });
+
+    it("el día de HOY en el plan se ancla al PROPIO hoy (día 0, no a la próxima semana)", () => {
+      const previewHoy = {
+        plan: [
+          { dayLabel: "Lunes", recipe: null },
+          { dayLabel: "Martes", recipe: { title: "Salmorejo", ingredients: ["Tomates"] } } // lo aprobamos en MARTES
+        ],
+        needyFoods: []
+      };
+      const result = approveMenu(previewHoy, [], TODAY, cookEntryFor, () => "uid-1");
+      expect(result.cooked).toHaveLength(1);
+      expect(result.cooked[0].on).toBe(TODAY); // Sí la aprobaron el día en cuestión → ancla HOY
+    });
+
+    it("aprobado un sábado → Lunes va a la SEMANA SIGUIENTE y Domingo a mañana (wrap-around)", () => {
+      const SABADO = "2030-01-19";
+      const previewSab = {
+        plan: [
+          { dayLabel: "Lunes", recipe: { title: "Lentejas", ingredients: ["Lentejas"] } },
+          { dayLabel: "Domingo", recipe: { title: "Merluza", ingredients: ["Merluza"] } }
+        ],
+        needyFoods: []
+      };
+      const result = approveMenu(previewSab, [], SABADO, cookEntryFor, () => "uid-1");
+      expect(result.cooked[0].on).toBe("2030-01-21"); // lunes siguiente
+      expect(result.cooked[1].on).toBe("2030-01-20"); // domingo = mañana del sábado
+    });
+
+    it("label con acentos/caso raro se reconoce ('MIéRcOlEs' == miércoles) y label desconocido hace fallback al índice del slot", () => {
+      const previewRaro = {
+        plan: [
+          { dayLabel: "MIéRcOlEs", recipe: { title: "R1", ingredients: ["Tomates"] } }, //.getDay 3 → diff 1 desde martes
+          { dayLabel: "???day", recipe: { title: "R2", ingredients: ["Tomates"] } }     // fallback: índice 1 = Martes → HOY
+        ],
+        needyFoods: []
+      };
+      const result = approveMenu(previewRaro, [], TODAY, cookEntryFor, () => "uid-1");
+      expect(result.cooked[0].on).toBe("2030-01-16");
+      expect(result.cooked[1].on).toBe(TODAY);
     });
 
     it("weekmenu.approved=true y generatedOn=hoy", () => {
@@ -100,7 +141,11 @@ describe("modules/menu-semanal.js", () => {
       const result = approveMenu(preview, [], TODAY, cookEntryFor, () => "uid-det");
       const ids = result.cooked.map(c => c.id).sort();
       expect(ids).toEqual(["uid-det", "uid-det"]); // ambas recetas usan el uid inyectado
-      expect(result.cooked.every(c => c.on === TODAY)).toBe(true);
+      // anclajes = fecha de SU día planificado (no todas HOY): Lunes→21, Miércoles→16
+      expect(result.cooked.map(c => [c.title, c.on]).sort()).toEqual([
+        ["Merluza", "2030-01-16"],
+        ["Tortilla", "2030-01-21"]
+      ]);
     });
 
     it("preview sin plan → cooked vacío y weekmenu aprobado igual", () => {
@@ -183,8 +228,8 @@ describe("modules/menu-semanal.js", () => {
   });
 
   describe("clearMenu — reinicia el estado del menú", () => {
-    it("devuelve { weeklyMenu: null }", () => {
-      expect(clearMenu()).toEqual({ weeklyMenu: null });
+    it("devuelve { weekmenu: null } (misma convención de naming que approveMenu/markItemBought)", () => {
+      expect(clearMenu()).toEqual({ weekmenu: null });
     });
   });
 
