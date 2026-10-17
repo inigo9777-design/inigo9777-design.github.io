@@ -442,3 +442,20 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 .season-card .season-emoji { font-size: 2.2rem; display: block; margin-bottom: 8px; } .season-card .season-name { font-weight: 600; font-size: 0.98rem; } .season-card .season-type { display: inline-block; margin-top: 6px; font-size: 0.75rem; font-weight: 600; padding: 2px 10px; border-radius: 999px; } .season-card .season-type.fruta { background: #fef3c7; color: #92400e; } .season-card .season-type.verdura { background: #dcfce7; color: var(--accent-dark); }
+/* ========== VISTA: SUGERENCIAS Y MENÚ SEMANAL (plan Feature 2026) ========== */
+/* Modal "ingredientes ausentes": sólo se activa vía openRecipeModal(r, { highlightMissing:true }); sin esa bandera
+   la lista de ingredientes del modal es IDENTICA a la que ya usaban Recetas/Innovación → no rompe nada probado. Ver plan §2. */
+.modal-content .meal-missing { border-left: 4px solid var(--danger); background: rgba(220,38,38,0.06); padding-left: 16px; }
+.modal-content .missing-badge { display: inline-block; font-size: 0.7rem; font-weight: 700; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 1px 6px; border-radius: 999px; margin-left: 8px; }
+.check-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text); cursor: pointer; margin-bottom: 10px; }
+
+/* Fila diaria del menú y fila de la compra: se reusa el lenguaje visual de .alert-card ya existente
+   (verde = "todo en orden / a comprar"), coherente con § plan Card-3, sin inventar componente nuevo. */
+#menu-plan-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.menu-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-left: 4px solid var(--border); background: var(--card); border-radius: 10px; }
+.menu-empty-day h3 { margin-bottom: 0; font-size: 0.95rem; color: var(--muted); }
+.menu-row select { flex: none; max-width: 42%; }
+
+/* Cada fila de la lista de compra es checkable (reusa el patrón de .alert-row existente, no un tipo nuevo). */
+#shopping-list li { display: flex; align-items: center; gap: 10px; padding: 8px 4px; }
+#shopping-list .shopping-name { flex: 1; font-weight: 600; }

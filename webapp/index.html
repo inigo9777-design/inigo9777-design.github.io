@@ -27,6 +27,7 @@
             <button class="tab active" data-view="foods" role="tab">📦 Alimentos</button>
             <button class="tab" data-view="recipes" role="tab">📝 Recetas</button>
             <button class="tab" data-view="innovation" role="tab">💡 Innovación</button>
+            <button class="tab" data-view="suggest" role="tab">🍽️ Sugerencias y menú</button>
             <button class="tab" data-view="seasonal" role="tab">🥦 Temporada</button>
             <button class="tab" data-view="backup" role="tab">🗄️ Copia de seguridad</button>
         </nav>
@@ -167,6 +168,51 @@
             <p id="innovation-empty" class="empty muted hidden">Pulsa "Generar ideas" para crear variaciones con lo que tienes en casa.</p>
         </section>
 
+        <!-- ============ VISTA: SUGERENCIAS Y MENÚ SEMANAL (plan Feature 2026) ============
+             Nuevas claves de localStorage: mrcheff.cooked / mrcheff.weekmenu (ver CODING_STANDARDS.md §5/§8 y el plan). -->
+        <section id="view-suggest" class="view">
+
+            <!-- ---------- Card 1: recetas que SÍ se pueden cocinar hoy ---------- -->
+            <div class="card">
+                <h2>🍳 Se puede cocinar hoy</h2>
+                <p class="muted">Recetas con <strong>todos sus ingredientes ya en tu aforo (con cantidad real &gt; 0)</strong>,
+                    ordenadas por cuánto aprovechas de casa. Las que has preparado esta semana quedan apartadas un tiempo
+                    (cooldown de 7 días) para no repetir. Pulsa "🍳 Cocinar hoy" para anotarlo.</p>
+                <div class="row-form">
+                    <button id="btn-suggest-generate" class="btn primary">↻ Sugerir ahora</button>
+                    <button id="btn-suggest-clear" class="btn ghost">Limpiar</button>
+                </div>
+            </div>
+
+            <div id="suggest-list" class="recipe-grid"></div>
+            <p id="suggest-empty" class="empty muted hidden">Pulsa "Sugerir ahora" para ver qué puedes cocinar con lo que tienes en casa.</p>
+
+            <!-- ---------- Card 2: menú semanal (7 días) ---------- -->
+            <div class="card">
+                <h2>📅 Menú semanal</h2>
+                <p class="muted">Un plan de 7 días (Lunes a Domingo) con un plato cada día, respetando lo que ya cocinaste esta
+                    semana. Si activas la opción de abajo, Mr Cheff también rellena los días en los que no tienes todo el
+                    ingrediente necesario y te lo deja anotado como pendiente a comprar.</p>
+                <label class="check-inline">
+                    <input type="checkbox" id="menu-include-unavailable">
+                    Incluir aunque no estén ahora disponibles (se añaden como pendientes de compra)
+                </label>
+                <div class="row-form">
+                    <button id="btn-menu-generate" class="btn primary">Generar menú</button>
+                    <button id="btn-menu-approve" class="btn ghost" disabled>Aprobar plan</button>
+                </div>
+                <p id="menu-status" class="muted hidden"></p>
+            </div>
+
+            <!-- 7 filas diarias: se pinta dinámicamente con el preview del menú -->
+            <ul id="menu-plan-list" class="alert-card alert-green hidden"></ul>
+            <p id="menu-empty" class="empty muted hidden">Pulsa "Generar menú" para ver tu semana propuesta.</p>
+
+            <!-- ---------- Card 3: lista de la compra (derivada del plan aprobado) ---------- -->
+            <div id="shopping-list" class="card alert-card alert-green hidden"></div>
+
+        </section>
+
         <!-- ============ VISTA: TEMPORADA ============ -->
         <section id="view-seasonal" class="view">
             <div class="card">
@@ -225,6 +271,12 @@
     <!-- Nuevos modules PURe (este refactor): utilidades compartidas y copia de seguridad. -->
     <script src="modules/util.js"></script>
     <script src="modules/backup.js"></script>
-    
+    <!-- Nueva capa modular de "Sugerencias y menú" (planFeatureRecetasSugeridasYPlanSemana.md): lógica PURe SIN DOM,
+         consumida por la wiring de app.js sólo en tiempo de click (no se desestructura al parsear el closure). -->
+    <script src="modules/planner.js"></script>
+    <!-- PURe "¿qué ingredientes faltan en casa?" para el modal de detalle (highlightMissing) — ver planFeature… §2 Modal + módulo recipe-missing.js.
+         Sólo se usa en tiempo de click dentro del cierre de `openRecipeModal` (§ Liskov: su API queda cerrada a 2 funciones, SIN fuga de helpers). -->
+    <script src="modules/recipe-missing.js"></script>
+
 </body>
 </html>

@@ -55,6 +55,8 @@ function bootApp(opts = {}) {
   runScriptInWindow(window, read("modules/innovations.js"));        // L224 → window.MRCheff.innovations     @ app.js L437 · DEPENDENCIA: recetasEspanolas previo
   runScriptInWindow(window, read("modules/util.js"));               // L226 → window.MRCheff.util            @ app.js L66 (escapeHTML+uid) — CARGAR ANTES del DCL por destructuring sincrónico
   runScriptInWindow(window, read("modules/backup.js"));             // L227 → window.MRCheff.backup          @ app.js L588
+  runScriptInWindow(window, read("modules/planner.js"));            // index.html (tras backup) → window.MRCheff.planner — consumido sólo en tiempo de click por la wiring de app.js (§ plan Feature Sugerencias/menú); no se desestructura al parsear el closure
+  runScriptInWindow(window, read("modules/recipe-missing.js"));     // index.html (tras planner) → window.MRCheff.recipeMissing — PURe "¿qué ingredientes faltan en casa?" que openRecipeModal reutilise sólo tras un click DOM (§ plan Feature §2 Modal + Liskov: API cerrada a 2 fns); carga ANTES del DCL por coherencia CI↔prod
 
   // Fire DOMContentLoaded so app.js' big callback runs.
   fireEvent(window, "DOMContentLoaded");

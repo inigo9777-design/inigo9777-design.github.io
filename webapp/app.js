@@ -378,7 +378,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // ===== MODAL DETALLE =====
   const modal = $("#modal");
   const modalContent = $("#modal-content");
-  function openRecipeModal(r) {
+  // Modal de detalle. Se extiende para el flujo Sugerencias/Menú (§ plan Feature §2): la 2ª arg opcional { highlightMissing:true }
+  // hace que los ingredientes NO disponibles en aforo (stock qty=0 o ausente) se marquen visualmente con .meal-missing + "⚠️ No lo tienes".
+  // SIN esa bandera el render del modal queda IDENTICO al de siempre: Recetas/Innovación no la pasan → no se rompe ninguna vista ya probada.
+  function openRecipeModal(r, opts) {
+    const resaltarFaltantes = !!(opts && opts.highlightMissing);           // guard estricto § plan §2 "no activa sin que la UI lo pida".
+    let faltantesPorIndice = null;                                          // boolean[] paralelo a r.ingredients, sólo calculado SI la vista lo pide (sin bandera → nulo → idéntico).
+    if (resaltarFaltantes && window.MRCheff.recipeMissing) {               // el match estricto vive en un PURe módulo testable (DIP §6), no se reinventa aquí (§ "un solo lugar calcula bien").
+      const moduloFaltantes = window.MRCheff.recipeMissing;
+      faltantesPorIndice = typeof moduloFaltantes.marcarFaltantes === "function" ? moduloFaltantes.marcarFaltantes(r, foods) : null; // fallback débil: si el módulo se perdiera NO romperíamos nada.
+    }
     modalContent.innerHTML = `
       <h2>${escapeHTML(r.title)}</h2>
       <div class="recipe-meta">
@@ -388,7 +397,13 @@ document.addEventListener("DOMContentLoaded", () => {
       ${r.from ? `<p class="muted">Base: ${escapeHTML(r.from)}</p>` : ""}
       ${r.uses && r.uses.length ? `<p class="muted">🥣 Usa de tu casa: ${r.uses.map(escapeHTML).join(", ")}</p>` : ""}
       <h4>🧾 Ingredientes</h4>
-      <ul>${r.ingredients.map(i => `<li>${escapeHTML(i)}</li>`).join("")}</ul>
+      <ul>${Array.isArray(r.ingredients) ? r.ingredients.map((i, idx) => {
+        // Cada ingrediente se evalúa con su índice para NO reordenar ni dedup la lista original del plato (§ Liskov: form/shape idéntico al de hoy SIN flag).
+        const ausente = Array.isArray(faltantesPorIndice) && faltantesPorIndice[idx] === true; // sólo marca si la vista lo pidió (§ guard estricto § plan §2 "sin bandera → sin clase, sin badge").
+        return ausente
+          ? `<li class="meal-missing">${escapeHTML(i)} <span class="missing-badge">⚠️ No lo tienes</span></li>`   // UI coherente con CSS .meal-missing/.missing-badge ya existente (§ plan Feature §2 modal).
+          : `<li>${escapeHTML(i)}</li>`;   // IDÉNTICO al render actual SIN la bandera → Recetas/Innovación no se ROMPEN en sus vistas ya probadas (§ guard total de regresión, § "no romper vistas ya probadas").
+      }).join("") : ""}</ul>
       <h4>👨‍🍳 Método</h4>
       <ol>${r.method.map(m => `<li>${escapeHTML(m)}</li>`).join("")}</ol>
       <div class="modal-footer">

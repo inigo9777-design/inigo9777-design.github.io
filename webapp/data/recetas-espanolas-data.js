@@ -778,7 +778,7 @@ return [
   },
   {
     "id": "ventreza",
-    "title": "Ventrespa de atún",
+    "title": "Ventresca de atún",
     "meal": "comida",
     "ingredients": ["Ventresca atún", "Cebolla morada", "Limón", "Aceite", "Eneldo"],
     "method": [
@@ -810,6 +810,31 @@ return [
       "Embute en tripa limpia.",
       "Ahuma ligeramente según preferencia.",
       "Cura 3 semanas mínimo."
+    ]
+  },
+  {
+    "id": "patatas-a-la-riojana",
+    "title": "Patatas a la riojana",
+    "meal": "comida",
+    "ingredients": [
+      "Patatas",
+      "Chorizo",
+      "Cebolla",
+      "Ajo",
+      "Pimiento choricero",
+      "Pimentón dulce",
+      "Laurel",
+      "Aceite de oliva",
+      "Sal"
+    ],
+    "method": [
+      "Hidrata el pimiento choricero en agua caliente durante 15 minutos. Retira la pulpa con una cuchara y resérvala.",
+      "Pica la cebolla y el ajo. Pela las patatas y córtalas en trozos, chascándolas al final para que suelten almidón.",
+      "Calienta un chorrito de aceite en una cazuela y sofríe la cebolla a fuego medio hasta que esté blanda. Añade el ajo y cocina durante 1 minuto.",
+      "Incorpora el chorizo en rodajas y rehógalo un par de minutos. Retira la cazuela del fuego, añade el pimentón y remueve para que no se queme.",
+      "Agrega las patatas, la pulpa del pimiento choricero y la hoja de laurel. Cubre con agua justo hasta taparlas y sala ligeramente.",
+      "Lleva a ebullición y cocina a fuego suave, sin tapar del todo, durante 25–30 minutos, hasta que las patatas estén tiernas y el caldo algo ligado.",
+      "Prueba y ajusta de sal. Deja reposar 5 minutos antes de servir."
     ]
   },
   {
