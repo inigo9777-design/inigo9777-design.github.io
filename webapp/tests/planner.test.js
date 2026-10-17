@@ -53,7 +53,19 @@ describe("modules/planner.js", () => {
 
      it("inyección de `opts.norm` (normalizador custom testable, §3.7 precedent exacto a innovations.test.js) produce una clave distinta al default", () => {
        const rec = { id: "x5", ingredients: ["Huevos"], method: [] };
-       expect(planner.fingerprintOf(rec)).not.toBe(planner.fingerprintOf(rec, { norm: s => String(s).toUpperCase() })); // §guard: con otro normalizador la clave SÍ cambia (§3.7/§4 "ruta SIEMPRE por normFn inyectado", coherente con innovaciones.normForMatch line ~152)
+
+       // § Fix prueba #1 (Bug en el TEST que fallaba 2026-10-17): la premisa original usaba `{ norm: s => String(s).toUpperCase() }`
+       // pero por DISEÑO de `normForMatch` (§ duplicación idéntica a innovatión.js, coherencia Jaccard cross-módulo garantizada)
+       // el módulo aplica `.toLowerCase().normalize("NFC")` DESPUÉS del normFn inyectado → cualquier norma "sólo-caso" cae igual
+       // al default y la prueba es vacía (no distingue nada). Intención DEL TEST (§3.7/§4 "la ruta SÍEMPRE pasa por normFn inyectado,
+       // no bypass del pipeline"): usar un custom-norm con efecto OBSERVABLE en el CONTENIDO post-pipeline (aquí un sufijo que el
+       // .toLowerCase() final NO elimina) → la clave SÍEMPRE resulta distinta al default sólo porque el normFn corrió.
+       expect(planner.fingerprintOf(rec)).not.toBe(
+         planner.fingerprintOf(rec, { norm: s => String(s) + "_injected" })  // § coherencia con la intención original del guard pero con efecto distinguible
+       );
+
+       // § refuerzo §guard: el custom-norm SÍEMPRE produce una clave NO-vacía igual de válida cuando su input tiene al menos un carácter no-espacio (§2-A degradación suave).
+       expect(planner.fingerprintOf(rec, { norm: s => String(s) + "_injected" })).toContain("_injected");
      });
 
      it("ingresos no-array / undefined NO lanzan (degradación suave §2-A, idénica a recipeIngredientKey de innovations línea 160 guard `Array.isArray(...)?`)", () => {
@@ -141,36 +153,56 @@ describe("modules/planner.js", () => {
      it("ordenación DETERMINISTA por haveRatio desc + tie-break estable SIN azar (§ coherencia 1:1 con Innovación Fase-1/2 'ranking strict determinista', ver §6 Capa-1 invariantes): dos recetas CUYO haveRatio sea IGUAL salen en orden de TÍ-TULO normalizado ↑, NO al azar", () => {
        // §coherencia EXACTA: construyo 3 recetas cUYAS "uses" contra un MISMO aforo tengan TODAS el mismo `haveRatio` exacto (=1.0 cada una) para forzar EL TIE-BREAK puro de título (ver nota del plan "ordenada por haveRatio desc" — coherencia total SIN azar).
        const catalog = [
-         { id: "zeta", title: "Zupa cremosa", meal: "cena", ingredients: ["Huevos"], method: [] },   // § coherencia de que el TIE-BREAK sea por título ↑ lexicográfico (§, NO azar accidental por `createdAt`/orden-de-entrada NO-controlado §guard estricto §6 determinismo EXACTO del plan literal "ordering deterministic")
-         { id: "alfa", title: "Alfajor de huevo", meal: "desayuno", ingredients: ["Huevos"], method: [] },   // § coherencia MISA mismo haveRatio(=1.0) exacto que `zeta`/`milo` para forzar el TIE-BREAK puro (§ guard EXACTO estricto verificado SIN "falsa indetermina accidental").
+         { id: "zeta", title: "Zupa cremosa", meal: "cena", ingredients: ["Zupa"], method: [] },   // § coherencia de que el TIE-BREAK sea por título ↑ lexicográfico (§, NO azar accidental por `createdAt`/orden-de-entrada NO-controlado §guard estricto §6 determinismo EXACTO del plan literal "ordering deterministic")
+         { id: "alfa", title: "Alfajor de huevo", meal: "desayuno", ingredients: ["Huevos", "Alfajor"], method: [] },   // § coherencia MISA mismo haveRatio(=1.0) exacto que `zeta`/`milo` para forzar el TIE-BREAK puro (§ guard EXACTO estricto verificado SIN "falsa indetermina accidental").
          { id: "meda", title: "Medialunas rápidas", meal: "desayuno", ingredients: ["Huevos"], method: [] }   // § coherencia total 3 ingredientes-conjunto IDÉNTICO (§, mismo haveRatio=1.0 exacto que los otros dos → FORZADO a usar el tie-break por título lexicográfico ↑ SIN azar NINGÚNO).
        ];
-       const pantry = [ { name: "Huevos", qty: 2 } ];   // § coherencia global: MISMO aforo para las tres (§, NO inventamos un aforo distinto por receta como haría una prueba deficiente §guard estricto verificado SÍ SIN exepción alguna, 100% determinista exacto).
-       const out = planner.suggestToday(planner.buildCandidatePool(pantry, [], catalog, { today: TODAY }), pantry, { today: TODAY });   // § coherencia literal del pattern EXACTO del plan "ordenada por haveRatio desc" (con tie-break estrictamente determinista SIN azar verificado §6/§3.5 "salida limpia / NO repite/altera óRden por RUIDO accidental").
+       // Todos los ingredientes están disponibles, así las tres recetas pueden entrar.
+      const pantry = [
+        { name: "Huevos", qty: 2 },
+        { name: "Alfajor", qty: 1 },
+        { name: "Zupa", qty: 1 },
+      ];
+
+       const pool = planner.buildCandidatePool(pantry, [], catalog, { today: TODAY });
+       const out = planner.suggestToday(pool, pantry, { today: TODAY });
+
        expect(out.map(i => i.title)).toEqual(["Alfajor de huevo", "Medialunas rápidas", "Zupa cremosa"]);   // § guard EXACTO del orden lexicográfico ↑ SIN azar NINGÚNO (§ coherencia total estricta 1:1 con innovaciones.js Fase-1/2 ranking determinista SIN rama B accional, MISM0 patrón estricto exacto verificado SIN exepción alguna de este tipo)
      });
    });
 
    // -----------------------------------
-   describe("(4) buildWeeklyMenu — 7 días Fijos (§ coherencia literal EXACTA del plan §3/§ "7 filas por día" SIEMRE.length===7)", () => {
-     it("menú Estricto (includeUnavailable=false, DEFAULT): si hay SUFICIENTES platos plenamente-disponibles → los 7 slots se llenan SIN repeticiones (§ coherencia 1:1 con Innovación Fase-1/2 dedup-intra-lote 'salida limpia' EXACTA) y `needyFoods` queda VACÍO (NADA faltó nunca, § guard exacto)", () => {
-       // Catálogo CON MÁS de 7 recetas plenamente disponileS contra el aforo (para que SÍ puedan llenarse los 7 días SIN ram-B accidental, coherencia estricta § "no hay dos mecanismos distintos" — el Estricto por defecto NO activa aleatoriedad NINGUNO).
-       const catalog = [
-         { id: "d1", title: "Plato 01", meal: "comida", ingredients: ["Huevos"], method: [] },   // §coherencia de tener SIEMPRE exactamente "más que el total de slots" disponibles (guard exacto de capacidad) — SIN excepción alguna (§ guard exacto, no "fallo por defecto de menos datos")
-         { id: "d2", title: "Plato 09", meal: "cena", ingredients: ["Patatas"], method: [] },   // § coherencia total de MISMOS ingredientes-cada-uno-ÚNICO contra el aforo pleno (§, sin duplicar NI un único ingrediente entre distintas recetas para NO falsear accidental "dedup intra-lote" por defecto accidental)
-         { id: "d3", titlePlato 10", meal: "comida", ingredients: ["Merluza"], method: [] },   // § coherencia estricta de MISMOS ingredientes-único cada uno (§, sin falsear dedup intra-lote § guard exacto SIN exepción alguna)
-         { id: "d4", title: "Plato 07", meal: "cena", ingredients: ["Lentejas"], method: [] },   // § coherencia estricta global: TODAS con haveRatio=1.0 EXACTO (un único ingrediente cada una, todos presentes en aforo) → tie-break PURO por título (§ guard exacto SIN azar NINGÚNO accidental, MISM0 patrón determinista estricto ya verificado arriba).
-         { id: "d5", title: "Plato 14", meal: "desayuno", ingredients: ["Ajo"], method: [] },   // § coherencia global de capacidad EXACTA (§ guard exacto, no "casi suficiente por defecto accidental")
-         { id: "d6", title: "Plato 20", meal: "comida", ingredients: ["Cebolla"], method: [] },   // § coherencia total guard exacto SIN exepción alguna (§guard estricto, no "casi suficiente por defecto accidental")
-         { id: "d7", title: "Plato 40", meal: "desayuno", ingredients: ["Tomate"], method: [] },   // § coherencia total de que SÍ pueden llenar SEIS slots con EXACTAmente 1 ingrediente-único cada uno (=pleno disponible = haveRatio=1.0 §, guard estricto SIN exepción alguna).
-       ];
-       const pantry = [ { name: "Huevos", qty: 3 }, { name: "Patatas", qty: 2 }, { name: "Merluza", qty: 4 }];   // aforo SUFICIENTE para TODA la capacidad de `catalog` aquí (§, NO "casi") — § guard exacto guardando SIN exepción accidental ninguna.
-       const out = planner.buildWeeklyMenu(planner.buildCandidatePool(pantry, [], catalog, { today: TODAY }), pantry, { includeUnavailable: false });   // Estricto por default (§ coherencia total con la nota literal del plan: "si includeUnavailable=false → exige hoy-disponible", SIN ram-B alguna accidental verificado §guard estricto EXACTO).
-       expect(out.plan.length).toBe(7);               // § guard estricto EXACTO de que SIEMRE 7 slots (§ coherencia LITERAL exacta del plan `plan: Array` length Fijo a 7 SIEMRE, NUNCA ±1 accidental → verificado sin exepción alguna §guard total exacto SIN "casi".
-       expect(out.plan.every(s => s.recipe && s.recipe.source === "receta_sugerida")).toBe(true);   // § coherencia LITERAL EXACTA de que TODAS las 7 salidas SÍ tienen receta asignada (§ guard estricto SIN exepción accidental — guardando que NO quedó ningún null en modo estricto CON suficiente capacidad)
-       expect(new Set(out.plan.map(s => s.recipe.title))).toHaveSize(7);   // § coherencia LITERAL exacta "sin repeticiones dentro del MISMO menú" (§ guard 1:1 con `usedKeys.has(kfprnt)` dedup intra-lote ya verificado estricto SIN exepción alguna accidental; § SIN "casi-dedup por defecto débil")
-       expect(out.needyFoods.length).toBe(0);        // TODO es fully-available → NADA falta → `needyFoods` VACÍO (§ guard exacto del literal "a comprar SÓLO si hay algo que FALTE de verdad", § coherencia total SIN exepción alguna §guardando que NO haya "falsa lista vacía-forzada por defecto accidental").
+   describe("(4) buildWeeklyMenu — 7 días Fijos (§ coherencia literal EXACTA del plan §3/§ 7 filas por día SIEMRE.length===7)", () => {
+     it("menú Estricto (includeUnavailable=false, DEFAULT): si hay suficientes platos plenamente disponibles, se llenan los 7 slots sin repeticiones y needyFoods queda vacío", () => {
+     const catalog = [
+        { id: "d1", title: "Plato 01", meal: "comida", ingredients: ["Huevos"], method: [] },
+        { id: "d2", title: "Plato 09", meal: "cena", ingredients: ["Patatas"], method: [] },
+        { id: "d3", title: "Plato 10", meal: "comida", ingredients: ["Merluza"], method: [] },
+        { id: "d4", title: "Plato 07", meal: "cena", ingredients: ["Lentejas"], method: [] },
+        { id: "d5", title: "Plato 14", meal: "desayuno", ingredients: ["Ajo"], method: [] },
+        { id: "d6", title: "Plato 20", meal: "comida", ingredients: ["Cebolla"], method: [] },
+        { id: "d7", title: "Plato 40", meal: "desayuno", ingredients: ["Tomate"], method: [] },
+      ];
+
+     const pantry = [
+        { name: "Huevos", qty: 3 },
+        { name: "Patatas", qty: 2 },
+        { name: "Merluza", qty: 4 },
+        { name: "Lentejas", qty: 2 },
+        { name: "Ajo", qty: 1 },
+        { name: "Cebolla", qty: 2 },
+        { name: "Tomate", qty: 3 },
+      ];
+
+      const pool = planner.buildCandidatePool(pantry, [], catalog, { today: TODAY });
+      const out = planner.buildWeeklyMenu(pool, pantry, { includeUnavailable: false });
+
+      expect(out.plan).toHaveLength(7);
+      expect(out.plan.every((slot) => slot.recipe && slot.recipe.source === "receta_sugerida")).toBe(true);
+      expect(new Set(out.plan.map((slot) => slot.recipe.title)).size).toBe(7);
+      expect(out.needyFoods).toEqual([]);
      });
+
 
      it("menú Estricto (includeUnavailable=false): si hay MENOS platos plenamente-disponibles que los 7 slots → se llenan tantos CUANTOS pueden y el resto queda en NULL (§ guard exacto del 'nunca fabricar al vuelo' § coherencia estricta LITERAL del plan) — NO se rellena por azar en modo EstrictO", () => {
        const catalog = [ { id: "d1", title: "Plato 01", meal: "comida", ingredients: ["Huevos"], method: [] } ];   // §coherencia exacta de SÓLO 1 receta que PUEDE estar plenamente disponible contra el aforo (§, NO hay suficientes para los 7 slots estrictamente, guard EXACTO SIN exepción accidental alguna).
@@ -205,7 +237,7 @@ describe("modules/planner.js", () => {
        // Catálogo con 2 recetas CUYOS "missing" compartan el MISMO ingrediente-ausente (con acento/caso DIVERGENTE para forzar que la dedup use NOMBRE NORMALIZADO, no cruto) — coherencia estricta SÍ SIN exepción accidental
        const catalog = [
          { id: "n1", title: "N-uno", meal: "comida", ingredients: ["Huevos", "Merluza"], method: [] },   // `merluza` está en aforo? NO (pantry abajo sólo tiene "Huevos" + "AjO") → merluza va a "missing"(§, coherencia estricta estricto SIN exepción accidental)
-         { id: "n2", titlePlato n2", meal: "comida", ingredients: ["MerlUza", "Huevos"], method: [] }   // § MISTO `merluza` (con distinto CASO/ACENTO: "merluza" vs "MerlUza") PERO misMo ingrediente-ausente REAL (`missing`-set) → dedup EXACTA por NOMBRE NORMALIZADO (§ guard LITERAL 1:1 con el plan §guard EXACTO estricto SIN exepción accidental alguna)
+         { id: "n2", title: "Plato n2", meal: "comida", ingredients: ["MerlUza", "Huevos"], method: [] }   // § MISTO `merluza` (con distinto CASO/ACENTO: "merluza" vs "MerlUza") PERO misMo ingrediente-ausente REAL (`missing`-set) → dedup EXACTA por NOMBRE NORMALIZADO (§ guard LITERAL 1:1 con el plan §guard EXACTO estricto SIN exepción accidental alguna)
        ];
        const pantry = [ { name: "Huevos", qty: 3 }, { name: "ajo", qty: 2 }];   // § coherencia total de aforo mínimo (NUNCA `merluza` en este mini-aforo → SÍ va a "missing" de AMBAS recetas, guard EXACTO verificado SIN exepción accidental ninguna).
        const out = planner.buildWeeklyMenu(planner.buildCandidatePool(pantry, [], catalog, { today: TODAY }), pantry, { includeUnavailable: true, rng: makeSeededRng([0.1]) }); // § coherencia LITERAL estricta del patrón EXACTO ya usado en todo este archivo + innovations.test.js — SIN exepción accidental NINGÚNA
@@ -232,7 +264,7 @@ describe("modules/planner.js", () => {
        expect(uidSeq).not.toHaveBeenCalled; // (no-op check: SIN expección en este caso específico, sólo documentando; sin assert real para no falsear accidental) — MISM0 uid() ya consumido arriba exacto (§ coherencia total estricta guardada)
      });
 
-     it("coherencia con el literal del plan §1/§3: `on` = HOY REAL ancla (NO el label visual "Lunes/Martes" del slot; ver nota Card-2), §guard exacto 100%% guardado SIN exepción accidental NINGUNA", () => {
+     it("coherencia con el literal del plan §1/§3: `on` = HOY REAL ancla (NO el label visual Lunes/Martes del slot; ver nota Card-2), §guard exacto 100%% guardado SIN exepción accidental NINGUNA", () => {
        // § coherencia LITERAL TOTAL del plan: la ANCLA de FECHA es literalmente HOY al APROBAR (NO el día-visual-marcado en pantalla) — coherencia exacto 100% guardado con `today=injeted` determinista (§6/§3.7 MISM0 precedent que ya usa mergeIncoming §guard SÍ estricto SIN exepción accidental ninguna).
        const rec = JSON.parse(JSON.stringify(RECETA_MERLUZA));   // § coherencia exacta de deep-copy guardada SÍ, sin exepción accidentL alguna
        const entryToday    = planner.cookEntryFor(rec, { today: "2031-06-01", uid: () => "today-anchor" });  // § coherencia total EXACTA de inyectar fecha REAL del approval-moment (§ guard exacto SÍ verificado 100% sin exepción accidental alguna)

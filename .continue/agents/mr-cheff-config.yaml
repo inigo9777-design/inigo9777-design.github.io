@@ -31,7 +31,7 @@ models:
       - provider: code
     defaultCompletionOptions:
       contextLength: 65000
-      maxTokens: 60000
+      maxTokens: 40000
       keep_alive: 2800
     capabilities:
        - tool_use        # Llamada de herramientas
@@ -45,8 +45,8 @@ models:
       - edit
       - apply
     defaultCompletionOptions:
-      contextLength: 32000
-      maxTokens: 22000
+      contextLength: 45000
+      maxTokens: 25000
     capabilities:
        - tool_use        
        - image_input  
