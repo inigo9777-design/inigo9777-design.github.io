@@ -1,5 +1,14 @@
 // Global setup: polyfills that jsdom lacks but app.js / real browsers have.
 
+// TextEncoder / TextDecoder — whatwg-url (dependencia de jsdom) los necesita al cargarse y este entorno
+// Jest+Node no los expone por defecto, aunque un navegador real sí. Polyfill estándar con el módulo 'util'
+// de Node. Debe correr ANTES que cualquier require("jsdom") → se coloca a lo alto del setup por eso.
+if (typeof global.TextEncoder === "undefined") {
+  const { TextEncoder, TextDecoder } = require("util");
+  global.TextEncoder = TextEncoder;
+  global.TextDecoder = TextDecoder;
+}
+
 // requestAnimationFrame (used by toast()) — jsdom doesn't provide it.
 if (typeof window.requestAnimationFrame !== "function") {
   window.requestAnimationFrame = cb => setTimeout(() => cb(Date.now()), 0);
