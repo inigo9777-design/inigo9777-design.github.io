@@ -36,7 +36,6 @@ function bootApp(opts = {}) {
   });
 
   // Fresh localStorage per boot (JSDOM gives a clean one already).
-  if (opts.seed) seedState(opts.seed);
 
   // Load EVERY browser script in the SAME order as index.html (<body>, lines ~217-227), all BEFORE firing
   // DOMContentLoaded. Order matters: app.js destructures window.MRCheff.<module> synchronously inside its big
@@ -46,6 +45,10 @@ function bootApp(opts = {}) {
   // "what CI loads" and "what production ships" is exactly the latent bug that hid for weeks (commit a558d47 extracted
   // util+backup to modules but left this bootstrap stale; Capa-2 tests only now guard against future drift).
   const { window } = dom;
+
+  // Semear localStorage ANTES de disparar DOMContentLoaded: los closures de app.js leen foods/recipes/innov/cooked
+  // al inicializarse, así que el estado precargado debe estar ya en localStorage (ver seedState más abajo).
+  if (opts.seed) seedState(opts.seed, window);
   runScriptInWindow(window, read("data/data.js"));                  // L217 → window.MR_CHEFF_DATA          (MESES/TEMPORADA de temporada; ver app.js L543)
   runScriptInWindow(window, read("app.js"));                        // L218
   runScriptInWindow(window, read("modules/priority.js"));           // L220 → window.MRCheff.priority         @ app.js L159
@@ -72,8 +75,17 @@ function bootApp(opts = {}) {
   };
 }
 
-function seedState(seed) {
-  const ls = globalThis.window ? undefined : null; // resolved below via boot's window
+function seedState(seed, window) {
+  // Escribe el estado precargado en localStorage ANTES de disparar DOMContentLoaded, para que los closures de
+  // app.js (foods, recipes, innov, cooked) lo lean al inicializarse. Sin esto el seed se perdería porque app.js lee
+  // localStorage una sola vez en su callback de arranque. Sin seed (bootApp()) no se escribe nada.
+  if (!seed || !window) return;
+  const ls = window.localStorage;
+  if (Array.isArray(seed.foods))   ls.setItem("mrcheff.foods", JSON.stringify(seed.foods));
+  if (Array.isArray(seed.recipes)) ls.setItem("mrcheff.recipes", JSON.stringify(seed.recipes));
+  if (Array.isArray(seed.innov))   ls.setItem("mrcheff.innov", JSON.stringify(seed.innov));
+  if (seed.innovDate != null)      ls.setItem("mrcheff.innov.date", String(seed.innovDate));
+  if (Array.isArray(seed.cooked))  ls.setItem("mrcheff.cooked", JSON.stringify(seed.cooked));
 }
 
 // Run a script string inside the given jsdom window, sharing its globals.

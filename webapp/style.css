@@ -112,6 +112,7 @@ code {
 .tag.tag-combo { background: var(--tag-combo-bg); color: var(--tag-combo-fg); }
 .tag.tag-libre { background: var(--tag-libre-bg); color: var(--tag-libre-fg); }
 .tag.tag-protagonista { background: var(--tag-protagonista-bg); color: var(--tag-protagonista-fg); }
+.tag.tag-receta_sugerida { background: #d1fae5; color: #065f46; }
 .recipe-card .innov-uses { font-size: 0.82rem; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 2px; }
 
 /* ========== TOPBAR ========== */ 

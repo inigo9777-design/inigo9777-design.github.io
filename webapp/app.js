@@ -32,7 +32,8 @@ document.addEventListener("DOMContentLoaded", () => {
     foods: "mrcheff.foods",
     recipes: "mrcheff.recipes",
     innov: "mrcheff.innov",
-    innovDate: "mrcheff.innov.date"
+    innovDate: "mrcheff.innov.date",
+    cooked: "mrcheff.cooked"
   };
 
   const load = (key, def) => {
@@ -438,7 +439,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const innovSummary = $("#innov-summary");
 
   innovCount.addEventListener("input", () => innovCountVal.textContent = innovCount.value);
-  const SOURCE_LABEL = { curada: "Receta española", variacion: "Variación", combo: "Combinación", libre: "Creada", protagonista: "Enfocado", nueva: "Nueva" };
+  // SOURCE_LABEL — etiqueta visible por `idea.source`. Nota: planner.js (Paso 1, contrato cerrado y testeado a parte)
+  // emite el token interno "receta_sugerida" para las ideas de "Sugerencia de hoy"; ese mismo token se refleja aquí para
+  // que SOURCE_LABEL[i.source] resuelva la etiqueta. Se conserva también la clave "sugerenciaHoy" que nombra el plan de
+  // feature; ambas apuntan a la misma etiqueta visible.
+  const SOURCE_LABEL = { curada: "Receta española", variacion: "Variación", combo: "Combinación", libre: "Creada", protagonista: "Enfocado", nueva: "Nueva", sugerenciaHoy: "Sugerencia de hoy", receta_sugerida: "Sugerencia de hoy" };
 
   btnGenerateInnov.addEventListener("click", () => {
     if (foods.length === 0 && recipes.length === 0) {
@@ -549,6 +554,73 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   }
+
+  // ===== SUGERENCIAS Y MENÚ — CARD 1: "Sugerencia de hoy" =====
+  // Recetas del catálogo curado que SÍ se pueden cocinar ahora (todos sus ingredientes con qty>0 en aforo),
+  // ordenadas por aprovechamiento de casa. "🍳 Cocinar hoy" anota en mrcheff.cooked (sin tocar recipes[] / Mis Recetas).
+  const btnSuggestGenerate = $("#btn-suggest-generate");
+  const btnSuggestClear = $("#btn-suggest-clear");
+  const suggestList = $("#suggest-list");
+  const suggestEmpty = $("#suggest-empty");
+  const catalogoEspanol = window.MRCheff.recetasEspanolas || [];
+  const planner = window.MRCheff.planner;
+
+  function renderSuggestCards(ideas) {
+    suggestList.innerHTML = "";
+    if (!Array.isArray(ideas) || ideas.length === 0) {
+      suggestEmpty.classList.remove("hidden");
+      return;
+    }
+    suggestEmpty.classList.add("hidden");
+    ideas.forEach(idea => {
+      const card = document.createElement("div");
+      card.className = "recipe-card";
+      card.dataset.id = idea.id;
+      card.innerHTML = `
+        <div class="recipe-actions">
+          <button data-cook="${idea.id}" title="Cocinar hoy">🍳 Cocinar hoy</button>
+        </div>
+        <h3>${escapeHTML(idea.title)}</h3>
+        <div class="recipe-meta">
+          <span class="tag meal-${idea.meal}">${mealLabels[idea.meal] || ""}</span>
+          ${idea.source ? `<span class="tag tag-${String(idea.source)}">${SOURCE_LABEL[idea.source] || SOURCE_LABEL.sugerenciaHoy}</span>` : ""}
+        </div>
+        ${idea.uses && idea.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${idea.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
+      card.addEventListener("click", (e) => {
+        if (e.target.closest("[data-cook]")) return;
+        openRecipeModal(idea, { highlightMissing: true });
+      });
+      suggestList.appendChild(card);
+    });
+
+    suggestList.querySelectorAll("[data-cook]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const idea = ideas.find(x => x.id === btn.dataset.cook);
+        if (!idea) return;
+        const entry = planner.cookEntryFor(idea);
+        const cooked = load(LS.cooked, []);
+        cooked.push(entry);
+        save(LS.cooked, cooked);
+        // Volver a sugerir: el plato recién cocinado entra en cooldown de 7 días y deja de aparecer
+        const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
+        renderSuggestCards(planner.suggestToday(pool, foods));
+        toast("Registrado: se cocinó hoy");
+      });
+    });
+  }
+
+  btnSuggestGenerate.addEventListener("click", () => {
+    const cooked = load(LS.cooked, []);
+    const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
+    renderSuggestCards(planner.suggestToday(pool, foods));
+  });
+
+  btnSuggestClear.addEventListener("click", () => {
+    suggestList.innerHTML = "";
+    suggestEmpty.classList.remove("hidden");
+    toast("Sugerencia limpiada");
+  });
 
   // ===== TEMPORADA =====
   const seasonFilter = $("#season-filter");

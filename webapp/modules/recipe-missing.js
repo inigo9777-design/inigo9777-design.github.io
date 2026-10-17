@@ -62,7 +62,7 @@
   }
 
   // (1) ingredienteFalta — predicho PURe para UNO solo (§ coherencia: expuesto tanto para test directo como, si hace falta reutilizarlo en otro punto de la UI).
-  function ingredientefalta(ingrediente, aforo) { return _ingredienteFalta(ingrediente, aforo); }
+  function ingredienteFalta(ingrediente, aforo) { return _ingredienteFalta(ingrediente, aforo); }
 
   // (2) marcarFaltantes — MAPA paralelo a receta.ingredients: índice i = "true" si el ingrediente `i` FALTA de casa (§ la UI del modal zippea
   //     con ese índice para pintar cada <li> con su estado: SÍ ausente → clase .meal-missing + badge; NO → idéntico al render actual).
