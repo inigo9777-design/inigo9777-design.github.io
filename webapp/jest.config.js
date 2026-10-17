@@ -16,7 +16,8 @@ module.exports = {
     "<rootDir>/modules/util.js",
     "<rootDir>/modules/planner.js",
     "<rootDir>/modules/menu-semanal.js",
-    "<rootDir>/modules/recipe-missing.js"
+    "<rootDir>/modules/recipe-missing.js",
+    "<rootDir>/modules/ingredient-matching.js"
   ],
   coverageThreshold: {
     global: { statements: 70, branches: 65, functions: 70, lines: 70 }

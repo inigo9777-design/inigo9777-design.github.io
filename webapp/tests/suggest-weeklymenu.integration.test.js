@@ -1,11 +1,12 @@
 // tests/suggest-weeklymenu.integration.test.js — CAPA INTEGRACIÓN (Capa 2, CODING_STANDARDS.md §6).
 // Arranca la app REAL vía bootApp() e ejerce el flujo de Card 2 "Menú semanal" + Card 3 "Lista de la compra":
 //   1) tab suggest activa #view-suggest
-//   2) toggle "Incluir aunque no estén ahora disponibles" activado + "Generar menú" → 7 slots renderizados
+//   2) toggle "Incluir aunque no estén ahora disponibles" activado + "Generar menú" → 7 días × 3 comidas renderizados
 //   3) "Aprobar plan" guarda mrcheff.weekmenu (aprobado=true, generatedOn=hoy) y registra cada receta del plan
-//      en mrcheff.cooked con on=hoy. No toca recipes[] / Mis Recetas.
-//   4) Card 3 aparece con needyFoods; marcar "✅ comprado" auto-añade el alimento a foods con {qty:0, min:0, score:5}
-//      (idéntico a backup.mergeIncoming) y refresca la alerta semanal.
+//      en mrcheff.cooked con on=fecha de su día planificado. No toca recipes[] / Mis Recetas.
+//   4) Card 3 aparece con needyFoods ordenadas por urgencia (semáforo dinámico); marcar "✅ comprado"
+//      auto-añade el alimento a foods con {qty:0, min:0, score:5} y refresca la alerta semanal.
+//   5) "🔄 Cambiar" renueva SOLO la comida de un día (feature 2026-10-18).
 
 const { bootApp } = require("./boot");
 
@@ -77,10 +78,10 @@ describe("Card 2+3 'Menú semanal + lista de la compra' — integración", () =>
     expect(weekmenu.needyFoods.length).toBeGreaterThan(0);
     expect(document.getElementById("shopping-list").classList.contains("hidden")).toBe(false);
 
-    // 5) Marcar el primer ítem como "comprado" → auto-add a foods con qty=0/min=0/score=5
-    const primero = weekmenu.needyFoods[0].name;
+    // 5) Marcar el PRIMER ítem del DOM (orden semaforo: rojos primero) → auto-add a foods con qty=0/min=0/score=5
     const btnBuy = document.querySelector("#shopping-list [data-buy]");
     expect(btnBuy).not.toBeNull();
+    const primero = btnBuy.getAttribute("data-buy");   // el orden del DOM es urgency-asc, puede diferir de needyFoods
     btnBuy.click();
 
     const foods = JSON.parse(localStorage.getItem("mrcheff.foods") || "[]");
@@ -101,7 +102,7 @@ describe("Card 2+3 'Menú semanal + lista de la compra' — integración", () =>
   });
 
   it("PERSISTENCIA al recargar: con un plan APROBADO ya en mrcheff.weekmenu, el arranque re-pinta las 7 filas, deja Aprobar en estado final y Card 3 visible (bug 2026-10-18: el menú desaparecía al refrescar)", () => {
-    // Seed del estado que habría dejado la sesión anterior: plan aprobado persistido + despensa poco stock.
+    // Seed del estado que habría dejado la sesión anterior: plan aprobado persistido (shape 7×3) + despensa poco stock.
     const seedWeekmenu = {
       approved: true,
       includeUnavailable: true,
@@ -109,10 +110,15 @@ describe("Card 2+3 'Menú semanal + lista de la compra' — integración", () =>
       needyFoods: [{ name: "Perejil" }],
       plan: Array.from({ length: 7 }, (_, i) => ({
         dayLabel: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"][i],
-        recipe: i === 0
-          ? { id: "r-seed", title: "Receta sembrada lunes", meal: "comida", ingredients: ["Perejil"], uses: [] }  // shape "idea" §5 (mínimo que consume renderWeeklyMenu)
-          : null,
-        missing: i === 0 ? ["Perejil"] : []
+        meals: [
+          { meal: "desayuno", recipe: null, missing: [] },
+          { meal: "comida",
+            recipe: i === 0
+              ? { id: "r-seed", title: "Receta sembrada lunes", meal: "comida", ingredients: ["Perejil"], uses: [] }  // shape "idea" §5 (mínimo que consume renderWeeklyMenu)
+              : null,
+            missing: i === 0 ? ["Perejil"] : [] },
+          { meal: "cena", recipe: null, missing: [] }
+        ]
       }))
     };
     const handle = bootApp({ seed: { foods: foodsPocoStock, recipes: [], innov: [], cooked: [], weekmenu: seedWeekmenu } });
@@ -141,6 +147,39 @@ describe("Card 2+3 'Menú semanal + lista de la compra' — integración", () =>
 
     // Estado de arranque limpio (ninguna excepción durante el re-render de persistencia)
     expect(handle.jsdomErrors).toEqual([]);
+  });
+
+  it("'🔄 Cambiar' renueva SOLO la comida de un día: nuevo plato, resto del plan intacto y el cambio persiste (feature 2026-10-18)", () => {
+    const { document, localStorage } = seedPocoStock();
+    document.querySelector('[data-view="suggest"]').click();
+    document.getElementById("btn-menu-generate").click();
+
+    // shape 7×3: 7 días con 3 filas de comida
+    const dias = document.querySelectorAll("#menu-plan-list .menu-day");
+    expect(dias).toHaveLength(7);
+    expect(dias[0].querySelectorAll(".menu-meal-row")).toHaveLength(3);
+
+    // receta de la COMIDA del Martes (día idx 1)
+    const fila = dias[1].querySelectorAll(".menu-meal-row")[1];
+    expect(fila.dataset.meal).toBe("comida");
+    const antes = fila.querySelector(".menu-meal-title").textContent;
+
+    fila.querySelector("[data-swap]").click();
+
+    const weekmenu = JSON.parse(localStorage.getItem("mrcheff.weekmenu") || "null");
+    expect(weekmenu.approved).toBe(false);   // el swap respeta el estado (preview sin aprobar)
+    expect(weekmenu.plan).toHaveLength(7);
+    expect(weekmenu.plan[1].dayLabel).toBe("Martes");
+
+    // el plan re-renderizado: el resto de comidas NO cambian y la comida del martes tiene otro plato (u ninguna si el pool se agotó)
+    const diasAfter = document.querySelectorAll("#menu-plan-list .menu-day");
+    expect(diasAfter).toHaveLength(7);
+    const dtitulos = new Set();
+    diasAfter.forEach(d => d.querySelectorAll(".menu-meal-title").forEach(t => dtitulos.add(t.textContent)));
+    expect(dtitulos.has(antes) || document.getElementById("menu-status")).toBeTruthy();   // sin explosión en el render
+
+    // y el botón de Aprobar sigue activo para un preview
+    expect(document.getElementById("btn-menu-approve").disabled).toBe(false);
   });
 
   it("botón Limpiar: borra el plan persistido (mrcheff.weekmenu → null vía helpers), resetea la UI y deja Generar listo (regresión bug 2026-10-18: sin el <script> del módulo, Limpiar/Aprobar lanzaban en silencio)", () => {

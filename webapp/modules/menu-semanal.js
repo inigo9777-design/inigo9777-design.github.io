@@ -2,12 +2,16 @@
 // (ver webapp/feature-plans/planFeatureRecetasSugeridasYPlanSemana.md §2 Card 2 + Card 3 y CODING_STANDARDS.md §2-D / §3 option A).
 //
 // API PÚBLICA CERRADA (6 funciones, sin fugas de helpers internos):
-//   shoppingListFor(needyFoods, foods)           → dedup por nombre-normalizado vs aforo; shape {name, qty:0, min:0, score:5}
-//   approveMenu(preview, cooked, today, cookEntryFor, uid)   → { cooked, weekmenu } inmutables; ancla = FECHA de cada día planificado
-//   markItemBought(foods, weekmenu, itemName, uid, now)      → { foods, weekmenu, alreadyExists } inmutables
-//   cookEntry(recipe, cooked, today, cookEntryFor, uid)      → { cooked } inmutable; anota una receta como cocinada hoy
-//   regenerateAfterCook(recipe, ctx)                         → { cooked, weekmenu } inmutables; flujo "🍳 Cocinar hoy" DESDE el menú
-//   clearMenu()                                               → { weekmenu: null } inmutable; reinicia el menú
+//   shoppingListFor(needyFoods, foods, ctx?)  → dedup por MATCHER de tokens (NO subcadena-cruda) + urgencia de compra
+//                                               {name, qty:0, min:0, score:5, onDay?, daysUntil?, urgency:"red|orange|green"}//   approveMenu(preview, cooked, today, cookEntryFor, uid) → { cooked, weekmenu } inmutables; ancla = FECHA de cada día×comida planificada
+//   markItemBought(foods, weekmenu, itemName, uid, now)    → { foods, weekmenu, alreadyExists } inmutables
+//   cookEntry(recipe, cooked, today, cookEntryFor, uid)    → { cooked } inmutable; anota UNA receta como cocinada hoy
+//   swapSlotRecipe(ctx)                                    → { swapped, weekmenu } inmutables; "🔄 Cambiar" de UN día+comida (feature 2026-10-18)
+//   clearMenu()                                            → { weekmenu: null } inmutable; reinicia el menú
+//
+// Nota de cambio (§8): `regenerateAfterCook` (regeneración COMPLETA al cocinar) se retira — cocinar desde el
+// menú ahora compone `cookEntry` + `swapSlotRecipe` en app.js: el plato entra en cooldown y SÓLO su slot
+// recibe otra receta, sin descartar el resto del plan ya aprobado/vidente.
 
 (function (root, factory) {
   const api = factory();
@@ -18,6 +22,33 @@
 
   // Id único por omisión (reloj real); inyectable vía opts.uid para tests deterministas (§6).
   const defaultUid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  // Matcher compartido (modules/ingredient-matching.js: tokens+deplural, NO subcadena-cruda). Resolución por
+  // entorno igual que planner.js: namespace global en navegador, require relativo en Node/Jest. Sin matcher
+  // disponible → degradación a comparación por claves exactas (nunca re-inventar el matcher buggy).
+  function resolveMatcher() {
+    const global = typeof self !== "undefined" ? self : null;
+    if (global && global.MRCheff && global.MRCheff.ingredientMatching) return global.MRCheff.ingredientMatching;
+    if (typeof module !== "undefined" && module.exports) {
+      try { return require("./ingredient-matching.js"); } catch { /* degradación real abajo */ }
+    }
+    return null;
+  }
+
+  function matchIngredienteAlimento(nombreA, nombreB) {
+    const matcher = resolveMatcher();
+    if (matcher && typeof matcher.matchIngredientToFood === "function") {
+      return matcher.matchIngredientToFood(nombreA, nombreB);
+    }
+    return String(nombreA == null ? "" : nombreA).toLowerCase() === String(nombreB == null ? "" : nombreB).toLowerCase();
+  }
+
+  // Clave de dedup por tokens (coherente con el matcher compartido; "Plátano" y "Plátanos" comparten clave).
+  function claveNombre(nombre) {
+    const matcher = resolveMatcher();
+    if (matcher && typeof matcher.tokensOf === "function") return matcher.tokensOf(nombre).join(" ");
+    return String(nombre == null ? "" : nombre).toLowerCase().trim();
+  }
 
   // ---------------------------------------------------------------------------
   // dateForPlanDay — fecha de calendario (ISO "YYYY-MM-DD") del DÍA DE LA SEMANA planificado:
@@ -41,42 +72,116 @@
     return new Date(base.getTime() + diff * 86400000).toISOString().slice(0, 10);
   }
 
+  // Días naturales desde `todayISO` hasta `dateISO` (≥0; fechas pasadas cuentan como 0 = máxima urgencia).
+  function daysUntil(todayISO, dateISO) {
+    const a = new Date(String(todayISO) + "T00:00:00Z");
+    const b = new Date(String(dateISO) + "T00:00:00Z");
+    if (isNaN(a.getTime()) || isNaN(b.getTime())) return null;
+    return Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000));
+  }
+
+  // Regla de urgencia del usuario (feature 2026-10-18): se prepara mañana (o hoy) → ROJO;
+  // en 2-3 días → NARANJA; en 4 o más (o sin fecha) → VERDE.
+  const UMBRAL_ROJO = 1, UMBRAL_NARANJA = 3;
+
+  function urgenciaPorDias(n) {
+    if (n == null) return "green";
+    if (n <= UMBRAL_ROJO) return "red";
+    if (n <= UMBRAL_NARANJA) return "orange";
+    return "green";
+  }
+
   // ---------------------------------------------------------------------------
-  // shoppingListFor — dedup por nombre-normalizado de needyFoods contra el aforo actual.
-  // Devuelve filas con shape de alerta semanal {name, qty:0, min:0, score:5} listas para pintar en Card 3.
+  // shoppingListFor — lista de la compra a partir de needyFoods:
+  //   * dedup entre needy Y contra el aforo por MATCHER de tokens (fix del bug "Plátano" vs "Plátanos":
+  //     el dedup exacto por lower-case dejaba pasar不理解 plural/variación y duplicaba filas).
+  //   * ctx opcional { plan, generatedOn, today }: ancla cada ítem a la FECHA MÁS PRÓXIMA en que
+  //     algún slot del plan lo necesita → onDay, daysUntil y urgency (red/orange/green) para que la
+  //     lista CAMBIE DE COLOR dinámicamente al acercarse la fecha de preparación. Sin ctx → sin
+  //     urgencia (urgency:"green", retro-compatible con las llamadas de 2 args).
+  //   * orden de salida: urgencia (rojo primero) → días hasta prep → nombre.
   // ---------------------------------------------------------------------------
-  function shoppingListFor(needyFoods, foods) {
-    const known = new Set((Array.isArray(foods) ? foods : []).map(f => String(f.name).toLowerCase()));
+  function shoppingListFor(needyFoods, foods, ctx) {
+    const c = ctx || {};
+    // Stock REAL del aforo con nombre válido (qty>0): sólo esto puede tachar un ítem de la compra.
+    const known = (Array.isArray(foods) ? foods : []).filter(f => {
+      if (!f || !hayNombre(f && f.name)) return false;
+      return Number(f.qty == null ? 0 : f.qty) > 0;
+    });
     const seen = new Set();
     const out = [];
     for (const raw of Array.isArray(needyFoods) ? needyFoods : []) {
-      if (!raw || typeof raw !== "object") continue;
-      const key = String(raw.name).toLowerCase();
-      if (!key || seen.has(key) || known.has(key)) continue;
-      seen.add(key);
-      out.push({ name: raw.name, qty: 0, min: 0, score: 5 });
+      if (!raw || typeof raw !== "object" || !raw.name) continue;
+      const clave = claveNombre(raw.name);
+      if (!clave || seen.has(clave)) continue;
+      // ¿Ya lo tenemos en cantidad real? El matcher de tokens decide (NO lower-case exacto).
+      if (known.some(f => matchIngredienteAlimento(raw.name, f.name))) continue;
+      seen.add(clave);
+
+      const fila = { name: raw.name, qty: 0, min: 0, score: 5 };
+      if (Array.isArray(c.plan) && c.today) {
+        const onDay = fechaMasProxima(raw.name, c.plan, c.generatedOn || c.today);
+        const hasta = daysUntil(c.today, onDay);
+        fila.onDay = onDay != null ? onDay : undefined;
+        fila.daysUntil = hasta != null ? hasta : undefined;
+        fila.urgency = urgenciaPorDias(hasta);
+      } else {
+        fila.urgency = "green";   // retro-compatible: sin ancla de plan no hay semáforo
+      }
+      out.push(fila);
     }
-    return out;
+    return ordenarPorUrgencia(out);
+  }
+
+  function hayNombre(name) { return String(name == null ? "" : name).trim() !== ""; }
+
+  // Fecha MÁS PRÓXIMA (ISO) en que algún slot del plan necesita el ítem (min de dateForPlanDay).
+  function fechaMasProxima(nombre, plan, generatedOn) {
+    let mejor = null;
+    for (let i = 0; i < plan.length; i++) {
+      const slot = plan[i];
+      if (!slot) continue;
+      const necesita = (Array.isArray(slot.meals) ? slot.meals : []).some(m =>
+        m && m.recipe && Array.isArray(m.missing) && m.missing.some(n => matchIngredienteAlimento(nombre, n))
+      );
+      if (!necesita) continue;
+      const fecha = dateForPlanDay(slot.dayLabel, i, generatedOn);
+      if (mejor == null || fecha < mejor) mejor = fecha;
+    }
+    return mejor;
+  }
+
+  function ordenarPorUrgencia(filas) {
+    const peso = { red: 0, orange: 1, green: 2 };
+    return filas.slice().sort((a, b) => {
+      const p = peso[a.urgency] - peso[b.urgency];
+      if (p !== 0) return p;
+      const d = (a.daysUntil == null ? Infinity : a.daysUntil) - (b.daysUntil == null ? Infinity : b.daysUntil);
+      if (d !== 0) return d;
+      return String(a.name).localeCompare(String(b.name), "es");
+    });
   }
 
   // ---------------------------------------------------------------------------
   // approveMenu — construye el resultado de aprobar el preview de menú SIN tocar localStorage ni DOM.
-  //   * clona cooked y le añade UNA entrada por cada receta del plan, cada una anclada a SU FECHA
-  //     de calendario del día de la semana planificado (próxima ocurrencia de ese weekday desde
-  //     HOY; si HOY es ese día, la ancla es HOY). NO se marca todo a HOY: cada plato queda
-  //     "cocinado el día que le toca" (p.ej. aprobado el miércoles → Lunes ancla al lunes siguiente).
+  //   * clona cooked y le añade UNA entrada por cada RECETA del plan (7 días × 3 comidas), cada una
+  //     anclada a SU FECHA de calendario del día de la semana planificado (próxima ocurrencia de ese
+  //     weekday desde HOY; si HOY es ese día, la ancla es HOY). NO se marca todo a HOY: cada plato
+  //     queda "cocinado el día que le toca" (p.ej. aprobado el miércoles → Lunes ancla al lunes siguiente).
   //   * devuelve weekmenu con approved=true y generatedOn=hoy (inmutables: no muta `preview` ni `cooked`).
   //   * `cookEntryFor` e `uid` se inyectan por contexto (§2-D / §6 determinismo).
   // ---------------------------------------------------------------------------
   function approveMenu(preview, cooked, today, cookEntryFor, uid) {
     const mkId = typeof uid === "function" ? uid : defaultUid;
     const nextCooked = (Array.isArray(cooked) ? cooked : []).slice();
-    const slots = Array.isArray(preview && preview.plan) ? preview.plan : [];
-    for (let i = 0; i < slots.length; i++) {
-      const slot = slots[i];
-      if (slot && slot.recipe) {
-        const anchor = dateForPlanDay(slot.dayLabel, i, today);
-        nextCooked.push(cookEntryFor(slot.recipe, { today: anchor, uid: mkId }));
+    const dias = Array.isArray(preview && preview.plan) ? preview.plan : [];
+    for (let i = 0; i < dias.length; i++) {
+      const slot = dias[i];
+      for (const comida of Array.isArray(slot && slot.meals) ? slot.meals : []) {
+        if (comida && comida.recipe) {
+          const anchor = dateForPlanDay(slot.dayLabel, i, today);
+          nextCooked.push(cookEntryFor(comida.recipe, { today: anchor, uid: mkId }));
+        }
       }
     }
     const weekmenu = Object.assign({}, preview, { approved: true, generatedOn: String(today) });
@@ -91,12 +196,13 @@
   //   * `uid` y `now` inyectables para tests (§6).
   // ---------------------------------------------------------------------------
   function markItemBought(foods, weekmenu, itemName, uid, now) {
-    const lower = String(itemName).toLowerCase();
-    const exists = (Array.isArray(foods) ? foods : []).some(f => String(f.name).toLowerCase() === lower);
-    if (exists) return { foods, weekmenu, alreadyExists: true };
+    const clave = claveNombre(itemName);
+    const nextFoods = (Array.isArray(foods) ? foods : []).filter(f => f && typeof f === "object");
+    const yaEsta = nextFoods.some(f => matchIngredienteAlimento(itemName, f.name));
+    if (yaEsta) return { foods: (Array.isArray(foods) ? foods : []), weekmenu, alreadyExists: true };
 
     const mkId = typeof uid === "function" ? uid : defaultUid;
-    const nextFoods = (Array.isArray(foods) ? foods : []).concat([{
+    const foodsNuevos = nextFoods.concat([{
       id: mkId(),
       name: itemName,
       score: 5,
@@ -106,13 +212,13 @@
       createdAt: typeof now === "number" ? now : Date.now()
     }]);
 
-    const nextWeekmenu = weekmenu
+    const weekmenuNuevo = weekmenu
       ? Object.assign({}, weekmenu, {
-        needyFoods: (Array.isArray(weekmenu.needyFoods) ? weekmenu.needyFoods : []).filter(f => String(f.name).toLowerCase() !== lower)
+        needyFoods: (Array.isArray(weekmenu.needyFoods) ? weekmenu.needyFoods : []).filter(f => claveNombre(f && f.name) !== clave)
       })
       : weekmenu;
 
-    return { foods: nextFoods, weekmenu: nextWeekmenu, alreadyExists: false };
+    return { foods: foodsNuevos, weekmenu: weekmenuNuevo, alreadyExists: false };
   }
 
   // ---------------------------------------------------------------------------
@@ -127,45 +233,91 @@
   }
 
   // ---------------------------------------------------------------------------
-  // regenerateAfterCook — decisión completa del flujo "🍳 Cocinar hoy" DESDE una card del MENÚ:
-  //   1) anota la receta como cocinada hoy (entra en cooldown de 7 días),
-  //   2) regenera el plan de 7 días respetando el cooldown (ya no puede volverse a sugerir),
-  //   3) reconstruye weekmenu manteniendo el estado `approved` previo y el toggle actual.
-  //   Sin DOM ni localStorage: devuelve { cooked, weekmenu } NUEVOS y el caller (app.js) sólo
-  //   hace save() + render() (Capa vista). `planner` llega inyectado por ctx (§2-D composición:
-  //   el módulo NO hace require de planner; `cookEntryFor`/`uid` inyectables §6 determinismo).
-  //   ctx = { cooked, foods, recipes, catalog, today, includeUnavailable, prevWeekmenu, planner, uid }
+  // swapSlotRecipe — "🔄 Cambiar" la receta de UN día + UNA comida del plan, manteniendo el resto
+  //   del menú EXACTAMENTE igual (feature 2026-10-18). Flujo:
+  //   1) pool con cooldown aplicado (el plato cocinado nunca reaparece) vía planner.buildCandidatePool.
+  //   2) excludeKeys = fingerprints de TODAS las recetas del plan (menos el slot destino) ∪ el
+  //      historial del propio slot (`slot.triedKeys`) ∪ la receta actual que se sustituye → cada
+  //      click del "🔄" recorre el ranking hacia abajo de forma DETERMINISTA y sin oscilar.
+  //   3) planner.pickRecipeForSlot(elige el mejor candidato de ESA comida; null ⇒ no queda ninguna).
+  //   4) needyFoods recalculado como unión dedup por tokens de los ausentes de todos los slots.
+  //   Sin DOM ni localStorage: devuelve { swapped, weekmenu } NUEVOS; el caller sólo save()+render().
+  //   ctx = { weekmenu, dayIndex, meal, foods, recipes, catalog, cooked, today, planner, uid }.
+  //   `weekmenu.triedKeys` es campo opcional añadido al shape persistido (nota §8 del plan-feature).
   // ---------------------------------------------------------------------------
-  function regenerateAfterCook(recipe, ctx) {
+  function swapSlotRecipe(ctx) {
     const c = ctx || {};
     const plannerInj = c.planner || {};
-
-    // 1) cooked nuevo con la entrada de hoy (inmutable sobre la lista de entrada).
-    const mkEntry = typeof plannerInj.cookEntryFor === "function" ? plannerInj.cookEntryFor : null;
-    const base = mkEntry
-      ? cookEntry(recipe, c.cooked, c.today, mkEntry, c.uid)
-      : { cooked: (Array.isArray(c.cooked) ? c.cooked.slice() : []) };   // guard §2-A: sin cookEntryFor no se fabrica la entrada
-    const cooked = base.cooked;
-
-    // 2) re-generación del plan con el cooked actualizado (el plato cocinado NUNCA se re-sugiere el mismo día).
+    const weekmenu = c.weekmenu;
+    const dias = Array.isArray(weekmenu && weekmenu.plan) ? weekmenu.plan : [];
+    const dia = dias[c.dayIndex];
+    const meals = Array.isArray(dia && dia.meals) ? dia.meals : [];
+    const slotActual = meals.find(m => m && m.meal === c.meal) || null;
     const buildPool = typeof plannerInj.buildCandidatePool === "function" ? plannerInj.buildCandidatePool : null;
-    const buildMenu = typeof plannerInj.buildWeeklyMenu === "function" ? plannerInj.buildWeeklyMenu : null;
-    const pool = buildPool
-      ? buildPool(c.foods || [], c.recipes || [], c.catalog || [], { cooked, today: c.today })
-      : [];
-    const menu = buildMenu
-      ? buildMenu(pool, c.foods || [], { includeUnavailable: !!c.includeUnavailable, today: c.today })
-      : { plan: [] };
+    const pickSlot = typeof plannerInj.pickRecipeForSlot === "function" ? plannerInj.pickRecipeForSlot : null;
+    const fp = typeof plannerInj.fingerprintOf === "function" ? plannerInj.fingerprintOf : null;
 
-    // 3) weekmenu reconstruido: mismo shape del preview + estado aprobado previo intacto + ancla HOY real.
-    const prevApproved = !!(c.prevWeekmenu && c.prevWeekmenu.approved);
-    const weekmenu = Object.assign({}, menu, {
-      approved: prevApproved,
-      includeUnavailable: !!c.includeUnavailable,
-      generatedOn: String(c.today)
+    if (!slotActual || !Array.isArray(dias) || !buildPool || !pickSlot || !fp) {
+      return { swapped: false, weekmenu };   // guard §2-A: contexto incompleto ⇒ NO mutamos nada (falla visible)
+    }
+
+    // (2) exclusiones: todo el plan menos el slot destino + historial de intentos del slot + el actual.
+    const excludeKeys = [];
+    for (let i = 0; i < dias.length; i++) {
+      for (const m of Array.isArray(dias[i].meals) ? dias[i].meals : []) {
+        if (!m || !m.recipe) continue;
+        if (i === c.dayIndex && m === slotActual) continue;   // el slot que estamos cambiando no se excluye a sí mismo… todavía
+        excludeKeys.push(fp(m.recipe, {}));
+      }
+    }
+    for (const key of Array.isArray(slotActual.triedKeys) ? slotActual.triedKeys : []) excludeKeys.push(key);
+    const claveActual = fp(slotActual.recipe, {});
+    if (claveActual) excludeKeys.push(claveActual);
+
+    // (1)+(3) mejores candidatos con cooldown real aplicado vía el pool de planner.
+    const pool = buildPool(c.foods || [], c.recipes || [], c.catalog || [], { cooked: c.cooked || [], today: c.today });
+    const elegido = pickSlot(pool, c.foods || [], {
+      meal: c.meal,
+      excludeKeys,
+      includeUnavailable: weekmenu.includeUnavailable !== false,
+      uid: typeof c.uid === "function" ? c.uid : undefined,
+      today: c.today
     });
+    if (!elegido) return { swapped: false, weekmenu };   // ranking agotado: el caller avisa, el plan queda intacto.
 
-    return { cooked, weekmenu };
+    // (4) nuevo plan INMUTABLE: copia profunda de días/meals con el slot destino reemplazado.
+    const planNuevo = dias.map((d, i) => ({
+      ...d,
+      meals: (Array.isArray(d.meals) ? d.meals : []).map(m => {
+        if (i === c.dayIndex && m && m.meal === c.meal) {
+          return {
+            meal: c.meal,
+            recipe: elegido.recipe,
+            missing: elegido.missing.slice(),
+            triedKeys: (Array.isArray(m.triedKeys) ? m.triedKeys.slice() : []).concat(claveActual ? [claveActual] : [])
+          };
+        }
+        return { meal: m && m.meal, recipe: m && m.recipe, missing: (m && m.missing) ? m.missing.slice() : [], triedKeys: (m && m.triedKeys) ? m.triedKeys.slice() : [] };
+      })
+    }));
+
+    // needyFoods = unión dedup por tokens de los ausentes de TODOS los slots con receta.
+    const vistas = new Set();
+    const needyNuevo = [];
+    for (const d of planNuevo) {
+      for (const m of d.meals) {
+        if (!m.recipe) continue;
+        for (const raw of Array.isArray(m.missing) ? m.missing : []) {
+          const clave = claveNombre(raw);
+          if (!clave || vistas.has(clave)) continue;
+          vistas.add(clave);
+          needyNuevo.push({ name: String(raw) });
+        }
+      }
+    }
+
+    const weekmenuNuevo = Object.assign({}, weekmenu, { plan: planNuevo, needyFoods: needyNuevo });
+    return { swapped: true, weekmenu: weekmenuNuevo };
   }
 
   // ---------------------------------------------------------------------------
@@ -181,7 +333,7 @@
     approveMenu,
     markItemBought,
     cookEntry,
-    regenerateAfterCook,
+    swapSlotRecipe,
     clearMenu
   };
 });

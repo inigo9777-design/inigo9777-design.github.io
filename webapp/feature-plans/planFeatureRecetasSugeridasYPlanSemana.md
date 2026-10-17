@@ -146,3 +146,34 @@ Cambiar a modo edición/Build y decir: **a) por Fase 1 solo** (lo mínimo para q
   - **No existe** todavía ningún file/folder under:
       - `webapp/tests/suggest-weeklymenu.integration.test.js`
       - `webapp/e2e/**` (carpeta y stub spec marcados *pending*, ver §4 E2E).
+
+---
+
+## 11. Evolución del contrato (2026-10-18 — bugfix matching + menú 7×3 + swap individual)
+
+Aplicada con el usuario según CODING_STANDARDS.md (log de excepciones §8 actualizado):
+
+1. **BUG matching de ingredientes (Innovación + Menú):** el matcher por subcadena-cruda
+   (`nombreA.includes(nombreB)`) daba falsos positivos — ingrediente "Sal" encajaba dentro del
+   alimento "Salchichón ibérico". Se extrae `modules/ingredient-matching.js` (tokens + deplural,
+   stopwords, SIN prefijos sueltos: "agua" no casa "aguacate") y lo consumen `planner.js`
+   (`pantryMatchDetails`, con gate qty>0) e `innovations.js` (`pantryMatchesForRecipe`). La
+   duplicación del matcher entre ambos módulos se CIERRA (§8).
+2. **BUG lista de la compra:** `shoppingListFor` dedup por lower-case EXACTO → ahora dedup por
+   tokens del matcher ("Plátano" y "Plátanos" ya no se duplican) y tacha ítems con stock REAL
+   (qty>0). Además, **semáforo de urgencia** por fecha de preparación (ctx `{ plan, generatedOn,
+   today }`): `onDay` = fecha MÁS próxima en que un slot necesita el ítem; `daysUntil`; urgencia
+   hoy/mañana=red, 2-3 días=orange, ≥4=green; salida ordenada rojo→verde.
+3. **Menú 7×3:** `buildWeeklyMenu` devuelve `plan[7] = { dayLabel, meals[3] = { meal, recipe|null,
+   missing } }` (21 platos). DETERMINISTA por ranking sin azar (se retira `opts.rng` del contrato —
+   §8); dedup global (no repite plato en la semana) con degradación a repetición inter-día si el
+   pool se agota. Catálogo curado: 11 desayunos / 77 comidas / 27 cenas → 21 platos distintos
+   alcanzables.
+4. **🔄 Cambiar individual (por día + comida):** nueva 6ª función pública `planner.pickRecipeForSlot
+   (pool, foods, { meal, excludeKeys, includeUnavailable, uid, today })` + `menu-semanal.
+   swapSlotRecipe(ctx)` (inmutable, recompone `needyFoods`, mantiene `approved/generatedOn`, añade
+   `slot.triedKeys` para recorrer el ranking sin oscilar). Se RETIRA `regenerateAfterCook`: "🍳
+   Cocinar" desde el menú compone `cookEntry` + `swapSlotRecipe` (renueva SOLO ese hueco).
+   Tests: `planner.test.js` (contrato 6 fns + 7×3 + pickRecipeForSlot), `menu-semanal.test.js`
+   (approve 7×3, swap, urgencia), `suggest-weeklymenu.integration.test.js` (flujo 7×3 + swap).
+   Docs: AGENTS.md (data model) + CODING_STANDARDS.md §8.

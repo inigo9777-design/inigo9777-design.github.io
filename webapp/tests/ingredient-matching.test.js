@@ -43,6 +43,10 @@ describe("modules/ingredient-matching.js", () => {
       expect(matchIngredientToFood("Sal", "Salchichon")).toBe(false);
     });
 
+    it("tampoco casa el token no-núcleo: 'jamón ibérico' ≠ 'salchichón ibérico' (atributo compartido ≠ mismo alimento)", () => {
+      expect(matchIngredientToFood("Jamón ibérico", "Salchichón ibérico")).toBe(false);
+    });
+
     it("tampoco casa prefijos-suelto tipo 'agua' ⊂ 'aguacate' ni 'pan' ⊂ 'pangasius'", () => {
       expect(matchIngredientToFood("Agua", "Aguacate")).toBe(false);
       expect(matchIngredientToFood("Pan", "Pangasius")).toBe(false);

@@ -461,6 +461,12 @@ textarea { resize: vertical; min-height: 80px; }
 #shopping-list li { display: flex; align-items: center; gap: 10px; padding: 8px 4px; }
 #shopping-list .shopping-name { flex: 1; font-weight: 600; }
 
+/* Cada fila de la lista de la compra recibe SEMÁFORO de urgencia según la fecha de preparación
+   (feature 2026-10-18): mañana/hoy=rojo, 2-3 días=naranja, ≥4=verde. Reusa el patrón urg-* existente. */
+#shopping-list li.urg-red { border-left: 4px solid #dc2626; background: #fef2f2; border-radius: 10px; padding: 8px 10px; }
+#shopping-list li.urg-orange { border-left: 4px solid #f59e0b; background: #fffbeb; border-radius: 10px; padding: 8px 10px; }
+#shopping-list li.urg-green { border-left: 4px solid #16a34a; border-radius: 10px; padding: 8px 10px; }
+
 /* ========== MENÚ SEMANAL: tarjetas de receta con tema claro/oscuro ========== */
 #menu-plan-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
 /* Sobrescribe el fondo forzado de .alert-card.alert-green para respetar el tema actual */
@@ -474,4 +480,18 @@ textarea { resize: vertical; min-height: 80px; }
 #menu-plan-list .recipe-card .recipe-actions button { background: var(--card); color: var(--text); border: 1px solid var(--border); }
 #menu-plan-list .recipe-card .recipe-actions button:hover { background: var(--border); }
 #menu-plan-list .recipe-card .innov-uses { font-size: 0.8rem; margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px; }
+
+/* ---- Menu 7×3 (feature 2026-10-18): una fila por comida (desayuno/comida/cena) dentro de cada día ---- */
+.menu-meal-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); cursor: pointer; }
+.menu-meal-row:hover { background: var(--info-light); }
+.menu-meal-tag { flex: 0 0 auto; min-width: 118px; font-weight: 700; font-size: 0.82rem; color: var(--text); padding-top: 3px; }
+.menu-meal-body { flex: 1 1 auto; min-width: 0; }
+.menu-meal-title { margin: 0 0 2px; font-size: 0.92rem; color: var(--text); }
+.menu-meal-row .recipe-actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; }
+.menu-meal-row .recipe-actions button { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; font-size: 0.78rem; cursor: pointer; }
+.menu-meal-row .recipe-actions button:hover { background: var(--border); }
+.menu-meal-row .innov-uses { font-size: 0.78rem; margin-top: 4px; }
+[data-theme="dark"] #shopping-list li.urg-red { background: var(--card); border-left-color: #dc2626; }
+[data-theme="dark"] #shopping-list li.urg-orange { background: var(--card); border-left-color: #f59e0b; }
+[data-theme="dark"] #shopping-list li.urg-green { background: var(--card); border-left-color: #16a34a; }
 

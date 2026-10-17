@@ -70,8 +70,9 @@
     // (1) SUBCONJUNTO: todos los tokens de una parte están en la otra → el alimento cubre el ingrediente o viceversa.
     if (tokensIngrediente.every(t => setAlimento.has(t)) || tokensAlimento.every(t => setIngrediente.has(t))) return true;
 
-    // (2) Comparten ALGÚN token sustancioso: "queso azul" ↔ "queso rallado".
-    for (const token of setIngrediente) if (setAlimento.has(token)) return true;
+    // (2) Comparten el token NÚCLEO (el primero: "queso" en "queso azul"/"queso rallado"). Un token NO
+    //     núcleo ("ibérico" en "jamón ibérico" vs "salchichón ibérico") NO basta — son alimentos distintos.
+    if (setAlimento.has(tokensIngrediente[0]) || setIngrediente.has(tokensAlimento[0])) return true;
 
     return false;
   }

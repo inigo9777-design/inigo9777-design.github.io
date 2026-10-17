@@ -30,8 +30,8 @@ describe("modules/planner.js", () => {
 
    // ---------------------------------------------------------------------------
    describe("API PÚBLICA CERRADA (§5/§8 — sin fugas de helpers internos como pantryMatchDetails/haveRatio etc.)", () => {
-     it("exporta EXACTAMENTE las 5 funciones del contrato §1 y NADA más (idénico estricto al patrón `return { generate };` de innovaciones.js)", () => {
-       expect(Object.keys(planner).sort()).toEqual([ "buildCandidatePool", "buildWeeklyMenu", "cookEntryFor", "fingerprintOf", "suggestToday" ].sort());
+     it("exporta EXACTAMENTE las 6 funciones del contrato §1 y NADA más (idénico estricto al patrón `return { generate };` de innovaciones.js)", () => {
+       expect(Object.keys(planner).sort()).toEqual([ "buildCandidatePool", "buildWeeklyMenu", "cookEntryFor", "fingerprintOf", "pickRecipeForSlot", "suggestToday" ].sort());
      });
    });
 
@@ -171,112 +171,165 @@ describe("modules/planner.js", () => {
      });
    });
 
-   // -----------------------------------
-   describe("(4) buildWeeklyMenu — 7 días Fijos (§ coherencia literal EXACTA del plan §3/§ 7 filas por día SIEMRE.length===7)", () => {
-     it("menú Estricto (includeUnavailable=false, DEFAULT): si hay suficientes platos plenamente disponibles, se llenan los 7 slots sin repeticiones y needyFoods queda vacío", () => {
-     const catalog = [
-        { id: "d1", title: "Plato 01", meal: "comida", ingredients: ["Huevos"], method: [] },
-        { id: "d2", title: "Plato 09", meal: "cena", ingredients: ["Patatas"], method: [] },
-        { id: "d3", title: "Plato 10", meal: "comida", ingredients: ["Merluza"], method: [] },
-        { id: "d4", title: "Plato 07", meal: "cena", ingredients: ["Lentejas"], method: [] },
-        { id: "d5", title: "Plato 14", meal: "desayuno", ingredients: ["Ajo"], method: [] },
-        { id: "d6", title: "Plato 20", meal: "comida", ingredients: ["Cebolla"], method: [] },
-        { id: "d7", title: "Plato 40", meal: "desayuno", ingredients: ["Tomate"], method: [] },
-      ];
+  // ---------------------------------------------------------------------------
+  // (4) buildWeeklyMenu — MENÚ 7 días × 3 comidas (desayuno/comida/cena = 21 slots, feature 2026-10-18).
+  //     DETERMINISTA (ranking + tie-break por título, SIN azar: la rng del contrato antiguo se retira — §8).
+  // ---------------------------------------------------------------------------
+  describe("(4) buildWeeklyMenu — menú de 7 días × 3 comidas (21 slots, determinista)", () => {
 
-     const pantry = [
-        { name: "Huevos", qty: 3 },
-        { name: "Patatas", qty: 2 },
-        { name: "Merluza", qty: 4 },
-        { name: "Lentejas", qty: 2 },
-        { name: "Ajo", qty: 1 },
-        { name: "Cebolla", qty: 2 },
-        { name: "Tomate", qty: 3 },
-      ];
+    function slotMeal(idx) {         // round-robin determinista de comidas
+      return [ "desayuno", "comida", "cena" ][idx % 3];
+    }
+
+    it("menú estricto con capacidad de sobra: 21 slots llenos, cada slot de SU comida, sin repeticiones y needyFoods vacío", () => {
+      const nombres = [ "Ajo", "Cebolla", "Aceite", "Sal", "Huevos", "Patatas", "Merluza", "Lentejas", "Tomate", "Leche",
+                        "Pan", "Queso", "Fresas", "Miel", "Pollo", "Arroz", "Zanahoria", "Vino", "Chorizo", "Gelatina", "Cacao" ];
+      const catalog = nombres.map((n, i) => ({ id: "d" + i, title: "Plato " + i, meal: slotMeal(i), ingredients: [n], method: [] }));
+      const pantry = nombres.map(n => ({ name: n, qty: 2 }));
 
       const pool = planner.buildCandidatePool(pantry, [], catalog, { today: TODAY });
       const out = planner.buildWeeklyMenu(pool, pantry, { includeUnavailable: false });
 
       expect(out.plan).toHaveLength(7);
-      expect(out.plan.every((slot) => slot.recipe && slot.recipe.source === "receta_sugerida")).toBe(true);
-      expect(new Set(out.plan.map((slot) => slot.recipe.title)).size).toBe(7);
+      const todos = out.plan.flatMap(d => Array.isArray(d.meals) ? d.meals : []);
+      expect(todos).toHaveLength(21);
+      // cada slot respeta su tipo de comida y todas las recetas vienen del catálogo-fusión
+      for (const s of todos) {
+        expect(s.meal).toEqual(expect.stringMatching(/^(desayuno|comida|cena)$/));
+        expect(s.recipe).not.toBeNull();
+        expect(s.recipe.source).toBe("receta_sugerida");
+        expect(s.recipe.meal).toBe(s.meal);
+      }
+      expect(new Set(todos.map(s => s.recipe.title)).size).toBe(21);   // SIN repeticiones (§3.5)
+      expect(out.needyFoods).toEqual([]);                              // estricto + todo disponible: nothing to buy
+    });
+
+    it("modo estricto con capacidad insuficiente: se llena lo que se pueda (en SU comida) y el resto queda null — sin azar", () => {
+      const catalog = [ { id: "d1", title: "Plato 01", meal: "comida", ingredients: ["Huevos"], method: [] } ];
+      const pantry = [ { name: "Huevos", qty: 3 } ];
+      const out = planner.buildWeeklyMenu(planner.buildCandidatePool(pantry, [], catalog, { today: TODAY }), pantry, { includeUnavailable: false });
+
+      expect(out.plan).toHaveLength(7);
+      const todos = out.plan.flatMap(d => d.meals);
+      expect(todos.filter(s => s.recipe)).toHaveLength(1);              // sólo 1 plato disponible, 1 slot lleno
+      expect(out.plan[0].dayLabel).toBe("Lunes");
+      expect(out.plan[0].meals[1].meal).toBe("comida");                 // la receta es comida → cae en el slot de comida
+      expect(out.plan[0].meals[1].recipe.title).toBe("Plato 01");
+      const vacios = out.plan.flatMap(d => d.meals).filter(s => !s.recipe);
+      expect(vacios).toHaveLength(20);                                  // el resto queda NULL intencionalmente (nunca al vuelo)
       expect(out.needyFoods).toEqual([]);
-     });
+    });
 
+    it("un candidato NO-disponible NO consume días (fix 'del jueves en adelante no se genera nada'): el disponible ocupa SU slot y el parcial queda fuera en estricto", () => {
+      const catalog = [
+        { id: "x-a", title: "Plato A", meal: "cena", ingredients: ["Sal", "Merluza"], method: [] },          // parcial: missing=["Merluza"]
+        { id: "x-z", title: "Plato Z", meal: "comida", ingredients: ["Aceite"], method: [] }                 // completo
+      ];
+      const pantry = [ { name: "Sal", qty: 1 }, { name: "Aceite", qty: 1 } ];
+      const pool = planner.buildCandidatePool(pantry, [], catalog, { today: TODAY });
+      const out = planner.buildWeeklyMenu(pool, pantry, { includeUnavailable: false });
 
-     it("menú Estricto (includeUnavailable=false): si hay MENOS platos plenamente-disponibles que los 7 slots → se llenan tantos CUANTOS pueden y el resto queda en NULL (§ guard exacto del 'nunca fabricar al vuelo' § coherencia estricta LITERAL del plan) — NO se rellena por azar en modo EstrictO", () => {
-       const catalog = [ { id: "d1", title: "Plato 01", meal: "comida", ingredients: ["Huevos"], method: [] } ];   // §coherencia exacta de SÓLO 1 receta que PUEDE estar plenamente disponible contra el aforo (§, NO hay suficientes para los 7 slots estrictamente, guard EXACTO SIN exepción accidental alguna).
-       const pantry = [ { name: "Huevos", qty: 3 } ];   // § coherencia total de que SÓLO d1 PUEDE estar full-disponible contra este aforo mínimo (§, no más) — guard exacto verificado SÍ SIN "casi-suficiencia accidental".
-       const out = planner.buildWeeklyMenu(planner.buildCandidatePool(pantry, [], catalog, { today: TODAY }), pantry, { includeUnavailable: false });   // § coherencia LITERAL estricta SIN ram-B accidental (§ guard exacto — NO se rellenan nunca los restantes 6 slots por azar en EStricto verificado §guard SÍ EXACTamente sin exepción alguna).
-       expect(out.plan.length).toBe(7);                      // SIEMRE 7 slots (§, NO menos accidental: "nunca fabricar" no significa "menos slots", sólo que quedan NULLOs, coherencia total estricta § guard exacto SIN excepcion alguna)
-       const filled = out.plan.filter(s => s.recipe).length;   // § guard EXACTO estricto de cuantos SÍ se llenaron realmente (§ coherencia 1:1 con la capacidad del catálogo aquí — 3 recetas plenamente-disponibles contra un aforo que sólo cubre "Huevos" → EXACTAMENTE 1 slot lleno, los otros SIX nulls §guard exacto estricto 100% guardado SIN exepción accidental alguna).
-       expect(filled).toBe(1);                            // EXACTAMENTE 1 (§ coherencia LITERAL estricta — NO "casi-2 por defecto débil accidentaL", guard EXACTO verificado SÍ sin exepcióN ninguna)
-       expect(out.plan.slice(1).every(s => s.recipe === null)).toBe(true);   // § guard EXACTO estricto de que los RESTantes SIX slots quedaron en NULL intencionalmente (§ coherencia total: NO se forzó NINGÚN relleno accidental por azar en modo EStricto — verificado SÍ SIN exepción accidental ninguna)
-       expect(out.needyFoods.length).toBe(0);             // § guard EXACTO 100% de que `needyFoods` VACÍO en este caso estrictamente (NUNCA "auto-añade" algo al inventario SIN consentimiento del usuario vía el toggle, coherencia total LITERAL del plan `includeUnavailable=false → exige hoy-disponible`, § guard exacto verificado SÍ sin exepción alguna)
-     });
+      expect(out.plan).toHaveLength(7);
+      const llenos = out.plan.flatMap(d => d.meals).filter(s => s.recipe);
+      expect(llenos).toHaveLength(1);
+      expect(llenos[0].recipe.title).toBe("Plato Z");   // el parcial NO roba ningún slot
+      expect(out.needyFoods).toEqual([]);
+    });
 
-     it("menú Estricto: un candidato NO-disponible en el ranking NO consume el día (fix 'del jueves en adelante no se genera nada' § ram-A re-escaneo) — el siguiente plenamente-disponible ocupa ESE día", () => {
-       // Fixture determinista con EMPATE de score (0.5 ambos) para forzar que el NO-disponible quede
-       // ANTES en el ranking que un disponible (tie-break por título asc): "Plato A" < "Plato Z".
-       const catalog = [
-         { id: "x-a", title: "Plato A", meal: "cena", ingredients: ["Sal", "Merluza"], method: [] },      // parcial: uses=["Sal"] + missing=["Merluza"] → score 0.5, fullyAvailable=false
-         { id: "x-z", title: "Plato Z", meal: "comida", ingredients: ["Aceite", "Aceite extra"], method: [] } // completo: match bidireccional de AMBOS contra el alimento "Aceite" → uses dedup=["Aceite"], missing=[] → score 0.5, fullyAvailable=true
-       ];
-       const pantry = [ { name: "Sal", qty: 1 }, { name: "Aceite", qty: 1 } ];
+    it("includeUnavailable=true con falta de capacidad: platos parciales rellenan SUS slots y van a needyFoods (sin repetir donde queda alternativa)", () => {
+      const catalog = [
+        { id: "c1", title: "Plato c1", meal: "comida", ingredients: ["Huevos"], method: [] },    // disponible
+        { id: "c2", title: "Plato c9", meal: "cena", ingredients: ["Merluza"], method: [] },    // disponible
+        { id: "c3", title: "Plato cM", meal: "desayuno", ingredients: ["Patatas"], method: [] }, // parcial: missing Patatas
+        { id: "c4", title: "Plato cP", meal: "comida", ingredients: ["Cebolla"], method: [] }    // parcial: missing Cebolla
+      ];
+      const pantry = [ { name: "Huevos", qty: 3 }, { name: "Merluza", qty: 2 } ];
+      const out = planner.buildWeeklyMenu(planner.buildCandidatePool(pantry, [], catalog, { today: TODAY }), pantry, { includeUnavailable: true });
 
-       const pool = planner.buildCandidatePool(pantry, [], catalog, { today: TODAY });   // dedup por fingerprint: 2 claves distintas → ambos entran
-       const out = planner.buildWeeklyMenu(pool, pantry, { includeUnavailable: false });
+      expect(out.plan).toHaveLength(7);
+      const llenos = out.plan.flatMap(d => d.meals).filter(s => s.recipe);
+      expect(llenos).toHaveLength(4);                                          // todo el catálogo entra (1 por comida)
+      expect(new Set(llenos.map(s => s.recipe.title)).size).toBe(4);           // sin repeticiones
+      // el desayuno parcial (c3) entra PORQUE includeUnavailable=true; en estricto no lo haría
+      expect(out.plan[0].meals[0].recipe.title).toBe("Plato cM");              // desayuno del Lunes
+      expect(out.plan[0].meals[0].missing).toEqual(["Patatas"]);
+      const needy = out.needyFoods.map(f => f.name);
+      expect(needy).toContain("Patatas");                                      // ausentes reales → lista de compra
+      expect(needy).toContain("Cebolla");
+      expect(needy).not.toContain("Huevos");                                   // disponible: NUNCA needy
+    });
 
-       expect(out.plan).toHaveLength(7);
-       // Lunes recibe el SIGUIENTE plenamente-disponible (el parcial NO roba el día):
-       expect(out.plan[0].recipe).not.toBeNull();
-       expect(out.plan[0].recipe.title).toBe("Plato Z");
-       // El resto queda NULL intencionalmente (modo Estricto sin más capacidad), SIN huecos intermedios causados por descartes:
-       expect(out.plan.slice(1).every(s => s.recipe === null)).toBe(true);
-       const filled = out.plan.filter(s => s.recipe).length;
-       expect(filled).toBe(1);
-       expect(out.needyFoods).toEqual([]);   // estricto: el parcial NUNCA entra → no hay needy
-     });
+    it("unión-dedup de needyFoods por nombre NORMALIZADO (acento/caso distinto del mismo ausente → una sola fila)", () => {
+      const catalog = [
+        { id: "n1", title: "N-uno", meal: "comida", ingredients: ["Huevos", "Merluza"], method: [] },
+        { id: "n2", title: "Plato n2", meal: "comida", ingredients: ["MerlUza", "Huevos"], method: [] }
+      ];
+      const pantry = [ { name: "Huevos", qty: 3 } ];
+      const out = planner.buildWeeklyMenu(planner.buildCandidatePool(pantry, [], catalog, { today: TODAY }), pantry, { includeUnavailable: true });
+      const names = out.needyFoods.map(f => f.name);
+      expect(names.filter(n => String(n).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === "merluza")).toHaveLength(1);
+      expect(out.needyFoods.every(f => typeof f.name === "string")).toBe(true);
+    });
 
-     it("includeUnavailable=TRUE + FALTA CAPACIDAD estricta: ram-B aleatoria controlada (idénico a innovaciones.js rama B, SIN inventar nada nuevo — MISM0 patrón ya validado con rng-inyectado en las tests Capa-1 de Innovación Fase-1/2) rellena los slots restantes SIN repetir § coherencia 1:1 EXACTA y reproducible determinísticamente", () => {
-       // Catálogo DETERMINISTICO con 4 recetas (de las cuales 3 son plenamente-disponibles contra el aforo; la 4ª PUEDE estar "parcial" para forzar ram-B cuando falten más de 7 slots... pero aquí usamos un caso DETERMINISTA de 9 > 3 disponibles para NO depender de rama-b accidental en este caso específico de PRUEBA — coherencia estricta SIN exepción accidental §guard EXACTO).
-       const catalog = [
-         { id: "c1", title: "Plato c1", meal: "comida", ingredients: ["Huevos"], method: [] },   // plenamente-disponible vs aforo (haveRatio=1.0 exacto) → entra por ram-A estricta primero (§ coherencia SIN exepción accidental)
-         { id: "c2", title: "Plato c9", meal: "cena", ingredients: ["Merluza"], method: [] },   // § plenamente-disponible verificado (§ guard exacto SIN exception accidental alguna — MISM0 patrón determinista estricto 1:1 con todo lo previo)
-         { id: "c3", title: "Plato cM", meal: "desayuno", ingredients: ["Patatas"], method: [] }, // § plenamente-disponible verificado (§ guard exacto 100% sin exepción accidentL alguna)
-         { id: "c4", title: "Plato cP", meal: "comida", ingredients: ["Cebolla"], qty_note: "", method: [] }   // § PUEDE NO estar plenamente disponible si `Ajo`/`Cebolla` aúM no están en el aforo (ver pantry de abajo) — coherencia estricta que forzca ram-B SIN "casi-entramente accidental"
-       ];
+    it("guard §2-A defensivo: pool no-array → 7 días × 3 comidas con slots vacíos + needyFoods vacío SIN lanzar", () => {
+      const out = planner.buildWeeklyMenu(undefined, [ { name: "Huevos", qty: 1 }], { includeUnavailable: false, today: TODAY });
+      expect(out.plan).toHaveLength(7);
+      expect(out.plan.every(d => Array.isArray(d.meals) && d.meals.every(s => s.recipe === null))).toBe(true);
+      expect(out.needyFoods).toEqual([]);
+    });
+  });
 
-       const pantry = [ { name: "Huevos", qty: 3 }, { name: "Merluza", qty: 2 }];   // aforo SÓLO cubren c1/c2 → c3,c4 PARCIAL/potencialmente-no-disponibles (ver § guard exacto de ram-B accional SIN exepción)
-       const out = planner.buildWeeklyMenu(planner.buildCandidatePool(pantry, [], catalog, { today: TODAY }), pantry, { includeUnavailable: true, rng: makeSeededRng([0.1, 0.2, 0.3]) });   // § coherencia EXACTA de INYECTAR rng determinista (§ MISM0 pattern `makeSeededRng` ya usado en innovaciones.test.js — SIN reinventar nIngún generador nuevo)
-       expect(out.plan.length).toBe(7);                 // SIEMRE 7 slots FIOS (§guard literal LITERAL exacto del plan §, NO menor/mayor accidental por defecto accidentaL — verificado SÍ estrictamente)
-       const filled = out.plan.filter(s => s.recipe).length;   // § coherencia EXACTA total de cuántas recetas se llegaron a asignar realmente (§ guard estricto verificado SIN exepción accidental ninguna en ram-B determinista con rng fijo inyectado)
-       expect(filled).toBe(4);                         // EXACTAMENTE 4 slots llegados a llenarse (= todo el catálogo, § coherencia LITERAL 1:1: "NO hay más capacidad total" que estas 4 recetas SÍ, NUNCA menos o mayor ACCIDENTALMENTE por defecto) — verificado SIN exepción alguna
-       expect(new Set(out.plan.map(s => s.recipe).filter(Boolean).map(r => r.title))).toHaveSize(4);   // § guard estricto de "dedup INTRA-lote / sin repeticiones" (§guardando que la ram-B aleatoria determinista SÍ NO repite un mismo plato 2 veces accidental en los slots, SIN exepción accidentaL ninguna)
-       expect(out.needyFoods.length).toBeGreaterThan(0);   // § coherencia estricta total de que SÍ hay "needy" porque al menos c3/c4 PUEDE tener ingredientes ausentes (§guardando que la rama B aleatoria determinista SÍ produce ingredientes-ausentes legítimos SIN exepción accidental)
-     });
+  // ---------------------------------------------------------------------------
+  // (4b) pickRecipeForSlot — motor puro del "🔄 Cambiar" (feature 2026-10-18): mejor candidato de
+  //      UNA comida excluyendo claves dadas; determinista; null si no queda nada.
+  // ---------------------------------------------------------------------------
+  describe("(4b) pickRecipeForSlot — motor del cambio individual por día+comida", () => {
+    const catalog = [
+      { id: "p1", title: "Tortilla plana", meal: "comida", ingredients: ["Huevos"], method: [] },
+      { id: "p2", title: "Guiso de zanahoria", meal: "comida", ingredients: ["Zanahoria"], method: [] },
+      { id: "p3", title: "Cazón marinado", meal: "cena", ingredients: ["Merluza"], method: [] },
+      { id: "p4", title: "Tostadas creta", meal: "desayuno", ingredients: ["Pan"], method: [] }
+    ];
+    const pantry = [ { name: "Huevos", qty: 3 }, { name: "Zanahoria", qty: 2 }, { name: "Merluza", qty: 1 }, { name: "Pan", qty: 1 } ];
 
-     it("unión-dedup de `needyFoods` por nombre NORMALIZADO (§ literal del plan: 'union dedup por nombre-normalizado')", () => {
-       // Catálogo con 2 recetas CUYOS "missing" compartan el MISMO ingrediente-ausente (con acento/caso DIVERGENTE para forzar que la dedup use NOMBRE NORMALIZADO, no cruto) — coherencia estricta SÍ SIN exepción accidental
-       const catalog = [
-         { id: "n1", title: "N-uno", meal: "comida", ingredients: ["Huevos", "Merluza"], method: [] },   // `merluza` está en aforo? NO (pantry abajo sólo tiene "Huevos" + "AjO") → merluza va a "missing"(§, coherencia estricta estricto SIN exepción accidental)
-         { id: "n2", title: "Plato n2", meal: "comida", ingredients: ["MerlUza", "Huevos"], method: [] }   // § MISTO `merluza` (con distinto CASO/ACENTO: "merluza" vs "MerlUza") PERO misMo ingrediente-ausente REAL (`missing`-set) → dedup EXACTA por NOMBRE NORMALIZADO (§ guard LITERAL 1:1 con el plan §guard EXACTO estricto SIN exepción accidental alguna)
-       ];
-       const pantry = [ { name: "Huevos", qty: 3 }, { name: "ajo", qty: 2 }];   // § coherencia total de aforo mínimo (NUNCA `merluza` en este mini-aforo → SÍ va a "missing" de AMBAS recetas, guard EXACTO verificado SIN exepción accidental ninguna).
-       const out = planner.buildWeeklyMenu(planner.buildCandidatePool(pantry, [], catalog, { today: TODAY }), pantry, { includeUnavailable: true, rng: makeSeededRng([0.1]) }); // § coherencia LITERAL estricta del patrón EXACTO ya usado en todo este archivo + innovations.test.js — SIN exepción accidental NINGÚNA
-       const names = out.needyFoods.map(f => f.name);   // § guard exacto de que `needyFoods` DEBE contener el MISTO "merluza" EXACTAMENTE UNA SOLA VEZ aúN habiendo salido de 2 recetas distintas (§, coherencia total de LITERAL dedup-por-NOMBRE-normalizado SIN exepción accidental ninguna §guard estricto verificado)
-       expect(names.filter(n => String(n).toLowerCase().normalize("NFD").replace(/[̀-Ϳ]/g, "") === "merluza")).toHaveLength(1);   // § guard EXACTO: SÓLO 1 ocurrencia de "merlUza" aúN saliendo de DOS recetas distintas (§ coherencia LITERAL exacta del §literal del plan "unión dedup por nombre-normalizado", verificado estricto SIN exepción accidental ninguna §guard total)
-       expect(out.needyFoods.every(f => typeof f.name === "string")).toBe(true); // § guard EXACTO 100% coherencia de shape MÍNÍMO {name:string} (§, NO un objeto inventado nuevo — coherencia total con la nota del plan "form MINÍMA; lo rellena el caller igual que ya hace addFoodThroughForm hoy")
-     });
+    it("respeta la comida pedida: para 'comida' propone una receta de comida, para 'cena' la de cena", () => {
+      const pool = planner.buildCandidatePool(pantry, [], catalog, { today: TODAY });
+      const paraComida = planner.pickRecipeForSlot(pool, pantry, { meal: "comida" });
+      expect(paraComida.recipe.title).toBe("Guiso de zanahoria");       // mejor comida del ranking (tie por título)
+      expect(paraComida.recipe.meal).toBe("comida");
+      expect(paraComida.missing).toEqual([]);
+      const paraCena = planner.pickRecipeForSlot(pool, pantry, { meal: "cena" });
+      expect(paraCena.recipe.title).toBe("Cazón marinado");
+    });
 
-     it("guard §2-A defensivo: pool no-array → menu de 7 slots NULLOs + needyFoods vacío SIN lanzar (§ coherencia exacta con cada una de las 5 APIs de este módulo, guard total verificado SÍ)", () => {
-       const out = planner.buildWeeklyMenu(undefined, [ { name: "Huevos", qty: 1 }], { includeUnavailable: false, today: TODAY });   // § coherencia estricta exacta de MISM0 guard § ya usado en `buildCandidatePool`/resto (§, sin exepción accidental NINGÚNA)
-       expect(out.plan).toHaveLength(7);        // SIEMRE 7 slots FIOs aunque pool NO-array (nunca se rompe el "menú SEMANAL" de 7 días por defecto accional, coherencia total estricta guardada §guard exacto SIN exepción accidentaL)
-       expect(out.plan.every(s => s.recipe === null)).toBe(true);   // § coherencia total guard exacto verificado sin exepción accidental NINGÚNA (§ guard total SÍ)
-       expect(out.needyFoods).toEqual([]);        // § coherencia exacta total de `needyFoods=VACÍO` si NO hay SÍ ningún slot con receta §guard SÍ estricto) veriado 100% sin exepción accidental ninguna.
-     });
-   });
+    it("excluye por fingerprint: excluir primero de ranking → propone el siguiente (walk determinista)", () => {
+      const pool = planner.buildCandidatePool(pantry, [], catalog, { today: TODAY });
+      const primera = planner.pickRecipeForSlot(pool, pantry, { meal: "comida" });
+      const excluida = planner.fingerprintOf(primera.recipe);
+      const segunda = planner.pickRecipeForSlot(pool, pantry, { meal: "comida", excludeKeys: [excluida] });
+      expect(segunda.recipe.title).not.toBe(primera.recipe.title);
+      expect(segunda.recipe.meal).toBe("comida");
+    });
 
+    it("excluir TODAS las de esa comida → null (ranking agotado, falla visible y honesta)", () => {
+      const pool = planner.buildCandidatePool(pantry, [], catalog, { today: TODAY });
+      const comidas = catalog.filter(r => r.meal === "comida").map(r => planner.fingerprintOf(r));
+      expect(planner.pickRecipeForSlot(pool, pantry, { meal: "comida", excludeKeys: comidas })).toBeNull();
+    });
+
+    it("includeUnavailable=false (modo estricto): receta con ingrediente ausente NO se propone", () => {
+      const pool = planner.buildCandidatePool(pantry, [], catalog, { today: TODAY });
+      // añadimos una comida PARCIAL ("Guisantes" no está en el aforo) para probar el gate estricto:
+      const parcial = [ ...catalog, { id: "p5", title: "Paella verde", meal: "comida", ingredients: ["Huevos", "Guisantes"], method: [] } ];
+      const pool2 = planner.buildCandidatePool(pantry, [], parcial, { today: TODAY });
+      const estr = planner.pickRecipeForSlot(pool2, pantry, {
+        meal: "comida", includeUnavailable: false,
+        excludeKeys: [ planner.fingerprintOf({ id: "p1", ingredients: ["Huevos"], method: [] }),      // Tortilla: disponible
+                       planner.fingerprintOf({ id: "p2", ingredients: ["Zanahoria"], method: [] }) ]  // Guiso: disponible
+      });
+      expect(estr).toBeNull();   // sólo queda la comida PARCIAL (Paella verde, missing "Guisantes") → estricto la rechaza
+    });
+  });
    // -----------------------------------
    describe("(5) cookEntryFor — registro exacto { id, title, keyFingerprint, on=HOY-real } (§ coherencia LITERAL EXACTA del plan §1/§3 Card-1/Card-2 + §6 inyectable `today`/`uid`, igual que mergeIncoming)", () => {
      it("con INYECCIÓN de `opts.today`+`opts.uid` (§6/§3.7) produce un registro DETERMINISTICO con EXACTAMENTE las 4 claves del §contrato", () => {

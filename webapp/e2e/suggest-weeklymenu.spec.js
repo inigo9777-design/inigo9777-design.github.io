@@ -3,24 +3,30 @@
 // Playwright NO está instalado en este entorno (§6 CODING_STANDARDS.md), por tanto este spec
 // queda como texto comentado / pendiente. Se activa solo cuando se añada Playwright al proyecto.
 //
-// Flujo trazado:
+// Flujo trazado (actualizado al menú 7×3 — feature 2026-10-18):
 //   1. Ir a la pestaña "Sugerencias y menú" (data-view="suggest").
-//   2. Marcar "Incluir aunque no estén ahora disponibles".
-//   3. Pulsar "Generar menú" → ver 7 filas (Lunes..Domingo) con preview.
-//   4. Pulsar "Aprobar plan" → se guarda mrcheff.weekmenu (approved=true, generatedOn=hoy)
-//      y se registra cada receta del plan en mrcheff.cooked con on=hoy.
-//   5. Si hay needyFoods, aparece Card 3 "Lista de la compra"; marcar "✅ comprado" en un ítem
-//      auto-añade ese alimento a foods con {qty:0, min:0, score:5} y refresca la alerta semanal.
+//   2. "Generar menú" (toggle "incluir no disponibles" va activado por defecto) → 7 días con
+//      3 filas de comida cada uno (.menu-day × 7, .menu-meal-row × 21).
+//   3. Pulsar "Aprobar plan" → mrcheff.weekmenu (approved=true, generatedOn=hoy) y cooked[]
+//      con una entrada por receta anclada a la FECHA de su día planificado.
+//   4. "🔄 Cambiar" en una .menu-meal-row → SÓLO esa comida del día cambia; el resto del plan queda intacto.
+//   5. Si hay needyFoods, Card 3 "Lista de la compra" muestra filas urg-red/orange/green ordenadas
+//      rojo→verde según la fecha de preparación (regla: mañana/hoy=rojo, 2-3 días=naranja, ≥4=verde);
+//      marcar "✅ comprado" auto-añade el alimento a foods con {qty:0, min:0, score:5}.
 //
 // Test pendiente (template cuando Playwright esté disponible):
 //
-// test('flujo menú semanal + lista de compra', async ({ page }) => {
+// test('flujo menú semanal 7×3 + swap por comida + lista de compra con semáforo', async ({ page }) => {
 //   await page.goto('http://localhost/');
 //   await page.click('[data-view="suggest"]');
-//   await page.check('#menu-include-unavailable');
 //   await page.click('#btn-menu-generate');
-//   await expect(page.locator('#menu-plan-list .alert-row')).toHaveCount(7);
+//   await expect(page.locator('#menu-plan-list .menu-day')).toHaveCount(7);
+//   await expect(page.locator('#menu-plan-list .menu-meal-row')).toHaveCount(21);
 //   await page.click('#btn-menu-approve');
-//   // verificar localStorage mrcheff.cooked / mrcheff.weekmenu via page.evaluate(...)
-//   // marcar primer ítem de Card 3 como comprado y verificar foods[]
+//   // cambiar la comida del martes y verificar que sólo ese hueco cambia (page.evaluate sobre el plan)
+//   const filaMartes = page.locator('#menu-plan-list li:nth-child(2) .menu-meal-row[data-meal="comida"]');
+//   await filaMartes.locator('[data-swap]').click();
+//   // verificar semáforo de Card 3: la primera fila debe llevar urg-red (plato de HOY/mañana)
+//   await expect(page.locator('#shopping-list li.urg-red').first()).toBeVisible();
+//   // marcar comprado y verificar foods[] via page.evaluate(...)
 // });

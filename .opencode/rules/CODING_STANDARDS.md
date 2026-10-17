@@ -211,4 +211,26 @@ Antes de dar un change como terminable:
 ## 8. Log de excepciones (decisiones que violan un principio)
 
 _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY-MM-DD · @autor · #tarea · Principio: <S/O/L/I/D> · Justificación: …`. _
-_(vacío por el momento)_
+
+- `2026-10-18 · @AI-agent · #bugfix-matching · Principio: O, D · Justificación:` el matcher bidireccional
+  por subcadena-cruda (`includes()`) de `planner.js` e `innovations.js` daba falsos positivos graves
+  (ingrediente "Sal" encajaba dentro del alimento "Salchichón ibérico"). Se extrae el módulo puro
+  compartido `modules/ingredient-matching.js` (tokens+deplural, sin prefijos sueltos) y ambos módulos
+  lo consumen: se CIERRA la duplicación de matcher que existía entre ambos (deuda §3 previa) en lugar
+  de corregir dos copias idénticas.
+- `2026-10-18 · @AI-agent · #feature-menu-7x3 · Principio: O, D · Justificación:` cambios de contrato
+  acordados con el usuario (menú semanal de 3 comidas/día + cambio individual de receta):
+  1. `planner.buildWeeklyMenu` pasa de `plan[7] = { dayLabel, recipe, missing }` a
+     `plan[7] = { dayLabel, meals[3] = { meal, recipe, missing } }` (shape evoluciona, tests actualizados).
+  2. Se AÑADE una 6ª función pública a planner (`pickRecipeForSlot`) rompiendo temporalmente la "API
+     cerrada de 5" porque el swap por día+comida pertenece al dominio del planner (ranking compartido,
+     un solo mecanismo §3); la lista cerrada se re-valida en `planner.test.js` con las 6 funciones.
+  3. Se RETIRA `opts.rng` de `buildWeeklyMenu` (la rama aleatoria de rampa B no aporta valor con 21
+     slots por tipo de comida: el relleno es determinista por ranking + degradación por repeticiones
+     inter-día; los tests del contrato rng se reescriben en consecuencia).
+  4. En `menu-semanal.js` se RETIRA `regenerateAfterCook` (regeneración completa al cocinar) y se
+     sustituye por la composición `cookEntry` + `swapSlotRecipe`: cocinar desde el menú renueva SOLO
+     el hueco del plato cocinado en lugar de descartar el resto del plan (mejor semántica para el
+     usuario, misma pureza). `"🔄 Cambiar"` persiste además un campo opcional `triedKeys` por slot
+     para que clicks sucesivos recorran el ranking sin oscilar (shape persistido extendido, sólo para
+     `mrcheff.weekmenu`).

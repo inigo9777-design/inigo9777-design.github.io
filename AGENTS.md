@@ -58,9 +58,20 @@ Views: **Alimentos** (pantry/restock alerts) · **Recetas** (free-text → struc
   raw localStorage**, so JSON handling + defaults stay consistent.
   - `mrcheff.cooked`: `Array<{ id, title, keyFingerprint, on: "YYYY-MM-DD" }>` — ancla del cooldown de 7 días
     (fingerprint de ingredientes, no el `id` interno de recipes[]). En "Aprobar plan", cada entrada se ancla a la
-    FECHA de su día planificado (próxima ocurrencia de ese weekday desde HOY, HOY incluido como día 0).
+    FECHA de su día planificado (próxima ocurrencia de ese weekday desde HOY, HOY incluido como día 0); con el
+    menú 7×3 hay una entrada por RECETA del plan (hasta 21) y las de un mismo día comparten fecha ancla.
+    "🍳 Cocinar" desde el menú = `cookEntry` (hoy) + `swapSlotRecipe` del propio hueco (no regenera el plan entero).
   - `mrcheff.weekmenu`: `{ approved, includeUnavailable, generatedOn, plan[7], needyFoods[] }` — ancla = HOY real
-    al aprobar, no el día visual marcado.
+    al aprobar, no el día visual marcado. Desde la feature 2026-10-18 el plan es **7 días × 3 comidas**:
+    `plan[7] = { dayLabel, meals[3] = { meal: "desayuno"|"comida"|"cena", recipe|null, missing } }` y
+    `needyFoods` = unión dedup de los ausentes de los 21 slots. `swapSlotRecipe` (módulo `menu-semanal.js`)
+    puede añadir por slot el campo opcional `triedKeys: string[]` (fingerprints ya probados, para que el
+    botón "🔄 Cambiar" recorra el ranking sin oscilar). `pickRecipeForSlot` es la 6ª función pública de
+    `planner.js` (contrato ampliado, log §8 del CODING_STANDARDS.md).
+- Lista de la compra (Card 3): dedup por el matcher de tokens (`modules/ingredient-matching.js`,
+  NO lower-case exacto) contra comida real (qty>0), y semáforo dinámico por fecha de preparación
+  (`onDay`/`daysUntil`/`urgency`): hoy/mañana=rojo, 2–3 días=naranja, ≥4 días (o sin fecha)=verde;
+  orden salida rojo→verde.
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
   red 8–10, orange 6–7, green 1–5; weekly alert caps the list at 8.
 - Innovations auto-expire: on load, if `mrcheff.innov.date != today`, wipe `mrcheff.innov`; also

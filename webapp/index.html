@@ -187,11 +187,13 @@
             <div id="suggest-list" class="recipe-grid"></div>
             <p id="suggest-empty" class="empty muted hidden">Pulsa "Sugerir ahora" para ver qué puedes cocinar con lo que tienes en casa.</p>
 
-            <!-- ---------- Card 2: menú semanal (7 días) ---------- -->
+            <!-- ---------- Card 2: menú semanal (7 días × 3 comidas) ---------- -->
             <div class="card">
                 <h2>📅 Menú semanal</h2>
-                <p class="muted">Un plan de 7 días (Lunes a Domingo) con un plato cada día, respetando lo que ya cocinaste esta
-                    semana. Si activas la opción de abajo, Mr Cheff también rellena los días en los que no tienes todo el
+                <p class="muted">Un plan de 7 días (Lunes a Domingo) con desayuno, comida y cena cada día,
+                    respetando lo que ya cocinaste esta semana. En cada comida puedes usar 🍳 Cocinar (anota lo
+                    cocinado y renueva sólo ese hueco) o 🔄 Cambiar si no te convence el plato de ese día. Si
+                    activas la opción de abajo, Mr Cheff también rellena las comidas en las que no tienes todo el
                     ingrediente necesario y te lo deja anotado como pendiente a comprar.</p>
                 <label class="check-inline">
                     <input type="checkbox" id="menu-include-unavailable" checked>
@@ -205,7 +207,7 @@
                 <p id="menu-status" class="muted hidden"></p>
             </div>
 
-            <!-- 7 filas diarias: se pinta dinámicamente con el preview del menú -->
+            <!-- 7 días × 3 comidas: se pinta dinámicamente con el preview del menú -->
             <ul id="menu-plan-list" class="alert-card alert-green hidden"></ul>
             <p id="menu-empty" class="empty muted hidden">Pulsa "Generar menú" para ver tu semana propuesta.</p>
 
