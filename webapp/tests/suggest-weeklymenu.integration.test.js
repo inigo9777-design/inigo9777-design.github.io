@@ -42,6 +42,13 @@ describe("Card 2+3 'Menú semanal + lista de la compra' — integración", () =>
     expect(slots.length).toBe(7);
     expect(document.getElementById("btn-menu-approve").disabled).toBe(false);
 
+    // FEATURE 2026-10-18: en el PREVIEW (aún sin aprobar) las filas NO llevan "🍳 Cocinar"
+    // (el preview no compromete nada que pueda entrar en cooldown); "🔄 Cambiar" sí está.
+    document.querySelectorAll("#menu-plan-list .menu-meal-row").forEach(fila => {
+      expect(fila.querySelector("[data-cook]")).toBeNull();
+      expect(fila.querySelector("[data-swap]")).not.toBeNull();
+    });
+
     // 4) Aprobar plan
     document.getElementById("btn-menu-approve").click();
 
@@ -77,6 +84,17 @@ describe("Card 2+3 'Menú semanal + lista de la compra' — integración", () =>
     // Card 3 visible si hay needyFoods (con poco stock y includeUnavailable=true sí los hay)
     expect(weekmenu.needyFoods.length).toBeGreaterThan(0);
     expect(document.getElementById("shopping-list").classList.contains("hidden")).toBe(false);
+
+    // FEATURE 2026-10-18: en el PREVIEW no existe aún "🍳 Cocinar" (sólo tras APROBAR); "🔄 Cambiar" sí.
+    // (Esta aserción se hace aquí ARRIBA del approve para ejercitar el estado preview… pero el approve
+    // ya ocurrió en el paso 4; el estado preview de las filas se cubre en el test de PERSISTENCIA y en
+    // el e2e de Brave. Aquí se asienta el POST-APROBADO:)
+    const filas = document.querySelectorAll("#menu-plan-list .menu-meal-row");
+    expect(filas.length).toBeGreaterThan(0);
+    filas.forEach(fila => {
+      expect(fila.querySelector("[data-cook]")).not.toBeNull();   // aprobado → cocinar visible
+      expect(fila.querySelector("[data-swap]")).not.toBeNull();   // cambiar sigue
+    });
 
     // 5) Marcar el PRIMER ítem del DOM (orden semaforo: rojos primero) → modal de compra: se pregunta
     //    CUÁNTO se ha comprado y su importancia (feature 2026-10-18); tras confirmar, alta con esos datos.
