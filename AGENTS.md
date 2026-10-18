@@ -16,10 +16,10 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
 - **Tests:** `cd webapp && npm test` (`jest`) / `npm run coverage` (`jest --coverage`). Jest IS a
   declared devDependency with installed `node_modules/`. Specs live under `webapp/tests/` —
   per-module specs (classify, priority, recipe-analysis, ingredient-matching, util, innovations,
-  planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas) + integration specs
-  (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
-  e2e-flow-receta-a-alerta-compra) + harness scaffolding (`boot.js` / `setup.js`). As of the last
-  run on 2026-10-18 the whole suite is green (**256 tests across 19 suites**) — verify with a fresh
+  planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas) +
+  integration specs (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
+  buscador-catalogo, e2e-flow-receta-a-alerta-compra) + harness scaffolding (`boot.js` / `setup.js`). As of the last
+  run on 2026-10-18 the whole suite is green (**275 tests across 21 suites**) — verify with a fresh
   run before trusting it.
 - **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
   and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`
@@ -44,8 +44,10 @@ is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
   comentario en la línea 2 (`Apply`) invalidaba el bloque `:root` entero del modo claro — parser CSS lo engulle
   como selector; mantener el fichero sin tokens basura fuera de comentario].
 
-Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts) · **Recetas** (free-text →
-structured recipe + Mis Recetas) · **Innovación** (curated-catalog suggestions from the pantry) ·
+Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts) · **Recetas**
+(free-text → structured recipe; card "🔎 Buscador del catálogo" busca en el JSON del catálogo
+por título/ingrediente y abre el modal de detalle; + Mis Recetas) · **Innovación**
+(curated-catalog suggestions from the pantry) ·
 **Sugerencias y menú** (↻ Sugerir ahora lote rotado + plan semanal 7×3 + lista de la compra) ·
 **Temporada** (in-season fruit/veg by month) · **Copia de seguridad** (side icon tab). Every recipe
 viewed anywhere (cards, plan slots, modal) shows an ORIGIN badge — "Receta española"/"Receta
@@ -64,7 +66,9 @@ italiana" (see `modules/origen-recetas.js` below).
   buildCandidatePool, matchDetails, suggestToday, buildWeeklyMenu, pickRecipeForSlot, loteRotado…) ·
   `menu-semanal.js` (shoppingListFor, approveMenu, markItemBought, cookEntry, swapSlotRecipe, clearMenu) ·
   `recipe-editor.js` (buildDraft, validateDraft, estaGuardada, applyEdit, patchPlan) · `recipe-missing.js`
-  (qué ingredientes faltan para el modal) · `backup.js` · **`origen-recetas.js`** (etiqueta/sello de origen:
+  (qué ingredientes faltan para el modal) · `backup.js` · **`busqueda-recetas.js`** (buscador del
+  catálogo: texto libre → resultado por título x3/ingrediente x1, reutiliza matching de tokens
+  del matcher compartido, orden estable y límite ctx.limite) · **`origen-recetas.js`** (etiqueta/sello de origen:
   esItaliana, etiquetaOrigen, claseOrigen, origenAlGuardar, etiquetaClasicaVisible — inyectable ctx
   `{catalog, ids}` para tests). `app.js` keeps ONLY HTML molds (`badgeOrigenHTML`, `tagClasicoHTML`),
   event wiring and persistence.
