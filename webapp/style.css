@@ -1,497 +1,986 @@
-/* webapp/style.css */
-Apply
-/* ========== RESET & VARIABLES (modo claro) ========== */
+/* ==========================================================================
+   webapp/style.css — Sistema de diseño "La cocina tranquila"
+   --------------------------------------------------------------------------
+   Reglas del equipo:
+   · TODO color vive en tokens de tema (modo claro y oscuro completos).
+     Ningún componente usa hex sueltos: así el modo oscuro ya no puede romperse
+     componente a componente (detrás del fallo histórico 2026-10-18).
+   · Escala de radios 6/10/16 y de espaciado 4/8/12/16/24/32 (sin mezclas).
+   · Tipografía: serif editorial (Georgia) para títulos y marca, sans del
+     sistema para UI, números tabulares en datos (cantidades/fechas).
+   · Cada color resuelve una tarea: tomate = urgencia alta, ámbar = media.
+     El verde de marca no se usa para "todo".
+   · color-scheme por tema para que selects/checkbox/scrollbar nativos
+     también sigan el modo oscuro.
+   ========================================================================== */
+
+/* ========== 1. TOKENS — MODO CLARO ========== */
 :root {
-  --bg: #f8fafc;
+  color-scheme: light;
+
+  /* Superficie y tinta */
+  --bg: #f6f4ef;                       /* papel cálido de cocina, no el típico gris frío */
   --card: #ffffff;
-  --text: #1f2937;
-  --muted: #6b7280;
-  --accent: #16a34a;
-  --accent-dark: #15803d;
-  --border: #e5e7eb;
-  --danger: #dc2626;
-  --danger-light: #fee2e2;
-  --warning: #d97706;
-  --warning-light: #fef3c7;
-  --info: #2563eb;
-  --info-light: #dbeafe;
-  --radius: 12px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
-  --code-bg: #f3f4f6;
-  --chip-bg: #f3f4f6;
-  --food-bg: #fff;
-  --tag-variacion-bg: #ede9fe; --tag-variacion-fg: #6d28d9;
-  --tag-combo-bg: #ccfbf1; --tag-combo-fg: #0f766e;
-  --tag-libre-bg: #dbeafe; --tag-libre-fg: #1e40af;
-  --tag-protagonista-bg: #fef3c7; --tag-protagonista-fg: #92400e;
+  --card-soft: #fbfaf7;                /* panel interior de datos */
+  --text: #26221c;                     /* tinta */
+  --muted: #756d60;                    /* secundario cálido */
+  --border: #e7e2d8;
+  --border-strong: #d4cec2;
 
-  /* Topbar y tabs */
-  --topbar-bg: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-  --topbar-text: #ffffff;
-  --tab-bg: rgba(255, 255, 255, 0.15);
-  --tab-border: rgba(255, 255, 255, 0.26);
-  --tab-hover: rgba(255, 255, 255, 0.28);
-  --tab-active-bg: #ffffff;
-  --tab-active-text: #15803d;
-  --toggle-bg: rgba(255, 255, 255, 0.15);
-  --toggle-border: rgba(255, 255, 255, 0.26);
-  --toggle-hover: rgba(255, 255, 255, 0.28);
-  --toggle-text: #ffffff;
+  /* Marca: verde laurel (soberio, de rama, no de casino) */
+  --brand: #2f6b45;
+  --brand-strong: #235234;
+  --brand-soft: #e6f0e7;               /* tinte para fondos activos/suaves */
+  --brand-on: #ffffff;                 /* texto sobre marca */
+
+  /* Semántica de urgencia (con tarea, no decoración) */
+  --red: #b23a2b;          --red-soft: #f9ece8;   --red-on: #ffffff;
+  --amber: #94620f;        --amber-soft: #faf1dd;
+  --ok: #35613d;           --ok-soft: #ecf3ec;
+
+  --danger: #b23a2b;
+  --info: #3b5f8a;
+  --info-soft: #e9eff6;
+
+  /* Alias de compatibilidad (app.js pinta 2 estilos inline con estos nombres) */
+  --accent: var(--brand);
+  --accent-dark: var(--brand-strong);
+  --warning: var(--amber);
+
+  /* Tags del catálogo / fuentes de idea */
+  --tag-variacion-bg: #ece7f5; --tag-variacion-fg: #5b4a91;
+  --tag-combo-bg: #e3efe9;     --tag-combo-fg: #2f6b45;
+  --tag-libre-bg: #e9eff6;     --tag-libre-fg: #3b5f8a;
+  --tag-protagonista-bg: #faf1dd; --tag-protagonista-fg: #94620f;
+  --tag-fuente-bg: #f0ede6;    --tag-fuente-fg: #6d6557;
+
+  /* Componentes */
+  --card-muted-bg: #f0ede6;            /* chips de metadato */
+  --hover-wash: #f3f1ea;
+  --focus-halo: rgba(47, 107, 69, 0.18);
+  --shadow-1: 0 1px 2px rgba(38, 34, 28, 0.05);
+  --shadow-2: 0 8px 24px rgba(38, 34, 28, 0.09);
+  --overlay: rgba(28, 24, 19, 0.55);
+
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-l: 16px;
+
+  /* Header: superficie neutra sólida, marca en el acento */
+  --topbar-bg: #ffffff;
+  --topbar-fg: #26221c;
+  --topbar-border: #e7e2d8;
+  --tab-fg: #756d60;
+  --tab-bg: transparent;
+  --tab-border: transparent;
+  --tab-hover-bg: #f0ede6;
+  --tab-active-bg: var(--brand-soft);
+  --tab-active-fg: var(--brand-strong);
+  --toggle-fg: #756d60;
+  --toggle-bg: transparent;
 }
 
-/* ========== MODO OSCURO (por defecto) ========== */
+/* ========== 2. TOKENS — MODO OSCURO ("hierro fundido") ========== */
 [data-theme="dark"] {
-  --bg: #0f172a;
-  --card: #1e293b;
-  --text: #e2e8f0;
-  --muted: #94a3b8;
-  --accent: #22c55e;
-  --accent-dark: #16a34a;
-  --border: #334155;
-  --danger: #f87171;
-  --danger-light: #451a1a;
-  --warning: #fbbf24;
-  --warning-light: #422006;
-  --info: #60a5fa;
-  --info-light: #1e3a5f;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.6);
-  --code-bg: #334155;
-  --chip-bg: #334155;
-  --food-bg: #1e293b;
-  --tag-variacion-bg: #4c1d95; --tag-variacion-fg: #ddd6fe;
-  --tag-combo-bg: #134e4a; --tag-combo-fg: #99f6e4;
-  --tag-libre-bg: #1e3a8a; --tag-libre-fg: #bfdbfe;
-  --tag-protagonista-bg: #78350f; --tag-protagonista-fg: #fde68a;
+  color-scheme: dark;
 
-  --topbar-bg: linear-gradient(135deg, #14532d 0%, #052e16 100%);
-  --topbar-text: #ffffff;
-  --tab-bg: rgba(255, 255, 255, 0.12);
-  --tab-border: rgba(255, 255, 255, 0.2);
-  --tab-hover: rgba(255, 255, 255, 0.22);
-  --tab-active-bg: #ffffff;
-  --tab-active-text: #15803d;
-  --toggle-bg: rgba(255, 255, 255, 0.12);
-  --toggle-border: rgba(255, 255, 255, 0.2);
-  --toggle-hover: rgba(255, 255, 255, 0.22);
-  --toggle-text: #ffffff;
+  --bg: #17150f;
+  --card: #211e17;
+  --card-soft: #1b1913;
+  --text: #ece6da;
+  --muted: #a29a8a;
+  --border: #383327;
+  --border-strong: #4a4333;
+
+  --brand: #7cbb8f;
+  --brand-strong: #a3d3b0;
+  --brand-soft: #2a3a2e;
+  --brand-on: #12241a;                 /* texto oscuro sobre verde claro */
+
+  --red: #e2836f;          --red-soft: #3a241c;   --red-on: #2b150f;
+  --amber: #d9a441;        --amber-soft: #38301b;
+  --ok: #8fbf9c;           --ok-soft: #263628;
+
+  --danger: #e2836f;
+  --info: #8fb0d6;
+  --info-soft: #26303c;
+
+  --accent: var(--brand);
+  --accent-dark: var(--brand-strong);
+  --warning: var(--amber);
+
+  --tag-variacion-bg: #37304f; --tag-variacion-fg: #c3b7ea;
+  --tag-combo-bg: #2a3a2e;     --tag-combo-fg: #a3d3b0;
+  --tag-libre-bg: #26303c;     --tag-libre-fg: #8fb0d6;
+  --tag-protagonista-bg: #38301b; --tag-protagonista-fg: #d9a441;
+  --tag-fuente-bg: #2b2820;    --tag-fuente-fg: #a29a8a;
+
+  --card-muted-bg: #2b2820;
+  --hover-wash: #2b2820;
+  --focus-halo: rgba(124, 187, 143, 0.22);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --overlay: rgba(10, 9, 7, 0.68);
+
+  --topbar-bg: #1b1913;
+  --topbar-fg: #ece6da;
+  --topbar-border: #383327;
+  --tab-fg: #a29a8a;
+  --tab-hover-bg: #2b2820;
+  --toggle-fg: #a29a8a;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* ========== 3. RESET Y BASE ========== */
+*, *::before, *::after { box-sizing: border-box; }
+* { margin: 0; padding: 0; }
+
+html { scroll-padding-top: 84px; }          /* el ancla no se esconde bajo el header fijo */
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
-  line-height: 1.6;
+  line-height: 1.55;
   min-height: 100vh;
-  transition: background 0.25s, color 0.25s;
-}
-/* ========== UTILIDADES ========== */ 
-.hidden { display: none !important; }
-
-.muted { color: var(--muted); font-size: 0.92rem; }
-
-.empty { text-align: center; padding: 24px 12px; font-style: italic; }
-
-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  background: var(--code-bg);
-  color: var(--text);
-  padding: 1px 6px;
-  border-radius: 5px;
-  font-size: 0.85em;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s, color 0.25s;
 }
 
-.tag { display: inline-block; background: #dcfce7; color: var(--accent-dark); padding: 2px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; }
+h1, h2, h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
 
-.tag.meal-desayuno { background: #fef3c7; color: #92400e; } .tag.meal-comida { background: #dbeafe; color: #1e40af; } .tag.meal-cena { background: #e9d5ff; color: #6b21a8; }
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
-/* Etiquetas de tipo de idea en Innovación */
-.tag.tag-variacion { background: var(--tag-variacion-bg); color: var(--tag-variacion-fg); }
-.tag.tag-combo { background: var(--tag-combo-bg); color: var(--tag-combo-fg); }
-.tag.tag-libre { background: var(--tag-libre-bg); color: var(--tag-libre-fg); }
-.tag.tag-protagonista { background: var(--tag-protagonista-bg); color: var(--tag-protagonista-fg); }
-.tag.tag-receta_sugerida { background: #d1fae5; color: #065f46; }
-.recipe-card .innov-uses { font-size: 0.82rem; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 2px; }
+::selection { background: var(--brand-soft); }
 
-/* ========== TOPBAR ========== */ 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* ========== 4. CABECERA ========== */
 .topbar {
-  background: var(--topbar-bg);
-  color: var(--topbar-text);
-  padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
   position: sticky;
   top: 0;
   z-index: 50;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 10px 24px;
+  background: var(--topbar-bg);
+  color: var(--topbar-fg);
+  border-bottom: 1px solid var(--topbar-border);
+  box-shadow: var(--shadow-1);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--topbar-text);
+  gap: 10px;
+  margin-right: auto;                    /* el resto queda a la derecha */
 }
 
 .brand-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
   object-fit: cover;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .35), 0 2px 6px rgba(0, 0, 0, .35);
+}
+
+.brand-name {
+  font-family: Georgia, serif;
+  font-size: 1.22rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .tabs {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 4px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.tabs::-webkit-scrollbar { display: none; }
 
 .tab {
+  flex: 0 0 auto;
   background: var(--tab-bg);
   border: 1px solid var(--tab-border);
-  color: var(--topbar-text);
-  padding: 7px 14px;
+  color: var(--tab-fg);
+  padding: 7px 13px;
   border-radius: 999px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 500;
+  font-family: inherit;
   cursor: pointer;
-  transition: background 0.2s;
+  white-space: nowrap;
+  transition: background-color 0.18s, color 0.18s;
 }
-
-.tab:hover {
-  background: var(--tab-hover);
-}
-
+.tab:hover { background: var(--tab-hover-bg); color: var(--text); }
 .tab.active {
   background: var(--tab-active-bg);
-  color: var(--tab-active-text);
+  color: var(--tab-active-fg);
+  font-weight: 600;
 }
 
-/* ========== CONTENIDO ========== */ 
-.content { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
-
-.view { display: none; }
-
-.view.active { display: block; }
-
-/* ========== TARJETAS ========== */ 
-.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow); }
-
-.card h2 { font-size: 1.3rem; color: var(--accent-dark); margin-bottom: 12px; }
-
-
-/* ---------- BOTÓN DE TEMA (nuevo) ---------- */
+/* Botón de tema: icono puro, si se solapara con los tabs en pantallas
+   intermedias simplemente cede la fila (flex-wrap lo reubica abajo). */
 .theme-toggle {
   background: var(--toggle-bg);
-  border: 1px solid var(--toggle-border);
-  color: var(--toggle-text);
-  width: 42px;
-  height: 42px;
+  border: 1px solid var(--topbar-border);
+  color: var(--toggle-fg);
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  font-size: 1.2rem;
+  font-size: 1.05rem;
+  font-family: inherit;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, transform 0.15s;
-  flex: 0 0 auto;
+  transition: background-color 0.18s, transform 0.12s;
+}
+.theme-toggle:hover { background: var(--hover-wash); }
+.theme-toggle:active { transform: scale(0.94); }
+
+/* En pantallas estrechas: marca + tema en la primera fila, tabs a scroll en la segunda */
+@media (max-width: 820px) {
+  .topbar { padding: 10px 16px 0; }
+  .tabs { order: 3; flex-basis: 100%; gap: 2px; }
+  .tab { padding: 7px 11px; }
+  .theme-toggle { order: 2; }
+  .brand { margin-right: 0; }
+  .topbar { gap: 10px 12px; }
 }
 
-.theme-toggle:hover {
-  background: var(--toggle-hover);
-  transform: scale(1.06);
+/* ========== 5. CONTENIDO Y VISTAS ========== */
+.content {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 28px 20px 72px;
 }
 
-.theme-toggle:active {
-  transform: scale(0.95);
-}
+.view { display: none; }
+.view.active { display: block; }
 
-/* ========== FORMULARIOS ========== */ 
-input[type="text"], input[type="search"], input[type="number"], select { min-height: 38px; box-sizing: border-box; }
-
-input[type="text"], input[type="search"], select, textarea {
-  width: 100%;
-  padding: 10px 12px;
+/* ========== 6. TARJETAS ========== */
+.card {
+  background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-l);
+  padding: 22px;
+  margin-bottom: 24px;                  /* aire generoso entre bloques de una vista */
+  box-shadow: var(--shadow-1);
+}
+
+.card h2 {
+  font-size: 1.32rem;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+/* Juego de aire bajo el título: la descripción respira */
+.card > p.muted { max-width: 62ch; }
+.card h2 + p.muted { margin-bottom: 16px; }
+
+.muted { color: var(--muted); font-size: 0.9rem; }
+
+/* Estados vacíos: panel discreto con guías, no un texto al aire */
+.empty {
+  text-align: center;
+  padding: 22px 16px;
+  margin-bottom: 24px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-m);
+}
+
+code, pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+}
+code {
+  background: var(--card-muted-bg);
+  color: var(--text);
+  padding: 1px 6px;
+  border-radius: 5px;
+}
+
+/* ========== 7. TAGS, CHIPS DE DATO Y URGENCIAS ========== */
+/* El tag lleva tarea (comida, fuente, urgencia) → siempre token de tema */
+.tag {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  background: var(--tag-fuente-bg);
+  color: var(--tag-fuente-fg);
+}
+.tag.meal-desayuno { background: var(--amber-soft); color: var(--amber); }
+.tag.meal-comida   { background: var(--info-soft);  color: var(--info); }
+.tag.meal-cena     { background: var(--tag-variacion-bg); color: var(--tag-variacion-fg); }
+
+.tag.tag-variacion    { background: var(--tag-variacion-bg); color: var(--tag-variacion-fg); }
+.tag.tag-combo        { background: var(--tag-combo-bg); color: var(--tag-combo-fg); }
+.tag.tag-libre        { background: var(--tag-libre-bg); color: var(--tag-libre-fg); }
+.tag.tag-protagonista { background: var(--tag-protagonista-bg); color: var(--tag-protagonista-fg); }
+.tag.tag-nueva        { background: var(--tag-libre-bg); color: var(--tag-libre-fg); }
+.tag.tag-curada       { background: var(--brand-soft); color: var(--brand-strong); }
+.tag.tag-receta_sugerida { background: var(--brand-soft); color: var(--brand-strong); }
+
+/* Chip de urgencia (leyenda y badges) */
+.urg {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.urg-red    { background: var(--red-soft);   color: var(--red); }
+.urg-orange { background: var(--amber-soft); color: var(--amber); }
+.urg-green  { background: var(--ok-soft);    color: var(--ok); }
+
+/* Barra lateral de urgencia compartida por las listas */
+.urg-border-red    { border-left-color: var(--red); }
+.urg-border-orange { border-left-color: var(--amber); }
+.urg-border-green  { border-left-color: var(--ok); }
+
+/* ========== 8. FORMULARIO Y CONTROL ========== */
+.row-form {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-top: 14px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.toolbar > input { flex: 2; min-width: 180px; }
+.toolbar > select { flex: 1; min-width: 140px; }
+.toolbar > button { flex: 0 0 auto; }
+
+.check-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+  margin-bottom: 10px;
+  max-width: 70ch;
+}
+
+input[type="text"], input[type="search"], input[type="number"], select, textarea {
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
   font-size: 0.95rem;
   font-family: inherit;
   background: var(--card);
   color: var(--text);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
+input[hidden] { display: none; }
 
-input[type="text"]:focus, input[type="search"]:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15); }
+/* Concatenar colores con color-mix da soporte limitado en Safari antiguo: tokens con rgba explícita. */
+input[type="text"]:focus, input[type="search"]:focus, input[type="number"]:focus,
+select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--focus-halo);
+}
 
 textarea { resize: vertical; min-height: 80px; }
 
-/* Slider de puntuación */ 
-/* Slider de puntuación — alineado con los inputs del formulario */
-.slider-group {
+input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); }
+input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
+
+/* Campos agrupados del formulario de alimentos */
+.qty-group, .slider-group {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 220px;
-}
-.slider-group > label {
-  font-size: 0.78rem;
-  color: var(--muted);
-  white-space: nowrap;
-  line-height: 1.2;
-  margin-bottom: 2px;
-}
-.slider-group input[type="range"] {
-  width: 100%;
-  accent-color: var(--accent);
-  cursor: pointer;
-  padding: 0;
-}  
-/* Campos de cantidad y mínimo */
-/* Campos de cantidad y mínimo — alineados al final con los otros inputs */
-.qty-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 130px;
   justify-content: flex-end;
 }
-.qty-group label {
+.qty-group { min-width: 130px; }
+.slider-group { min-width: 220px; }
+.qty-group > label, .slider-group > label {
   font-size: 0.78rem;
   color: var(--muted);
   white-space: nowrap;
-  line-height: 1.2;
-  margin-bottom: 2px;
+  line-height: 1.25;
 }
-.qty-group input[type="number"] {
-    width: 100%; padding: 8px 10px;
-    border: 1px solid var(--border); border-radius: 8px;
-    font-size: 0.95rem; font-family: inherit;
+.qty-group input[type="number"] { width: 100%; }
+.slider-group input[type="range"] { width: 100%; }
+
+/* ========== 9. BOTONES ========== */
+.btn {
+  border: 1px solid transparent;
+  border-radius: var(--radius-m);
+  padding: 9px 16px;
+  min-height: 36px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.15s, border-color 0.15s, transform 0.06s;
 }
-.qty-group input[type="number"]:focus {
-    outline: none; border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(22,163,74,.15);
-}
-
-/* Etiquetas de urgencia en la leyenda */
-.urg { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
-.urg-red { background: #fee2e2; color: #b91c1c; }
-.urg-orange { background: #fef3c7; color: #b45309; }
-.urg-green { background: #dcfce7; color: #15803d; }
-
-/* Formulario en línea */ 
-.row-form { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; margin-top: 14px; }
-/* ========== BOTONES ========== */ 
-.btn { border: none; border-radius: 8px; padding: 10px 18px; font-size: 0.95rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.15s, transform 0.05s, box-shadow 0.15s; }
-
 .btn:active { transform: translateY(1px); }
 
-.btn.primary { background: var(--accent); color: #fff; } .btn.primary:hover { background: var(--accent-dark); }
+.btn.primary { background: var(--brand); color: var(--brand-on); }
+.btn.primary:hover { background: var(--brand-strong); }
 
-.btn.ghost { background: transparent; color: var(--accent-dark); border: 1px solid var(--border); } .btn.ghost:hover { background: var(--info-light); border-color: var(--info); }
+.btn.ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn.ghost:hover { background: var(--hover-wash); border-color: var(--border-strong); }
 
-.btn.danger { background: var(--danger); color: #fff; } .btn.danger:hover { background: #b91c1c; }
+.btn.danger { background: var(--red); color: var(--red-on); }
+.btn.danger:hover { filter: brightness(0.93); }
 
-.btn.small { padding: 5px 10px; font-size: 0.82rem; }
+.btn.small { padding: 4px 10px; min-height: 28px; font-size: 0.8rem; border-radius: var(--radius-s); }
 
-/* ========== TOOLBAR ========== */ 
-.toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; } .toolbar > input { flex: 2; min-width: 160px; } .toolbar > select { flex: 1; min-width: 130px; } .toolbar > button { flex: 0 0 auto; }
-
-/* ========== ALIMENTOS: LISTA ========== */ 
+/* ========== 10. INVENTARIO — LISTA DE ALIMENTOS ========== */
 .food-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 
-  .food-item {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 14px;
-    border: 1px solid var(--border); border-left-width: 4px;
-    border-radius: 10px; background: var(--food-bg);
-    transition: box-shadow 0.15s, opacity 0.2s, background 0.25s;
-  }
-  .food-item:hover { box-shadow: var(--shadow); }
-  .food-item.checked { opacity: 0.55; }
-  .food-item.urg-red { border-left-color: #dc2626; }
-  .food-item.urg-orange { border-left-color: #f59e0b; }
-  .food-item.urg-green { border-left-color: #16a34a; }
-  .food-item.low { background: #fff8f1; }
-  .food-item.low.urg-red { background: #fef2f2; }
-  .food-item.low.urg-orange { background: #fffbeb; }
-  .food-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; flex: 0 0 auto; }
-  .food-item .food-name { flex: 1; font-weight: 500; }
-  .food-item.checked .food-name { text-decoration: line-through; }
-  .food-item .food-qty {
-   font-size: 0.85rem; font-weight: 600; color: var(--muted);
-   background: var(--chip-bg);
-   padding: 3px 9px; border-radius: 999px; white-space: nowrap;
-   }
-  .food-item.low .food-qty { background: var(--chip-bg); color: #b91c1c; }
-  .food-item .food-score {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 34px; height: 26px; padding: 0 8px;
-    border-radius: 999px; background: var(--info-light); color: var(--info);
-    font-weight: 700; font-size: 0.85rem;
-  }
-  .food-item .food-score.urg-red { background: #fee2e2; color: #b91c1c; }
-  .food-item .food-score.urg-orange { background: #fef3c7; color: #b45309; }
-  .food-item .food-score.urg-green { background: #dcfce7; color: #15803d; }
-  .food-item .food-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.food-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: var(--radius-m);
+  background: var(--card);
+}
+.food-item.urg-red    { border-left-color: var(--red); }
+.food-item.urg-orange { border-left-color: var(--amber); }
+.food-item.urg-green  { border-left-color: var(--ok); }
+.food-item.low.urg-red    { background: var(--red-soft); }
+.food-item.low.urg-orange { background: var(--amber-soft); }
+.food-item.low.urg-green  { background: var(--ok-soft); }
 
-  /* Tarjeta de alerta semanal — color por urgencia */
-  .alert-card { border-left-width: 5px; }
-  .alert-card h3 { margin-bottom: 10px; }
-  .alert-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
-  .alert-card li {
-    display: flex; flex-direction: column; gap: 2px;
-    font-size: 0.95rem;
-    padding: 8px 10px;
-    border-radius: 8px;
-    background: rgba(255,255,255,.6);
-    border-left: 4px solid transparent;
-  }
-  .alert-card li .alert-meta { font-size: 0.8rem; color: var(--muted); }
+.food-item input[type="checkbox"] { width: 19px; height: 19px; cursor: pointer; flex: 0 0 auto; }
+.food-item .food-name { flex: 1; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+.food-item.checked { opacity: 0.55; }
+.food-item.checked .food-name { text-decoration: line-through; }
+.food-item .food-qty {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  background: var(--card-muted-bg);
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.food-item .food-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  background: var(--ok-soft);   color: var(--ok);
+}
+.food-item .food-score.urg-red    { background: var(--red-soft);   color: var(--red); }
+.food-item .food-score.urg-orange { background: var(--amber-soft); color: var(--amber); }
+.food-item .food-actions { display: flex; gap: 6px; flex: 0 0 auto; }
 
-  .alert-card.alert-red { border-left-color: #dc2626; background: #fef2f2; }
-  .alert-card.alert-red h3 { color: #b91c1c; }
-  .alert-card.alert-orange { border-left-color: #f59e0b; background: #fffbeb; }
-  .alert-card.alert-orange h3 { color: #b45309; }
-  .alert-card.alert-green { border-left-color: #16a34a; background: #f0fdf4; }
-  .alert-card.alert-green h3 { color: #15803d; }
+/* ========== 11. TARJETAS DE ALERTA Y LA COMPRA ========== */
+/* Tarjeta de estado (alerta semanal, lista de compra): tinte lateral según riesgo */
+.card.alert-card { border-left: 4px solid var(--border); }
+.alert-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+}
+.alert-card.alert-red    { border-left-color: var(--red); }
+.alert-card.alert-red h3    { color: var(--red); }
+.alert-card.alert-orange { border-left-color: var(--amber); }
+.alert-card.alert-orange h3 { color: var(--amber); }
+.alert-card.alert-green  { border-left-color: var(--ok); }
+.alert-card.alert-green h3  { color: var(--ok); }
 
-  /* Cada fila conserva su propio color de urgencia */
-  .alert-card li.urg-red { border-left-color: #dc2626; }
-  .alert-card li.urg-orange { border-left-color: #f59e0b; }
-  .alert-card li.urg-green { border-left-color: #16a34a; }
-/* ========== RECETAS: GRID Y TARJETAS ========== */ 
-.recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.alert-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.alert-card li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  font-size: 0.93rem;
+  padding: 9px 12px;
+  border-radius: var(--radius-m);
+  border-left: 4px solid var(--border);
+  background: var(--card-soft);
+}
+.alert-card li.urg-red    { border-left-color: var(--red); }
+.alert-card li.urg-orange { border-left-color: var(--amber); }
+.alert-card li.urg-green  { border-left-color: var(--ok); }
+.alert-card li .alert-name { flex: 0 0 auto; }
+.alert-card li .alert-meta { font-size: 0.8rem; color: var(--muted); }
+.alert-card li .alert-meta b { font-variant-numeric: tabular-nums; }
+
+/* La compra: el botón "✅ comprado" empuja al final de la fila */
+#shopping-list li [data-buy] { margin-left: auto; flex: 0 0 auto; }
+
+/* ========== 12. RECETAS — rejilla y tarjetas ========== */
+.recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
 
 .recipe-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-l);
+  padding: 16px 18px 18px;
+  box-shadow: var(--shadow-1);
   cursor: pointer;
-  transition: transform 0.12s, box-shadow 0.12s, background 0.25s;
+  transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
+}
+.recipe-card:hover { box-shadow: var(--shadow-2); border-color: var(--border-strong); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .recipe-card:hover { transform: translateY(-2px); }
+}
+
+/* El bloque de acciones va SIEMPRE antes del título y en flujo (nunca
+   `position:absolute` sobre el texto: así el botón largo "🍳 Cocinar hoy"
+   no tapa jamás el nombre). Alineado a la derecha, con el título debajo. */
+.recipe-card .recipe-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  min-height: 30px;
+  margin-bottom: -4px;
+}
+.recipe-card .recipe-actions button {
+  background: var(--hover-wash);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-s);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.recipe-card .recipe-actions button:hover { background: var(--card-muted-bg); border-color: var(--border-strong); }
+
+.recipe-card h3 {
+  font-size: 1.06rem;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.recipe-card .recipe-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.recipe-card .innov-uses {
+  font-size: 0.82rem;
+  color: var(--muted);
+  border-top: 1px dashed var(--border);
+  padding-top: 10px;
+  margin-top: auto;          /* clavado al pie: las tarjetas de una rejilla alinean */
+}
+
+/* Ingredientes "posibles" (fila de chips) */
+.possible {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+.possible .possible-label { margin-bottom: 8px; font-size: 0.86rem; color: var(--muted); }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 6px 6px 0;
+  padding: 5px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.chip:hover { border-color: var(--brand); background: var(--brand-soft); }
+
+/* Edición de previsualización */
+.recipe-edit { display: flex; flex-direction: column; gap: 14px; margin: 14px 0; }
+.recipe-edit label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* ========== 13. MENÚ SEMANAL — una franja por día, a todo el ancho ========== */
+/* Vuelta al formato de franjas largas (una por día): es el formato más legible
+   para escanear la semana entera de arriba abajo, día a día. */
+#menu-plan-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+/* Anula el "tinte de estado" heredado de .alert-card en esta lista: */
+#menu-plan-list.alert-card { background: none; border: none; border-left: none; }
+
+.menu-day {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 14px 18px 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-1);
+  list-style: none;
+}
+.menu-day-header {
+  font-family: Georgia, serif;
+  font-weight: 600;
+  font-size: 1.12rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+  margin-bottom: 4px;
+}
+/* El día abre con una señal de marca: jerarquía instantánea al escanear la semana */
+.menu-day-header::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 4px;
+  height: 20px;
+  border-radius: 2px;
+  background: var(--brand);
+}
+
+/* Fila de comida dentro de la franja: etiqueta | plato | acciones repartidas.
+   La franja horaria lleva su color semántico (desayuno=ámbar, comida=azul,
+   cena=violeta): localizar una comida concreta de un vistazo es SU tarea. */
+.menu-meal-row {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius-m);
+  background: var(--card-soft);
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.menu-meal-row:hover { border-color: var(--border-strong); background: var(--hover-wash); }
+.menu-meal-row[data-meal="desayuno"] { border-left-color: var(--amber); }
+.menu-meal-row[data-meal="comida"]   { border-left-color: var(--info); }
+.menu-meal-row[data-meal="cena"]     { border-left-color: var(--tag-variacion-fg); }
+
+/* Hueco vacío del día (sin plato): sin etiqueta ni acciones, ocupa toda la fila */
+.menu-meal-row:not([data-meal]) { cursor: default; }
+.menu-meal-row:not([data-meal]) .menu-meal-body { grid-column: 1 / -1; }
+
+/* El estado del generador respira respecto a los botones que lo provocan */
+#menu-status { margin-top: 10px; }
+
+.menu-meal-tag {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.menu-meal-row[data-meal="desayuno"] .menu-meal-tag { color: var(--amber); }
+.menu-meal-row[data-meal="comida"]   .menu-meal-tag { color: var(--info); }
+.menu-meal-row[data-meal="cena"]     .menu-meal-tag { color: var(--tag-variacion-fg); }
+
+.menu-meal-body { min-width: 0; }
+.menu-meal-title {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.menu-meal-row .recipe-meta { gap: 8px; margin: 3px 0 0; }
+.menu-meal-row .innov-uses {
+  font-size: 0.8rem;
+  border-top: none;
+  padding-top: 0;
+  margin-top: 4px;
+  color: var(--muted);
+}
+.menu-meal-row .recipe-actions {
+  display: flex;
+  gap: 6px;
+  align-self: center;
+}
+.menu-meal-row .recipe-actions button {
+  white-space: nowrap;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+}
+
+/* En pantallas estrechas la fila se apila: etiqueta, plato y acciones al final */
+@media (max-width: 680px) {
+  .menu-meal-row {
+    grid-template-columns: 1fr auto;
+    row-gap: 4px;
+  }
+  .menu-meal-tag { grid-column: 1; }
+  .menu-meal-body { grid-column: 1 / -1; grid-row: 2; }
+  .menu-meal-row .recipe-actions { grid-column: 2; grid-row: 1; }
+}
+@media (max-width: 480px) {
+  .menu-meal-row { grid-template-columns: 1fr; }
+  .menu-meal-tag { grid-column: 1; }
+  .menu-meal-body { grid-column: 1; grid-row: auto; }
+  .menu-meal-row .recipe-actions { grid-column: 1; grid-row: auto; justify-content: flex-end; }
+}
+
+/* ========== 14. MODAL, TOAST Y NOTAS ========== */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal.hidden { display: none; }
+.modal-backdrop { position: absolute; inset: 0; background: var(--overlay); }
+.modal-box {
   position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  box-shadow: var(--shadow-2);
+  max-width: 560px;
+  width: 100%;
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 26px 28px;
+}
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--muted);
+  border-radius: 50%;
+}
+.modal-close:hover { color: var(--danger); background: var(--hover-wash); }
+
+.modal-content h2 { font-size: 1.35rem; line-height: 1.3; margin-bottom: 8px; padding-right: 34px; }   /* deja hueco al botón ✕ */
+.modal-content .recipe-meta { margin: 10px 0 6px; }
+.modal-content > p.muted { margin: 2px 0; line-height: 1.5; }
+
+/* Cabecera de sección del modal: filete superior + aire. Estructura visual de
+   "ficha de receta": título, meta, INGREDIENTES y MÉTODO bien separados. */
+.modal-content h4 {
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 20px 0 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.modal-content ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.modal-content ul li {
+  position: relative;
+  padding: 6px 10px 6px 26px;
+  line-height: 1.5;
+  border-radius: var(--radius-s);
+  overflow-wrap: anywhere;
+}
+.modal-content ul li::before {
+  content: "•";
+  position: absolute;
+  left: 10px;
+  top: 5px;
+  color: var(--brand);
+  font-weight: 700;
+}
+.modal-content ul li.meal-missing {
+  background: var(--red-soft);
+  border-left: 3px solid var(--red);
+  padding-left: 23px;
+  color: var(--text);
+}
+.modal-content ul li.meal-missing::before { left: 7px; top: 6px; }
+
+/* Pasos del método con contador-insignia: leerlos en orden es la tarea */
+.modal-content ol {
+  list-style: none;
+  counter-reset: paso;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.modal-content ol li {
+  counter-increment: paso;
+  position: relative;
+  padding: 5px 6px 5px 38px;
+  line-height: 1.55;
+}
+.modal-content ol li::before {
+  content: counter(paso);
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content .missing-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--red);
+  background: var(--red-soft);
+  border: 1px solid var(--border-strong);
+  padding: 1px 7px;
+  border-radius: 999px;
+  margin-left: 8px;
+}
+.modal-content .modal-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
-.recipe-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-
-.recipe-card h3 { font-size: 1.05rem; color: var(--text); margin-bottom: 2px; padding-right: 30px; }
-
-.recipe-card .recipe-meta { display: flex; gap: 6px; flex-wrap: wrap; }
-
-.recipe-card .recipe-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; } .recipe-card .recipe-actions button { background: transparent; border: none; font-size: 1rem; cursor: pointer; padding: 2px 4px; border-radius: 6px; } .recipe-card .recipe-actions button:hover { background: var(--border); }
-
-/* Edición de previsualización */
-.recipe-edit { display: flex; flex-direction: column; gap: 12px; margin: 14px 0; } .recipe-edit label { display: flex; flex-direction: column; gap: 6px; font-size: 0.88rem; font-weight: 600; color: var(--muted); }
-
-/* Ingredientes "posibles": fila de confirmación (toca para añadir) */
-.possible { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
-.possible .possible-label { margin-bottom: 8px; font-size: 0.85rem; }
-.chip {
-  display: inline-flex; align-items: center; gap: 4px;
-  margin: 0 6px 6px 0; padding: 5px 12px;
-  border: 1px solid var(--border); border-radius: 999px;
-  background: var(--card); color: var(--text);
-  font-size: 0.82rem; font-weight: 600; font-family: inherit; cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, transform 0.05s;
+.toast {
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--text);
+  color: var(--card);
+  padding: 11px 20px;
+  border-radius: 999px;
+  box-shadow: var(--shadow-2);
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 200;
+  pointer-events: none;
+  max-width: min(92vw, 560px);
 }
-.chip:hover { border-color: var(--accent); background: var(--info-light); }
-.chip:active { transform: translateY(1px); }
-
-/* ========== MODAL ========== */ 
-.modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; } .modal.hidden { display: none; }
-
-.modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); }
-
-.modal-box { position: relative; background:  var(--card); border-radius: var(--radius); box-shadow: var(--shadow-lg); max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 24px; transition: background 0.25s; }
-
-.modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 1.6rem; line-height: 1; cursor: pointer; color: var(--muted); } .modal-close:hover { color: var(--danger); }
-
-.modal-content h2 { color: var(--accent-dark); margin-bottom: 12px; } .modal-content .recipe-meta { margin: 10px 0; } .modal-content h4 { color: var(--text); margin: 16px 0 6px; } .modal-content ul { list-style: none; display: flex; flex-direction: column; gap: 6px; } .modal-content ul li { padding-left: 20px; position: relative; } .modal-content ul li::before { content: "•"; position: absolute; left: 4px; color: var(--accent); font-weight: 700; } .modal-content ol { padding-left: 22px; display: flex; flex-direction: column; gap: 8px; } .modal-content .modal-footer { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
-
-/* ========== TOAST ========== */ 
-.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--text); color: #fff; padding: 12px 22px; border-radius: 999px; box-shadow: var(--shadow-lg); font-size: 0.92rem; font-weight: 500; opacity: 0; transition: opacity 0.25s, transform 0.25s; z-index: 200; pointer-events: none; }
-
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { background: var(--brand); color: var(--brand-on); }
+.toast.error   { background: var(--red); color: var(--red-on); }
 
-.toast.success { background: var(--accent); } .toast.error { background: var(--danger); }
+.note {
+  border-left: 4px solid var(--info);
+  background: var(--info-soft);
+  color: var(--text);
+  font-size: 0.92rem;
+}
 
-/* ========== NOTA (INNOVACIÓN) ========== */ 
-.note { border-left: 4px solid var(--info); background: var(--info-light); color: var(--text); font-size: 0.92rem; }
-
-/* ========== TEMPORADA: GRID ========== */ 
-.season-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
-
+/* ========== 15. TEMPORADA ========== */
+.season-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
 .season-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px;
+  border-radius: var(--radius-m);
+  padding: 16px 12px;
   text-align: center;
-  transition: transform 0.12s, box-shadow 0.12s, background 0.25s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
+.season-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-1); }
+.season-card .season-emoji { font-size: 2rem; display: block; margin-bottom: 8px; }
+.season-card .season-name { font-weight: 600; font-size: 0.96rem; }
+.season-card .season-type {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.season-card .season-type.fruta  { background: var(--amber-soft); color: var(--amber); }
+.season-card .season-type.verdura { background: var(--ok-soft); color: var(--ok); }
 
-.season-card .season-emoji { font-size: 2.2rem; display: block; margin-bottom: 8px; } .season-card .season-name { font-weight: 600; font-size: 0.98rem; } .season-card .season-type { display: inline-block; margin-top: 6px; font-size: 0.75rem; font-weight: 600; padding: 2px 10px; border-radius: 999px; } .season-card .season-type.fruta { background: #fef3c7; color: #92400e; } .season-card .season-type.verdura { background: #dcfce7; color: var(--accent-dark); }
-/* ========== VISTA: SUGERENCIAS Y MENÚ SEMANAL (plan Feature 2026) ========== */
-/* Modal "ingredientes ausentes": sólo se activa vía openRecipeModal(r, { highlightMissing:true }); sin esa bandera
-   la lista de ingredientes del modal es IDENTICA a la que ya usaban Recetas/Innovación → no rompe nada probado. Ver plan §2. */
-.modal-content .meal-missing { border-left: 4px solid var(--danger); background: rgba(220,38,38,0.06); padding-left: 16px; }
-.modal-content .missing-badge { display: inline-block; font-size: 0.7rem; font-weight: 700; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; padding: 1px 6px; border-radius: 999px; margin-left: 8px; }
-.check-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--text); cursor: pointer; margin-bottom: 10px; }
-
-/* Fila diaria del menú y fila de la compra: se reusa el lenguaje visual de .alert-card ya existente
-   (verde = "todo en orden / a comprar"), coherente con § plan Card-3, sin inventar componente nuevo. */
-#menu-plan-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.menu-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-left: 4px solid var(--border); background: var(--card); border-radius: 10px; }
-.menu-empty-day h3 { margin-bottom: 0; font-size: 0.95rem; color: var(--muted); }
-.menu-row select { flex: none; max-width: 42%; }
-
-/* Cada fila de la lista de compra es checkable (reusa el patrón de .alert-row existente, no un tipo nuevo). */
-#shopping-list li { display: flex; align-items: center; gap: 10px; padding: 8px 4px; }
-#shopping-list .shopping-name { flex: 1; font-weight: 600; }
-
-/* Cada fila de la lista de la compra recibe SEMÁFORO de urgencia según la fecha de preparación
-   (feature 2026-10-18): mañana/hoy=rojo, 2-3 días=naranja, ≥4=verde. Reusa el patrón urg-* existente. */
-#shopping-list li.urg-red { border-left: 4px solid #dc2626; background: #fef2f2; border-radius: 10px; padding: 8px 10px; }
-#shopping-list li.urg-orange { border-left: 4px solid #f59e0b; background: #fffbeb; border-radius: 10px; padding: 8px 10px; }
-#shopping-list li.urg-green { border-left: 4px solid #16a34a; border-radius: 10px; padding: 8px 10px; }
-
-/* ========== MENÚ SEMANAL: tarjetas de receta con tema claro/oscuro ========== */
-#menu-plan-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-/* Sobrescribe el fondo forzado de .alert-card.alert-green para respetar el tema actual */
-#menu-plan-list.alert-card { background: transparent !important; border-left-color: transparent !important; }
-#menu-plan-list.alert-card li { background: transparent !important; padding: 0; border: none; border-radius: 0; }
-.menu-day { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin: 0; }
-.menu-day-header { font-weight: 700; font-size: 0.95rem; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 4px; margin-bottom: 2px; }
-/* recipe-card dentro del menú hereda --card/--text/--border del tema activo */
-#menu-plan-list .recipe-card { width: 100%; position: relative; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; }
-#menu-plan-list .recipe-card h3 { margin-top: 0; }
-#menu-plan-list .recipe-card .recipe-actions button { background: var(--card); color: var(--text); border: 1px solid var(--border); }
-#menu-plan-list .recipe-card .recipe-actions button:hover { background: var(--border); }
-#menu-plan-list .recipe-card .innov-uses { font-size: 0.8rem; margin-top: 6px; border-top: 1px solid var(--border); padding-top: 6px; }
-
-/* ---- Menu 7×3 (feature 2026-10-18): una fila por comida (desayuno/comida/cena) dentro de cada día ---- */
-.menu-meal-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); cursor: pointer; }
-.menu-meal-row:hover { background: var(--info-light); }
-.menu-meal-tag { flex: 0 0 auto; min-width: 118px; font-weight: 700; font-size: 0.82rem; color: var(--text); padding-top: 3px; }
-.menu-meal-body { flex: 1 1 auto; min-width: 0; }
-.menu-meal-title { margin: 0 0 2px; font-size: 0.92rem; color: var(--text); }
-.menu-meal-row .recipe-actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 4px; }
-.menu-meal-row .recipe-actions button { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; font-size: 0.78rem; cursor: pointer; }
-.menu-meal-row .recipe-actions button:hover { background: var(--border); }
-.menu-meal-row .innov-uses { font-size: 0.78rem; margin-top: 4px; }
-[data-theme="dark"] #shopping-list li.urg-red { background: var(--card); border-left-color: #dc2626; }
-[data-theme="dark"] #shopping-list li.urg-orange { background: var(--card); border-left-color: #f59e0b; }
-[data-theme="dark"] #shopping-list li.urg-green { background: var(--card); border-left-color: #16a34a; }
-
+/* ========== 16. UTILIDADES ========== */
+.hidden { display: none !important; }

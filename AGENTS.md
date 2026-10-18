@@ -29,7 +29,12 @@ by `// ===== SECTION =====` banners. Files:
 - **data.js** — static seasonal data; exposes `window.MR_CHEFF_DATA = { MESES, TEMPORADA }`. `app.js`
   depends on this having run first (keep the script order).
 - **app.js** — everything else, sectioned by banner.
-- **style.css** — hand-written CSS (no framework); palette via `:root` variables + a light/dark theme.
+- **style.css** — hand-written CSS (no framework); desde 2026-10-18 es un **sistema tokenizado**: todo color
+  vive en `:root` (claro) / `[data-theme="dark"]` (oscuro), **ningún componente usa hex sueltos**; añadir un
+  color nuevo = añadir token en ambos temas (con `color-scheme` nativo por tema). Tipografía: Georgia (serif
+  editorial) para títulos/marca + sans del sistema para UI. [Light theme bug histórico: un texto basura fuera de
+  comentario en la línea 2 (`Apply`) invalidaba el bloque `:root` entero del modo claro — parser CSS lo engulle
+  como selector; mantener el fichero sin tokens basura fuera de comentario].
 
 Views: **Alimentos** (pantry/restock alerts) · **Recetas** (free-text → structured recipe) ·
 **Innovación** (invent recipes from the pantry) · **Temporada** (in-season fruit/veg by month) ·

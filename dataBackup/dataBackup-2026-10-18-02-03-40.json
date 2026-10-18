@@ -1,0 +1,802 @@
+{
+  "version": 1,
+  "exportedAt": "2026-10-18T00:03:40.590Z",
+  "foods": [
+    {
+      "id": "mv3no03n7ivyy",
+      "name": "Huevos",
+      "score": 10,
+      "qty": 4,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1791713012099
+    },
+    {
+      "id": "mv3o1v9abvqlf",
+      "name": "Guanchiale",
+      "score": 8,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1791713659006
+    },
+    {
+      "id": "mv3o2ai72rcah",
+      "name": "Leche Tamara",
+      "score": 9,
+      "qty": 8,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1791713678767
+    },
+    {
+      "id": "mv3o2vs4ui35b",
+      "name": "Solomillo",
+      "score": 7,
+      "qty": 0,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1791713706340
+    },
+    {
+      "id": "mv3o35632y0eb",
+      "name": "Patatas",
+      "score": 8,
+      "qty": 10,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1791713718507
+    },
+    {
+      "id": "mv3o3jupcabn3",
+      "name": "Yogures pastoret",
+      "score": 7,
+      "qty": 6,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1791713737537
+    },
+    {
+      "id": "mv3o4d0d15ulb",
+      "name": "Calabacín",
+      "score": 6,
+      "qty": 0,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1791713775325
+    },
+    {
+      "id": "mv3obe6u4pbb8",
+      "name": "Jamón ibérico",
+      "score": 7,
+      "qty": 1,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1791714103446
+    },
+    {
+      "id": "mv3xqtbvx4p6u",
+      "name": "Miel",
+      "score": 5,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1791729939451
+    },
+    {
+      "id": "mv4ywvq5es9h0",
+      "name": "Chorizo",
+      "score": 6,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1791792368285
+    },
+    {
+      "id": "mv72r71ulkgj3",
+      "name": "Lomo Ibérico",
+      "score": 7,
+      "qty": 1,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1791919753842
+    },
+    {
+      "id": "mv9en1lega77x",
+      "name": "Papel higiénico",
+      "score": 10,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792060647890
+    },
+    {
+      "id": "mv9oof9qm7sc8",
+      "name": "Salchichón ibérico",
+      "score": 7,
+      "qty": 1,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1792077508430
+    },
+    {
+      "id": "mv9opxx2cq1z9",
+      "name": "Picos de pan campesinos",
+      "score": 5,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792077579254
+    },
+    {
+      "id": "mvbbu238eap5n",
+      "name": "patatas fritas",
+      "score": 5,
+      "qty": 1,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1792176868628
+    },
+    {
+      "id": "mvbetj0kjmwyc",
+      "name": "Agua de Mar",
+      "score": 10,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792181882756
+    },
+    {
+      "id": "mvc3ohawpz21d",
+      "name": "Aceite de oliva virgen extra (en litros)",
+      "score": 10,
+      "qty": 15,
+      "min": 3,
+      "checked": false,
+      "createdAt": 1792223637657
+    },
+    {
+      "id": "mvcmw4mkyn5gj",
+      "name": "Pimentón dulce",
+      "score": 6,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792255907180
+    },
+    {
+      "id": "mvcmwlcg3al4w",
+      "name": "Cebolla",
+      "score": 7,
+      "qty": 1,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792255928848
+    },
+    {
+      "id": "mvcmwrjhdt8yo",
+      "name": "Ajo",
+      "score": 6,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792255936877
+    },
+    {
+      "id": "mvd17157pbdul",
+      "name": "Sal (kl)",
+      "score": 10,
+      "qty": 7,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792279930507
+    },
+    {
+      "id": "mvd1acxa5o88j",
+      "name": "Canela",
+      "score": 7,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792280085742
+    },
+    {
+      "id": "mvd1bydj9w6vo",
+      "name": "Carne picada de vacuno (gr)",
+      "score": 8,
+      "qty": 0,
+      "min": 250,
+      "checked": false,
+      "createdAt": 1792280160199
+    }
+  ],
+  "recipes": [
+    {
+      "id": "mv88wdgnc9e2j",
+      "title": "Huevos · Desayuno",
+      "meal": "desayuno",
+      "ingredients": [
+        "Huevos",
+        "Sal",
+        "Guanchiale",
+        "Jamón ibérico"
+      ],
+      "method": [
+        "1. Primero cortamos las tiras de guanchiale en 2,.",
+        "2. Las vamos cocinando de 2 en 2 en la sarten de hierro mineral.",
+        "3. Entre cada 2 tiras cocinamos a la plancha un huevo en la grasa que suelta el Guanchiale.",
+        "3. Repetimos hasta acabar todos los huevos."
+      ],
+      "createdAt": 1791990539303
+    },
+    {
+      "id": "mv898yahh3yxj",
+      "title": "Pure de Calabacín · Comida",
+      "meal": "comida",
+      "ingredients": [
+        "Calabacín",
+        "Patatas",
+        "Zanahoria",
+        "Cebolla",
+        "Nata",
+        "Sal"
+      ],
+      "method": [
+        "1. Vamos a hacer un pure de calabacín, para ello necesitamos 1 calabacín, 2 patatas pequeñas, 1 cebolla pequeña, nata de cocinar, sal, AOVE.",
+        "2. Cortando y Pelando toda la verdura, ponemos a calentar una olla de acero inoxidable con AOVE.",
+        "3. Metemos la cebolla. Aplicamos sal , cuando este un poco pochada echamos el resto de ingredientes.",
+        "4. Una vez se haya rehogado todo un poco cubrimos con agua hasta donde lleguen los alimentos.",
+        "6. Dejamos cociendo unos 10 minutos.",
+        "7. Hechamos nata y batimos todo y ya está listo para servir"
+      ],
+      "createdAt": 1791991126169
+    },
+    {
+      "id": "mv9elajhpbm2e",
+      "title": "Costilla de cerdo con Miel y mostaza antigua · Comida",
+      "meal": "comida",
+      "ingredients": [
+        "Cerdo",
+        "Mostaza",
+        "Miel",
+        "Sal",
+        "Pimienta",
+        "Tomate",
+        "Salsa"
+      ],
+      "method": [
+        "1. Hoy voy a cocinar una costilla al horno, ingredientes: costilla de cerdo, mostaza antigua, miel, sal, pimienta, tomate frito.",
+        "2. Hacemos la salsa mezclando la miel mostaza antigua y El tomate frito, una cuchara de cada, batimos.",
+        "4. Precalentamos el horno por 15 minutos a 250 grados.",
+        "5. Posteriormente untamos la capa superior de la costilla.",
+        "6. La metemos al horno durante 20 minutos a 210 grados.",
+        "7. Sacamos la costilla del horno le damos la vuelta.",
+        "8. Untamos la otra capa con el resto de la salsa.",
+        "9. Volvemos a meterla otros 20 minutos al horno a 210 grados.",
+        "10. Acabado el horneado sacamos cortamos."
+      ],
+      "createdAt": 1792060566173
+    },
+    {
+      "id": "mvaw2gac9fhwq",
+      "title": "Tortilla de patatas española",
+      "meal": "comida",
+      "ingredients": [
+        "Patatas",
+        "Huevos",
+        "Cebolla opcional",
+        "Aceite de oliva",
+        "Sal"
+      ],
+      "method": [
+        "Filetea patatas y cebolla finamente.",
+        "Fríe en abundante aceite hasta dorar.",
+        "Escurre y mezcla con huevos batidos.",
+        "Cuaja en sartén 5 minutos por lado."
+      ],
+      "createdAt": 1792150386420
+    },
+    {
+      "id": "mvaw2x6tb5eqp",
+      "title": "Mejillones al vapor",
+      "meal": "cena",
+      "ingredients": [
+        "Mejillones vivos",
+        "Vino blanco",
+        "Cebolla",
+        "Ajos",
+        "Perejil",
+        "Tomates"
+      ],
+      "method": [
+        "Lava mejillones bajo agua fría.",
+        "Dora cebolla y ajo en olla.",
+        "Añade vino y coloca mejillones.",
+        "Cocina tapado 5 minutos."
+      ],
+      "createdAt": 1792150408325
+    },
+    {
+      "id": "mvaw34juwnzbs",
+      "title": "Gambas al ajillo",
+      "meal": "cena",
+      "ingredients": [
+        "Gambas peladas",
+        "Ajos",
+        "Pimiento rojo",
+        "Aceite",
+        "Vino blanco",
+        "Perejil"
+      ],
+      "method": [
+        "Calienta aceite en cazuela de barro.",
+        "Dora los ajos laminados sin quemar.",
+        "Añade gambas y saltea 3 minutos.",
+        "Finaliza con vino, perejil y pimiento."
+      ],
+      "createdAt": 1792150417866
+    },
+    {
+      "id": "mvaw3gdbvdswu",
+      "title": "Huevos rotos con jamón",
+      "meal": "comida",
+      "ingredients": [
+        "Patatas",
+        "Huevos",
+        "Jamón serrano",
+        "Aceite oliva",
+        "Sal"
+      ],
+      "method": [
+        "Frié patatas en láminas finas.",
+        "Fry dos huevos aparte.",
+        "Coloca patatas en plato.",
+        "Rompe huevos encima y añade jamón."
+      ],
+      "createdAt": 1792150433183
+    },
+    {
+      "id": "mvawvzqsel75t",
+      "title": "Tabla de jamón y queso",
+      "meal": "cena",
+      "ingredients": [
+        "Jamón ibérico",
+        "Queso manchego",
+        "Queso cabra",
+        "Pan",
+        "Nueces"
+      ],
+      "method": [
+        "Corta el jamón en lonchas finas.",
+        "Filetea los quesos a tu gusto.",
+        "Coloca todo ordenadamente en tabla.",
+        "Acompaña con nueces y pan."
+      ],
+      "createdAt": 1792151764660
+    },
+    {
+      "id": "mvaww7rxoc5d1",
+      "title": "Ensalada rusa clásica",
+      "meal": "comida",
+      "ingredients": [
+        "Patatas",
+        "Zanahorias",
+        "Guisantes",
+        "Atún",
+        "Huevos duros",
+        "Mayonesa",
+        "Aceitunas"
+      ],
+      "method": [
+        "Hierve patatas y zanahorias hasta que estén tiernas.",
+        "Corta en dados uniformes.",
+        "Mezcla con guisantes, atún y huevos picados.",
+        "Añade mayonesa y decora con aceitunas."
+      ],
+      "createdAt": 1792151775069
+    },
+    {
+      "id": "mvbby6xqmspqo",
+      "title": "Albóndigas en salsa de vino tinto",
+      "meal": "comida",
+      "ingredients": [
+        "Ternera",
+        "Cerdo",
+        "Carne",
+        "Sal",
+        "Pimienta",
+        "Huevos",
+        "Pan",
+        "Ajo",
+        "Aceite",
+        "Cebolla"
+      ],
+      "method": [
+        "1. Carne picada (mitad ternera, mitad cerdo) 500 g.",
+        "2. Perejil picado 1 cucharada.",
+        "3. Mezcla la carne con el huevo, el pan rallado, un ajo picado, perejil, sal.",
+        "4. Dóralas en una sartén con aceite.",
+        "5. Sofríe la cebolla.",
+        "6. El otro ajo picados.",
+        "7. Añade la harina.",
+        "8. Incorpora el vino.",
+        "9. Cocina 20 minutos.",
+        "10. Añade las albóndigas."
+      ],
+      "createdAt": 1792177061534
+    },
+    {
+      "id": "mvcmy3ercp3c9",
+      "title": "Pulpo à la gallega",
+      "meal": "comida",
+      "ingredients": [
+        "Pulpo fresco",
+        "Patatas",
+        "Pimentón dulce",
+        "Pimentón picante",
+        "Aceite",
+        "Sal gorda"
+      ],
+      "method": [
+        "Hierve el pulpo 20-30 minutos según tamaño.",
+        "Cuece patatas aparte hasta que estén tiernas.",
+        "Trocea el pulpo y coloca sobre patatas.",
+        "Espolvorea pimentón y aceite caliente."
+      ],
+      "createdAt": 1792255998915
+    },
+    {
+      "id": "mvcmy9b0jmh9s",
+      "title": "Pisto manchego",
+      "meal": "comida",
+      "ingredients": [
+        "Zucchini",
+        "Pimiento rojo",
+        "Pimiento verde",
+        "Tomate",
+        "Cebolla",
+        "Huevos"
+      ],
+      "method": [
+        "Trocea todas las verduras.",
+        "Sofríe cebolla y pimientos primero.",
+        "Añade zucchini y finalmente tomate.",
+        "Cocina lento 30 minutos y sirve con huevo."
+      ],
+      "createdAt": 1792256006556
+    },
+    {
+      "id": "mvcmybm8hognr",
+      "title": "Pan con tomate catalán",
+      "meal": "desayuno",
+      "ingredients": [
+        "Pan de barra",
+        "Tomates rojos",
+        "Aceite de oliva",
+        "Sal",
+        "Jamón serrano opcional"
+      ],
+      "method": [
+        "Tuesta rebanadas gruesas de pan hasta que estén crujientes.",
+        "Corta tomates por la mitad y frota sobre el pan tostado.",
+        "Rocía generosamente con aceite de oliva virgen extra.",
+        "Añade sal al gusto y jamón serrano si deseas."
+      ],
+      "createdAt": 1792256009552
+    },
+    {
+      "id": "mvcmykjjedb1n",
+      "title": "Huevos rellenos de atún",
+      "meal": "cena",
+      "ingredients": [
+        "Huevos duros",
+        "Atún en conserva",
+        "Mayonesa",
+        "Cebolleta",
+        "Pimentón",
+        "Aceite"
+      ],
+      "method": [
+        "Cuece huevos 10 minutos.",
+        "Partir y quitar yemas.",
+        "Mezcla yemas con atún.",
+        "Rellena y pica cebolleta."
+      ],
+      "createdAt": 1792256021119
+    },
+    {
+      "id": "mvcn2zw4g6pcc",
+      "title": "Patatas a la Riojana · Comida",
+      "meal": "comida",
+      "ingredients": [
+        "Patatas",
+        "Oliva",
+        "Pimiento",
+        "Cebolla",
+        "Ajo",
+        "Aceite",
+        "Chorizo",
+        "Pimentón",
+        "Laurel",
+        "Sal"
+      ],
+      "method": [
+        "1. Retira la pulpa con una cuchara.",
+        "2. \"Pica la cebolla.",
+        "3. Pela las patatas.",
+        "4. Córtalas en trozos, chascándolas al final para que suelten almidón.\",.",
+        "5. Sofríe la cebolla a fuego medio hasta que esté blanda.",
+        "6. Añade el ajo.",
+        "7. Cocina durante 1 minuto.\",.",
+        "8. \"Incorpora el chorizo en rodajas.",
+        "9. Retira la cazuela del fuego, añade el pimentón.",
+        "10. Cocina a fuego suave, sin tapar del todo, durante 25–30 minutos, hasta que las patatas estén tiernas."
+      ],
+      "createdAt": 1792256227636
+    },
+    {
+      "id": "mvcr94sc4jewy",
+      "title": "Crema de calabaza",
+      "meal": "cena",
+      "ingredients": [
+        "Calabaza",
+        "Puerro",
+        "Patata",
+        "Nata líquida",
+        "Aceite",
+        "Sal"
+      ],
+      "method": [
+        "Trocea calabaza, puerro y patata.",
+        "Sofríe ligeramente el puerro.",
+        "Añade verduras y cubre con agua.",
+        "Tritura, añade nata y rectifica."
+      ],
+      "createdAt": 1792263232381
+    },
+    {
+      "id": "mvcr9b6cowa9a",
+      "title": "Croquetas de jamón ibérico",
+      "meal": "comida",
+      "ingredients": [
+        "Jamón serrano",
+        "Leche",
+        "Manteca",
+        "Harina",
+        "Huevo",
+        "Pan rallado",
+        "Aceite"
+      ],
+      "method": [
+        "Haz un bechamel con manteca y harina.",
+        "Añade leche poco a poco sin parar de remover.",
+        "Incorpora jamón picado finamente.",
+        "Forma croquetas, empana y fríe."
+      ],
+      "createdAt": 1792263240660
+    }
+  ],
+  "innovations": [
+    {
+      "id": "mvd0bcy1l6twe",
+      "title": "Torrijas ligeras de desayuno",
+      "meal": "desayuno",
+      "ingredients": [
+        "Pan del día anterior",
+        "Leche",
+        "Miel",
+        "Canela",
+        "Huevo",
+        "Aceite"
+      ],
+      "method": [
+        "Remoja el pan en leche con miel y canela.",
+        "Pasa por huevo batido.",
+        "Freír rápidamente en aceite caliente.",
+        "Escurre y sirve tibio."
+      ],
+      "source": "curada",
+      "uses": [
+        "Picos de pan campesinos",
+        "Leche Tamara",
+        "Miel",
+        "Huevos",
+        "Aceite de oliva virgen extra (en litros)"
+      ],
+      "from": "",
+      "createdAt": 1792278452809
+    },
+    {
+      "id": "mvd0bcy10trag",
+      "title": "Huevos al plato con chorizo",
+      "meal": "desayuno",
+      "ingredients": [
+        "Huevos",
+        "Chorizo",
+        "Pimentón dulce",
+        "Aceite de oliva",
+        "Pan de pueblo",
+        "Sal"
+      ],
+      "method": [
+        "Corta el chorizo en rodajas y dóralas en cazuelita de barro.",
+        "Casca los huevos encima del chorizo.",
+        "Hornea 8 minutos a 200°C hasta que cuajen las claras.",
+        "Espolvorea pimentón y sirve con pan para mojar."
+      ],
+      "source": "curada",
+      "uses": [
+        "Huevos",
+        "Chorizo",
+        "Pimentón dulce",
+        "Aceite de oliva virgen extra (en litros)",
+        "Picos de pan campesinos"
+      ],
+      "from": "",
+      "createdAt": 1792278452809
+    },
+    {
+      "id": "mvd0bcy1p7r11",
+      "title": "Bacalao dorado con patatas paja",
+      "meal": "comida",
+      "ingredients": [
+        "Lomos de bacalao desalado",
+        "Patatas",
+        "Cebolla",
+        "Huevos",
+        "Aceite de oliva",
+        "Aceitunas negras"
+      ],
+      "method": [
+        "Desmiga el bacalao desalado y resérvalo.",
+        "Fríe las patatas en tiras muy finas y escurre.",
+        "Pocha la cebolla y añade bacalao, patatas y huevos batidos.",
+        "Remueve a fuego suave hasta cuajar y decora con aceitunas."
+      ],
+      "source": "curada",
+      "uses": [
+        "Lomo Ibérico",
+        "Patatas",
+        "Cebolla",
+        "Huevos",
+        "Aceite de oliva virgen extra (en litros)"
+      ],
+      "from": "",
+      "createdAt": 1792278452809
+    },
+    {
+      "id": "mvd0bcy1enrjc",
+      "title": "Huevos revueltos con durillo",
+      "meal": "desayuno",
+      "ingredients": [
+        "Huevos",
+        "Patatas",
+        "Chorizo",
+        "Cebolla",
+        "Aceite de oliva",
+        "Sal"
+      ],
+      "method": [
+        "Pica las patatas y el chorizo en trozos pequeños.",
+        "Sofríe las patatas y el chorizo hasta que estén dorados.",
+        "Bate los huevos y viértelos sobre la mezcla.",
+        "Revuelve todo junto hasta que los huevos cuajen."
+      ],
+      "source": "curada",
+      "uses": [
+        "Huevos",
+        "Patatas",
+        "Chorizo",
+        "Cebolla",
+        "Aceite de oliva virgen extra (en litros)"
+      ],
+      "from": "",
+      "createdAt": 1792278452809
+    },
+    {
+      "id": "mvd0bcy1yq1yj",
+      "title": "Bacalao al pil-pil",
+      "meal": "comida",
+      "ingredients": [
+        "Lomos de bacalao",
+        "Aceite de oliva",
+        "Ajos",
+        "Perejil"
+      ],
+      "method": [
+        "Desala el bacalao 24 horas cambiando agua.",
+        "Dora los ajos en aceite suave.",
+        "Añade bacalao piel hacia abajo.",
+        "Agita la cazuela hasta formar emulsión."
+      ],
+      "source": "curada",
+      "uses": [
+        "Lomo Ibérico",
+        "Aceite de oliva virgen extra (en litros)",
+        "Ajo"
+      ],
+      "from": "",
+      "createdAt": 1792278452809
+    },
+    {
+      "id": "mvd0bcy1z401r",
+      "title": "Solomillo en pepitoria",
+      "meal": "comida",
+      "ingredients": [
+        "Solomillo cerdo",
+        "Leche",
+        "Amarillos huevo",
+        "Almendras tostadas",
+        "Azafrán",
+        "Pan frito"
+      ],
+      "method": [
+        "Dora el solomillo troceado.",
+        "Tritura almendras con pan frito.",
+        "Mezcla con leche caliente.",
+        "Incorpora yemas y azafrán."
+      ],
+      "source": "curada",
+      "uses": [
+        "Solomillo",
+        "Leche Tamara",
+        "Huevos",
+        "Picos de pan campesinos"
+      ],
+      "from": "",
+      "createdAt": 1792278452809
+    },
+    {
+      "id": "mvd0bcy1q5qyr",
+      "title": "Churros con chocolate caliente",
+      "meal": "comida",
+      "ingredients": [
+        "Harina",
+        "Agua",
+        "Sal",
+        "Azúcar",
+        "Chocolate tableta",
+        "Leche"
+      ],
+      "method": [
+        "Prepara masa con agua hirviendo.",
+        "Extruye churros y fríe dorados.",
+        "Para chocolate, cuece leche con chocolate.",
+        "Sirve junto con churros espolvoreados."
+      ],
+      "source": "curada",
+      "uses": [
+        "Agua de Mar",
+        "Leche Tamara"
+      ],
+      "from": "",
+      "createdAt": 1792278452809
+    },
+    {
+      "id": "mvd0bcy13u0pu",
+      "title": "Dorada al horno estilo griego",
+      "meal": "cena",
+      "ingredients": [
+        "Doradas enteras",
+        "Tomates cherry",
+        "Aceitunas negras",
+        "Orégano",
+        "Limón",
+        "Aceite"
+      ],
+      "method": [
+        "Limpia y haz cortes en dorada.",
+        "Rellena con rodajas limón.",
+        "Coloca tomates y aceitunas.",
+        "Hornear 25 minutos a 190°C."
+      ],
+      "source": "curada",
+      "uses": [
+        "Aceite de oliva virgen extra (en litros)"
+      ],
+      "from": "",
+      "createdAt": 1792278452809
+    }
+  ],
+  "innovDay": "2026-10-17"
+}
