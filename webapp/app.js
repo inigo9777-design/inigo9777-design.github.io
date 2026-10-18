@@ -877,6 +877,8 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>`;
     }
     const missing = Array.isArray(comida.missing) ? comida.missing : [];
+    // Decisión de visibilidad SIEMPRE del módulo puro (regla de negocio, no de vista).
+    const acciones = menuSemanal.accionesMenuSlot(weeklyMenu);
     return `<div class="menu-meal-row" data-day="${dayIdx}" data-meal="${escapeHTML(meal)}" data-meal-idx="${mealIdx}">
       <span class="menu-meal-tag">${escapeHTML(etiqueta)}</span>
       <div class="menu-meal-body">
@@ -891,8 +893,8 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
       <div class="recipe-actions">
         <button data-edit title="Editar esta receta a tu gusto (guarda en Mis Recetas)">✏️</button>
-        <button data-cook title="Cocinar hoy y renovar este hueco">🍳 Cocinar</button>
-        <button data-swap title="Otra receta para este día y comida">🔄 Cambiar</button>
+        ${acciones.cocinar ? `<button data-cook title="Cocinar hoy y renovar este hueco">🍳 Cocinar</button>` : ""}
+        ${acciones.cambiar ? `<button data-swap title="Otra receta para este día y comida">🔄 Cambiar</button>` : ""}
       </div>
     </div>`;
   }
@@ -1098,12 +1100,13 @@ document.addEventListener("DOMContentLoaded", () => {
         : `Se asignaron los 21 platos. Lo que falte está anotado en la lista de la compra.`)
       : `Se asignaron ${totalSlots} de 21 platos (modo estricto: sólo platos con TODO disponible hoy). Marca la casilla de arriba para completar la semana.`;
     menuStatus.classList.remove("hidden");
+    // El preview se asienta ANTES de renderizar: pintarSlotComida consulta menuSemanal.accionesMenuSlot(weeklyMenu)
+    // para la visibilidad de los botones de fila (preview → sin "🍳 Cocinar", con "🔄 Cambiar").
+    weeklyMenu = { ...menu, approved: false, includeUnavailable, generatedOn: today };
     renderWeeklyMenu(menu.plan);
     menuEmpty.classList.add("hidden");
     btnMenuApprove.disabled = totalSlots === 0;
     btnMenuApprove.title = totalSlots === 0 ? "Genera primero un menú con al menos un plato" : "Aprueba este plan";
-    // Guarda el preview para aprobar después (no persistimos aún hasta "Aprobar plan").
-    weeklyMenu = { ...menu, approved: false, includeUnavailable, generatedOn: today };
   });
 
   btnMenuApprove.addEventListener("click", () => {
@@ -1119,6 +1122,9 @@ document.addEventListener("DOMContentLoaded", () => {
     btnMenuApprove.disabled = true;
     btnMenuApprove.textContent = "✅ Plan aprobado";
     menuStatus.textContent = `Plan aprobado: ${weeklyMenu.plan.reduce((n, d) => n + ((Array.isArray(d.meals) ? d.meals : []).filter(m => m.recipe).length), 0)} plato(s) anotados en su día de la semana (aprobado el ${today}).`;
+    // Re-render de las filas: ahora SÍ llevan "🍳 Cocinar" (decisión de menuSemanal.accionesMenuSlot,
+    // que ve approved=true) — el preview se pintó sin él y las filas no se refrescan solas.
+    renderWeeklyMenu(weeklyMenu.plan);
     renderShoppingList();
     toast("Menú semanal aprobado");
   });

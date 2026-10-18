@@ -19,7 +19,7 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
   planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas) +
   integration specs (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
   buscador-catalogo, e2e-flow-receta-a-alerta-compra) + harness scaffolding (`boot.js` / `setup.js`). As of the last
-  run on 2026-10-18 the whole suite is green (**275 tests across 21 suites**) — verify with a fresh
+  run on 2026-10-18 the whole suite is green (**279 tests across 21 suites**) — verify with a fresh
   run before trusting it.
 - **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
   and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`
@@ -64,7 +64,8 @@ italiana" (see `modules/origen-recetas.js` below).
   `classify.js` · `priority.js` · `recipe-analysis.js` · `ingredient-matching.js` (token matcher,
   shared by planner/menu-semanal/innovations) · `util.js` · `innovations.js` · `planner.js` (public API:
   buildCandidatePool, matchDetails, suggestToday, buildWeeklyMenu, pickRecipeForSlot, loteRotado…) ·
-  `menu-semanal.js` (shoppingListFor, approveMenu, markItemBought, cookEntry, swapSlotRecipe, clearMenu) ·
+  `menu-semanal.js` (shoppingListFor, approveMenu, markItemBought, cookEntry, swapSlotRecipe, clearMenu,
+  accionesMenuSlot — el 🍳 del menu sólo en plan aprobado) ·
   `recipe-editor.js` (buildDraft, validateDraft, estaGuardada, applyEdit, patchPlan) · `recipe-missing.js`
   (qué ingredientes faltan para el modal) · `backup.js` · **`busqueda-recetas.js`** (buscador del
   catálogo: texto libre → resultado por título x3/ingrediente x1, reutiliza matching de tokens

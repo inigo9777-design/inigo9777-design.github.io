@@ -287,6 +287,15 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   ("Queso azul" ≠ "Queso rallado"; "Lomo de cerdo" ≠ "Lomo salado"). Cambio semántico asumido:
   la despensa es más honesta y las sugerencias pueden exigir el ingrediente específico en la
   lista de la compra; tests de matching actualizados a ambos lados + suite completa verde.
+- `2026-10-18 · @AI-agent · #tasks-menu-cocinar-aprobado · Principio: O, D · Justificación:` añade la
+  7ª función pública a `menu-semanal.js` (`accionesMenuSlot`) para poder pintar el botón "🍳 Cocinar"
+  de las filas del menú SÓLO en planes APROBADOS (el preview no compromete nada que pueda entrar en
+  cooldown, y cocinar desde él escribiría `mrcheff.cooked` de un plan que se puede regenerar sin más).
+  La regla es de negocio, no de vista: la decide el módulo y `app.js` sólo moldea. Dos costes
+  asumidos: (1) el handler de "Generar" ahora asienta el preview ANTES de renderizar las filas
+  (antes el orden daba igual porque los botones eran incondicionales) y (2) "Aprobar plan" re-renderiza
+  las filas para que el botón aparezca. Afecta SÓLO al menú semanal: el "🍳" de tarjetas Recetas y del
+  modal de detalle sigue siendo incondicional.
 - `2026-10-18 · @AI-agent · #feature-compra-pregunta · Principio: O, D · Justificación:` la lista de
   la compra "colaba" el alimento marcado como comprado con qty=0/min=0/score=5 sin preguntar nada.
   `menu-semanal.markItemBought` amplía contrato con un 6º parámetro OPCIONAL `compra = { qty, score, min }`

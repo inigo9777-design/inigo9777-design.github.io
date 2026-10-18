@@ -1,7 +1,7 @@
 // modules/menu-semanal.js — Lógica PURe (sin DOM ni localStorage) de "Menú semanal + lista de la compra"
 // (ver webapp/feature-plans/planFeatureRecetasSugeridasYPlanSemana.md §2 Card 2 + Card 3 y CODING_STANDARDS.md §2-D / §3 option A).
 //
-// API PÚBLICA CERRADA (6 funciones, sin fugas de helpers internos):
+// API PÚBLICA CERRADA (7 funciones, sin fugas de helpers internos):
 //   shoppingListFor(needyFoods, foods, ctx?)  → dedup por MATCHER de tokens (NO subcadena-cruda) + urgencia de compra
 //                                               {name, qty:0, min:0, score:5, onDay?, daysUntil?, urgency:"red|orange|green"}
 //   approveMenu(preview, cooked, today, cookEntryFor, uid) → { cooked, weekmenu } inmutables; ancla = FECHA de cada día×comida planificada
@@ -10,6 +10,11 @@
 //       y el MÍNIMO de alerta); sin él, comportamiento legacy (alta con qty=0/min=0/score=5).
 //   cookEntry(recipe, cooked, today, cookEntryFor, uid)    → { cooked } inmutable; anota UNA receta como cocinada hoy
 //   swapSlotRecipe(ctx)                                    → { swapped, weekmenu } inmutables; "🔄 Cambiar" de UN día+comida (feature 2026-10-18)
+//   accionesMenuSlot(weekmenu)             → { cocinar: bool, cambiar: bool } — visibilidad de los botones de
+//                                            acción en las FILAS del menú (feature 2026-10-18): "🍳 Cocinar" sólo
+//                                            existe en un plan APROBADO (el preview aún no compromete nada que
+//                                            pueda entrar en cooldown); "🔄 Cambiar" sigue siempre. app.js NO
+//                                            decide esto: sólo moldea el botón según lo que diga el módulo.
 //   clearMenu()                                            → { weekmenu: null } inmutable; reinicia el menú
 //
 // Nota de cambio (§8): `regenerateAfterCook` (regeneración COMPLETA al cocinar) se retira — cocinar desde el
@@ -362,13 +367,29 @@
     return { weekmenu: null };   // `weekmenu` (misma convención de naming que approveMenu/markItemBought)
   }
 
-  // API PÚBLICA CERRADA (§5/§8 — solo estas 6 funciones, sin fuga de helpers internos como defaultUid).
+  // ---------------------------------------------------------------------------
+  // accionesMenuSlot — visibilidad de los botones de acción en las FILAS del menú (feature 2026-10-18):
+  //   * "🍳 Cocinar" SOLO en un plan APROBADO: el preview aún no compromete nada (y cocinar desde él
+  //     escribiría en mrcheff.cooked un plato que después podría regenerarse sin más). Regla de negocio,
+  //     no de vista: app.js la consulta, no la replica.
+  //   * "🔄 Cambiar" sigue disponible siempre (en preview renueva el hueco del preview; en el aprobado,
+  //     el del plan).
+  //   * weekmenu null/roto → { cocinar: false, cambiar: false } (sin plan no hay acciones que pintar).
+  // ---------------------------------------------------------------------------
+  function accionesMenuSlot(weekmenu) {
+    const aprobado = !!(weekmenu && weekmenu.approved === true);
+    const hayPlan = !!weekmenu;
+    return { cocinar: aprobado, cambiar: hayPlan };
+  }
+
+  // API PÚBLICA CERRADA (§5/§8 — solo estas 7 funciones, sin fuga de helpers internos como defaultUid).
   return {
     shoppingListFor,
     approveMenu,
     markItemBought,
     cookEntry,
     swapSlotRecipe,
-    clearMenu
+    clearMenu,
+    accionesMenuSlot
   };
 });

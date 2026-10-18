@@ -5,7 +5,7 @@
 // `regenerateAfterCook` (cocinar desde el menú = cookEntry + swap de SOLO ese hueco) y `shoppingListFor` añade
 // urgencia de compra (semáforo rojo/naranja/verde según la fecha de preparación).
 
-const { shoppingListFor, approveMenu, markItemBought, cookEntry, swapSlotRecipe, clearMenu } = require("../modules/menu-semanal.js");
+const { shoppingListFor, approveMenu, markItemBought, cookEntry, swapSlotRecipe, clearMenu, accionesMenuSlot } = require("../modules/menu-semanal.js");
 
 // cookEntryFor determinista para tests (imita planner.cookEntryFor pero inyectable).
 function cookEntryFor(recipe, opts) {
@@ -457,6 +457,24 @@ describe("modules/menu-semanal.js", () => {
       const fake = makeFakePlanner({ recipe: { title: "X", ingredients: ["x"] }, missing: [] });
       expect(swapSlotRecipe({ weekmenu: weekmenuIn, dayIndex: 9, meal: "comida", planner: fake }).swapped).toBe(false);
       expect(swapSlotRecipe({ weekmenu: weekmenuIn, dayIndex: 0, meal: "brunch", planner: fake }).swapped).toBe(false);
+    });
+  });
+
+  describe("accionesMenuSlot — visibilidad de los botones de las FILAS del menú (2026-10-18)", () => {
+    it("plan APROBADO → cocinar=true (y cambiar=true)", () => {
+      expect(accionesMenuSlot({ approved: true, plan: [] })).toEqual({ cocinar: true, cambiar: true });
+    });
+
+    it("PREVIEW (approved:false/undefined) → cocinar=false; cambiar sigue=true", () => {
+      expect(accionesMenuSlot({ approved: false, plan: [] })).toEqual({ cocinar: false, cambiar: true });
+      expect(accionesMenuSlot({ plan: [] }).cocinar).toBe(false);
+      expect(accionesMenuSlot({ plan: [] }).cambiar).toBe(true);
+    });
+
+    it("weekmenu null/undefined/roto → ninguna acción", () => {
+      expect(accionesMenuSlot(null)).toEqual({ cocinar: false, cambiar: false });
+      expect(accionesMenuSlot(undefined)).toEqual({ cocinar: false, cambiar: false });
+      expect(accionesMenuSlot({})).toEqual({ cocinar: false, cambiar: true });   // {} = plan existe pero sin approved
     });
   });
 });
