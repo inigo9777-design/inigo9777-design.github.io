@@ -73,7 +73,17 @@ italiana" (see `modules/origen-recetas.js` below).
   `modal-abierto` en `<html>` Y `<body>` (en Android scrollea `<html>`; si un día la quitáis,
   idem) congelando el scroll del documento. (4) `theme-color` meta sigue al tema activo (dark
   `#1b1913` / light `#ffffff`) desde el script de `<head>` y `applyTheme` — nunca hex sueltos
-  de más en el markup.
+  de más en el markup. (5) **Zoom bloqueado** en el PWA (petición de producto 2026-10-19):
+  viewport `maximum-scale=1.0, user-scalable=no` + preventDefault de
+  `gesturestart/gesturechange` (iOS lo ignora desde iOS 10); tradeoff WCAG 1.4.4 asumido —
+  el "forzar zoom" de los ajustes de Android puede reactivarlo y el zoom del sistema
+  (tamaño de texto) no se toca. (6) **Auditoría de accesibilidad móvil** repetible con
+  `node e2e/pwa-accesibilidad.mjs` (7 checks: metas de zoom, anuncio sr-only del cambio
+  de vista por swipe vía `#aviso-vista` + aria-current, objetivos táctiles ≥24px y
+  contraste de texto en las 5 vistas + modal, dark y claro): de ahí nacieron
+  `min-width/height: 24px` para checkbox/radio y `min-height: 24px` para
+  `input[type=range]`. Las transiciones se congelan para escanear (colores a mitad de
+  transición = falsos contrastes bajos).
 - **Pure modules (`webapp/modules/`, all IIFE + dual-export, no DOM/localStorage — §3 CODING_STANDARDS):**
   `classify.js` · `priority.js` · `recipe-analysis.js` · `ingredient-matching.js` (token matcher,
   shared by planner/menu-semanal/innovations) · `util.js` · `innovations.js` · `planner.js` (public API:

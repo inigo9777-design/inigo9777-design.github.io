@@ -492,6 +492,11 @@ select:focus, textarea:focus {
 
 textarea { resize: vertical; min-height: 80px; }
 
+/* Objetivos táctiles (WCAG 2.5.8 AA, ≥24px): el nativo de Chromium queda pequeño
+   (≈13px checkbox / ≈16px range) — se agranda la CAJA del control (track/thumb nativo se
+   centra y pinta lo mismo; lo que gana es el área de dedo). accent-color por tokens. */
+input[type="checkbox"], input[type="radio"] { min-width: 24px; min-height: 24px; }
+input[type="range"] { min-height: 24px; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--brand); }
 input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 
@@ -565,7 +570,7 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .food-item.low.urg-orange { background: var(--amber-soft); }
 .food-item.low.urg-green  { background: var(--ok-soft); }
 
-.food-item input[type="checkbox"] { width: 19px; height: 19px; cursor: pointer; flex: 0 0 auto; }
+.food-item input[type="checkbox"] { width: 24px; height: 24px; cursor: pointer; flex: 0 0 auto; }
 .food-item .food-name { flex: 1; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
 .food-item.checked { opacity: 0.55; }
 .food-item.checked .food-name { text-decoration: line-through; }
@@ -1106,3 +1111,18 @@ html.modal-abierto, body.modal-abierto { overflow: hidden; }
 
 /* ========== 16. UTILIDADES ========== */
 .hidden { display: none !important; }
+
+/* Contenido visible SOLO para lectores de pantalla (el anuncio del viewpager
+   y futuros avisos silenciosos): mismo patrón que la utilidad clásica sr-only. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

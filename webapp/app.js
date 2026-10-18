@@ -113,6 +113,13 @@ document.addEventListener("DOMContentLoaded", () => {
     tab.addEventListener("click", () => activarVista(tab.dataset.view));
   });
 
+  // ===== GESTOS DEL NAVEGADOR (bloqueo de ZOOM en el PWA móvil) =====
+  // El viewport meta (maximum-scale=1, user-scalable=no) bloquea el pinch en Chromium.
+  // iOS ignora user-scalable=no desde iOS 10: se remata con los eventos privados
+  // gesturestart/gesturechange — preventDefault impide el pinch del standalone.
+  document.addEventListener("gesturestart", (e) => e.preventDefault());
+  document.addEventListener("gesturechange", (e) => e.preventDefault());
+
   // ===== GESTO SWIPE ENTRE VISTAS (viewpager móvil) =====
   // En el móvil la página entera se desplazaba horizontalmente al arrastrar el dedo.
   // Ahora (feature 2026-10-18): deslizar de lado DENTRO del contenido cambia a la vista
@@ -120,6 +127,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // vive en el módulo puro modules/swipe-tabs.js (tests en tests/swipe-tabs.test.js);
   // aquí sólo el wiring touch y las exclusiones: nada de swipes por encima de inputs,
   // botones, enlaces, textareas o de cualquier scroller-x interno que haya en la vista.
+  // A11y: el swipe cambia de vista SIN foco — el cambio se anuncia por la región viva
+  // #aviso-vista (sr-only) para que el lector de pantalla siga al usuario (#2 task zoom/a11y).
   const swipeApi = window.MRCheff && window.MRCheff.swipeTabs;
   const zonaSwipe = $(".content");
   if (swipeApi && zonaSwipe) {
@@ -156,6 +165,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const actual = tabs.find(t => t.classList.contains("active"));
       const destino = swipeApi.vecina(ORDEN_VISTAS, actual && actual.dataset.view, dir);
       if (destino) activarVista(destino);
+      // El gesto no mueve el foco: anuncio silencioso del cambio para lectores de pantalla.
+      const aviso = document.getElementById("aviso-vista");
+      if (aviso) {
+        const pestaña = tabs.find(t => t.dataset.view === destino);
+        const etiqueta = pestaña ? pestaña.textContent.replace(/^[^\p{L}\p{N}]+/u, "").trim() : destino;
+        aviso.textContent = `Vista: ${etiqueta}`;
+      }
     }, { passive: true });
   }
 
