@@ -357,3 +357,20 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   con métricas raras normalizadas a 0) vive en el módulo puro; `app.js` sólo mide DOM (rects +
   scrollLeft) y hace el `scrollTo` — coordinado viewpager-header: tabs y vista se mueven EN
   CONJUNTO, como pidió el producto. Spec extendida (5 tests nuevos) + e2e Brave (`e2e/swipe-vistas.mjs`).
+- `2026-10-19 · @AI-agent · #bugfix-pwa-no-refresca-cambios · Principio: O · Justificación:`
+  la entrega de releases dependía de un ritual manual: SUBIR +1 el nombre del caché del
+  sw.js a mano en cada deploy. No se hizo en las dos últimas releases y el sw.js iba
+  byte-idéntico (la v2 sin tocar desde `4ec8456`) ⇒ el navegador no re-instalaba el worker,
+  el `addAll` del install no se repetía y el caché servía los ASSETS de la primera
+  instalación para siempre (el índice network-first llegaba fresco, pero ningún css/js/
+  módulo: "la PWA no se actualiza" pese a ver la web y Pages al día — deploy confirmado
+  byte-a-byte con curl). Las variantes con `?v=N` tampoco valían: el matcher del caché
+  ignoraba la query (ignoreSearch). Se pasa a entrega NETWORK-FIRST con revalidación para
+  índice Y assets (`fetch(req, {cache:"no-cache"})`): el caché queda como respaldo offline,
+  repoblado en cada acierto de red; la revisión del worker SALTA la caché HTTP
+  (`updateViaCache:"none"` + `reg.update()` al entrar/al primer plano/cada 10 min por el
+  max-age=600 de Pages) y un worker nuevo que toma el mando recarga la página UNA vez por
+  sesión (controllerchange + guard en sessionStorage). El nombre del caché deja de ser la
+  llave de la frescura: +1 sólo si cambia la lista SHELL o la estrategia. Afecta SÓLO a
+  `sw.js` + su registro (sin shapes de §5 — suite 307 tests verde) y estrena guardia
+  externa `e2e/pwa-entrega.mjs` (6 checks con servidor mutable).
