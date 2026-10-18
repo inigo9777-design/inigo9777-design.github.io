@@ -291,6 +291,63 @@ describe("pre-filtro absoluto de exclusión §4.1/§4.3 (recetas guardadas con e
   });
 });
 
+describe("rotación por TÍTULOS RECIENTES (extensión de contrato §8, precedente recetasEspanolas/uid/rng §3.7): cada click aporta platos NUEVOS", () => {
+  // Catálogo de 3 platos con score idéntico entre sí (haveRatio=0, historial vacío → nudge NEUTRAL) ⇒ el orden
+  // determinista cae al tie-break estable por `id` del dataset (§3.5): r-1 → r-2 → r-3. Control total de la rotación.
+  const CATALOG_ROTACION = [
+    { id: "r-1", title: "Tortilla de camarones", meal: "cena",   ingredients: ["Camarones", "Huevos"], method: [] },
+    { id: "r-2", title: "Gazpacho de temporada", meal: "comida", ingredients: ["Tomate", "Pepino"],    method: [] },
+    { id: "r-3", title: "Arroz con acelgas",     meal: "comida", ingredients: ["Arroz", "Acelgas"],    method: [] }
+  ];
+  const state = (recientes) => ({
+    recetasEspanolas: JSON.parse(JSON.stringify(CATALOG_ROTACION)),
+    foods: [], recipes: [],
+    ...(recientes ? { recientes } : {})
+  });
+
+  it("sin `recientes` (omisión) el comportamiento es el de SIEMPRE: determinista, idéntico en llamadas consecutivas", () => {
+    const a = generate(2, "todo", state());
+    const b = generate(2, "todo", state());
+    expect(a.map(i => i.title)).toEqual(b.map(i => i.title));
+  });
+
+  it("dos clicks SEGUIDOS NO repiten platos: lo ya visto se aparta del pool y entra lo no sugerido aún", () => {
+    const click1 = generate(2, "todo", state());
+    expect(click1.length).toBe(2);
+    const click2 = generate(2, "todo", state(click1.map(i => i.title)));
+    expect(click2.length).toBeGreaterThan(0);
+    const vistos = new Set(click1.map(i => i.title));
+    for (const o of click2) {
+      expect(vistos.has(o.title)).toBe(false);           // NADA del click 1 reaparece en el click 2
+    }
+    expect(click2.some(o => o.title === "Arroz con acelgas")).toBe(true); // el plato pendiente NO visto sí entra
+  });
+
+  it("la comparación de recientes es INVARIANTE a acentos/mayúsculas (normalización por normForMatch)", () => {
+    const click1 = generate(2, "todo", state());
+    const recientesEnClave = click1.map(i => i.title.toUpperCase().replace(/ó/g, "O")); // tortura de superficie, misma clave normalizada
+    for (const o of generate(1, "todo", state(recientesEnClave))) {
+      expect(click1.some(c => c.title.toLowerCase().trim() === o.title.toLowerCase().trim())).toBe(false);
+    }
+  });
+
+  it("SANIDAD anti-congelación: si lo reciente agota el catálogo, el ciclo se reinicia con el pool completo (nunca [] sin motivo)", () => {
+    const click1 = generate(3, "todo", state());          // consume los 3 platos del catálogo
+    expect(click1.length).toBe(3);
+    const reinicio = generate(3, "todo", state(click1.map(i => i.title))); // recientes = TODO el catálogo
+    expect(reinicio.length).toBe(3);                      // reinicia el ciclo en vez de congelarse
+    expect(reinicio.map(i => i.title)).toEqual(click1.map(i => i.title));
+  });
+
+  it("aun cuando el ciclo se reinicia, el pre-filtro ABSOLUTO de Mis Recetas manda sobre lo reciente (exclusión por estrella intacta)", () => {
+    const click1 = generate(3, "todo", state());          // los 3 platos se han visto ya
+    const guardada = { id: "ur-guardada", title: click1[0].title, meal: "comida", ingredients: JSON.parse(JSON.stringify(click1[0].ingredients)), method: [] };
+    const out = generate(3, "todo", { ...state(click1.map(i => i.title)), recipes: [guardada] });
+    expect(out.length).toBe(2);                           // el guardado JAMÁS vuelve, aunque el ciclo "rearranque"
+    expect(out.some(o => o.title === click1[0].title)).toBe(false);
+  });
+});
+
 describe("INTEGRACIÓN — catálogo curado REAL cableado globalmente (§3.7), NO VACÍO", () => {
   const samplePantry = [
     { name: "Tomate" }, { name: "Cebolla" }, { name: "Huevos" },

@@ -252,13 +252,45 @@ h1, h2, h3 {
 .theme-toggle:hover { background: var(--hover-wash); }
 .theme-toggle:active { transform: scale(0.94); }
 
-/* En pantallas estrechas: marca + tema en la primera fila, tabs a scroll en la segunda */
+/* ---------- Pestaña compacta de Copia de seguridad ----------
+   Vive en el clúster derecho, junto al alternador de tema. Reposo = sólo el
+   icono (medida equivalente a .theme-toggle); la etiqueta se despliega al pasar
+   el ratón, en foco visible de teclado y cuando la vista está activa — así la
+   persona siempre sabe DÓNDE está sin gastar ancho de la barra de tabs. */
+.tab-side {
+  height: 38px;
+  padding: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  line-height: 38px;                      /* centra el emoji verticalmente sin flex-box */
+}
+.tab-side .tab-icon { display: inline-block; padding: 0 12px; line-height: normal; }
+.tab-side .tab-label {
+  display: inline-block;                  /* max-width/overflow SOLO muerden en inline-block (un span inline pretendería crecer siempre) */
+  max-width: 0;
+  padding-right: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width 0.24s ease, padding 0.24s ease, opacity 0.18s ease;
+}
+.tab-side:hover .tab-label,
+.tab-side:focus-visible .tab-label,
+.tab-side.active .tab-label {
+  max-width: 10em;                        /* ancho sobrado para que el texto mida lo suyo y no salte */
+  padding-right: 12px;
+  opacity: 1;
+}
+.tab-side.active { font-weight: 600; }
+
+/* En pantallas estrechas: marca + tema + copia de seguridad en la primera fila, tabs a scroll en la segunda */
 @media (max-width: 820px) {
   .topbar { padding: 10px 16px 0; }
   .tabs { order: 3; flex-basis: 100%; gap: 2px; }
   .tab { padding: 7px 11px; }
   .theme-toggle { order: 2; }
-  .brand { margin-right: 0; }
+  .tab-side { order: 2; }                 /* el icono de backup sigue pegado al del tema, no cae a la fila de tabs */
+  .brand { margin-right: auto; }          /* empuja toggle+backup a la derecha del clúster compacto */
   .topbar { gap: 10px 12px; }
 }
 

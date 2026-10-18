@@ -313,6 +313,7 @@
       , norm: (state && typeof state.norm === "function") ? state.norm : undefined            // inyección aislada para tests (§3.7, par classify.js)
       , classifier: (state && typeof state.classifier === "function") ? state.classifier : undefined // clasificación por ingrediente inyectable (varietyNudge/histogram, §4.2)
       , recetasEspanolas: Array.isArray(state && state.recetasEspanolas) ? state.recetasEspanolas : undefined // catálogo inyectable en aislamiento total (§3.7/§4.1); NUNCA usado por la vía de producción (app.js sólo pasa {foods, recipes})
+      , recientes: Array.isArray(state && state.recientes) ? state.recientes : undefined                      // títulos ya vistos en la pila de hoy → rotación de sugerencias entre clicks (§8 extensión de contrato logada)
     };
 
     if (!Number.isFinite(count) || count < 1) return []; // guard: cantidad no válida/negativa → nada que proponer (equivale al viejo `maxAttempts` con 0 repeticiones)
@@ -324,8 +325,25 @@
     // ---- PRE-FILTRO UNIVERSAL ABSOLUTO ANTES de cualquier método de selección ni prioridad ni azar lo saltan) ----
     const userKeys = new Set((ctx.recipes || []).map(r => recipeIngredientKey(r && r.ingredients, normFn)).filter(Boolean));
     const userTitles = new Set((ctx.recipes || []).map(r => normForMatch(normFn, r && r.title)).filter(Boolean));
-    const pool = catalog.filter(r => !isHardExcludedByUser(r, userKeys, userTitles, normFn)); // auto-sanidad §3-extra si se borra una guardada: reaparece al recomputar fresh
-    if (!pool.length) return [];                          // catálogo vacío o 100% exacto-guardado → nada que proponer sin inventar (§1 coherencia total)
+    const supersetPool = catalog.filter(r => !isHardExcludedByUser(r, userKeys, userTitles, normFn)); // auto-sanidad §3-extra si se borra una guardada: reaparece al recomputar fresh
+    if (!supersetPool.length) return [];              // catálogo vacío o 100% exacto-guardado → nada que proponer sin inventar (§1 coherencia total)
+
+    // ---- EXCLUSIÓN DE LO RECIENTE (extensión de contrato LOG en §8, precedente state.recetasEspanolas/uid/rng §3.7) ----
+    // `ctx.recientes` = títulos de las ideas YA VISTAS en la pila de sugerencias de hoy. Cada click de "Sugerir ahora" las
+    // aparta del pool para que el ranking determinista elija entre platos NO vistos aún → la pila cambia en cada click
+    // SIN alterar el scoring (§3.5) ni el pre-filtro absoluto de Mis Recetas. Si apartándolas no queda nada (se agotó el
+    // catálogo), se reinicia el ciclo con el pool completo — la feature NUNCA se congela.
+    // Clave compuesta (§ "composición de normalizadores ya existentes, sin reinventar ninguno"): inlineNormalize quita
+    // tildes PRIMERO (normForMatch solo sustituye é→espacio por su filtro alfanumérico) y normForMatch colapsa
+    // superficies (mayúsculas/espacios/puntuación) → recientes invariante a acento/caso/espacio de verdad.
+    const claveTitulo = t => normForMatch(normFn, t == null ? "" : inlineNormalize(t));
+    let pool = supersetPool;                          // por omisión (sin recientes o ciclo completo) TODO el no-guardado es elegible
+    const titulosRecientes = new Set((Array.isArray(ctx.recientes) ? ctx.recientes : [])
+      .map(claveTitulo).filter(Boolean));
+    if (titulosRecientes.size) {
+      const frescos = supersetPool.filter(r => !titulosRecientes.has(claveTitulo(r && r.title)));
+      if (frescos.length) pool = frescos;             // sólo se ciñe al fresco si QUEDA algo; si no, ciclo completo (sanidad anti-atasco)
+    }
 
     // Histograma de preferencias por categorías para el nudge/serendipia (reusa classifyFood del módulo par; §4.2 "varietyNudge").
     const hist = buildIngredientCategoryHistogram(ctx.recipes, classifyFood);

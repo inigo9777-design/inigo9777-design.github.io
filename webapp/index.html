@@ -30,11 +30,17 @@
             <button class="tab" data-view="innovation" role="tab">💡 Innovación</button>
             <button class="tab" data-view="suggest" role="tab">🍽️ Sugerencias y menú</button>
             <button class="tab" data-view="seasonal" role="tab">🥦 Temporada</button>
-            <button class="tab" data-view="backup" role="tab">🗄️ Copia de seguridad</button>
         </nav>
 
         <!-- Nuevo: botón de alternar tema -->
         <button id="theme-toggle" class="theme-toggle" title="Cambiar a modo claro" aria-label="Cambiar tema">🌙</button>
+
+        <!-- Copia de seguridad: pestaña compacta AL LADO del alternador de tema. Sólo el icono; la etiqueta se
+             despliega al pasar el ratón (y en foco por teclado o cuando está activa). Sigue siendo una .tab con
+             data-view → la navegación de app.js no necesita cambios. -->
+        <button class="tab tab-side" data-view="backup" role="tab" aria-label="Copia de seguridad" title="Copia de seguridad">
+            <span class="tab-icon" aria-hidden="true">🗄️</span><span class="tab-label">Copia de seguridad</span>
+        </button>
     </header>
 
     <main class="content">

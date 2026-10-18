@@ -532,7 +532,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // Generación de ideas (variaciones + combinaciones arquetípicas, y platos "libres"/"protagonistas"): ahora lógica PURA
     // extraída a modules/innovations.js. Aquí sólo consumimos su lote (`batch`) y orquestamos la conciliación con lo ya guardado
     // más persistencia. Ver CODING_STANDARDS.md §3 option A / DIP, al igual que priority/classify/recipe-analysis.
-    const batch = window.MRCheff.innovations.generate(count, innovFocus.value, { foods, recipes });
+    const batch = window.MRCheff.innovations.generate(count, innovFocus.value, {
+      foods, recipes,
+      // Recentes = títulos de la pila actual de sugerencias: el generador los aparta de su pool para que cada
+      // click de "Sugerir ahora" traiga platos NUEVOS (misma lógica de scoring y exclusiones de siempre §8).
+      recientes: innovations.map(i => i.title)
+    });
     if (batch.length === 0) {
       toast("No hay combinaciones suficientes con lo que tienes", "error");
       return;
@@ -709,14 +714,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Rotación de "↻ Sugerir ahora": historial ACUMULADO de títulos ya mostrados en la tarjeta 1 (se reinicia con
+  // "Limpiar"). Cada click pide a planner.suggestToday una TANDA de 8 platos NO vistos aún (misma lógica de siempre:
+  // aforo qty>0, cooldown de cooked, ranking por aprovechamiento). Al agotarse el pool, el módulo reinicia el ciclo.
+  let sugeridosRecientes = [];
+
   btnSuggestGenerate.addEventListener("click", () => {
     const cooked = load(LS.cooked, []);
     const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
-    renderSuggestCards(planner.suggestToday(pool, foods));
+    const ideas = planner.suggestToday(pool, foods, { recientes: sugeridosRecientes, lote: 8 });
+    sugeridosRecientes = [...new Set([...sugeridosRecientes, ...ideas.map(i => i.title)])];
+    renderSuggestCards(ideas);
   });
 
   btnSuggestClear.addEventListener("click", () => {
     suggestList.innerHTML = "";
+    sugeridosRecientes = [];                // al limpiar la tarjeta, la rotación también empieza de cero
     suggestEmpty.classList.remove("hidden");
     toast("Sugerencia limpiada");
   });
