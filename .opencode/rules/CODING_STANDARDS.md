@@ -275,6 +275,18 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   se oculta cuando duplica literalmente la etiqueta de origen (los demás tags, como
   "Sugerencia de hoy", se conservan). Copias guardadas ANTES de este cambio no tienen sello: para
   ellas sigue rigiendo la deducción por id/título (o corrección manual).
+- `2026-10-18 · @AI-agent · #feature-matching-casa · Principio: O, D · Justificación:` se REFuerza la
+  decisión del matcher tomada en `#bugfix-matching` (subconjunto de tokens) retirando su regla (2)
+  "comparten el token NÚCLEO ⇒ match": el propio core-token volvía a fabricar falsos positivos de
+  la misma familia que arrancó el módulo — con "Lomo ibérico" en la despensa, planner/innovations/
+  recipe-missing consideraban que ya tenías "Lomos de bacalao", "Lomo de atún", "Lomo cerdo entero",
+  "Lomos de merluza"… (bug reportado por el usuario: el alimento aparecía como disponible para
+  recetas que no lo piden). El conector queda SÓLO en subconjunto bidireccional: el género genérico
+  cubre al específico ("Vino" ↔ "Vino blanco", "Tomate" ↔ "Tomates triturados", "Queso" ↔
+  "Queso rallado" siguen ok) pero dos ESPECÍFICOS distintos ya no se casan por el primer token
+  ("Queso azul" ≠ "Queso rallado"; "Lomo de cerdo" ≠ "Lomo salado"). Cambio semántico asumido:
+  la despensa es más honesta y las sugerencias pueden exigir el ingrediente específico en la
+  lista de la compra; tests de matching actualizados a ambos lados + suite completa verde.
 - `2026-10-18 · @AI-agent · #feature-compra-pregunta · Principio: O, D · Justificación:` la lista de
   la compra "colaba" el alimento marcado como comprado con qty=0/min=0/score=5 sin preguntar nada.
   `menu-semanal.markItemBought` amplía contrato con un 6º parámetro OPCIONAL `compra = { qty, score, min }`

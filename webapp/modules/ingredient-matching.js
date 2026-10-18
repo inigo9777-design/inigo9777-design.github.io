@@ -59,6 +59,16 @@
 
   // ¿Matchea un "ingrediente de receta" con un "alimento de aforo"?
   // Bi-direccional por SUBCONJUNTO DE TOKENS (no por prefijo de cadena), tolerante a plurales/acento.
+  //
+  // REFINAMIENTO 2026-10-18 (2º, bug reportado): la vieja regla (2) "comparten el token NÚCLEO
+  // (el primero) ⇒ match" volvía a meter falsos positivos del mismo estilo que los que motivaron
+  // este módulo — con "Lomo ibérico" en la despensa el planner/inventario consideraba que YA tenías
+  // "Lomos de bacalao", "Lomo atún", "Lomo cerdo entero", "Lomos de merluza"… un solo género común
+  // no hace dos alimentos intercambiables ("lomo" es sólo el primer token de éstos). Se queda SÓLO
+  // con el SUBCONJUNTO: el alimento cubre el ingrediente o viceversa ("vino" cubre "Vino blanco",
+  // "Tomate" cubre "Tomates triturados", "Queso" cubre "Queso rallado" — el género genérico recibe
+  // al específico), pero dos ESPECÍFICOS distintos ("Queso azul" ≠ "Queso rallado",
+  // "Lomo adobado" ≠ "Lomo de cerdo entero") ya NO se casan solos por el primer token.
   function matchIngredientToFood(ingredientName, foodName) {
     const tokensIngrediente = tokensOf(ingredientName);
     const tokensAlimento = tokensOf(foodName);
@@ -67,12 +77,8 @@
     const setAlimento = new Set(tokensAlimento);
     const setIngrediente = new Set(tokensIngrediente);
 
-    // (1) SUBCONJUNTO: todos los tokens de una parte están en la otra → el alimento cubre el ingrediente o viceversa.
+    // SUBCONJUNTO: todos los tokens de una parte están en la otra → el alimento cubre el ingrediente o viceversa.
     if (tokensIngrediente.every(t => setAlimento.has(t)) || tokensAlimento.every(t => setIngrediente.has(t))) return true;
-
-    // (2) Comparten el token NÚCLEO (el primero: "queso" en "queso azul"/"queso rallado"). Un token NO
-    //     núcleo ("ibérico" en "jamón ibérico" vs "salchichón ibérico") NO basta — son alimentos distintos.
-    if (setAlimento.has(tokensIngrediente[0]) || setIngrediente.has(tokensAlimento[0])) return true;
 
     return false;
   }
