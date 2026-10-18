@@ -60,15 +60,29 @@ describe("modules/ingredient-matching.js", () => {
       expect(matchIngredientToFood("Ajo", "Ajos")).toBe(true);                               // singular↔plural
       expect(matchIngredientToFood("Leche", "Leche desnatada")).toBe(true);
       expect(matchIngredientToFood("Cebolla", "Cebollas blancas")).toBe(true);
-      expect(matchIngredientToFood("queso rallado", "Queso azul")).toBe(true);               // token compartido
       expect(matchIngredientToFood("Agua", "Agua mineral")).toBe(true);
       expect(matchIngredientToFood("Plátanos", "Plátanos")).toBe(true);
+      // GÉNERO GENÉRICO cubre al ESPECÍFICO (subconjunto: la despensa "Vino" sirve para "Vino blanco")
+      expect(matchIngredientToFood("Vino blanco", "Vino")).toBe(true);
+      expect(matchIngredientToFood("Tomates triturados", "Tomate")).toBe(true);
+      expect(matchIngredientToFood("Queso rallado", "Queso")).toBe(true);
     });
 
     it("NO casa cosas distintas que el substring-crudo daba por buenas", () => {
       expect(matchIngredientToFood("Salsa de tomate", "Sal")).toBe(false);        // 'sal' ya no está dentro de 'salsa' (token cracking)
       expect(matchIngredientToFood("Mostaza", "Mosto")).toBe(false);
-      expect(matchIngredientToFood("Lomo de cerdo", "Lomo salado")).toBe(true);   // token 'lomo' compartido — sí empatan (mismo alimento base)
+    });
+
+    it("REFINAMIENTO 2 (bug 'Lomo ibérico'): compartir el token NÚCLEO NO basta — el descompone el lado específico", () => {
+      // con "Lomo ibérico" en la despensa, NINGUNA de estas recetas debe verse como "ya la tienes"
+      expect(matchIngredientToFood("Lomos de bacalao", "Lomo ibérico")).toBe(false);
+      expect(matchIngredientToFood("Lomo de atún", "Lomo ibérico")).toBe(false);
+      expect(matchIngredientToFood("Lomo de cerdo entero", "Lomo ibérico")).toBe(false);
+      expect(matchIngredientToFood("Lomos de merluza", "Lomo ibérico")).toBe(false);
+      // mismo fenómeno en otras especies: específico ≠ específico por el primer token
+      expect(matchIngredientToFood("Queso rallado", "Queso azul")).toBe(false);
+      expect(matchIngredientToFood("Lomo de cerdo", "Lomo salado")).toBe(false);
+      expect(matchIngredientToFood("Vino blanco", "Vino tinto")).toBe(false);
     });
 
     it("degradación suave: vacíos/undefined → false sin lanzar (guard §2-A)", () => {
