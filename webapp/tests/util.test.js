@@ -71,7 +71,48 @@ describe("util — uid()  (id único para alimentos/recetas/ideas nuevas)", () =
     expect(typeof util.uid()).toBe("string");
   });
 
-  it("tiene exactamente la API documentada: sólo {escapeHTML, uid}", () => {
-    expect(Object.keys(util).sort()).toEqual(["escapeHTML", "uid"]);
+  it("tiene exactamente la API documentada: sólo {escapeHTML, uid, limpiarPaso}", () => {
+    expect(Object.keys(util).sort()).toEqual(["escapeHTML", "limpiarPaso", "uid"]);
+  });
+});
+
+describe("util — limpiarPaso(paso)  (normalización de VISTA del método, sin tocar el dato guardado)", () => {
+  it("quita la numeración incrustada al principio (el <ol> ya numera con su insignia)", () => {
+    expect(util.limpiarPaso("1. Primero cortamos las tiras de guanchiale en 2")).toBe("Primero cortamos las tiras de guanchiale en 2");
+    expect(util.limpiarPaso("1) Las vamos cocinando de 2 en 2")).toBe("Las vamos cocinando de 2 en 2");
+    expect(util.limpiarPaso("2). Entre cada 2 tiras cocinamos un huevo")).toBe("Entre cada 2 tiras cocinamos un huevo");
+  });
+
+  it("quita numeración REPETIDA (legado del generador antiguo: \"1. 1. \")", () => {
+    expect(util.limpiarPaso("1. 1. Primero cortamos")).toBe("Primero cortamos");
+  });
+
+  it("NO toca los números que forman parte de la receta (cantidades al cuerpo del paso)", () => {
+    // "de 2 en 2" no lleva puntuación tras el dígito → se queda.
+    expect(util.limpiarPaso("Las vamos cocinando de 2 en 2 en la sarten")).toBe("Las vamos cocinando de 2 en 2 en la sarten");
+    expect(util.limpiarPaso("y por últimoañadimos la cucharada de café")).toBe("y por últimoañadimos la cucharada de café");
+  });
+
+  it("corrige puntuación suelta al final (\"en 2,.\" → \"en 2,\")", () => {
+    expect(util.limpiarPaso("cortamos las tiras de guanchiale en 2,.")).toBe("cortamos las tiras de guanchiale en 2,");
+    expect(util.limpiarPaso("Repetimos hasta acabar los huevos..")).toBe("Repetimos hasta acabar los huevos.");
+    expect(util.limpiarPaso("dejamos reposar ,.")).toBe("dejamos reposar,");
+  });
+
+  it("normaliza el espacio antes de signo final (\",\" / \".\")", () => {
+    expect(util.limpiarPaso("deja quemar el aliento ,")).toBe("deja quemar el aliento,");
+    expect(util.limpiarPaso("y listo .")).toBe("y listo.");
+  });
+
+  it("colapsa espacios sobrantes en los bordes (trim) y es idempotente", () => {
+    const unaVez = util.limpiarPaso("  3. Repetimos hasta acabar todos los huevos  ");
+    expect(unaVez).toBe("Repetimos hasta acabar todos los huevos");
+    expect(util.limpiarPaso(unaVez)).toBe(unaVez);   // segunda pasada = sin cambios (limpieza de vista segura)
+  });
+
+  it("pasa por String() sin lanzar error (defensivo como el resto del módulo)", () => {
+    // Igual que escapeHTML: no-cadena → String(s) → literales "null"/"undefined"; nunca lanza.
+    expect(util.limpiarPaso(null)).toBe("null");
+    expect(util.limpiarPaso(undefined)).toBe("undefined");
   });
 });

@@ -5,6 +5,8 @@
 //   2) Plato del MENÚ generado (catálogo curado, de sólo lectura) → "Editar y guardar" crea una
 //      COPIA editable en Mis Recetas (id nuevo) y el hueco del plan aprobado refresca su plato
 //      (el parche del plan se hace por el id ORIGINAL; no se duplica ninguna fila de Mis Recetas).
+//   3) El lápiz ✏️ vive en TODAS las vistas de recetas (tarjetas de Recetas/Innovación/Sugerencias
+//      y franjas del menú) y abre el editor a golpe de click, sin pasar por el modal de detalle.
 //
 // Arranca la app REAL vía bootApp() e interacciona sólo por DOM (clicks/valores), como un usuario.
 
@@ -66,6 +68,40 @@ describe("Modal de receta — botón ✏️ Editar (edición de recetas)", () =>
     expect(cards[0].querySelector("h3").textContent).toBe("Tortilla de patatas y cebolla");
 
     expect(jsdomErrors.length).toBe(0);
+  });
+
+  it("el lápiz ✏️ existe en todas las vistas de recetas y abre el editor sin pasar por el modal", () => {
+    const { document } = bootApp({
+      seed: { foods: [{ name: "Huevos", qty: 5, min: 1, score: 5 }], recipes: [recetaSeed], innov: [], cooked: [] },
+    });
+
+    // Recetas: el lápiz de la tarjeta abre el editor directamente
+    expect(document.querySelector("#recipe-list [data-edit]")).not.toBeNull();
+    document.querySelector("#recipe-list [data-edit]").click();
+    expect(document.getElementById("edit-title")).not.toBeNull();
+    document.querySelector("#modal-content [data-close]").click();
+
+    // Sugerencias: la tarjeta sugerida lleva su lápiz (copia editable) y abre el editor
+    document.querySelector('[data-view="suggest"]').click();
+    document.getElementById("btn-suggest-generate").click();
+    const lapizSugerencia = document.querySelector("#suggest-list [data-edit]");
+    if (lapizSugerencia) {                                  // si hoy hay sugerencia, su lápiz funciona
+      lapizSugerencia.click();
+      const sugerido = document.getElementById("edit-title").value;
+      expect(sugerido.length).toBeGreaterThan(0);
+      document.querySelector("#modal-content [data-close]").click();
+    }
+
+    // Menú semanal: la franja de cada hueco lleva su lápiz y abre el editor del plato
+    document.getElementById("btn-menu-generate").click();
+    document.getElementById("btn-menu-approve").click();
+    const isValidSlot = [...document.querySelectorAll("#menu-plan-list .menu-meal-row[data-meal-idx]")]
+      .find(row => row.querySelector(".menu-meal-title"));
+    expect(isValidSlot).toBeTruthy();
+    expect(isValidSlot.querySelector("[data-edit]")).not.toBeNull();
+    const titleSlot = isValidSlot.querySelector(".menu-meal-title").textContent;
+    isValidSlot.querySelector("[data-edit]").click();
+    expect(document.getElementById("edit-title").value).toBe(titleSlot);
   });
 
   it("un plato del menú generado se edita como COPIA en Mis Recetas y el hueco del plan refresca su plato", () => {

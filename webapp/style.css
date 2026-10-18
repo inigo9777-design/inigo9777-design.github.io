@@ -836,38 +836,46 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 .modal-close:hover { color: var(--danger); background: var(--hover-wash); }
 
-.modal-content h2 { font-size: 1.45rem; line-height: 1.3; margin-bottom: 8px; padding-right: 34px; }   /* deja hueco al botón ✕ */
-.modal-content .recipe-meta { margin: 10px 0 6px; }
-.modal-content > p.muted { margin: 2px 0; line-height: 1.5; }
+/* ---------- Ventilación vertical de la ficha ----------
+   El detalle de receta se lee como una página: el título manda, después las
+   etiquetas, después la descripción — cada bloque respira por separado y las
+   secciones (Ingredientes / Método) se separan además con su filete superior. */
+.modal-content h2 { font-size: 1.5rem; line-height: 1.25; margin-bottom: 14px; padding-right: 34px; }   /* deja hueco al botón ✕ */
+.modal-content .recipe-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }   /* las etiquetas NO se pegan al título */
+.modal-content > p.muted { margin: 0 0 6px; line-height: 1.55; }   /* descripción (Base / Usa de tu casa) */
 
 /* La ficha se lee como una página editorial: columna de lectura cómoda dentro
    de la hoja ancha, el aire sobrante repartido a los lados. */
 .modal-content { max-width: 680px; margin: 0 auto; }
 
 /* Editor de receta: misma columna, formularios con aire entre campos */
-.modal-content .recipe-edit { margin: 18px 0 6px; gap: 14px; }
+.modal-content .recipe-edit { margin: 20px 0 10px; gap: 16px; }
 .modal-content .recipe-edit textarea { min-height: 130px; }
 
-/* Cabecera de sección del modal: filete superior + aire. Estructura visual de
-   "ficha de receta": título, meta, INGREDIENTES y MÉTODO bien separados. */
+/* ---------- Un solo borde de lectura ----------
+   Cada bloque de texto tiene su borde claro: el título de sección al borde de la
+   columna y el TEXTO de todos los ítems (viñetas y pasos) en UNA única sangría
+   de 34px. Los marcadores (viñeta / insignia numerada) cuelgan SIEMPRE dentro
+   de ese hueco, nunca por la izquierda de los títulos. Fin del desalineado
+   "la lista se sale a la izquierda del título". */
 .modal-content h4 {
   font-family: inherit;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--text);
-  margin: 20px 0 10px;
-  padding-top: 16px;
+  margin: 28px 0 14px;                    /* aire generoso antes de cada sección */
+  padding-top: 18px;                      /* el filete se separa del bloque anterior */
   border-top: 1px solid var(--border);
 }
 .modal-content ul {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 8px;
 }
 .modal-content ul li {
   position: relative;
-  padding: 6px 10px 6px 26px;
+  padding: 7px 10px 7px 34px;             /* texto de la viñeta alineado con el de los pasos */
   line-height: 1.5;
   border-radius: var(--radius-s);
   overflow-wrap: anywhere;
@@ -875,39 +883,41 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .modal-content ul li::before {
   content: "•";
   position: absolute;
-  left: 10px;
-  top: 5px;
+  left: 16px;                             /* colgada DENTRO del hueco, derecha del borde del título */
+  top: 6px;
   color: var(--brand);
   font-weight: 700;
 }
 .modal-content ul li.meal-missing {
   background: var(--red-soft);
   border-left: 3px solid var(--red);
-  padding-left: 23px;
+  padding-left: 31px;                     /* 3px de borde + 31px = mismos 34px de sangría */
   color: var(--text);
 }
-.modal-content ul li.meal-missing::before { left: 7px; top: 6px; }
+.modal-content ul li.meal-missing::before { left: 13px; top: 6px; }   /* 3px de borde + 13px = misma columna de viñeta (16px) */
 
-/* Pasos del método con contador-insignia: leerlos en orden es la tarea */
+/* Pasos del método con contador-insignia: leerlos en orden es la tarea.
+   La insignia arranca en el borde del título (como el filete) y el texto
+   del paso alinea con el texto de los ingredientes. */
 .modal-content ol {
   list-style: none;
   counter-reset: paso;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 10px;
 }
 .modal-content ol li {
   counter-increment: paso;
   position: relative;
-  padding: 5px 6px 5px 38px;
+  padding: 4px 6px 4px 34px;
   line-height: 1.55;
 }
 .modal-content ol li::before {
   content: counter(paso);
   position: absolute;
   left: 0;
-  top: 5px;
+  top: 4px;
   width: 26px;
   height: 26px;
   border-radius: 999px;
@@ -932,12 +942,13 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   margin-left: 8px;
 }
 .modal-content .modal-footer {
-  margin-top: 24px;
-  padding-top: 16px;
+  margin-top: 32px;                       /* los botones NUNCA se pegan al último paso */
+  padding-top: 20px;
   border-top: 1px solid var(--border);
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+  flex-wrap: wrap;                        /* en pantallas estrechas los botones bajan de fila, jamás fuerzan el ancho del box */
 }
 
 .toast {

@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ===== HELPERS =====
   // uid() y escapeHTML() viven en modules/util.js, lógica PURa (sin DOM ni localStorage) anti-XSS e id-generación; ver
   // CODING_STANDARDS.md §3 option A / DIP y el patrón idéntico de priority.classify.recipeAnalysis.innovations bajo window.MRCheff.*.
-  const { escapeHTML, uid } = window.MRCheff.util;
+  const { escapeHTML, uid, limpiarPaso } = window.MRCheff.util;
   const recipeEditor = window.MRCheff.recipeEditor;   // módulo puro del editor de recetas (modules/recipe-editor.js)
 
   // $/$$ son helpers DE VISTA (manipulan el DOM) → NO lógica de decisión: quedan en este closure como antes.
@@ -348,6 +348,7 @@ document.addEventListener("DOMContentLoaded", () => {
       card.dataset.id = r.id;
       card.innerHTML = `
         <div class="recipe-actions">
+          <button data-edit="${r.id}" title="Editar título, ingredientes o pasos">✏️</button>
           <button data-del="${r.id}" title="Eliminar">🗑</button>
         </div>
         <h3>${escapeHTML(r.title)}</h3>
@@ -355,9 +356,9 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
           <span class="muted" style="font-size:.8rem">${r.ingredients.length} ingr.</span>
         </div>`;
-      // Abrir detalle al hacer click en la tarjeta
+      // Abrir detalle al hacer click en la tarjeta (el lápiz abre el EDITOR directamente: para eso está)
       card.addEventListener("click", (e) => {
-        if (e.target.closest("[data-del]")) return;
+        if (e.target.closest("[data-del], [data-edit]")) return;
         openRecipeModal(r);
       });
       recipeList.appendChild(card);
@@ -370,6 +371,14 @@ document.addEventListener("DOMContentLoaded", () => {
         save(LS.recipes, recipes);
         renderRecipes();
         toast("Receta eliminada");
+      });
+    });
+    // Lápiz de la tarjeta: abre el editor directamente (sin pasar por el modal de detalle)
+    recipeList.querySelectorAll("[data-edit]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const receta = recipes.find(x => x.id === btn.dataset.edit);
+        if (receta) openRecipeEditor(receta);
       });
     });
     // Invariante: cada vez que la vista Recetas se pinta (cualquier camino -- nav-gate, filtros o borrado de una
@@ -411,7 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : `<li>${escapeHTML(i)}</li>`;   // IDÉNTICO al render actual SIN la bandera → Recetas/Innovación no se ROMPEN en sus vistas ya probadas (§ guard total de regresión, § "no romper vistas ya probadas").
       }).join("") : ""}</ul>
       <h4>👨‍🍳 Método</h4>
-      <ol>${r.method.map(m => `<li>${escapeHTML(m)}</li>`).join("")}</ol>
+      <ol>${r.method.map(m => `<li>${escapeHTML(limpiarPaso(m))}</li>`).join("")}</ol>
       <div class="modal-footer">
         <button class="btn ghost" data-close>Cerrar</button>
         <button class="btn ghost" data-edit title="Ajusta el título, los ingredientes o los pasos a tu gusto">${enMisRecetas ? "✏️ Editar" : "✏️ Editar y guardar"}</button>
@@ -422,7 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnEdit = $("[data-edit]", modalContent);
     if (btnEdit) btnEdit.addEventListener("click", () => openRecipeEditor(r));
     $("[data-copy]", modalContent).addEventListener("click", () => {
-      const text = `${r.title}\n\nIngredientes:\n${r.ingredients.map(i => "- " + i).join("\n")}\n\nMétodo:\n${r.method.join("\n")}`;
+      const text = `${r.title}\n\nIngredientes:\n${r.ingredients.map(i => "- " + i).join("\n")}\n\nMétodo:\n${r.method.map(m => limpiarPaso(m)).join("\n")}`;
       navigator.clipboard?.writeText(text).then(
         () => toast("Copiado al portapapeles"),
         () => toast("No se pudo copiar", "error")
@@ -468,7 +477,9 @@ document.addEventListener("DOMContentLoaded", () => {
         $("#edit-title", modalContent).value,
         $("#edit-meal", modalContent).value,
         $("#edit-ingredients", modalContent).value,
-        $("#edit-method", modalContent).value
+        // Cada paso se guarda YA normalizado: sin numeración incrustada ni puntuación suelta,
+        // para que el dato de Mis Recetas nazca limpio (limpiarPaso es puro e idempotente).
+        $("#edit-method", modalContent).value.split("\n").map(limpiarPaso).join("\n")
       );
       const check = recipeEditor.validateDraft(draft);
       if (!check.ok) {
@@ -578,6 +589,7 @@ document.addEventListener("DOMContentLoaded", () => {
       card.dataset.id = i.id;
       card.innerHTML = `
         <div class="recipe-actions">
+          <button data-edit="${i.id}" title="Editar y guardar en Mis Recetas">✏️</button>
           <button data-save="${i.id}" title="Guardar en Mis Recetas">⭐</button>
           <button data-del="${i.id}" title="Eliminar">🗑</button>
         </div>
@@ -588,10 +600,19 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         ${i.uses && i.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${i.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
       card.addEventListener("click", (e) => {
-        if (e.target.closest("[data-del], [data-save]")) return;
+        if (e.target.closest("[data-del], [data-save], [data-edit]")) return;
         openRecipeModal(i);
       });
       innovationList.appendChild(card);
+    });
+
+    // Lápiz de la idea: abre el editor en modo "copia" (la idea no está aún en Mis Recetas)
+    innovationList.querySelectorAll("[data-edit]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const idea = innovations.find(x => x.id === btn.dataset.edit);
+        if (idea) openRecipeEditor(idea);
+      });
     });
 
     innovationList.querySelectorAll("[data-save]").forEach(btn => {
@@ -646,6 +667,7 @@ document.addEventListener("DOMContentLoaded", () => {
       card.dataset.id = idea.id;
       card.innerHTML = `
         <div class="recipe-actions">
+          <button data-edit="${idea.id}" title="Editar y guardar en Mis Recetas">✏️</button>
           <button data-cook="${idea.id}" title="Cocinar hoy">🍳 Cocinar hoy</button>
         </div>
         <h3>${escapeHTML(idea.title)}</h3>
@@ -655,10 +677,19 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         ${idea.uses && idea.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${idea.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
       card.addEventListener("click", (e) => {
-        if (e.target.closest("[data-cook]")) return;
+        if (e.target.closest("[data-cook], [data-edit]")) return;
         openRecipeModal(idea, { highlightMissing: true });
       });
       suggestList.appendChild(card);
+    });
+
+    // Lápiz de la sugerencia: abre el editor en modo "copia" (guarda en Mis Recetas sin tocar el catálogo)
+    suggestList.querySelectorAll("[data-edit]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const idea = ideas.find(x => x.id === btn.dataset.edit);
+        if (idea) openRecipeEditor(idea);
+      });
     });
 
     suggestList.querySelectorAll("[data-cook]").forEach(btn => {
@@ -739,6 +770,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ${missing.length ? `<div class="innov-uses" style="color:var(--danger);">⚠️ Falta: ${missing.map(escapeHTML).join(", ")}</div>` : `<div class="innov-uses" style="color:var(--accent);">✅ Todos los ingredientes en casa</div>`}
       </div>
       <div class="recipe-actions">
+        <button data-edit title="Editar esta receta a tu gusto (guarda en Mis Recetas)">✏️</button>
         <button data-cook title="Cocinar hoy y renovar este hueco">🍳 Cocinar</button>
         <button data-swap title="Otra receta para este día y comida">🔄 Cambiar</button>
       </div>
@@ -778,6 +810,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (btnSwap) btnSwap.addEventListener("click", (e) => {
           e.stopPropagation();
           cambiarComidaDelPlan(Number(row.dataset.day), row.dataset.meal);
+        });
+        // Lápiz de la franja: abre el editor directamente sobre el plato de ese hueco
+        const btnEditRow = row.querySelector("[data-edit]");
+        if (btnEditRow) btnEditRow.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openRecipeEditor(comida.recipe);
         });
       });
       menuPlanList.appendChild(li);

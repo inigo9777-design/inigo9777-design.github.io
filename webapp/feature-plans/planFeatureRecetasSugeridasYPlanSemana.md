@@ -208,3 +208,13 @@ Aplicado con el usuario (feedback directo sobre el primer rediseño "La cocina t
    icono embebido: "🌅 Desayuno".
 3. **Anchura de filas blindada:** `.menu-meal-row` declara `width: 100%` + `align-self: stretch`
    explícitos (comportamiento anómalo de filas a distinta anchura reportado con captura en el review).
+
+### 12.2. Tercera iteración (mismo día — review continuo)
+
+1. **Aire vertical en el modal de detalle:** las secciones "🧾 Ingredientes"/"👨‍🍳 Método" ganan
+   separación (h4 con margin 28/14 + filete) y el footer de botones ya NO se pega al último paso
+   (margin-top 34px). El editor sube el aire entre campos.
+2. **Lápiz ✏️ en TODAS las vistas de recetas** (atajo directo al editor, sin pasar por el modal):
+   tarjetas de Mis Recetas (edición in-situ), tarjetas de Innovación y de Sugerencia de hoy
+   (copias editables), y franja del menú (plato del hueco). Guardas de click de cada vista
+   actualizadas (`[data-edit]` en los guards) + caso de integración en recipe-edit.integration.test.js.

@@ -17,5 +17,17 @@
   // si algún módulo lo inyecta por contexto (`ctx.uid`) gana la versión inyectada (precedente uid/rng ver §3.7).
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
-  return { escapeHTML, uid };
+  // Normaliza un paso de receta heredado del generador antiguo ANTES de pintarlo/copiarlo:
+  //  · quita la numeración incrustada al principio ("1. ", "1)", "2).") — el <ol> ya numera con su insignia,
+  //    así que dejarla dentro del texto salía duplicado ("1. 1. Primero…");
+  //  · corrige puntuación suelta al final ("… en 2,." → "… en 2,") y el espacio antes de signo ("… ,", "… .");
+  //  · colapsa espacios sobrantes a los lados.
+  // Es limpieza de VISTA: no muta el dato guardado, sólo lo que se muestra por pantalla (idempotente).
+  const limpiarPaso = s => String(s)
+    .replace(/^\s*(?:\s*\d+\s*[.)])+\s*\.?\s*/, "")   // prefijo numérico, una o varias veces ("1. 1." / "2)." incluidos)
+    .replace(/([.,])(?:\s*[.,])+$/, "$1")      // ristra de signos final → un solo signo (se queda el 1º)
+    .replace(/\s+([.,])/g, "$1")               // espacio antes de "," / "." → pegado
+    .trim();
+
+  return { escapeHTML, uid, limpiarPaso };
 });

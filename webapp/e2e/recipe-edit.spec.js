@@ -11,6 +11,8 @@
 //   4. Plato del menú aprobado (catálogo, sólo lectura) → "✏️ Editar y guardar" → copia nueva
 //      en Mis Recetas + el hueco del plan muestra el título editado (parche por id original).
 //   5. Guardar sin ingredientes/pasos → toast de error, el editor sigue abierto, nada persiste.
+//   6. Lápiz ✏️ en TODAS las vistas de recetas: tarjeta de "Mis Recetas" (edición in-situ),
+//      tarjeta de Innovación/Sugerencias (copias), y franja del menú → abren el editor directo.
 //
 // Test pendiente (template cuando Playwright esté disponible):
 //
@@ -22,6 +24,10 @@
 //   await page.fill('#edit-ingredients', 'Patata\nHuevo\nCebolla');
 //   await page.click('[data-save-edit]');
 //   await expect(page.locator('#recipe-list .recipe-card h3').first()).toHaveText('Tortilla de patatas y cebolla');
+//   // lápiz de la tarjeta (atajo directo al editor)
+//   await page.click('#recipe-list [data-edit]');
+//   await expect(page.locator('#edit-title')).toBeVisible();
+//   await page.keyboard.press('Escape');
 //   // plato del plan: flujo "Editar y guardar"
 //   await page.click('[data-view="suggest"]');
 //   await page.click('#btn-menu-generate');
