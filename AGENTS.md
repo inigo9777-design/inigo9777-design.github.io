@@ -93,6 +93,13 @@ italiana" (see `modules/origen-recetas.js` below).
   ficheros del shell, y el precache incluye `modules/swipe-tabs.js`. En el iPhone el sw.js
   re-válido contra la caché HTTP de Pages (max-age 600): si un cambio "no llega", cerrar el
   app del app switcher y reabrir (el SW nuevo instala por skipWaiting y activa por claim).
+  (8) **Botón de caja fuerte en móvil**: círculo 38×38 SIEMPRE (idéntico al toggle del
+  tema; petición 2026-10-19) — el despliegue de la etiqueta al activar "Copia de
+  seguridad" era un artificio de hover que en táctil derramaba el clúster a una 2ª fila
+  empujando la barra de tabs (botón 207px, medidas en reports/ui-brave/29). En ≤820px la
+  etiqueta es `display: none` (el nombre accesible vive en el aria-label) y el estado
+  activo se nota por el relleno marca del círculo; en escritorio conserva el despliegue
+  por hover/foco/activo. La agarra la auditoría `e2e/pwa-accesibilidad.mjs` (check 6).
 - **Pure modules (`webapp/modules/`, all IIFE + dual-export, no DOM/localStorage — §3 CODING_STANDARDS):**
   `classify.js` · `priority.js` · `recipe-analysis.js` · `ingredient-matching.js` (token matcher,
   shared by planner/menu-semanal/innovations) · `util.js` · `innovations.js` · `planner.js` (public API:
