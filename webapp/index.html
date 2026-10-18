@@ -346,7 +346,27 @@
       // (doble clic al index.html) no hay service worker disponible y no se toca nada: la app
       // sigue funcionando igual de siempre abriendo el archivo directamente.
       if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-        navigator.serviceWorker.register("sw.js");
+        // updateViaCache:"none": la revisión del sw.js SALTA la caché HTTP del navegador.
+        // GitHub Pages sirve el script con max-age=600: sin esta opción el update podía
+        // retrasarse hasta 10 minutos en cada arranque del PWA instalado (el sw.js acababa
+        // en la misma caché HTTP que el resto de ficheros).
+        navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+          const revisa = () => reg.update().catch(() => {});    // sin conexión no hay nada que revisar
+          revisa();                                             // check al entrar y al volver al primer plano
+          document.addEventListener("visibilitychange", () => { if (!document.hidden) revisa(); });
+          setInterval(revisa, 10 * 60 * 1000);                  // y periódico: no depende del cerrar/reabrir
+        }).catch(() => {});                                     // sin conexión: el caché ya da el shell (respaldo)
+        // Cuando un worker NUEVO instala y toma el mando (skipWaiting + claim) con la app YA
+        // corriendo, los fetches de ese arranque salieron con el worker viejo: recarga UNA vez
+        // por sesión para relanzar el app con la release. En la primera instalación no hay
+        // controller anterior y no se recarga nada.
+        const yaControlada = !!navigator.serviceWorker.controller;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (yaControlada && !sessionStorage.getItem("mrcheff.recargaUpdate")) {
+            sessionStorage.setItem("mrcheff.recargaUpdate", "1");
+            location.reload();
+          }
+        });
       }
     </script>
 </body>
