@@ -112,7 +112,11 @@ italiana" (see `modules/origen-recetas.js` below).
 - Lista de la compra (Card 3): dedup por el matcher de tokens (`modules/ingredient-matching.js`,
   NO lower-case exacto) contra comida real (qty>0), y semáforo dinámico por fecha de preparación
   (`onDay`/`daysUntil`/`urgency`): hoy/mañana=rojo, 2–3 días=naranja, ≥4 días (o sin fecha)=verde;
-  orden salida rojo→verde.
+  orden salida rojo→verde. "✅ comprado" PREGUNTA antes cuánto se ha comprado, su importancia y el
+  MÍNIMO para la alerta de reponer (modal) — no cuela el alimento con qty 0/score 5/min 0:
+  `markItemBought(..., compra)` añade con esos datos; si el alimento ya estaba en la despensa
+  (incluso con qty 0), lo ACTUALIZA en-situ (sin `min` pedido conserva el suyo).
+  (contrato ampliado, log §8 del CODING_STANDARDS.md).
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
   red 8–10, orange 6–7, green 1–5; weekly alert caps the list at 8.
 - Innovations auto-expire: on load, if `mrcheff.innov.date != today`, wipe `mrcheff.innov`; also

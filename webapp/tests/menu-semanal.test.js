@@ -263,6 +263,54 @@ describe("modules/menu-semanal.js", () => {
     });
   });
 
+  describe("markItemBought con `compra` (2026-10-18: la UI pregunta cuanto se ha comprado)", () => {
+    const weekmenu = { approved: true, plan: [], needyFoods: [{ name: "Merluza" }, { name: "Patatas" }] };
+
+    it("alimento nuevo → se añade con la CANTIDAD, la IMPORTANCIA y el MÍNIMO pedidos (no qty 0/score 5)", () => {
+      const result = markItemBought([], weekmenu, "Merluza", () => "uid-buy", 1234567890, { qty: 3, score: 8, min: 2 });
+      expect(result.alreadyExists).toBe(false);
+      expect(result.actualizado).toBe(false);
+      expect(result.foods[0]).toMatchObject({ id: "uid-buy", name: "Merluza", qty: 3, score: 8, min: 2 });
+      expect(result.weekmenu.needyFoods.map(f => f.name)).toEqual(["Patatas"]);
+      // sin `min` pedido → conserva el fallback legacy 0 (la UI lo pide siempre, pero el contrato es laxo)
+      const sinMin = markItemBought([], weekmenu, "Patatas", () => "u", 0, { qty: 1, score: 3 });
+      expect(sinMin.foods[0].min).toBe(0);
+    });
+
+    it("alimento YA en despensa (aunque con qty 0) → ACTUALIZA qty/score/min en-situ y lo quita de needyFoods", () => {
+      const original = [{ name: "Huevos", qty: 0, min: 2, score: 5 }];
+      const semana = { approved: true, plan: [], needyFoods: [{ name: "Huevos frescos" }, { name: "Patatas" }] };
+      const result = markItemBought(original, semana, "Huevos frescos", () => "uid-x", 0, { qty: 12, score: 7, min: 4 });
+      expect(result.alreadyExists).toBe(true);
+      expect(result.actualizado).toBe(true);
+      expect(result.foods).toHaveLength(1);                       // + update, NO alta nueva
+      expect(result.foods[0]).toMatchObject({ name: "Huevos", qty: 12, score: 7, min: 4 });
+      expect(result.foods[0].id).toBeUndefined();                 // conserva su id/fila original
+      expect(result.weekmenu.needyFoods.map(f => f.name)).toEqual(["Patatas"]);  // se cruza de la compra
+      // inmutabilidad: el original no muta
+      expect(original[0]).toMatchObject({ qty: 0, min: 2 });
+      // sin `min` pedido → conserva el suyo (2), sólo refresca qty/score
+      const sinMin = markItemBought(original, semana, "Huevos frescos", () => "u", 0, { qty: 6, score: 4 });
+      expect(sinMin.foods[0]).toMatchObject({ qty: 6, score: 4, min: 2 });
+    });
+
+    it("`compra` inválida o vacía → cae al comportamiento legacy (alta qty 0/score 5; ya-esta no toca nada)", () => {
+      const alta = markItemBought([], weekmenu, "Merluza", () => "u", 0, { qty: 0, score: 3 });
+      expect(alta.foods[0]).toMatchObject({ qty: 0, score: 5 });   // qty<1 → pedido null → legacy
+      const yaEsta = markItemBought([{ name: "Huevos", qty: 0, score: 5 }], weekmenu, "huevos", () => "u", 0, { qty: 0, score: 5 });
+      expect(yaEsta.alreadyExists).toBe(true);
+      expect(yaEsta.actualizado).toBe(false);
+      expect(yaEsta.foods[0]).toMatchObject({ qty: 0, score: 5 }); // sin cambios
+    });
+
+    it("score pedido se sujeta al rango 1–10", () => {
+      const result = markItemBought([], weekmenu, "Patatas", () => "u", 0, { qty: 2, score: 42 });
+      expect(result.foods[0].score).toBe(10);
+      const r2 = markItemBought([], weekmenu, "Pan", () => "u", 0, { qty: 2, score: -3 });
+      expect(r2.foods[0].score).toBe(1);
+    });
+  });
+
   describe("cookEntry — anota una receta como cocinada hoy, inmutable", () => {
     const rec = { title: "Tortilla", ingredients: ["Huevos", "Patatas"] };
 

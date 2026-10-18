@@ -810,9 +810,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Previsualiza un plan de 7 días (Lunes..Domingo) respetando el cooldown. "Aprobar plan" guarda
   // mrcheff.weekmenu (aprobado=true, ancla de fecha=HOY real) y registra en mrcheff.cooked cada
   // receta del plan ANCLADA a la fecha de su día de la semana (próxima ocurrencia desde HOY).
-  // Card 3 aparece sólo si el plan aprobado trae ingredientes ausentes (needyFoods); marcar un ítem como comprado
-  // lo auto-añade al inventario (qty=0/min=0/score=5, dedup por nombre, idéntico a backup.mergeIncoming) y refresca
-  // la alerta semanal. No toca recipes[] / Mis Recetas.
+  // Card 3 aparece sólo si el plan aprobado trae ingredientes ausentes (needyFoods); marcar un ítem como
+  // comprado PREGUNTA primero cuánto se ha comprado y su importancia (modal, feature 2026-10-18) y NO lo
+  // cuela con qty 0/score 5: el módulo puro menuSemanal.markItemBought añade o actualiza con esos datos.
+  // No toca recipes[] / Mis Recetas.
   const btnMenuGenerate = $("#btn-menu-generate");
   const btnMenuApprove = $("#btn-menu-approve");
   const btnMenuClear = $("#btn-menu-clear");
@@ -985,20 +986,69 @@ document.addEventListener("DOMContentLoaded", () => {
     shoppingListEl.querySelectorAll("[data-buy]").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
+        // 2026-10-18: NO se cuela ya el alimento con qty 0 / score 5 — se PREGUNTA cuánto se ha
+        // comprado y con qué importancia (modal). La decisión de añadir/actualizar vive en el
+        // módulo puro menuSemanal.markItemBought(..., compra); aquí sólo el molde del diálogo.
         const name = btn.dataset.buy;
-        const result = menuSemanal.markItemBought(foods, weeklyMenu, name, uid);
-        if (result.alreadyExists) {
-          toast(`"${escapeHTML(name)}" ya está en tu despensa`, "error");
-          return;
-        }
-        foods = result.foods;
-        weeklyMenu = result.weekmenu;
-        save(LS.foods, foods);
-        save(LS.weekmenu, weeklyMenu);
-        renderFoods();
-        renderWeeklyAlert();
-        renderShoppingList();
-        toast(`"${escapeHTML(name)}" añadido a la despensa (qty 0)`);
+        modalContent.innerHTML = `
+        <h2>✅ ¿Comprado?</h2>
+        <p class="muted">"<strong>${escapeHTML(name)}</strong>" se añadirá a la despensa con estos datos:</p>
+        <div class="recipe-edit">
+          <label for="compra-qty">Cantidad comprada
+            <input type="number" id="compra-qty" min="1" step="1" value="1">
+          </label>
+          <label for="compra-min">Cantidad mínima para la alerta de reponer
+            <input type="number" id="compra-min" min="0" step="1" value="1" title="Cuando baje de aquí te avisamos">
+          </label>
+          <label for="compra-score">Importancia (1–10)
+            <input type="number" id="compra-score" min="1" max="10" step="1" value="5">
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button class="btn ghost" data-close>Cancelar</button>
+          <button class="btn primary" data-buy-confirm>Añadir a la despensa</button>
+        </div>`;
+        modal.classList.remove("hidden");
+        $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+        $("#compra-qty", modalContent).focus();
+        $("#compra-qty", modalContent).select();
+        $("[data-buy-confirm]", modalContent).addEventListener("click", () => {
+          const qty = parseInt($("#compra-qty", modalContent).value, 10);
+          const score = parseInt($("#compra-score", modalContent).value, 10);
+          const minRaw = $("#compra-min", modalContent).value.trim();
+          const min = minRaw === "" ? null : parseInt(minRaw, 10);   // vacío → no se pide: el módulo lo ignora
+          if (!Number.isFinite(qty) || qty < 1) {            // la cantidad comprada no puede ser 0/vacía
+            toast("Indica la cantidad comprada (1 o más)", "error");
+            return;
+          }
+          if (min !== null && (!Number.isFinite(min) || min < 0)) {
+            toast("El mínimo para la alerta va de 0 en adelante", "error");
+            return;
+          }
+          if (!Number.isFinite(score) || score < 1 || score > 10) {
+            toast("La importancia va de 1 a 10", "error");
+            return;
+          }
+          const compra = { qty, score, ...(min !== null ? { min } : {}) };
+          const result = menuSemanal.markItemBought(foods, weeklyMenu, name, uid, Date.now(), compra);
+          if (result.actualizado) {
+            toast(`"${escapeHTML(name)}" actualizado en la despensa (qty ${qty})`);
+          } else if (!result.alreadyExists) {
+            toast(`"${escapeHTML(name)}" añadido a la despensa (qty ${qty})`);
+          } else {
+            toast(`"${escapeHTML(name)}" ya está en tu despensa`, "error");
+            closeModal();
+            return;
+          }
+          foods = result.foods;
+          weeklyMenu = result.weekmenu;
+          save(LS.foods, foods);
+          save(LS.weekmenu, weeklyMenu);
+          renderFoods();
+          renderWeeklyAlert();
+          renderShoppingList();
+          closeModal();
+        });
       });
     });
   }

@@ -3,8 +3,11 @@
 //
 // API PÚBLICA CERRADA (6 funciones, sin fugas de helpers internos):
 //   shoppingListFor(needyFoods, foods, ctx?)  → dedup por MATCHER de tokens (NO subcadena-cruda) + urgencia de compra
-//                                               {name, qty:0, min:0, score:5, onDay?, daysUntil?, urgency:"red|orange|green"}//   approveMenu(preview, cooked, today, cookEntryFor, uid) → { cooked, weekmenu } inmutables; ancla = FECHA de cada día×comida planificada
-//   markItemBought(foods, weekmenu, itemName, uid, now)    → { foods, weekmenu, alreadyExists } inmutables
+//                                               {name, qty:0, min:0, score:5, onDay?, daysUntil?, urgency:"red|orange|green"}
+//   approveMenu(preview, cooked, today, cookEntryFor, uid) → { cooked, weekmenu } inmutables; ancla = FECHA de cada día×comida planificada
+//   markItemBought(foods, weekmenu, itemName, uid, now, compra?) → { foods, weekmenu, alreadyExists, actualizado? }
+//       con `compra = { qty, score, min }` (2026-10-18: la UI pregunta CUÁNTO se ha comprado, su importancia
+//       y el MÍNIMO de alerta); sin él, comportamiento legacy (alta con qty=0/min=0/score=5).
 //   cookEntry(recipe, cooked, today, cookEntryFor, uid)    → { cooked } inmutable; anota UNA receta como cocinada hoy
 //   swapSlotRecipe(ctx)                                    → { swapped, weekmenu } inmutables; "🔄 Cambiar" de UN día+comida (feature 2026-10-18)
 //   clearMenu()                                            → { weekmenu: null } inmutable; reinicia el menú
@@ -190,35 +193,67 @@
 
   // ---------------------------------------------------------------------------
   // markItemBought — marca un ítem de la lista de la compra como comprado:
-  //   * auto-añade el alimento a foods (qty=0, min=0, score=5, dedup por nombre) si aún no existe.
-  //   * quita el ítem de needyFoods del weekmenu.
-  //   * devuelve { foods, weekmenu, alreadyExists } inmutables.
-  //   * `uid` y `now` inyectables para tests (§6).
+  //   * SIN `compra` (llamadas legacy): auto-añade el alimento a foods (qty=0, min=0, score=5,
+  //     dedup por MATCHER de tokens) y lo quita de needyFoods del weekmenu.
+  //   * CON `compra = { qty, score, min }` (2026-10-18: la UI pregunta ANTES de añadir CUÁNTO se
+  //     ha comprado, con qué importancia y el MÍNIMO para la alerta de reponer, en vez de colarlo
+  //     con qty 0 / score 5 / min 0 — con min 0 la alerta nunca saltaría):
+  //       - alta con LA cantidad, la importancia y el mínimo pedidos (sanitizadas aquí).
+  //       - si el alimento YA está en la despensa (aunque sea con qty 0), le ACTUALIZA
+  //         qty/score/min y también lo quita de needyFoods (así el semáforo del stock cruzará
+  //         el ítem — antes quedaba tachado para siempre). Sin `min` pedido conserva el suyo.
+  //   * devuelve { foods, weekmenu, alreadyExists, actualizado? } inmutables.
+  //   * `uid`, `now` y `compra` inyectables para tests (§6).
   // ---------------------------------------------------------------------------
-  function markItemBought(foods, weekmenu, itemName, uid, now) {
-    const clave = claveNombre(itemName);
-    const nextFoods = (Array.isArray(foods) ? foods : []).filter(f => f && typeof f === "object");
-    const yaEsta = nextFoods.some(f => matchIngredienteAlimento(itemName, f.name));
-    if (yaEsta) return { foods: (Array.isArray(foods) ? foods : []), weekmenu, alreadyExists: true };
+  function compraNormalizada(compra) {
+    if (!compra || typeof compra !== "object") return null;
+    const qty = Number(compra.qty);
+    const score = Number(compra.score);
+    const min = Number(compra.min);           // undefined → NaN → null (el caller no lo pidió)
+    if (!Number.isFinite(qty) || !Number.isFinite(score) || qty < 1) return null;
+    return {
+      qty: Math.round(qty),
+      score: Math.min(10, Math.max(1, Math.round(score))),
+      min: Number.isFinite(min) ? Math.max(0, Math.round(min)) : null
+    };
+  }
 
-    const mkId = typeof uid === "function" ? uid : defaultUid;
-    const foodsNuevos = nextFoods.concat([{
-      id: mkId(),
-      name: itemName,
-      score: 5,
-      qty: 0,
-      min: 0,
-      checked: false,
-      createdAt: typeof now === "number" ? now : Date.now()
-    }]);
-
-    const weekmenuNuevo = weekmenu
+  function quitarDeNeedy(weekmenu, clave) {
+    return weekmenu
       ? Object.assign({}, weekmenu, {
         needyFoods: (Array.isArray(weekmenu.needyFoods) ? weekmenu.needyFoods : []).filter(f => claveNombre(f && f.name) !== clave)
       })
       : weekmenu;
+  }
 
-    return { foods: foodsNuevos, weekmenu: weekmenuNuevo, alreadyExists: false };
+  function markItemBought(foods, weekmenu, itemName, uid, now, compra) {
+    const clave = claveNombre(itemName);
+    const base = (Array.isArray(foods) ? foods : []).filter(f => f && typeof f === "object");
+    const pedido = compraNormalizada(compra);
+    const idx = base.findIndex(f => matchIngredienteAlimento(itemName, f.name));
+
+    // Ya está en la despensa: sin `compra` válida → sin cambios (comportamiento legacy);
+    // con compra → update in-situ de qty/score con la MISMA inmutabilidad que el alta.
+    if (idx >= 0) {
+      if (!pedido) return { foods: (Array.isArray(foods) ? foods : []), weekmenu, alreadyExists: true, actualizado: false };
+      // sin `min` pedido (null) la fila conservará SU mínimo actual (sólo se fija si se pidió)
+      const cambios = pedido.min != null ? { qty: pedido.qty, score: pedido.score, min: pedido.min } : { qty: pedido.qty, score: pedido.score };
+      const actualizado = base.map((f, i) => i === idx ? Object.assign({}, f, cambios) : f);
+      return { foods: actualizado, weekmenu: quitarDeNeedy(weekmenu, clave), alreadyExists: true, actualizado: true };
+    }
+
+    const mkId = typeof uid === "function" ? uid : defaultUid;
+    const foodsNuevos = base.concat([{
+      id: mkId(),
+      name: itemName,
+      score: pedido ? pedido.score : 5,
+      qty: pedido ? pedido.qty : 0,
+      min: pedido && pedido.min != null ? pedido.min : 0,
+      checked: false,
+      createdAt: typeof now === "number" ? now : Date.now()
+    }]);
+
+    return { foods: foodsNuevos, weekmenu: quitarDeNeedy(weekmenu, clave), alreadyExists: false, actualizado: false };
   }
 
   // ---------------------------------------------------------------------------

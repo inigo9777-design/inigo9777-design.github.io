@@ -78,18 +78,25 @@ describe("Card 2+3 'Menú semanal + lista de la compra' — integración", () =>
     expect(weekmenu.needyFoods.length).toBeGreaterThan(0);
     expect(document.getElementById("shopping-list").classList.contains("hidden")).toBe(false);
 
-    // 5) Marcar el PRIMER ítem del DOM (orden semaforo: rojos primero) → auto-add a foods con qty=0/min=0/score=5
+    // 5) Marcar el PRIMER ítem del DOM (orden semaforo: rojos primero) → modal de compra: se pregunta
+    //    CUÁNTO se ha comprado y su importancia (feature 2026-10-18); tras confirmar, alta con esos datos.
     const btnBuy = document.querySelector("#shopping-list [data-buy]");
     expect(btnBuy).not.toBeNull();
     const primero = btnBuy.getAttribute("data-buy");   // el orden del DOM es urgency-asc, puede diferir de needyFoods
     btnBuy.click();
+    const modal = document.getElementById("modal");
+    expect(modal.classList.contains("hidden")).toBe(false);      // preguntó antes de añadir
+    document.getElementById("compra-qty").value = "3";
+    document.getElementById("compra-min").value = "2";
+    document.getElementById("compra-score").value = "6";
+    document.querySelector("[data-buy-confirm]").click();
 
     const foods = JSON.parse(localStorage.getItem("mrcheff.foods") || "[]");
     const añadido = foods.find(f => f.name.toLowerCase() === primero.toLowerCase());
     expect(añadido).not.toBeUndefined();
-    expect(añadido.qty).toBe(0);
-    expect(añadido.min).toBe(0);
-    expect(añadido.score).toBe(5);
+    expect(añadido.qty).toBe(3);        // la CANTIDAD pedida, ya no qty=0
+    expect(añadido.min).toBe(2);        // el MÍNIMO para la alerta pedida, ya no min=0
+    expect(añadido.score).toBe(6);      // la IMPORTANCIA pedida, ya no la por-defecto 5
 
     // needyFoods ya no contiene ese ítem (se quitó al marcar comprado)
     const weekmenuTras = JSON.parse(localStorage.getItem("mrcheff.weekmenu") || "null");

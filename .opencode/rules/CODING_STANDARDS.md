@@ -275,3 +275,13 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   se oculta cuando duplica literalmente la etiqueta de origen (los demás tags, como
   "Sugerencia de hoy", se conservan). Copias guardadas ANTES de este cambio no tienen sello: para
   ellas sigue rigiendo la deducción por id/título (o corrección manual).
+- `2026-10-18 · @AI-agent · #feature-compra-pregunta · Principio: O, D · Justificación:` la lista de
+  la compra "colaba" el alimento marcado como comprado con qty=0/min=0/score=5 sin preguntar nada.
+  `menu-semanal.markItemBought` amplía contrato con un 6º parámetro OPCIONAL `compra = { qty, score, min }`
+  (las 5 llamadas legacy sin él conservan el comportamiento anterior, por lo que el cambio es no
+  rompiente). Con `compra`: alta con la cantidad/importancia/MÍNIMO-de-alerta pedidos y — cuando el
+  alimento YA está en la despensa aunque sea con qty 0 — UPDATE en-situ de qty/score/min (sin `min`
+  pedido conserva el suyo) + se quita de `needyFoods` (antes
+  el "ya está" no tocaba nada y el ítem no se cruzaba nunca del plan). El resultado devuelve además
+  el campo `actualizado` para distinguir alta/update en el toast de la UI; `compra` se sanitiza en
+  el módulo (qty entera ≥1, score 1–10) para que la UI no pueda colar basura.
