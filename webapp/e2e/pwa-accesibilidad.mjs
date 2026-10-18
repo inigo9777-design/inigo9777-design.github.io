@@ -183,6 +183,27 @@ try {
   await page.screenshot({ path: path.join(OUT_DIR, "27-a11y-movil-claro-foods.png") });
   await page.click("#theme-toggle");
 
+  // (6) Topbar móvil: caja fuerte SIEMPRE círculo 38×38 (idéntico al toggle del tema) y
+  //     la fila marca+clúster no se derrama a una 2ª fila al ACTIVAR la vista de Copia —
+  //     el antipatrón táctil era el despliegue de la etiqueta (botón 207px, y=56 vs y=10).
+  await page.click(".tab-side");
+  await page.waitForTimeout(350);
+  const cajaEstado = await page.evaluate(() => {
+    const r = (s) => { const el = document.querySelector(s); const b = el.getBoundingClientRect(); return { y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) }; };
+    const brand = r(".brand"), acciones = r(".topbar-actions"), caja = r(".tab-side"), toggle = r("#theme-toggle");
+    const label = document.querySelector(".tab-side .tab-label");
+    return {
+      brand, acciones, caja, toggle,
+      labelOculta: label ? getComputedStyle(label).display === "none" : true,
+      radio: getComputedStyle(document.querySelector(".tab-side")).borderRadius,
+      mismaFila: Math.abs(brand.y - acciones.y) < 2,
+      circulo: Math.abs(caja.w - caja.h) <= 2 && toggle.w === caja.w && toggle.h === caja.h,
+    };
+  });
+  ok(cajaEstado.labelOculta && cajaEstado.circulo && cajaEstado.radio === "999px" && cajaEstado.mismaFila,
+    `(6) caja fuerte móvil: círculo 38px como el toggle, etiqueta oculta y fila 1 sin derrame (${JSON.stringify(cajaEstado)})`);
+  await page.click(".tab[data-view='foods']");
+
   await ctx.close();
 } catch (err) {
   fallos++;

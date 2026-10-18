@@ -327,6 +327,16 @@ h1, h2, h3 {
   .tab { padding: 7px 11px; }
   .brand { margin-right: auto; }          /* empuja el clúster derecho al borde */
   .topbar { gap: 10px 12px; }
+
+  /* Caja fuerte (backup) SIEMPRE redonda en móvil, círculo 38×38 idéntico al toggle del
+     tema (petición 2026-10-19): el despliegue de la etiqueta al activar la vista era un
+     lujo de ratón que en táctil derramaba el clúster a una SEGUNDA fila y empujaba la
+     barra de tabs abajo (medido: botón 207px → clúster 255px → y=56 vs y=10). Con el
+     círculo fijo la fila 1 nunca se derrama; el nombre accesible ya vive en el aria-label
+     del botón y el estado activo sigue notándose por el relleno marca del círculo. */
+  .tab-side { width: 38px; }
+  .tab-side .tab-icon { padding: 0; }
+  .tab-side .tab-label { display: none; }
 }
 
 /* ========== 5. CONTENIDO Y VISTAS ========== */
