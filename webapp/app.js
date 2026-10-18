@@ -327,6 +327,17 @@ document.addEventListener("DOMContentLoaded", () => {
   recipeFilter.addEventListener("input", renderRecipes);
   recipeMealFilter.addEventListener("change", renderRecipes);
 
+  // Registra "se cocinó hoy" para CUALQUIER vista que lo ofrezca (Sugerencias, tarjetas de Recetas y
+  // modal de detalle): la lógica inmutable vive en menuSemanal.cookEntry (fabrica la entrada de
+  // mrcheff.cooked con su keyFingerprint); aquí sólo persistencia + aviso. Devuelve { cooked } nuevo
+  // por si la vista llamante quiere re-render fino (p.ej. Sugerencias re-sugiere con el cooldown aplicado).
+  function registrarCocinado(rec) {
+    const result = menuSemanal.cookEntry(rec, load(LS.cooked, []), today, planner.cookEntryFor, uid);
+    save(LS.cooked, result.cooked);
+    toast("Registrado: se cocinó hoy");
+    return result;
+  }
+
   function renderRecipes() {
     const q = recipeFilter.value.trim().toLowerCase();
     const meal = recipeMealFilter.value;
@@ -349,6 +360,7 @@ document.addEventListener("DOMContentLoaded", () => {
       card.innerHTML = `
         <div class="recipe-actions">
           <button data-edit="${r.id}" title="Editar título, ingredientes o pasos">✏️</button>
+          <button data-cook="${r.id}" title="Cocinar hoy" aria-label="Cocinar hoy">🍳</button>
           <button data-del="${r.id}" title="Eliminar">🗑</button>
         </div>
         <h3>${escapeHTML(r.title)}</h3>
@@ -356,9 +368,10 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
           <span class="muted" style="font-size:.8rem">${r.ingredients.length} ingr.</span>
         </div>`;
-      // Abrir detalle al hacer click en la tarjeta (el lápiz abre el EDITOR directamente: para eso está)
+      // Abrir detalle al hacer click en la tarjeta (el lápiz abre el EDITOR directamente: para eso está;
+      // el 🍳 registra "cocinado hoy" sin abrir el modal — ni edita ni borra)
       card.addEventListener("click", (e) => {
-        if (e.target.closest("[data-del], [data-edit]")) return;
+        if (e.target.closest("[data-del], [data-edit], [data-cook]")) return;
         openRecipeModal(r);
       });
       recipeList.appendChild(card);
@@ -379,6 +392,15 @@ document.addEventListener("DOMContentLoaded", () => {
         e.stopPropagation();
         const receta = recipes.find(x => x.id === btn.dataset.edit);
         if (receta) openRecipeEditor(receta);
+      });
+    });
+    // 🍳 de la tarjeta (solo icono): registra "cocinado hoy" con la MISMA lógica que Sugerencias y Menú
+    // (menuSemanal.cookEntry → mrcheff.cooked con fingerprint → cooldown de 7 días). No abre el modal.
+    recipeList.querySelectorAll("[data-cook]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const receta = recipes.find(x => x.id === btn.dataset.cook);
+        if (receta) registrarCocinado(receta);
       });
     });
     // Invariante: cada vez que la vista Recetas se pinta (cualquier camino -- nav-gate, filtros o borrado de una
@@ -424,12 +446,17 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="modal-footer">
         <button class="btn ghost" data-close>Cerrar</button>
         <button class="btn ghost" data-edit title="Ajusta el título, los ingredientes o los pasos a tu gusto">${enMisRecetas ? "✏️ Editar" : "✏️ Editar y guardar"}</button>
+        <button class="btn ghost" data-cook title="Anota que la has cocinado hoy: entra en cooldown de 7 días y no se volverá a sugerir">🍳 Cocinar hoy</button>
         <button class="btn primary" data-copy>📋 Copiar</button>
       </div>`;
     modal.classList.remove("hidden");
     $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
     const btnEdit = $("[data-edit]", modalContent);
     if (btnEdit) btnEdit.addEventListener("click", () => openRecipeEditor(r));
+    // "🍳 Cocinar hoy" del modal (icono + texto): MISMA lógica compartida que la tarjeta de Recetas y
+    // que Sugerencias y Menú — una entrada nueva en mrcheff.cooked anclada a HOY (cooldown de 7 días).
+    const btnCook = $("[data-cook]", modalContent);
+    if (btnCook) btnCook.addEventListener("click", () => registrarCocinado(r));
     $("[data-copy]", modalContent).addEventListener("click", () => {
       const text = `${r.title}\n\nIngredientes:\n${r.ingredients.map(i => "- " + i).join("\n")}\n\nMétodo:\n${r.method.map(m => limpiarPaso(m)).join("\n")}`;
       navigator.clipboard?.writeText(text).then(
@@ -702,64 +729,36 @@ document.addEventListener("DOMContentLoaded", () => {
         e.stopPropagation();
         const idea = ideas.find(x => x.id === btn.dataset.cook);
         if (!idea) return;
-        // La lógica (fabricar la entrada de cooked, inmutable) vive en menuSemanal.cookEntry;
-        // aquí sólo persistencia + re-sugerencia vía planner.
-        const result = menuSemanal.cookEntry(idea, load(LS.cooked, []), today, planner.cookEntryFor, uid);
-        save(LS.cooked, result.cooked);
-        // Volver a sugerir: el plato recién cocinado entra en cooldown de 7 días y deja de aparecer
-        const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked: result.cooked, today });
+        // Misma vía compartida que Recetas/modal (helper registrarCocinado); aquí además re-sugerimos:
+        // el plato recién cocinado entra en cooldown de 7 días y deja de aparecer.
+        const { cooked } = registrarCocinado(idea);
+        const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
         renderSuggestCards(planner.suggestToday(pool, foods));
-        toast("Registrado: se cocinó hoy");
       });
     });
   }
 
-  // Rotación de "↻ Sugerir ahora" (Card 1): lote de 4 tarjetas con 1 desayuno + 1 comida + 1 cena y, como 4ª,
-  // la mejor de un tipo de comida que VA ROTANDO en cada click. El módulo planner NO cambia: seguimos usando
-  // suggestToday tal cual (ranking completo por aprovechamiento, aforo qty>0 y cooldown de cocinadas intactos) y
-  // aquí abajo sólo repartimos ese ranking por tipo de comida y avanzamos un cursor por click — así el lote CAMBIA
-  // en cada pulsación aunque el aforo cocinable sea pequeño (el caso "4/6 recetas que no rotaban"), porque cada
-  // cursor avanza a la siguiente receta de su tipo. Los cursores viven en memoria: recargar la página reinicia.
-  const COMIDAS_DIA = ["desayuno", "comida", "cena"];
-  const cursorPorComida = { desayuno: 0, comida: 0, cena: 0 };
+  // Rotación de "↻ Sugerir ahora" (Card 1): la COMPOSICIÓN del lote (máx 4, con 1 desayuno + 1 comida
+  // + 1 cena + una 4ª que rota de tipo) vive como función PURA `planner.loteRotado` (7ª API pública,
+  // §8 log + unit tests en tests/planner.test.js) sobre el ranking completo de suggestToday — toda la
+  // lógica de siempre (aforo qty>0, cooldown de cooked, ranking) intacta. Aquí sólo la MEMORIA de la
+  // vista: los cursores de rotación (se reinician al recargar la página o al pulsar "Limpiar").
+  let cursoresSugerencia = { desayuno: 0, comida: 0, cena: 0 };
   let clicksSugerencia = 0;
 
   btnSuggestGenerate.addEventListener("click", () => {
     const cooked = load(LS.cooked, []);
     const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
-    const todas = planner.suggestToday(pool, foods);   // ranking completo de SIEMPRE (contrato cerrado del módulo, sin opts extra)
-
-    // Reparto del ranking por tipo de comida, conservando el orden del ranking dentro de cada tipo:
-    const porComida = { desayuno: [], comida: [], cena: [] };
-    todas.forEach(i => { (porComida[i.meal] || porComida.comida).push(i); });
-
-    // Lote de 4: 1 por cada tipo de comida (avanzando su cursor) + una 4ª del tipo que toca rotar este click.
-    const lote = [];
-    COMIDAS_DIA.forEach((m, idx) => {
-      const lista = porComida[m];
-      if (!lista.length) return;
-      const pos = cursorPorComida[m] % lista.length;
-      lote.push(lista[pos]);
-      if (idx === clicksSugerencia % 3 && lista.length > 1) {
-        lote.push(lista[(pos + 1) % lista.length]);    // la 4ª tarjeta: siguiente mejor de ese tipo de comida
-      }
-    });
-    // Relleno hasta 4 con lo mejor del ranking global aún no en el lote (tapas el tipo de comida que hoy no tenga candidatos):
-    for (const r of todas) {
-      if (lote.length >= 4) break;
-      if (!lote.some(b => b.title === r.title)) lote.push(r);
-    }
-    // Presentación coherente con "ordenadas por aprovechamiento": las 4 quedan en el orden del ranking global.
-    lote.sort((a, b) => todas.indexOf(a) - todas.indexOf(b));
-
-    COMIDAS_DIA.forEach(m => { cursorPorComida[m] += 1; });   // cada click avanza TODOS los cursores → el lote rota
+    const todas = planner.suggestToday(pool, foods);   // ranking completo de SIEMPRE (contrato cerrado del módulo)
+    const out = planner.loteRotado(todas, { cursores: cursoresSugerencia, clicks: clicksSugerencia });
+    cursoresSugerencia = out.cursores;                 // el módulo es puro: devuelve cursores NUEVOS
     clicksSugerencia += 1;
-    renderSuggestCards(lote);
+    renderSuggestCards(out.lote);
   });
 
   btnSuggestClear.addEventListener("click", () => {
     suggestList.innerHTML = "";
-    COMIDAS_DIA.forEach(m => { cursorPorComida[m] = 0; });   // al limpiar, la rotación también empieza de cero
+    cursoresSugerencia = { desayuno: 0, comida: 0, cena: 0 };   // la rotación también empieza de cero
     clicksSugerencia = 0;
     suggestEmpty.classList.remove("hidden");
     toast("Sugerencia limpiada");

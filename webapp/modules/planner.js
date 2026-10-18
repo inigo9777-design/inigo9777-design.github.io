@@ -1,13 +1,14 @@
 // modules/planner.js — Lógica PURe (sin DOM ni localStorage) de la vista "Sugerencias y menú"
 //   (ver webapp/feature-plans/planFeatureRecetasSugerdasYPlanSemana.md §1 + CODING_STANDARDS.md §3 option A / DIP §2-D).
 //
-// API PÚBLICA CERRADA (§5/§8 — no se filtran helpers internos; sólo estas 6):
+// API PÚBLICA CERRADA (§5/§8 — no se filtran helpers internos; sólo estas 7):
 //   fingerprintOf(recipe, opts)                          // = recipeIngredientKey (compatibilidad Jaccard cross-módulo con innovaciones.js)
 //   buildCandidatePool(foods, recipes, catalog, opts?)   // fusión "Mis Recetas ∪ catálogo" dedup+cooldown-filtrado ANTES del scoring (§3/§4 del plan)
 //   suggestToday(pool, foods, opts?)                    // ideas con TODOS los ingredientes qty>0 ahora, ordenadas por haveRatio desc + tiebreak estable
 //   buildWeeklyMenu(pool, foods, opts?)                 // menú de 7 días × 3 comidas (desayuno/comida/cena = 21 platos, DETERMINISTA sin azar)
 //   pickRecipeForSlot(pool, foods, opts)                // mejor candidato de UNA comida excluyendo usados — motor del "🔄 Cambiar" por día (feature 2026-10-18)
 //   cookEntryFor(recipe, opts?)                        // registro exacto para mrcheff.cooked[] { id, title, keyFingerprint, on=HOY-real } (§3 Card-1/Card-2)
+//   loteRotado(ideas, opts?)                           // lote ≤4 con 1 desayuno+1 comida+1 cena + 4ª rotante — motor del "↻ Sugerir ahora" (feature 2026-10-18)
 //
 // Diferencia vs innovaciones.js: aquí NO se inventa NADA al vuelo Y el filtro de "cantidad REAL disponible" exige qty>0 del aforo (§4 del plan),
 // más estricto que el match sólo-por-nombre (sin comprobar cantidad) que usa Innovación.
@@ -381,12 +382,65 @@
   }
 
   // ============================================================================
+  // (6) loteRotado — LOTE de sugerencias con ROTACIÓN POR CLICK (feature 2026-10-18, §8 log).
+  //     Recibe el ranking COMPLETO que produce suggestToday (ideas ya mapeadas) y compone un lote
+  //     de hasta `opts.max` tarjetas (4 por defecto) con 1 plato por cada tipo de comida
+  //     (desayuno/comida/cena) + una 4ª del tipo que VA ROTANDO en cada click (`opts.clicks % 3`),
+  //     avanzando un CURSOR por tipo: así el lote CAMBIA en cada pulsación aunque el aforo
+  //     cocinable sea pequeño. Si a un tipo le faltan candidatos, el hueco lo tapa lo mejor del
+  //     ranking global aún no elegido (nunca supera `max`; no duplica platos dentro del lote).
+  //     PURA: NO muta `opts.cursores` ni el array de entrada; devuelve { lote, cursores } NUEVOS —
+  //     el caller (app.js) sólo guarda los cursores en la memoria de la vista y pinta el lote.
+  function loteRotado(ideas, opts) {
+    const o = opts || {};
+    const max = Number.isFinite(o.max) && o.max > 0 ? Math.floor(o.max) : 4;
+    const previos = (o.cursores && typeof o.cursores === "object") ? o.cursores : {};
+    const clicks = Number.isFinite(o.clicks) ? Math.floor(o.clicks) : 0;
+    if (!Array.isArray(ideas) || ideas.length === 0) {
+      return { lote: [], cursores: { desayuno: 0, comida: 0, cena: 0 } };   // guard §2-A: degradación suave, sin lanzar
+    }
+
+    // Reparto del ranking por tipo de comida, conservando el orden global DENTRO de cada tipo
+    // (meal desconocido/ausente cae a "comida", MISMO default que cookEntryFor/buildWeeklyMenu):
+    const porComida = { desayuno: [], comida: [], cena: [] };
+    ideas.forEach(i => { const m = (i && i.meal) || "comida"; (porComida[m] || porComida.comida).push(i); });
+
+    // Cursores entrantes saneados (ausentes → 0): cada click de la vista avanza todos +1.
+    const cursores = {
+      desayuno: Number.isFinite(previos.desayuno) ? previos.desayuno : 0,
+      comida:   Number.isFinite(previos.comida)   ? previos.comida   : 0,
+      cena:     Number.isFinite(previos.cena)     ? previos.cena     : 0
+    };
+
+    const lote = [];
+    DAY_MEALS.forEach((m, idx) => {
+      const lista = porComida[m];
+      if (!lista.length) return;
+      const pos = cursores[m] % lista.length;   // cursor modular sobre el ranking de SU tipo
+      lote.push(lista[pos]);
+      if (idx === clicks % DAY_MEALS.length && lista.length > 1) {
+        lote.push(lista[(pos + 1) % lista.length]);   // la 4ª tarjeta: siguiente mejor de ese tipo (rota por click)
+      }
+      cursores[m] += 1;
+    });
+    // Relleno hasta max con lo mejor del ranking global aún no elegido:
+    for (const r of ideas) {
+      if (lote.length >= max) break;
+      if (!lote.some(b => b === r)) lote.push(r);
+    }
+    // Presentación coherente con "ordenadas por aprovechamiento": el lote hereda el orden del ranking global.
+    lote.sort((a, b) => ideas.indexOf(a) - ideas.indexOf(b));
+    return { lote, cursores };
+  }
+
+  // ============================================================================
   return {                                              // API PÚBLICA CERRADA estricta §5/§8 (mismo patrón exacto que Innovación: NO filtran helpers internos como pantryMatchDetails/haveRatio/etc).
     fingerprintOf,        // (1) coherencia cross-módulo Jaccard idénica a innovaciones.js (§3.5/§4 "coherente con isHardExcludedByUser existente") — usado para dedup intra-lote + alimentar cookEntryFor.keyFingerprint.
     buildCandidatePool,   // (2) fusión+cooldown ANTES del scoring compartido entre suggestToday/buildWeeklyMenu (§3 / § "UN solo mecanismo pre-filtro absoluto", NO dos).
     suggestToday,         // (3) ideas con TODOS ingredientes qty>0 (§4 estricto), ordenadas por haveRatio desc + tiebreak estable SIN azar (§ coherencia con innovaciones Fase-1/2 determinismo estricto de tramo A).
     buildWeeklyMenu,      // (4) menú 7×3 (21 platos desayuno/comida/cena) DETERMINISTA ram-A + degradación ram-B por repetición inter-día (SIN rng: opción retirada de este contrato).
     pickRecipeForSlot,    // (4b) mejor candidato de UNA comida excluyendo claves dadas — motor puro del "🔄 Cambiar" de un día (feature 2026-10-18; nuevo ítem API, ver §8).
-    cookEntryFor          // (5) registro mrcheff.cooked[] exacto {id,title,keyFingerprint,on=HOY-real-injetable} (§3 Card-1/Card-2 literal del plan; §6 determinista vía opts.today/uid inyectables igual que mergeIncoming today).
+    cookEntryFor,         // (5) registro mrcheff.cooked[] exacto {id,title,keyFingerprint,on=HOY-real-injetable} (§3 Card-1/Card-2 literal del plan; §6 determinista vía opts.today/uid inyectables igual que mergeIncoming today).
+    loteRotado            // (6) lote ≤max con 1 desayuno+1 comida+1 cena + 4ª rotante, cursores por tipo de comida — motor puro del "↻ Sugerir ahora" (feature 2026-10-18; nuevo ítem API, ver §8).
   };
 });

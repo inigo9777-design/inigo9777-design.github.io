@@ -243,3 +243,12 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   del menú. El resto del plan (missing flags, needyFoods) NO se recalcula: el plan sigue siendo
   snapshot para el cálculo de compra; lo editado es la ficha visible del plato, no su análisis de
   disponibilidad. Regenerar el menú reancla todo al estado nuevo de Mis Recetas.
+- `2026-10-18 · @AI-agent · #feature-cocinar-hoy-y-rotacion-sugerencias · Principio: O · Justificación:`
+  se AÑADE una 7ª función pública a `planner.js` (`loteRotado`) rompiendo temporalmente la "API
+  cerrada de 6" porque la composición del lote del botón "↻ Sugerir ahora" (máx 4 tarjetas con
+  1 desayuno + 1 comida + 1 cena + una 4ª que rota de tipo, avanzando un cursor por tipo de comida)
+  pertenece al dominio del planner (opera sobre SU ranking de `suggestToday`; un solo mecanismo §3);
+  la lista cerrada se re-valida en `planner.test.js` con las 7 funciones. La persistencia y el toast
+  del registro "cocinado hoy" (`registrarCocinado`) SÍ quedan en `app.js` como glue del composition
+  root: la parte pura ya vive y se testea en `menu-semanal.cookEntry` (§6 Capa 1) y el wrapper no
+  contiene más que load/save/toast (§3: `app.js` permanece como composition-root legacy).

@@ -30,8 +30,8 @@ describe("modules/planner.js", () => {
 
    // ---------------------------------------------------------------------------
    describe("API PÚBLICA CERRADA (§5/§8 — sin fugas de helpers internos como pantryMatchDetails/haveRatio etc.)", () => {
-     it("exporta EXACTAMENTE las 6 funciones del contrato §1 y NADA más (idénico estricto al patrón `return { generate };` de innovaciones.js)", () => {
-       expect(Object.keys(planner).sort()).toEqual([ "buildCandidatePool", "buildWeeklyMenu", "cookEntryFor", "fingerprintOf", "pickRecipeForSlot", "suggestToday" ].sort());
+     it("exporta EXACTAMENTE las 7 funciones del contrato §1 y NADA más (idénico estricto al patrón `return { generate };` de innovaciones.js)", () => {
+       expect(Object.keys(planner).sort()).toEqual([ "buildCandidatePool", "buildWeeklyMenu", "cookEntryFor", "fingerprintOf", "loteRotado", "pickRecipeForSlot", "suggestToday" ].sort());
      });
    });
 
@@ -170,6 +170,65 @@ describe("modules/planner.js", () => {
        expect(out.map(i => i.title)).toEqual(["Alfajor de huevo", "Medialunas rápidas", "Zupa cremosa"]);   // § guard EXACTO del orden lexicográfico ↑ SIN azar NINGÚNO (§ coherencia total estricta 1:1 con innovaciones.js Fase-1/2 ranking determinista SIN rama B accional, MISM0 patrón estricto exacto verificado SIN exepción alguna de este tipo)
      });
    });
+
+  // ---------------------------------------------------------------------------
+  // (6) loteRotado — lote ≤max con 1 desayuno + 1 comida + 1 cena + 4ª rotante (feature 2026-10-18).
+  //     PURA sobre el ranking de suggestToday: avanza un cursor por tipo de comida y devuelve
+  //     { lote, cursores } NUEVOS (sin mutar la entrada). Motor del "↻ Sugerir ahora".
+  // ---------------------------------------------------------------------------
+  describe("(6) loteRotado — lote rotado por tipo de comida (≤max, determinista, puro)", () => {
+
+    // 2 desayunos + 2 comidas + 2 cenas con orden global fijado por el índice del array (como si
+    // fueran la salida de suggestToday): control total de qué toca a cada cursor.
+    const ideas = [
+      { id: "d1", title: "Des d1", meal: "desayuno" },
+      { id: "c1", title: "Com c1", meal: "comida" },
+      { id: "n1", title: "Cen n1", meal: "cena" },
+      { id: "d2", title: "Des d2", meal: "desayuno" },
+      { id: "c2", title: "Com c2", meal: "comida" },
+      { id: "n2", title: "Cen n2", meal: "cena" }
+    ];
+
+    it("lote de 4 con los 3 tipos de comida presentes y relleno por el mejor del ranking aún no elegido", () => {
+      const out = planner.loteRotado(ideas, { cursores: { desayuno: 0, comida: 0, cena: 0 }, clicks: 0 });
+      expect(out.lote.length).toBe(4);
+      const tipos = new Set(out.lote.map(i => i.meal));
+      expect(tipos.has("desayuno")).toBe(true);
+      expect(tipos.has("comida")).toBe(true);
+      expect(tipos.has("cena")).toBe(true);
+      // La 4ª tarjeta (clicks=0 → turno del desayuno) es el SEGUNDO desayuno del ranking:
+      expect(out.lote.map(i => i.id)).toEqual(["d1", "c1", "n1", "d2"]);   // orden heredado del ranking global
+    });
+
+    it("el click siguiente ROTA: cada tipo de comida muestra su siguiente candidato (cursores nuevos, sin mutar los de entrada)", () => {
+      const entrada = { desayuno: 0, comida: 0, cena: 0 };
+      const out1 = planner.loteRotado(ideas, { cursores: entrada, clicks: 0 });
+      expect(out1.cursores).toEqual({ desayuno: 1, comida: 1, cena: 1 });
+      expect(entrada).toEqual({ desayuno: 0, comida: 0, cena: 0 });        // PURA: la entrada queda intacta (§ inmutabilidad como cookEntry)
+      const out2 = planner.loteRotado(ideas, { cursores: out1.cursores, clicks: 1 });
+      // Todos avanzan (d2/c2/n2) y la 4ª (clicks=1 → turno de comida) es comida[(1+1)%2]=c1,
+      // que el orden del ranking global coloca primera:
+      expect(out2.lote.map(i => i.id)).toEqual(["c1", "d2", "c2", "n2"]);
+    });
+
+    it("tope `max` respetado (nunca más de max tarjetas) y tipo de comida AUSENTE tapado por el mejor del ranking global no elegido", () => {
+      const sinCena = ideas.filter(i => i.meal !== "cena");
+      const out = planner.loteRotado(sinCena, { cursores: { desayuno: 0, comida: 0, cena: 0 }, clicks: 2 });
+      expect(out.lote.length).toBeLessThanOrEqual(4);
+      const tipos = new Set(out.lote.map(i => i.meal));
+      expect(tipos.has("cena")).toBe(false);
+      expect(tipos.has("desayuno")).toBe(true);
+      expect(tipos.has("comida")).toBe(true);
+    });
+
+    it("guards §2-A: entrada NO-array o vacía → lote [] y cursores saneados, SIN lanzar; meal desconocido cae a 'comida'", () => {
+      expect(planner.loteRotado(null)).toEqual({ lote: [], cursores: { desayuno: 0, comida: 0, cena: 0 } });
+      expect(planner.loteRotado([]).lote).toEqual([]);
+      const raro = planner.loteRotado([{ id: "x", title: "X", meal: "merienda" }], { clicks: 5 });
+      expect(raro.lote.map(i => i.id)).toEqual(["x"]);                     // el "merienda" entra como comida (fallback)
+      expect(raro.cursores.comida).toBe(1);                                // y avanzó SU cursor (el tipo cae a comida)
+    });
+  });
 
   // ---------------------------------------------------------------------------
   // (4) buildWeeklyMenu — MENÚ 7 días × 3 comidas (desayuno/comida/cena = 21 slots, feature 2026-10-18).
