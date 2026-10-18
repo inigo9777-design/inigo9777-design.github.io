@@ -14,12 +14,11 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
   There is no linter/formatter/typecheck for the app itself; "verify a change" = open index.html
   and exercise the affected tab.
 - **Tests:** `cd webapp && npm test` (`jest`) / `npm run coverage` (`jest --coverage`). Jest IS a
-  declared devDependency with installed `node_modules/`. Specs live under `webapp/tests/` —
-  per-module specs (classify, priority, recipe-analysis, ingredient-matching, util, innovations,
+  declared devDependency with installed `node_modules/`. Specs live under `webapp/tests/` — per-module specs (classify, priority, recipe-analysis, ingredient-matching, util, innovations,
   planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas) +
   integration specs (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
   buscador-catalogo, e2e-flow-receta-a-alerta-compra) + harness scaffolding (`boot.js` / `setup.js`). As of the last
-  run on 2026-10-18 the whole suite is green (**279 tests across 21 suites**) — verify with a fresh
+  run on 2026-10-18 the whole suite is green (**291 tests across 21 suites**) — verify with a fresh
   run before trusting it.
 - **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
   and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`

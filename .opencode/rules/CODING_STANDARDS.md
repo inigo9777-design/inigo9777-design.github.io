@@ -287,6 +287,25 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   ("Queso azul" ≠ "Queso rallado"; "Lomo de cerdo" ≠ "Lomo salado"). Cambio semántico asumido:
   la despensa es más honesta y las sugerencias pueden exigir el ingrediente específico en la
   lista de la compra; tests de matching actualizados a ambos lados + suite completa verde.
+- `2026-10-18 · @AI-agent · #tasks-analisis-texto-recetas · Principio: O · Justificación:` el análisis
+  del texto libre de "Crear receta" (módulo puro `recipe-analysis.js`, sin red) perdía contenido que el
+  usuario escribió a mano: (1) toda palabra inicial en MAYÚSCULA se cortaba en el tokenizador ("Tortilla"
+  → "ortilla") — el split es `[^a-z0-9]+` y strip no minúscula: ahora se minúscula ANTES; (2) nombres sin
+  diccionario ("harina", "chirla", "wakame"…) desaparecían salvo inventario: nuevo FALLBACK DE CANTIDADES
+  que captura el nombre de fragmentos con cifra/medida ("200 gramos de harina", "un puñado de chirlas")
+  con filtros anti-basura (no arranca por verbo, no es cláusula temporal, sin palabras de tiempo/recipiente);
+  (3) el patrón DID NOT MAYUSCIZE: compuestos con "de" interno ya se conservan ("Pementón dulce" — y
+  el diccionario se amplía con básicos: patata, agua, harina, vino, perejil, pescado blanco, frutos secos…);
+  (4) imperativos irregulares ("Bate", "Fríe", "Cuece", "Vierte"…) no reconocidos por la raíz de 4 letras
+  se añaden como tokens EXACTOS; (5) el recorte por COMAS + anclaje de frases SIN verbo: colas temporales
+  ("a fuego medio durante 3 minutos") van al paso ANTERIOR y las introductorias ("Cuando la cebolla esté
+  dorada") al SIGUIENTE — antes se descartaban ambas; y los compuestos subsumen al simple capturado en la
+  MISMA pieza ("Pimentón dulce" sustituye "Pimentón", en su sitio — el 1º pone título), mientras que en
+  piezas distinas son 2 alimentos ("tomate" + "tomate triturado"). Contrato público intacto
+  (`analyzeRecipe(texto, {meal, pantry}) → {title, ingredients, method, possible}`); tope de pasos 10 → 16;
+  trampas documentadas: los patrones de cifra/medida/ruido comparan en GRAFÍA STRIP ("puñado"→"punado",
+  "sartén"→"sarten") porque NFD deshace la Ñ; se evita dict con participios ambiguos ("dorada"). Spec
+  ampliada (19 tests) + suite verde 291/291 + e2e Brave real (`e2e/analisis-texto.mjs`).
 - `2026-10-18 · @AI-agent · #feature-front-end-a11y · Principio: O · Justificación:` la accesibilidad
   de la webapp se eleva sin rediseñar la identidad ("La cocina tranquila"): la barra de vistas DEJA el
   patrón `role="tablist/tab"` incompleto (sin tabpanels ni gestión de flechas, tal como estaba era un
