@@ -1,4 +1,8 @@
 node_modules/
 webapp/coverage/*
 reports/ui-brave/*
+.continue/
+.opencode/
+.vscode/
+reports/
 .DS_Store
