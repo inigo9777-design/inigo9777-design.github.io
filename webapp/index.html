@@ -21,15 +21,17 @@
 <body>
     <header class="topbar">
         <div class="brand">
-            <img class="brand-logo" src="logo.png" alt="Mr Cheff">
+            <img class="brand-logo" src="logo.png" alt="" aria-hidden="true">
             <span class="brand-name">Mr Cheff</span>
         </div>
-        <nav class="tabs" role="tablist">
-            <button class="tab active" data-view="foods" role="tab">📦 Alimentos</button>
-            <button class="tab" data-view="recipes" role="tab">📝 Recetas</button>
-            <button class="tab" data-view="innovation" role="tab">💡 Innovación</button>
-            <button class="tab" data-view="suggest" role="tab">🍽️ Sugerencias y menú</button>
-            <button class="tab" data-view="seasonal" role="tab">🥦 Temporada</button>
+        <!-- Navegación de vistas: botones con aria-current (patrón de tab ARIA completo
+             requeriría gestión de flechas + tabpanels; aquí es navegación honesta y simple). -->
+        <nav class="tabs" aria-label="Secciones">
+            <button class="tab active" data-view="foods" aria-current="true">📦 Alimentos</button>
+            <button class="tab" data-view="recipes">📝 Recetas</button>
+            <button class="tab" data-view="innovation">💡 Innovación</button>
+            <button class="tab" data-view="suggest">🍽️ Sugerencias y menú</button>
+            <button class="tab" data-view="seasonal">🥦 Temporada</button>
         </nav>
 
         <!-- Clúster derecho: copia de seguridad (icono compacto JUSTO A LA IZQUIERDA del alternador de
@@ -37,7 +39,7 @@
              se despliega al pasar el ratón (y en foco por teclado o cuando está activa). La pestaña sigue
              siendo una .tab con data-view → la navegación de app.js no cambia. -->
         <div class="topbar-actions">
-            <button class="tab tab-side" data-view="backup" role="tab" aria-label="Copia de seguridad" title="Copia de seguridad">
+            <button class="tab tab-side" data-view="backup" aria-label="Copia de seguridad" title="Copia de seguridad">
                 <span class="tab-icon" aria-hidden="true">🗄️</span><span class="tab-label">Copia de seguridad</span>
             </button>
 
@@ -58,18 +60,18 @@
                     (<span class="urg urg-red">rojo 8-10</span> · <span class="urg urg-orange">naranja 6-7</span> · <span class="urg urg-green">verde &lt;6</span>).
                 </p>
                 <form id="food-form" class="row-form">
-                    <input type="text" id="food-name" placeholder="Nombre del alimento (p. ej. Huevos)" required>
+                    <input type="text" id="food-name" placeholder="Nombre del alimento (p. ej. Huevos)" aria-label="Nombre del alimento" required>
                     <div class="qty-group">
                         <label for="food-qty">En casa: <span id="food-qty-val">0</span> uds</label>
-                        <input type="number" id="food-qty" min="0" step="1" value="0" title="Cuántos tienes">
+                        <input type="number" id="food-qty" min="0" step="1" value="0" title="Cuántos tienes" aria-label="Cantidad que tienes">
                     </div>
                     <div class="qty-group">
                         <label for="food-min">Mínimo para avisar: <span id="food-min-val">1</span> uds</label>
-                        <input type="number" id="food-min" min="0" step="1" value="1" title="Cuándo reponer">
+                        <input type="number" id="food-min" min="0" step="1" value="1" title="Cuándo reponer" aria-label="Mínimo para avisar de reponer">
                     </div>
                     <div class="slider-group">
                         <label for="food-score">Importancia: <span id="food-score-val">5</span></label>
-                        <input type="range" id="food-score" min="1" max="10" value="5">
+                        <input type="range" id="food-score" min="1" max="10" value="5" aria-label="Importancia del alimento (del 1 al 10)">
                     </div>
                     <button type="submit" class="btn primary">Añadir</button>
                 </form>
@@ -80,7 +82,7 @@
             <div class="card">
                 <h2>Inventario actual</h2>
                 <div class="toolbar">
-                    <input type="text" id="food-filter" placeholder="Filtrar alimentos...">
+                    <input type="text" id="food-filter" placeholder="Filtrar alimentos..." aria-label="Filtrar alimentos">
                     <button id="toggle-check" class="btn ghost" title="Marca todo">✓ Todo</button>
                 </div>
                 <ul id="food-list" class="food-list"></ul>
@@ -93,9 +95,9 @@
             <div class="card">
                 <h2>Crear Receta</h2>
                 <p class="muted">Describe la receta con tus palabras: Mr Cheff lee tu texto y saca, en orden, los <strong>ingredientes que mencionas</strong> y los <strong>pasos que describes</strong> — claro y conciso, sin pasos genéricos. <span class="tag">Análisis del texto · sin red</span>: todo se interpreta localmente con heurísticas en español, sin IA externa ni conexión.</p>
-                <textarea id="recipe-desc" rows="4" placeholder="Ej: Tomé dos huevos, los bati con sal y cociné en la sartén con un poco de aceite hasta que estuvieron cuajados..."></textarea>
+                <textarea id="recipe-desc" rows="4" placeholder="Ej: Tomé dos huevos, los bati con sal y cociné en la sartén con un poco de aceite hasta que estuvieron cuajados..." aria-label="Descripción de lo que has cocinado"></textarea>
                 <div class="row-form">
-                    <select id="recipe-meal">
+                    <select id="recipe-meal" aria-label="Momento del día">
                         <option value="desayuno">🌅 Desayuno</option>
                         <option value="comida">🍽️ Comida</option>
                         <option value="cena">🌙 Cena</option>
@@ -129,7 +131,7 @@
                 <h2>🔎 Buscador del catálogo</h2>
                 <p class="muted">Busca en las 200 recetas del catálogo curado por título o por ingrediente ("tortilla patatas", "mascarpone"…). Click en una para verla.</p>
                 <div class="toolbar">
-                    <input type="text" id="recipe-catalog-search" placeholder="Escribe para buscar en el catálogo…" autocomplete="off">
+                    <input type="text" id="recipe-catalog-search" placeholder="Escribe para buscar en el catálogo…" autocomplete="off" aria-label="Buscar en el catálogo de recetas">
                 </div>
                 <div id="recipe-catalog-results" class="recipe-grid"></div>
                 <p id="recipe-catalog-empty" class="empty muted hidden">Sin resultados en el catálogo.</p>
@@ -138,8 +140,8 @@
             <div class="card">
                 <h2>Mis Recetas</h2>
                 <div class="toolbar">
-                    <input type="text" id="recipe-filter" placeholder="Buscar receta...">
-                    <select id="recipe-meal-filter">
+                    <input type="text" id="recipe-filter" placeholder="Buscar receta..." aria-label="Buscar en Mis Recetas">
+                    <select id="recipe-meal-filter" aria-label="Filtrar por momento del día">
                         <option value="all">Todas</option>
                         <option value="desayuno">Desayuno</option>
                         <option value="comida">Comida</option>
@@ -242,8 +244,8 @@
                 <h2>Buscador de Temporada</h2>
                 <p class="muted">Descubre qué fruta y verdura está en su mejor momento según el mes actual.</p>
                 <div class="toolbar">
-                    <input type="text" id="season-filter" placeholder="Buscar fruta o verdura...">
-                    <select id="season-month"></select>
+                    <input type="text" id="season-filter" placeholder="Buscar fruta o verdura..." aria-label="Buscar fruta o verdura de temporada">
+                    <select id="season-month" aria-label="Mes de temporada"></select>
                 </div>
             </div>
             <div id="season-grid" class="season-grid"></div>
@@ -275,13 +277,13 @@
     <!-- Modal detalle receta -->
     <div id="modal" class="modal hidden">
         <div class="modal-backdrop" data-close></div>
-        <div class="modal-box">
-            <button class="modal-close" data-close>&times;</button>
+        <div class="modal-box" role="dialog" aria-modal="true">
+            <button class="modal-close" data-close aria-label="Cerrar">&times;</button>
             <div id="modal-content"></div>
         </div>
     </div>
 
-    <div id="toast" class="toast hidden"></div>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
     <script src="data/data.js"></script>
     <script src="app.js"></script>

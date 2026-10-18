@@ -90,7 +90,11 @@ document.addEventListener("DOMContentLoaded", () => {
   tabs.forEach(tab => {
     tab.addEventListener("click", () => {
       const view = tab.dataset.view;
-      tabs.forEach(t => t.classList.toggle("active", t === tab));
+      tabs.forEach(t => {
+        t.classList.toggle("active", t === tab);
+        if (t === tab) t.setAttribute("aria-current", "true");
+        else t.removeAttribute("aria-current");
+      });
       $$(".view").forEach(v => v.classList.toggle("active", v.id === `view-${view}`));
       // Volver al tab de Recetas sin nada nuevo no debe re-pintar la lista (ineficiente y a ciegas, tal como pide el
       //que piden los usuarios); solo lo hacemos si ha entrado una receta nueva desde fuera: entonces 'recipes' ya esta sincronizado en
@@ -178,14 +182,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const li = document.createElement("li");
       li.className = "food-item" + (f.checked ? " checked" : "") + " urg-" + level + (low ? " low" : "");
       li.innerHTML = `
-        <input type="checkbox" data-id="${f.id}" ${f.checked ? "checked" : ""}>
+        <input type="checkbox" data-id="${f.id}" ${f.checked ? "checked" : ""} aria-label="Hoy está en casa: ${escapeHTML(f.name)}">
         <span class="food-name">${escapeHTML(f.name)}</span>
         <span class="food-qty" title="En casa / mínimo para avisar">${qty} / ${min}</span>
         <span class="food-score urg-${level}" title="Importancia">${f.score}</span>
         <span class="food-actions">
-          <button class="btn ghost small" data-inc="${f.id}" title="Sumar 1" data-step="1">➕</button>
-          <button class="btn ghost small" data-inc="${f.id}" title="Restar 1" data-step="-1">➖</button>
-          <button class="btn ghost small" data-del="${f.id}" title="Eliminar">🗑</button>
+          <button class="btn ghost small" data-inc="${f.id}" title="Sumar 1" data-step="1" aria-label="Sumar 1 a ${escapeHTML(f.name)}">➕</button>
+          <button class="btn ghost small" data-inc="${f.id}" title="Restar 1" data-step="-1" aria-label="Restar 1 a ${escapeHTML(f.name)}">➖</button>
+          <button class="btn ghost small" data-del="${f.id}" title="Eliminar" aria-label="Eliminar ${escapeHTML(f.name)}">🗑</button>
         </span>`;
       foodList.appendChild(li);
     });
@@ -281,7 +285,10 @@ document.addEventListener("DOMContentLoaded", () => {
           ${badgeOrigenHTML(r)}
           <span class="muted" style="font-size:.8rem">${escapeHTML(donde)}</span>
         </div>`;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", "Ver detalles de " + r.title);
       card.addEventListener("click", () => openRecipeModal(r));
+      activablePorTeclado(card, () => openRecipeModal(r));
       recipeCatalogResults.appendChild(card);
     });
   }
@@ -392,9 +399,9 @@ document.addEventListener("DOMContentLoaded", () => {
       card.dataset.id = r.id;
       card.innerHTML = `
         <div class="recipe-actions">
-          <button data-edit="${r.id}" title="Editar título, ingredientes o pasos">✏️</button>
+          <button data-edit="${r.id}" title="Editar título, ingredientes o pasos" aria-label="Editar receta">✏️</button>
           <button data-cook="${r.id}" title="Cocinar hoy" aria-label="Cocinar hoy">🍳</button>
-          <button data-del="${r.id}" title="Eliminar">🗑</button>
+          <button data-del="${r.id}" title="Eliminar" aria-label="Eliminar receta">🗑</button>
         </div>
         <h3>${escapeHTML(r.title)}</h3>
         <div class="recipe-meta">
@@ -408,6 +415,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.target.closest("[data-del], [data-edit], [data-cook]")) return;
         openRecipeModal(r);
       });
+      activablePorTeclado(card, () => openRecipeModal(r));
       recipeList.appendChild(card);
     });
 
@@ -446,6 +454,32 @@ document.addEventListener("DOMContentLoaded", () => {
   // ===== MODAL DETALLE =====
   const modal = $("#modal");
   const modalContent = $("#modal-content");
+  const modalBox = $(".modal-box", modal);
+
+  // Accesibilidad del modal: al abrir se recuerda el control que lo llamó (para devolverle el
+  // foco al cerrar) y se anuncia un nombre por aria-label; al cerrar el foco vuelve a su sitio.
+  // Sólo glue de vista: la decisión de qué se muestra sigue viniendo de cada aceptor.
+  let focoAntesDeModal = null;
+  function abrirModal(tituloAccesible) {
+    const activo = document.activeElement;
+    focoAntesDeModal = (activo && typeof activo.focus === "function") ? activo : null;
+    if (tituloAccesible) modalBox.setAttribute("aria-label", tituloAccesible);
+    modal.classList.remove("hidden");
+  }
+
+  // Puntos de acceso por teclado: tarjetas y filas que abren detalle con un click ganan también
+  // Tab (el foco las alcanza) + Enter/Espacio para abrirlas. Si el foco está en un botón interno
+  // (✏️, 🗑, …) la tecla les pertenece a esos botones, no a la tarjeta.
+  function activablePorTeclado(el, abrir) {
+    el.setAttribute("tabindex", "0");
+    el.addEventListener("keydown", (e) => {
+      if (e.target !== el) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        abrir();
+      }
+    });
+  }
   // Modal de detalle. Se extiende para el flujo Sugerencias/Menú (§ plan Feature §2): la 2ª arg opcional { highlightMissing:true }
   // hace que los ingredientes NO disponibles en aforo (stock qty=0 o ausente) se marquen visualmente con .meal-missing + "⚠️ No lo tienes".
   // SIN esa bandera el render del modal queda IDENTICO al de siempre: Recetas/Innovación no la pasan → no se rompe ninguna vista ya probada.
@@ -484,7 +518,9 @@ document.addEventListener("DOMContentLoaded", () => {
         <button class="btn ghost" data-cook title="Anota que la has cocinado hoy: entra en cooldown de 7 días y no se volverá a sugerir">🍳 Cocinar hoy</button>
         <button class="btn primary" data-copy>📋 Copiar</button>
       </div>`;
-    modal.classList.remove("hidden");
+    abrirModal("Detalle de receta: " + r.title);
+    const btnCerrarModal = $(".modal-close", modal);
+    if (btnCerrarModal) btnCerrarModal.focus();
     $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
     const btnEdit = $("[data-edit]", modalContent);
     if (btnEdit) btnEdit.addEventListener("click", () => openRecipeEditor(r));
@@ -531,7 +567,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <button class="btn ghost" data-close>Cancelar</button>
         <button class="btn primary" data-save-edit>Guardar cambios</button>
       </div>`;
-    modal.classList.remove("hidden");
+    abrirModal("Editar receta");
     $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
     $("#edit-title", modalContent).focus();
     $("[data-save-edit]", modalContent).addEventListener("click", () => {
@@ -561,7 +597,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function closeModal() { modal.classList.add("hidden"); }
+  function closeModal() {
+    modal.classList.add("hidden");
+    if (focoAntesDeModal) { focoAntesDeModal.focus(); focoAntesDeModal = null; }
+  }
   $$("[data-close]").forEach(el => el.addEventListener("click", closeModal));
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeModal();
@@ -694,9 +733,9 @@ document.addEventListener("DOMContentLoaded", () => {
       card.dataset.id = i.id;
       card.innerHTML = `
         <div class="recipe-actions">
-          <button data-edit="${i.id}" title="Editar y guardar en Mis Recetas">✏️</button>
-          <button data-save="${i.id}" title="Guardar en Mis Recetas">⭐</button>
-          <button data-del="${i.id}" title="Eliminar">🗑</button>
+          <button data-edit="${i.id}" title="Editar y guardar en Mis Recetas" aria-label="Editar y guardar en Mis Recetas">✏️</button>
+          <button data-save="${i.id}" title="Guardar en Mis Recetas" aria-label="Guardar en Mis Recetas">⭐</button>
+          <button data-del="${i.id}" title="Eliminar" aria-label="Eliminar idea">🗑</button>
         </div>
         <h3>${escapeHTML(i.title)}</h3>
         <div class="recipe-meta">
@@ -709,6 +748,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.target.closest("[data-del], [data-save], [data-edit]")) return;
         openRecipeModal(i);
       });
+      activablePorTeclado(card, () => openRecipeModal(i));
       innovationList.appendChild(card);
     });
 
@@ -773,8 +813,8 @@ document.addEventListener("DOMContentLoaded", () => {
       card.dataset.id = idea.id;
       card.innerHTML = `
         <div class="recipe-actions">
-          <button data-edit="${idea.id}" title="Editar y guardar en Mis Recetas">✏️</button>
-          <button data-cook="${idea.id}" title="Cocinar hoy">🍳 Cocinar hoy</button>
+          <button data-edit="${idea.id}" title="Editar y guardar en Mis Recetas" aria-label="Editar y guardar en Mis Recetas">✏️</button>
+          <button data-cook="${idea.id}" title="Cocinar hoy" aria-label="Cocinar hoy">🍳 Cocinar hoy</button>
         </div>
         <h3>${escapeHTML(idea.title)}</h3>
         <div class="recipe-meta">
@@ -787,6 +827,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.target.closest("[data-cook], [data-edit]")) return;
         openRecipeModal(idea, { highlightMissing: true });
       });
+      activablePorTeclado(card, () => openRecipeModal(idea, { highlightMissing: true }));
       suggestList.appendChild(card);
     });
 
@@ -923,6 +964,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (e.target.closest("button")) return;
           openRecipeModal(comida.recipe, { highlightMissing: true });
         });
+        activablePorTeclado(row, () => openRecipeModal(comida.recipe, { highlightMissing: true }));
         const btnCook = row.querySelector("[data-cook]");
         if (btnCook) btnCook.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -1043,7 +1085,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <button class="btn ghost" data-close>Cancelar</button>
           <button class="btn primary" data-buy-confirm>Añadir a la despensa</button>
         </div>`;
-        modal.classList.remove("hidden");
+        abrirModal("Compra: " + name);
         $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
         $("#compra-qty", modalContent).focus();
         $("#compra-qty", modalContent).select();
@@ -1231,7 +1273,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <button class="btn ghost" data-close>Cerrar</button>
         <button class="btn primary" id="backup-copy">📋 Copiar</button>
       </div>`;
-    modal.classList.remove("hidden");
+    abrirModal("Copia manual de seguridad");
     $$("[data-close]", modalContent).forEach(b => b.addEventListener("click", closeModal));
     $("#backup-copy", modalContent).addEventListener("click", () => {
       const ta = $("#backup-text", modalContent);
