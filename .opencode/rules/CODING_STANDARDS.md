@@ -348,3 +348,12 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   el "ya está" no tocaba nada y el ítem no se cruzaba nunca del plan). El resultado devuelve además
   el campo `actualizado` para distinguir alta/update en el toast de la UI; `compra` se sanitiza en
   el módulo (qty entera ≥1, score 1–10) para que la UI no pueda colar basura.
+- `2026-10-19 · @AI-agent · #tasks-viewpager-tab-activo-visible · Principio: O · Justificación:`
+  el viewpager API "CERRADA (2 funciones)" de `modules/swipe-tabs.js` se amplía con la 3ª función
+  pública `scrollIzquierdaParaTab(ctx) → scrollLeft`: al llegar por swipe a las vistas de la
+  derecha (p. ej. Temporada) el tab activo quedaba FUERA de la ventana visible del nav (scroller-x
+  interno invisible — 638px de contenido en 358px visibles, 0px del pill en pantalla), así que el
+  usuario veía en el header aún las primeras dos pills. La decisión (centrar + fijar a [0, máximo]
+  con métricas raras normalizadas a 0) vive en el módulo puro; `app.js` sólo mide DOM (rects +
+  scrollLeft) y hace el `scrollTo` — coordinado viewpager-header: tabs y vista se mueven EN
+  CONJUNTO, como pidió el producto. Spec extendida (5 tests nuevos) + e2e Brave (`e2e/swipe-vistas.mjs`).

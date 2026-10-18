@@ -17,6 +17,13 @@
 //   vecina(orden, actual, dir) → id de la vista vecina en `orden` con wrap-around
 //                        (la última avanza a la primera y viceversa); null si `actual` no
 //                        está en el orden, si dir es 0 o si la lista es inválida.
+//   scrollIzquierdaParaTab(ctx) → scrollLeft (px) al que el header debe desplazarse para
+//                        que el tab activo quede VISIBLE: lo centra en la ventana del
+//                        scroller y remata el valor en [0, máximo]. Bug 2026-10-19: el
+//                        swipe llegaba a la 5ª vista y el header (scroller-x invisible)
+//                        seguía mostrando las primeras dos pills (tab activo con 0px en
+//                        pantalla — captura reports/ui-brave/28). Ampliación de contrato
+//                        API CERRADA con asiento en CODING_STANDARDS.md §8.
 
 (function (root, factory) {
   const api = factory();
@@ -49,5 +56,24 @@
     return orden[j];
   }
 
-  return { dirDeGesto, vecina, UMBRAL_DX, UMBRAL_DY };
+  // ¿A qué scrollLeft debe ir el header para que el tab activo se vea? Datos (todas px CSS):
+  //   dentro        — posición (izquierda) del tab dentro del CONTENIDO del scroller
+  //                   (el llamador la computa: rect del tab − rect del scroller + scrollLeft)
+  //   anchoVisible  — clientWidth del scroller (la "ventana")
+  //   anchoContenido— scrollWidth del scroller
+  //   anchoTab      — anchura del tab activo
+  // Devuelve el objetivo CENTRADO (el pill activo queda a medio camino de la ventana) fijado
+  // a [0, anchoContenido − anchoVisible]; si todo cabe, el máximo es 0 y no hay movimiento.
+  // Las métricas raras (0, NaN, null) se normalizan a 0: nunca NaN ni scroll suicida.
+  function scrollIzquierdaParaTab(ctx) {
+    const c = ctx || {};
+    const anchoVisible = Math.max(0, Math.floor(Number(c.anchoVisible)) || 0);
+    const anchoContenido = Math.max(anchoVisible, Math.floor(Number(c.anchoContenido)) || 0);
+    const max = anchoContenido - anchoVisible;
+    const anchoTab = Math.max(0, Number(c.anchoTab) || 0);
+    const objetivo = (Number(c.dentro) || 0) - (anchoVisible - anchoTab) / 2;
+    return Math.min(Math.max(0, objetivo), max);
+  }
+
+  return { dirDeGesto, vecina, scrollIzquierdaParaTab, UMBRAL_DX, UMBRAL_DY };
 });

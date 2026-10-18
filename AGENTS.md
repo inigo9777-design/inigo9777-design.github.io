@@ -66,8 +66,12 @@ italiana" (see `modules/origen-recetas.js` below).
 - **Comportamiento móvil (PWA, feature 2026-10-18):** (1) **Viewpager**: deslizar horizontal DENTRO
   de `.content` cambia a la vista vecina (wrap entre las 5 del nav; el tab lateral de backup NO
   entra en el carrusel) — decisión en el módulo puro `modules/swipe-tabs.js`, wiring touch +
-  exclusiones (inputs/botones/scrollers-x) en app.js, e2e `e2e/swipe-vistas.mjs` (15 checks con
-  TouchEvent sintéticos + `hasTouch`). (2) El documento NO tiene overflow-x (`html,body
+  exclusiones (inputs/botones/scrollers-x) en app.js, e2e `e2e/swipe-vistas.mjs` (17 checks con
+  TouchEvent sintéticos + `hasTouch`). El header sigue al swipe (fix 2026-10-19): `.tabs` es un
+  scroller-x interno con scrollbar invisible y el pill activo se RECENTRA al cambiar de vista
+  (bug: en Temporada el header mostraba aún "Alimentos y Recetas" — `scrollIzquierdaParaTab`
+  decide en el módulo puro, `centrarTabActivo` en app.js mide y scrollea; con
+  `prefers-reduced-motion` sin suavizado). (2) El documento NO tiene overflow-x (`html,body
   overflow-x:hidden`) ni rebote (`html overscroll-behavior-y:contain`) ni fondo duro (`html
   background: var(--bg)`). (3) Modal: `.modal-box` con `overscroll-behavior:contain` + clase
   `modal-abierto` en `<html>` Y `<body>` (en Android scrollea `<html>`; si un día la quitáis,
