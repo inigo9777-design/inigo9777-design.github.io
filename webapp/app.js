@@ -66,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // uid() y escapeHTML() viven en modules/util.js, lógica PURa (sin DOM ni localStorage) anti-XSS e id-generación; ver
   // CODING_STANDARDS.md §3 option A / DIP y el patrón idéntico de priority.classify.recipeAnalysis.innovations bajo window.MRCheff.*.
   const { escapeHTML, uid } = window.MRCheff.util;
+  const recipeEditor = window.MRCheff.recipeEditor;   // módulo puro del editor de recetas (modules/recipe-editor.js)
 
   // $/$$ son helpers DE VISTA (manipulan el DOM) → NO lógica de decisión: quedan en este closure como antes.
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
@@ -390,6 +391,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const moduloFaltantes = window.MRCheff.recipeMissing;
       faltantesPorIndice = typeof moduloFaltantes.marcarFaltantes === "function" ? moduloFaltantes.marcarFaltantes(r, foods) : null; // fallback débil: si el módulo se perdiera NO romperíamos nada.
     }
+    // ¿Editable? Si la receta ya vive en Mis Recetas → se edita IN-SITU; si no (plato del catálogo curado o del
+    // menú generado), la edición guarda una COPIA editable en Mis Recetas sin tocar el original, que es de sólo lectura.
+    const enMisRecetas = recipeEditor.estaGuardada(recipes, r);
     modalContent.innerHTML = `
       <h2>${escapeHTML(r.title)}</h2>
       <div class="recipe-meta">
@@ -410,10 +414,13 @@ document.addEventListener("DOMContentLoaded", () => {
       <ol>${r.method.map(m => `<li>${escapeHTML(m)}</li>`).join("")}</ol>
       <div class="modal-footer">
         <button class="btn ghost" data-close>Cerrar</button>
+        <button class="btn ghost" data-edit title="Ajusta el título, los ingredientes o los pasos a tu gusto">${enMisRecetas ? "✏️ Editar" : "✏️ Editar y guardar"}</button>
         <button class="btn primary" data-copy>📋 Copiar</button>
       </div>`;
     modal.classList.remove("hidden");
     $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+    const btnEdit = $("[data-edit]", modalContent);
+    if (btnEdit) btnEdit.addEventListener("click", () => openRecipeEditor(r));
     $("[data-copy]", modalContent).addEventListener("click", () => {
       const text = `${r.title}\n\nIngredientes:\n${r.ingredients.map(i => "- " + i).join("\n")}\n\nMétodo:\n${r.method.join("\n")}`;
       navigator.clipboard?.writeText(text).then(
@@ -422,6 +429,65 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     });
   }
+
+  // Editor de receta: reutiliza el MISMO modal (#modal-content) para no añadir una capa nueva.
+  // La lógica de decisión/dominio (borrador, validación, in-situ vs copia, parche del plan) vive en
+  // el módulo puro modules/recipe-editor.js (§3 CODING_STANDARDS.md) — aquí sólo DOM y persistencia.
+  function openRecipeEditor(r) {
+    const enMisRecetas = recipeEditor.estaGuardada(recipes, r);
+    modalContent.innerHTML = `
+      <h2>${enMisRecetas ? "✏️ Editar receta" : "✏️ Editar y guardar en Mis Recetas"}</h2>
+      <p class="muted">Toca lo que quieras: nombre, momento del día, ingredientes o pasos. Se guarda como está escrito, con una línea por ingrediente y una por paso.</p>
+      <div class="recipe-edit">
+        <label for="edit-title">Nombre del plato
+          <input type="text" id="edit-title" value="${escapeHTML(r.title)}" maxlength="120">
+        </label>
+        <label for="edit-meal">Momento del día
+          <select id="edit-meal">
+            <option value="desayuno" ${r.meal === "desayuno" ? "selected" : ""}>${mealLabels.desayuno}</option>
+            <option value="comida" ${r.meal === "comida" ? "selected" : ""}>${mealLabels.comida}</option>
+            <option value="cena" ${r.meal === "cena" ? "selected" : ""}>${mealLabels.cena}</option>
+          </select>
+        </label>
+        <label for="edit-ingredients">Ingredientes (uno por línea)
+          <textarea id="edit-ingredients" rows="7">${escapeHTML((r.ingredients || []).join("\n"))}</textarea>
+        </label>
+        <label for="edit-method">Pasos (uno por paso)
+          <textarea id="edit-method" rows="8">${escapeHTML((r.method || []).join("\n"))}</textarea>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn ghost" data-close>Cancelar</button>
+        <button class="btn primary" data-save-edit>Guardar cambios</button>
+      </div>`;
+    modal.classList.remove("hidden");
+    $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+    $("#edit-title", modalContent).focus();
+    $("[data-save-edit]", modalContent).addEventListener("click", () => {
+      const draft = recipeEditor.buildDraft(
+        $("#edit-title", modalContent).value,
+        $("#edit-meal", modalContent).value,
+        $("#edit-ingredients", modalContent).value,
+        $("#edit-method", modalContent).value
+      );
+      const check = recipeEditor.validateDraft(draft);
+      if (!check.ok) {
+        toast("Completa nombre, ingredientes y pasos", "error");
+        return;
+      }
+      const resultado = recipeEditor.applyEdit(recipes, r, draft, { uid, now: () => Date.now() });
+      recipes = resultado.recipes;
+      save(LS.recipes, recipes);
+      if (recipeEditor.patchPlan(weeklyMenu && weeklyMenu.plan, resultado.guardada, resultado.modo === "in-situ" ? null : r.id)) {
+        save(LS.weekmenu, weeklyMenu);
+        renderWeeklyMenu(weeklyMenu.plan);
+      }
+      renderRecipes();
+      toast(resultado.modo === "in-situ" ? "Receta actualizada" : "Receta guardada en Mis Recetas");
+      closeModal();
+    });
+  }
+
   function closeModal() { modal.classList.add("hidden"); }
   $$("[data-close]").forEach(el => el.addEventListener("click", closeModal));
   document.addEventListener("keydown", (e) => {
@@ -647,22 +713,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // Cada comida se pinta como fila con su etiqueta, botones "🍳 Cocinar" (anota cocinado + renueva SOLO
   // ese hueco) y "🔄 Cambiar" (otra receta para ese día+comida, sin tocar el resto). La fila es clickeable
   // para abrir el detalle. Siempre se pintan los 7 días con sus 3 comidas, aunque alguna quede vacía.
-  const MEAL_ICONS = { desayuno: "🌅", comida: "🍽️", cena: "🌙" };
+  // NOTA: la etiqueta (mealLabels) YA incluye su icono (🌅/🍽️/🌙) — no se añade otro delante
+  // (era el duplicado "🌅 🌅 Desayuno" que se veía en la franja del menú).
 
   function pintarSlotComida(comida, dayIdx, mealIdx) {
     const meal = comida && comida.meal ? comida.meal : "";
-    const icon = MEAL_ICONS[meal] || "🍽️";
     const etiqueta = (mealLabels[meal] || meal || "");
     const rec = comida && comida.recipe;
     if (!rec) {
       return `<div class="menu-meal-row" data-day="${dayIdx}" data-meal="${escapeHTML(meal)}" data-meal-idx="${mealIdx}">
-        <span class="menu-meal-tag">${icon} ${escapeHTML(etiqueta)}</span>
+        <span class="menu-meal-tag">${escapeHTML(etiqueta)}</span>
         <div class="menu-meal-body muted">sin plato asignado</div>
       </div>`;
     }
     const missing = Array.isArray(comida.missing) ? comida.missing : [];
     return `<div class="menu-meal-row" data-day="${dayIdx}" data-meal="${escapeHTML(meal)}" data-meal-idx="${mealIdx}">
-      <span class="menu-meal-tag">${icon} ${escapeHTML(etiqueta)}</span>
+      <span class="menu-meal-tag">${escapeHTML(etiqueta)}</span>
       <div class="menu-meal-body">
         <h4 class="menu-meal-title">${escapeHTML(rec.title)}</h4>
         <div class="recipe-meta">

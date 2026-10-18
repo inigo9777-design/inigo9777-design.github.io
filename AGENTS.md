@@ -72,7 +72,11 @@ Views: **Alimentos** (pantry/restock alerts) · **Recetas** (free-text → struc
     `needyFoods` = unión dedup de los ausentes de los 21 slots. `swapSlotRecipe` (módulo `menu-semanal.js`)
     puede añadir por slot el campo opcional `triedKeys: string[]` (fingerprints ya probados, para que el
     botón "🔄 Cambiar" recorra el ranking sin oscilar). `pickRecipeForSlot` es la 6ª función pública de
-    `planner.js` (contrato ampliado, log §8 del CODING_STANDARDS.md).
+    `planner.js` (contrato ampliado, log §8 del CODING_STANDARDS.md). Las recetas guardadas son EDITABLES
+    desde el modal de detalle (✏️ Editar): edición in-situ si ya está en `mrcheff.recipes` o copia nueva
+    si es un plato del catálogo o del plan — los huecos del plan que incrustan la receta editada se refrescan
+    por `recipe.id` (`recipeEditor.patchPlan` del módulo puro `modules/recipe-editor.js`: buildDraft /
+    validateDraft / estaGuardada / applyEdit / patchPlan; el plan sigue snapshot para missing/needyFoods).
 - Lista de la compra (Card 3): dedup por el matcher de tokens (`modules/ingredient-matching.js`,
   NO lower-case exacto) contra comida real (qty>0), y semáforo dinámico por fecha de preparación
   (`onDay`/`daysUntil`/`urgency`): hoy/mañana=rojo, 2–3 días=naranja, ≥4 días (o sin fecha)=verde;

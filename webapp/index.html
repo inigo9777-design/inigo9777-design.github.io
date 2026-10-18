@@ -289,6 +289,9 @@
     <!-- PURe "¿qué ingredientes faltan en casa?" para el modal de detalle (highlightMissing) — ver planFeature… §2 Modal + módulo recipe-missing.js.
          Sólo se usa en tiempo de click dentro del cierre de `openRecipeModal` (§ Liskov: su API queda cerrada a 2 funciones, SIN fuga de helpers). -->
     <script src="modules/recipe-missing.js"></script>
+    <!-- PURe del editor de recetas ("✏️ Editar" del modal): buildDraft / validateDraft / estaGuardada / applyEdit / patchPlan.
+         Consumido por app.js al abrir/guardar el editor (tiempo de click); ver planFeature… §12 y CODING_STANDARDS.md §3. -->
+    <script src="modules/recipe-editor.js"></script>
 
 </body>
 </html>

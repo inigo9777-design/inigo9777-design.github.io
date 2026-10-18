@@ -177,3 +177,34 @@ Aplicada con el usuario según CODING_STANDARDS.md (log de excepciones §8 actua
    Tests: `planner.test.js` (contrato 6 fns + 7×3 + pickRecipeForSlot), `menu-semanal.test.js`
    (approve 7×3, swap, urgencia), `suggest-weeklymenu.integration.test.js` (flujo 7×3 + swap).
    Docs: AGENTS.md (data model) + CODING_STANDARDS.md §8.
+
+## 12. Rediseño UI tokenizado + editor de recetas (2026-10-18 — tarde)
+
+Aplicado con el usuario (feedback directo sobre el primer rediseño "La cocina tranquila"):
+
+1. **Sistema de diseño tokenizado** (`style.css` reescrito): todo color vive en `:root` / `[data-theme="dark"]`,
+   sin hex sueltos en componentes (fin del bug histórico del modo claro: un token basura fuera de comentario
+   aniquilaba el bloque `:root`). Tipografía editorial (Georgia para títulos/marca) + sans de sistema.
+2. **Menú semanal en franjas largas a sangre**: una franja por día a todo el ancho; filas de comida
+   iguales de ancho (tocan los bordes de la franja, recorte con `overflow: hidden`), filete de color
+   por comida (data-meal: desayuno=ámbar / comida=azul / cena=violeta), reparto fijo etiqueta|plato|acciones.
+3. **Modal de receta ampliado** (hoja 820px, columna de lectura 680px): secciones Ingredientes/Método con
+   filete, pasos numerados con insignia, footer separado.
+4. **✏️ Editar recetas** (nuevo flujo): todo modal de detalle lleva "✏️ Editar" / "✏️ Editar y guardar".
+   Receta de Mis Recetas → edición in-situ (mismo id, persistida); plato del catálogo o del plan →
+   COPIA editable en Mis Recetas (el original queda intacto) + el hueco del plan aprobado refresca su
+   plato (`aplicarEdicionAlPlan`, parche por id original — decisión §8). Form: título/momento/ingredientes
+   (uno por línea)/pasos (uno por línea), con validación (toast si falta alguno).
+   Tests: `tests/recipe-edit.integration.test.js` (3 casos) + stub `e2e/recipe-edit.spec.js`.
+
+### 12.1. Segunda iteración (mismo día — review del usuario)
+
+1. **Lógica del editor a módulo puro:** la decisión de in-situ/copia, la validación del borrador y el
+   parche del plan se extraen a `modules/recipe-editor.js` (API cerrada: buildDraft / validateDraft /
+   estaGuardada / applyEdit / patchPlan; tests en `tests/recipe-editor.test.js`). app.js queda como
+   composition-root: sólo lee campos de DOM, persiste y pinta. `aplicarEdicionAlPlan` se RETIRA de app.js.
+2. **Fix emoji duplicado** en la etiqueta de cada fila del menú: `MEAL_ICONS` (icono suelto) + `mealLabels`
+   (que YA incluye su icono) producían "🌅 🌅 Desayuno". Se retira `MEAL_ICONS` y la etiqueta usa su
+   icono embebido: "🌅 Desayuno".
+3. **Anchura de filas blindada:** `.menu-meal-row` declara `width: 100%` + `align-self: stretch`
+   explícitos (comportamiento anómalo de filas a distinta anchura reportado con captura en el review).

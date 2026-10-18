@@ -234,3 +234,12 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
      usuario, misma pureza). `"🔄 Cambiar"` persiste además un campo opcional `triedKeys` por slot
      para que clicks sucesivos recorran el ranking sin oscilar (shape persistido extendido, sólo para
      `mrcheff.weekmenu`).
+- `2026-10-18 · @AI-agent · #feature-editar-recetas · Principio: O · Justificación:` el plan semanal
+  aprobado era un SNAPSHOT de sólo lectura ("no muta hasta regenerar/cambiar"). Con el editor de
+  recetas (botón "✏️ Editar" del modal de detalle), si la receta editada proviene de Mis Recetas el
+  hueco del plan que la incrusta NO puede quedar mostrando el estado viejo: `aplicarEdicionAlPlan`
+  (app.js, capa views) parchea las copias del objeto embedded en `mrcheff.weekmenu.plan` por
+  `recipe.id`; para una copia nueva creada desde el catálogo se parchea por el id ORIGINAL del plato
+  del menú. El resto del plan (missing flags, needyFoods) NO se recalcula: el plan sigue siendo
+  snapshot para el cálculo de compra; lo editado es la ficha visible del plato, no su análisis de
+  disponibilidad. Regenerar el menú reancla todo al estado nuevo de Mis Recetas.
