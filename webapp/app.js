@@ -11,6 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function applyTheme(t) {
     root.dataset.theme = t;
+    // El theme-color (franja del sistema / status bar del PWA) sigue al tema: en claro
+    // quedaba el #17150f oscuro fijado en el <head> y arriba "flotaba" un negro ajeno.
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeColorMeta) themeColorMeta.setAttribute("content", t === "dark" ? "#1b1913" : "#ffffff");
     if (themeBtn) {
       themeBtn.textContent = t === "dark" ? "🌙" : "☀️";
       themeBtn.title = t === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
@@ -86,25 +90,74 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ===== NAVEGACIÓN DE VISTAS =====
+  // El cambio de vista vive en UNA función: la llaman los clicks del topbar y el gesto
+  // swipe (viewpager móvil, sección siguiente) — un solo lugar decide el estado activo.
   const tabs = $$(".tab");
-  tabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      const view = tab.dataset.view;
-      tabs.forEach(t => {
-        t.classList.toggle("active", t === tab);
-        if (t === tab) t.setAttribute("aria-current", "true");
-        else t.removeAttribute("aria-current");
-      });
-      $$(".view").forEach(v => v.classList.toggle("active", v.id === `view-${view}`));
-      // Volver al tab de Recetas sin nada nuevo no debe re-pintar la lista (ineficiente y a ciegas, tal como pide el
-      //que piden los usuarios); solo lo hacemos si ha entrado una receta nueva desde fuera: entonces 'recipes' ya esta sincronizado en
-      // memoria y basta con re-pintar. Ver el origen del flag en el boton estrella de Innovacion (arriba) y la
-      // invariante final que lo limpia, dentro de renderRecipes().
-      if (view === "recipes" && recetasDirty) {
-        renderRecipes();
-      }
+  function activarVista(view) {
+    tabs.forEach(t => {
+      const es = t.dataset.view === view;
+      t.classList.toggle("active", es);
+      if (es) t.setAttribute("aria-current", "true");
+      else t.removeAttribute("aria-current");
     });
+    $$(".view").forEach(v => v.classList.toggle("active", v.id === `view-${view}`));
+    // Volver al tab de Recetas sin nada nuevo no debe re-pintar la lista (ineficiente y a ciegas, tal como pide el
+    //que piden los usuarios); solo lo hacemos si ha entrado una receta nueva desde fuera: entonces 'recipes' ya esta sincronizado en
+    // memoria y basta con re-pintar. Ver el origen del flag en el boton estrella de Innovacion (arriba) y la
+    // invariante final que lo limpia, dentro de renderRecipes().
+    if (view === "recipes" && recetasDirty) {
+      renderRecipes();
+    }
+  }
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => activarVista(tab.dataset.view));
   });
+
+  // ===== GESTO SWIPE ENTRE VISTAS (viewpager móvil) =====
+  // En el móvil la página entera se desplazaba horizontalmente al arrastrar el dedo.
+  // Ahora (feature 2026-10-18): deslizar de lado DENTRO del contenido cambia a la vista
+  // vecina, estilo viewpager de Android. La DECISIÓN (umbral/dirección/vecina con wrap)
+  // vive en el módulo puro modules/swipe-tabs.js (tests en tests/swipe-tabs.test.js);
+  // aquí sólo el wiring touch y las exclusiones: nada de swipes por encima de inputs,
+  // botones, enlaces, textareas o de cualquier scroller-x interno que haya en la vista.
+  const swipeApi = window.MRCheff && window.MRCheff.swipeTabs;
+  const zonaSwipe = $(".content");
+  if (swipeApi && zonaSwipe) {
+    // El carrusel del viewpager son las 5 pestañas del nav: el tab LATERAL de Copia de
+    // respaldo (backup, icono compacto del clúster derecho) NO entra — no es una parada
+    // horizontal, es un atajo lateral (desde él el swipe simplemente no cambia de vista).
+    const ORDEN_VISTAS = tabs.filter(t => !t.classList.contains("tab-side")).map(t => t.dataset.view);
+    let swipeX = 0, swipeY = 0, swipeVivo = false;
+
+    zonaSwipe.addEventListener("touchstart", (e) => {
+      swipeVivo = false;
+      if (e.touches.length !== 1) return;                       // multi-dedo: no es un swipe
+      const objetivo = e.target;
+      if (objetivo.closest && objetivo.closest("input, textarea, select, button, a, [contenteditable='true']")) return;
+      let el = objetivo;                                        // el gesto NO se apodera de un scroller-x interno
+      while (el && el !== zonaSwipe) {
+        const st = getComputedStyle(el);
+        if (st.overflowX === "auto" || st.overflowX === "scroll") return;
+        el = el.parentElement;
+      }
+      swipeX = e.touches[0].clientX;
+      swipeY = e.touches[0].clientY;
+      swipeVivo = true;
+    }, { passive: true });
+
+    zonaSwipe.addEventListener("touchend", (e) => {
+      if (!swipeVivo) return;
+      swipeVivo = false;
+      const dir = swipeApi.dirDeGesto(
+        e.changedTouches[0].clientX - swipeX,
+        e.changedTouches[0].clientY - swipeY
+      );
+      if (!dir) return;
+      const actual = tabs.find(t => t.classList.contains("active"));
+      const destino = swipeApi.vecina(ORDEN_VISTAS, actual && actual.dataset.view, dir);
+      if (destino) activarVista(destino);
+    }, { passive: true });
+  }
 
   // ===== ALIMENTOS =====
   const foodForm = $("#food-form");
@@ -463,6 +516,12 @@ document.addEventListener("DOMContentLoaded", () => {
   function abrirModal(tituloAccesible) {
     const activo = document.activeElement;
     focoAntesDeModal = (activo && typeof activo.focus === "function") ? activo : null;
+    // En móvil, scrollear DENTRO del modal no debe arrastrar a la lista de debajo
+    // (scroll chaining): el modal-box lleva overscroll-behavior:contain en CSS y, además,
+    // congelamos el scroll del documento mientras el modal está abierto. La clase va al
+    // documentElement TAMBIÉN: en Android el scroller del documento es <html>, no <body>.
+    document.documentElement.classList.add("modal-abierto");
+    document.body.classList.add("modal-abierto");
     if (tituloAccesible) modalBox.setAttribute("aria-label", tituloAccesible);
     modal.classList.remove("hidden");
   }
@@ -599,6 +658,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function closeModal() {
     modal.classList.add("hidden");
+    document.documentElement.classList.remove("modal-abierto");
+    document.body.classList.remove("modal-abierto");
     if (focoAntesDeModal) { focoAntesDeModal.focus(); focoAntesDeModal = null; }
   }
   $$("[data-close]").forEach(el => el.addEventListener("click", closeModal));

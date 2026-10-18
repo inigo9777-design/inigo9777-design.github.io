@@ -10,19 +10,22 @@
          En Android (⋮ → Instalar aplicación) el navegador exige MANIFEST + SERVICE WORKER + https;
          en iOS el "Añadir a pantalla de inicio" usa el apple-touch-icon. Sin área data funciona igual. -->
     <link rel="manifest" href="manifest.webmanifest">
-    <meta name="theme-color" content="#17150f">
+    <meta name="theme-color" content="#1b1913">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Mr Cheff">
-    <!-- Aplicar el tema guardado ANTES de pintar para evitar el parpadeo -->
+    <!-- Aplicar el tema guardado ANTES de pintar para evitar el parpadeo (y el theme-color
+         de la franja del sistema sigue al tema desde el primer pixel: en claro no puede
+         quedarse el oscuro fijo del markup, era parte de la franja "negra" del móvil). -->
     <script>
       (function () {
+        var t = "dark";
         try {
-          var t = localStorage.getItem("mrcheff.theme");
-          document.documentElement.dataset.theme = t || "dark";
-        } catch (e) {
-          document.documentElement.dataset.theme = "dark";
-        }
+          t = localStorage.getItem("mrcheff.theme") || "dark";
+        } catch (e) {}
+        document.documentElement.dataset.theme = t;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", t === "dark" ? "#1b1913" : "#ffffff");
       })();
     </script>
 </head>
@@ -326,6 +329,7 @@
     <!-- PURe del editor de recetas ("✏️ Editar" del modal): buildDraft / validateDraft / estaGuardada / applyEdit / patchPlan.
          Consumido por app.js al abrir/guardar el editor (tiempo de click); ver planFeature… §12 y CODING_STANDARDS.md §3. -->
     <script src="modules/recipe-editor.js"></script>
+    <script src="modules/swipe-tabs.js"></script>
 
     <noscript>Mr Cheff necesita JavaScript: toda la lógica funciona en tu navegador, sin servidor.</noscript>
     <script>
