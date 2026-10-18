@@ -19,10 +19,10 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
   and exercise the affected tab.
 - **Tests:** `cd webapp && npm test` (`jest`) / `npm run coverage` (`jest --coverage`). Jest IS a
   declared devDependency with installed `node_modules/`. Specs live under `webapp/tests/` — per-module specs (classify, priority, recipe-analysis, ingredient-matching, util, innovations,
-  planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas) +
+  planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas, swipe-tabs) +
   integration specs (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
   buscador-catalogo, e2e-flow-receta-a-alerta-compra) + harness scaffolding (`boot.js` / `setup.js`). As of the last
-  run on 2026-10-18 the whole suite is green (**291 tests across 21 suites**) — verify with a fresh
+  run on 2026-10-18 the whole suite is green (**302 tests across 22 suites**) — verify with a fresh
   run before trusting it.
 - **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
   and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`
@@ -33,7 +33,7 @@ Single-page, six-tab app loaded via `index.html`. Script order (order matters): 
 → `data.js` → `app.js` (registers the one `DOMContentLoaded` closure; module `<script>`s load after
 it but still before the DOM-ready event fires) → `modules/…` (`priority`, `classify`,
 `recipe-analysis`, catalog data, `origen-recetas`, `innovations`, `util`, `backup`,
-`ingredient-matching`, `planner`, `menu-semanal`, `recipe-missing`, `recipe-editor`). `app.js`
+`ingredient-matching`, `planner`, `menu-semanal`, `recipe-missing`, `recipe-editor`, `swipe-tabs`). `app.js`
 is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
 
 - **data.js** — static seasonal data; exposes `window.MR_CHEFF_DATA = { MESES, TEMPORADA }`. `app.js`
@@ -63,6 +63,17 @@ italiana" (see `modules/origen-recetas.js` below).
   It also attaches `dataset.idsItalianas` (list of the 20 Italian ids, consumed by `origen-recetas.js`) as
   a PROPERTY of the exported array — `module.exports` stays a plain array for tests/e2e. New Italian
   recipe ⇒ also add its id to `idsItalianas`.
+- **Comportamiento móvil (PWA, feature 2026-10-18):** (1) **Viewpager**: deslizar horizontal DENTRO
+  de `.content` cambia a la vista vecina (wrap entre las 5 del nav; el tab lateral de backup NO
+  entra en el carrusel) — decisión en el módulo puro `modules/swipe-tabs.js`, wiring touch +
+  exclusiones (inputs/botones/scrollers-x) en app.js, e2e `e2e/swipe-vistas.mjs` (15 checks con
+  TouchEvent sintéticos + `hasTouch`). (2) El documento NO tiene overflow-x (`html,body
+  overflow-x:hidden`) ni rebote (`html overscroll-behavior-y:contain`) ni fondo duro (`html
+  background: var(--bg)`). (3) Modal: `.modal-box` con `overscroll-behavior:contain` + clase
+  `modal-abierto` en `<html>` Y `<body>` (en Android scrollea `<html>`; si un día la quitáis,
+  idem) congelando el scroll del documento. (4) `theme-color` meta sigue al tema activo (dark
+  `#1b1913` / light `#ffffff`) desde el script de `<head>` y `applyTheme` — nunca hex sueltos
+  de más en el markup.
 - **Pure modules (`webapp/modules/`, all IIFE + dual-export, no DOM/localStorage — §3 CODING_STANDARDS):**
   `classify.js` · `priority.js` · `recipe-analysis.js` · `ingredient-matching.js` (token matcher,
   shared by planner/menu-semanal/innovations) · `util.js` · `innovations.js` · `planner.js` (public API:
