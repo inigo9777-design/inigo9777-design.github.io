@@ -287,6 +287,17 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   ("Queso azul" ≠ "Queso rallado"; "Lomo de cerdo" ≠ "Lomo salado"). Cambio semántico asumido:
   la despensa es más honesta y las sugerencias pueden exigir el ingrediente específico en la
   lista de la compra; tests de matching actualizados a ambos lados + suite completa verde.
+- `2026-10-18 · @AI-agent · #feature-front-end-a11y · Principio: O · Justificación:` la accesibilidad
+  de la webapp se eleva sin rediseñar la identidad ("La cocina tranquila"): la barra de vistas DEJA el
+  patrón `role="tablist/tab"` incompleto (sin tabpanels ni gestión de flechas, tal como estaba era un
+  patrón ARIA mal aplicado) y pasa a navegación honesta de botones con `aria-current="true"`; el modal
+  es `role="dialog" aria-modal` con nombre accesible dinámico, el foco entra al abrir y VUELVE al
+  control que lo abrió al cerrar; tarjetas y filas que abren detalle con click ganan teclado
+  (`tabindex` + Enter/Espacio vía helper de vista `activablePorTeclado`); todos los botones de icono
+  (✏️ 🍳 🗑 ⭐ ➕ ➖ 🍳) y campos sin label visible llevan `aria-label`; el toast es `role="status"
+  aria-live="polite"`; inputs con indicador de foco por halo + fallback `@media (prefers-contrast: more)`
+  (su `outline: none` anulaba el anillo global). Sin lógica nueva de dominio: es glue de vista en
+  `app.js` + atributos/CSS; verificada con Brave real (`e2e/a11y-brave.mjs`, 16 checks) y suite verde.
 - `2026-10-18 · @AI-agent · #tasks-menu-cocinar-aprobado · Principio: O, D · Justificación:` añade la
   7ª función pública a `menu-semanal.js` (`accionesMenuSlot`) para poder pintar el botón "🍳 Cocinar"
   de las filas del menú SÓLO en planes APROBADOS (el preview no compromete nada que pueda entrar en

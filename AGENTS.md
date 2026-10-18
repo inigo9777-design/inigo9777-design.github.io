@@ -136,6 +136,10 @@ italiana" (see `modules/origen-recetas.js` below).
 - **All UI text and code comments are in Spanish** — match that when editing strings/comments.
 - **Escape all user content with `escapeHTML()` before inserting into innerHTML** (food names, recipe
   titles, descriptions). Any new rendered user field must do the same — XSS risk otherwise.
+- **Accesibilidad (base):** tarjetas/filas clicable-solo usan el glue `activablePorTeclado(el, abrir)`
+  (Tab + Enter/Espacio); los modales se abren con `abrirModal(tituloAccesible)` (foco entra y vuelve
+  al cerrar, `role="dialog"`); icono-botón ⇒ `aria-label` siempre; vistas = botones con `aria-current`
+  (no el patrón tab incompleto). Verificable con `node e2e/a11y-brave.mjs`.
 - **Accent handling differs by context:** pantry food-type matching strips accents via `norm` (NFD +
   combining-mark strip) in `FOOD_TYPES`/`TYPE_ORDER`; the seasonal `TEMPORADA` `nombre` fields keep
   their accents. Mind this when adding foods or seasonal items.

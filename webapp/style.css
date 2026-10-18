@@ -59,7 +59,7 @@
   /* Componentes */
   --card-muted-bg: #f0ede6;            /* chips de metadato */
   --hover-wash: #f3f1ea;
-  --focus-halo: rgba(47, 107, 69, 0.18);
+  --focus-halo: rgba(47, 107, 69, 0.3);
   --shadow-1: 0 1px 2px rgba(38, 34, 28, 0.05);
   --shadow-2: 0 8px 24px rgba(38, 34, 28, 0.09);
   --overlay: rgba(28, 24, 19, 0.55);
@@ -122,7 +122,7 @@
 
   --card-muted-bg: #2b2820;
   --hover-wash: #2b2820;
-  --focus-halo: rgba(124, 187, 143, 0.22);
+  --focus-halo: rgba(124, 187, 143, 0.35);
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
   --overlay: rgba(10, 9, 7, 0.68);
@@ -467,6 +467,16 @@ select:focus, textarea:focus {
   outline: none;
   border-color: var(--brand);
   box-shadow: 0 0 0 3px var(--focus-halo);
+}
+
+/* El indicador de foco de los campos de formulario es el halo (no outline). Con más contraste
+   en el sistema, el halo no basta: anillo de outline también. (WCAG 2.4.7 / 1.4.11) */
+@media (prefers-contrast: more) {
+  input[type="text"]:focus, input[type="search"]:focus, input[type="number"]:focus,
+  select:focus, textarea:focus {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
 }
 
 textarea { resize: vertical; min-height: 80px; }
