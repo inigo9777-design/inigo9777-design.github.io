@@ -87,7 +87,12 @@ italiana" (see `modules/origen-recetas.js` below).
   contraste de texto en las 5 vistas + modal, dark y claro): de ahí nacieron
   `min-width/height: 24px` para checkbox/radio y `min-height: 24px` para
   `input[type=range]`. Las transiciones se congelan para escanear (colores a mitad de
-  transición = falsos contrastes bajos).
+  transición = falsos contrastes bajos). (7) **Entrega del shell (sw.js)**: el índice va
+  NETWORK-PRIMERO con el caché como respaldo offline (sin conexión la app sigue viva) y los
+  assets cache-primero; el caché del shell es versionado (`mrcheff-v2`) — SUBIR +1 al tocar
+  ficheros del shell, y el precache incluye `modules/swipe-tabs.js`. En el iPhone el sw.js
+  re-válido contra la caché HTTP de Pages (max-age 600): si un cambio "no llega", cerrar el
+  app del app switcher y reabrir (el SW nuevo instala por skipWaiting y activa por claim).
 - **Pure modules (`webapp/modules/`, all IIFE + dual-export, no DOM/localStorage — §3 CODING_STANDARDS):**
   `classify.js` · `priority.js` · `recipe-analysis.js` · `ingredient-matching.js` (token matcher,
   shared by planner/menu-semanal/innovations) · `util.js` · `innovations.js` · `planner.js` (public API:
