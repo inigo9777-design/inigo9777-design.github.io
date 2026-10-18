@@ -594,6 +594,46 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   .food-item .food-actions { flex-basis: 100%; justify-content: flex-end; }
 }
 
+/* ========== 10-bis. ESCÁNER DE DESPENSA (OCR, #epic-ocr-despensa-camara) ========== */
+/* Botones de entrada (cámara en móvil / foto en escritorio) junto al formulario manual. */
+.ocr-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+
+/* Modal de confirmación: cabecera de columnas + filas candidato (nombre editable + qty + min + importancia + incluir). */
+.ocr-cabecera {
+  display: flex; gap: 10px; align-items: center;
+  font-size: 0.78rem; color: var(--muted);
+  padding: 10px 14px 4px;
+}
+.ocr-cabecera span:first-child { flex: 1 1 200px; min-width: 0; }
+.ocr-cabecera span:not(:first-child):not(:last-child) { width: 84px; text-align: center; flex: 0 0 auto; }
+.ocr-cabecera span:last-child { width: 62px; text-align: center; flex: 0 0 auto; }
+
+.ocr-item {
+  display: flex; gap: 10px; align-items: center;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--card);
+  margin-bottom: 8px;
+}
+.ocr-item .ocr-nombre { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ocr-item .ocr-nombre input { width: 100%; }
+.ocr-tipo {
+  font-size: 0.72rem; color: var(--muted);
+  background: var(--card-muted-bg);
+  align-self: flex-start;
+  padding: 1px 8px; border-radius: 999px;
+}
+.ocr-linea { font-size: 0.78rem; color: var(--muted); overflow-wrap: anywhere; }
+.ocr-item input[type="number"] { width: 84px; flex: 0 0 auto; }
+.ocr-item input[type="checkbox"] { width: 19px; height: 19px; cursor: pointer; flex: 0 0 auto; }
+
+/* Móvil estrecho: nombre en línea propia y los tres números + check debajo, sin aplastar el nombre. */
+@media (max-width: 640px) {
+  .ocr-item { flex-wrap: wrap; row-gap: 8px; }
+  .ocr-item .ocr-nombre { flex-basis: 100%; }
+}
+
 /* ========== 11. TARJETAS DE ALERTA Y LA COMPRA ========== */
 /* Tarjeta de estado (alerta semanal, lista de compra): tinte lateral según riesgo */
 .card.alert-card { border-left: 4px solid var(--border); }

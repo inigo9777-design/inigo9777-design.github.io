@@ -19,10 +19,10 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
   and exercise the affected tab.
 - **Tests:** `cd webapp && npm test` (`jest`) / `npm run coverage` (`jest --coverage`). Jest IS a
   declared devDependency with installed `node_modules/`. Specs live under `webapp/tests/` — per-module specs (classify, priority, recipe-analysis, ingredient-matching, util, innovations,
-  planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas) +
+  planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas, ocr-despensa) +
   integration specs (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
   buscador-catalogo, e2e-flow-receta-a-alerta-compra) + harness scaffolding (`boot.js` / `setup.js`). As of the last
-  run on 2026-10-18 the whole suite is green (**291 tests across 21 suites**) — verify with a fresh
+  run on 2026-10-18 the whole suite is green (**308 tests across 22 suites**, incl. ocr-despensa) — verify with a fresh
   run before trusting it.
 - **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
   and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`
@@ -47,7 +47,9 @@ is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
   comentario en la línea 2 (`Apply`) invalidaba el bloque `:root` entero del modo claro — parser CSS lo engulle
   como selector; mantener el fichero sin tokens basura fuera de comentario].
 
-Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts) · **Recetas**
+Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts; escáner de despensa por OCR:
+"cámara" SÓLO en móvil vía `input capture` — escritorio pide una foto — y modal de confirmación con
+nombre editable + qty/min/importancia antes de guardar, módulo `ocr-despensa.js`) · **Recetas**
 (free-text → structured recipe; card "🔎 Buscador del catálogo" busca en el JSON del catálogo
 por título/ingrediente y abre el modal de detalle; + Mis Recetas) · **Innovación**
 (curated-catalog suggestions from the pantry) ·
@@ -74,7 +76,10 @@ italiana" (see `modules/origen-recetas.js` below).
   catálogo: texto libre → resultado por título x3/ingrediente x1, reutiliza matching de tokens
   del matcher compartido, orden estable y límite ctx.limite) · **`origen-recetas.js`** (etiqueta/sello de origen:
   esItaliana, etiquetaOrigen, claseOrigen, origenAlGuardar, etiquetaClasicaVisible — inyectable ctx
-  `{catalog, ids}` para tests). `app.js` keeps ONLY HTML molds (`badgeOrigenHTML`, `tagClasicoHTML`),
+  `{catalog, ids}` para tests) · **`ocr-despensa.js`** (escáner de despensa por OCR: esMovil,
+  extraerCandidatos de un texto OCR contra FOOD_TYPES, guardarCandidatos → alta/actualización
+  sobre copias; la cámara SÓLO en móvil, Tesseract.js en el navegador es infra de vista).
+  `app.js` keeps ONLY HTML molds (`badgeOrigenHTML`, `tagClasicoHTML`),
   event wiring and persistence.
 - `modules/innovations.js` `generate(count, focus, state)` keeps its **exact public signature** (the sole call-site at
   `app.js:~445` is unaffected), but internally stops assembling random ingredient combinations from `STYLES`/`TWISTS`/
@@ -127,6 +132,13 @@ italiana" (see `modules/origen-recetas.js` below).
   (contrato ampliado, log §8 del CODING_STANDARDS.md).
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
   red 8–10, orange 6–7, green 1–5; weekly alert caps the list at 8.
+- Escáner de despensa (OCR, #epic-ocr-despensa-camara): todo en el navegador con **Tesseract.js@5 desde
+  CDN** — carga perezosa la primera vez que se usa (unos megas; sin conexión falla con toast, la foto
+  NUNCA sale del dispositivo). Detección contra el vocabulario `classify.FOOD_TYPES` (mismatcher:
+  igualdad de token o prefijo/sufijo de ≥4 letras; token alimenta UNA sola palabra; palabras <4 letras
+  sólo igualdad — "ensalada" ≠ "sal"). El input file con `capture="environment"` abre la app de cámara
+  del sistema en móvil (sin getUserMedia, sin exigir https); en escritorio se pinta "elegir foto".
+  Ni Tesseract ni el CDN van en el app-shell del SW (cross-origin = no cacheado aquí).
 - Innovations auto-expire: on load, if `mrcheff.innov.date != today`, wipe `mrcheff.innov`; also
   capped at the most recent 30. Generated "ideas" are deterministic heuristics (UI: "Modo simulado"),
   **not an LLM** — this is where real integration would go, nothing hidden elsewhere.

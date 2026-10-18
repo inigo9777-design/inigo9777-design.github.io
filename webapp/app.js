@@ -241,6 +241,163 @@ document.addEventListener("DOMContentLoaded", () => {
       </ul>`;
   }
 
+  // ===== ESCÁNER DE DESPENSA (OCR EN EL NAVEGADOR) =====
+  // #epic-ocr-despensa-camara: mirar el frigorífico/armario con la cámara y detectar lo que hay
+  // sin teclearlo todo. La DECISIÓN vive en el módulo puro modules/ocr-despensa.js (esMovil /
+  // extraerCandidatos / guardarCandidatos; spec tests/ocr-despensa.test.js); aquí sólo la INFRA de
+  // vista: activar la cámara SÓLO en móvil, cargar Tesseract.js la primera vez que se usa y el molde
+  // del modal de confirmación. El OCR corre ENTERO en el navegador: la foto nunca sale del terminal.
+  const ocr = window.MRCheff.ocrDespensa;
+  const ocrVocabulario = (window.MRCheff.classify && window.MRCheff.classify.FOOD_TYPES) || {};
+  const ocrBtnCamara = $("#btn-ocr-camara");
+  const ocrBtnFoto = $("#btn-ocr-foto");
+  const ocrFile = $("#ocr-file");
+  const TESSERACT_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+  let tesseractPromesa = null;
+
+  // Motor del OCR con carga PEREZOSA: cero coste mientras no se use la función (un <script> del CDN
+  // inyectado al vuelo la primera vez); el propio navegador lo cachea después. Si falla (sin
+  // conexión) la promesa se limpia para darle otra oportunidad en el siguiente intento.
+  function cargarTesseract() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (!tesseractPromesa) {
+      tesseractPromesa = new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = TESSERACT_CDN;
+        s.async = true;
+        s.onload = () => resolve(window.Tesseract);
+        s.onerror = () => {
+          tesseractPromesa = null;
+          reject(new Error("El motor del OCR no ha cargado: la primera vez necesita conexión a internet"));
+        };
+        document.head.appendChild(s);
+      });
+    }
+    return tesseractPromesa;
+  }
+
+  // La cámara SÓLO se ofrece en vista móvil (ocr.esMovil decide contra el user agent): el input file
+  // con el atributo `capture` abre la app de la cámara del sistema (Android/iOS), SIN permisos
+  // getUserMedia y SIN exigir https. En escritorio, la vía es elegir una foto del frigorífico/armario
+  // desde el disco — misma lectura, mismo modal de confirmación.
+  const ocrEsMovil = ocr.esMovil(navigator.userAgent);
+  if (ocrBtnCamara && ocrBtnFoto && ocrFile) {
+    ocrBtnCamara.classList.toggle("hidden", !ocrEsMovil);
+    ocrBtnFoto.classList.remove("hidden");        // la vía "elegir foto" se ofrece también en móvil (galería)
+    ocrBtnCamara.addEventListener("click", () => {
+      ocrFile.setAttribute("capture", "environment");
+      ocrFile.click();
+    });
+    ocrBtnFoto.addEventListener("click", () => {
+      ocrFile.removeAttribute("capture");
+      ocrFile.click();
+    });
+    ocrFile.addEventListener("change", () => {
+      const archivo = ocrFile.files && ocrFile.files[0];
+      ocrFile.value = "";                         // limpiar ya: permite re-escanear la misma foto después
+      if (!archivo) return;
+      modalContent.innerHTML = `
+        <h2>📷 Reconociendo alimentos…</h2>
+        <p class="muted" id="ocr-progreso">Cargando el motor de OCR (la primera vez descarga unos megas; la foto no sale de tu navegador)…</p>
+        <div class="modal-footer"><button class="btn ghost" data-close>Cancelar</button></div>`;
+      abrirModal("Escáner de la despensa");
+      $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+      const progreso = $("#ocr-progreso", modalContent);
+      cargarTesseract().then(Tesseract => {
+        if (!progreso.isConnected) return;        // el usuario ya ha cancelado mientras cargaba
+        progreso.textContent = "Reconociendo texto…";
+        return Tesseract.recognize(archivo, "spa", {
+          logger: m => {
+            if (m && m.status === "recognizing text" && progreso.isConnected) {
+              progreso.textContent = `Reconociendo texto… ${Math.round((m.progress || 0) * 100)}%`;
+            }
+          }
+        }).then(({ data }) => {
+          if (!progreso.isConnected) return;
+          const candidatos = ocr.extraerCandidatos(data && data.text, ocrVocabulario);
+          if (!candidatos.length) {
+            modalContent.innerHTML = `
+              <h2>📷 No he detectado alimentos</h2>
+              <p class="muted">Prueba con una foto más cercana y con buena luz, de frente a la estantería
+                  (frigorífico, despensa, armario). Las etiquetas con letra pequeña engañan al OCR.</p>
+              <div class="modal-footer"><button class="btn ghost" data-close>Cerrar</button></div>`;
+            $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+            return;
+          }
+          abrirConfirmarOcr(candidatos);
+        });
+      }).catch(err => {
+        if (!progreso.isConnected) return;        // cerrado por el usuario: nada que contar
+        closeModal();
+        toast((err && err.message) || "No se ha podido escanear la foto", "error");
+      });
+    });
+  }
+
+  // Modal de confirmación: cada candidato llega con nombre EDITABLE (el del OCR es sólo un punto de
+  // partida) y pide cantidad, mínimo e importancia — los tres valores del formulario manual. La
+  // fusión final con la despensa la hace el módulo puro (ocr.guardarCandidatos); aquí el molde.
+  function abrirConfirmarOcr(candidatos) {
+    const etqTipo = { proteina: "Proteína", lacteo: "Lácteo", cereal: "Cereal", fruta: "Fruta", verdura: "Verdura", especia: "Especia" };
+    modalContent.innerHTML = `
+      <h2>📷 ¿Esto es lo que hay?</h2>
+      <p class="muted">Detectado automáticamente en la foto. <strong>El nombre es editable</strong>; ajusta
+          cantidad (lo que hay en casa), mínimo para avisar e importancia, y desmarca lo que no quieras guardar.</p>
+      <div class="ocr-cabecera" aria-hidden="true">
+        <span>Alimento</span><span>Cantidad</span><span>Mínimo</span><span>Importancia</span><span>Incluir</span>
+      </div>
+      ${candidatos.map((c, i) => `
+        <div class="ocr-item" data-i="${i}">
+          <div class="ocr-nombre">
+            <input type="text" id="ocr-nombre-${i}" value="${escapeHTML(c.nombre)}" aria-label="Nombre del alimento detectado (editable)">
+            <span class="ocr-tipo">${etqTipo[c.tipo] || "Otro"}</span>
+            <span class="ocr-linea" title="Primera línea que ha leído el OCR (sólo contexto)">“${escapeHTML(String(c.linea || "").trim().slice(0, 60))}”${c.veces > 1 ? ` · aparece ×${c.veces}` : ""}</span>
+          </div>
+          <input type="number" id="ocr-qty-${i}" min="0" step="1" value="1" aria-label="Cantidad en casa de ${escapeHTML(c.nombre)}">
+          <input type="number" id="ocr-min-${i}" min="0" step="1" value="1" aria-label="Mínimo para avisar de ${escapeHTML(c.nombre)}">
+          <input type="number" id="ocr-score-${i}" min="1" max="10" step="1" value="5" aria-label="Importancia de ${escapeHTML(c.nombre)}">
+          <input type="checkbox" class="ocr-include" checked aria-label="Incluir ${escapeHTML(c.nombre)} en la despensa">
+        </div>`).join("")}
+      <div class="modal-footer">
+        <button class="btn ghost" data-close>Cancelar</button>
+        <button class="btn primary" data-ocr-guardar>Guardar en la despensa</button>
+      </div>`;
+    abrirModal("Confirmar alimentos detectados en la foto");
+    const primero = $("#ocr-nombre-0", modalContent);
+    if (primero) primero.select();
+    $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+    $("[data-ocr-guardar]", modalContent).addEventListener("click", () => {
+      // Validar las filas incluidas ANTES de tocar nada: una fila mala corta el guardado (mismo
+      // espíritu que el modal de compra de la lista semanal).
+      const seleccion = [];
+      let mensajeError = "";
+      $$(".ocr-item", modalContent).forEach(fila => {
+        if (mensajeError || !$(".ocr-include", fila).checked) return;
+        const i = fila.dataset.i;
+        const nombre = $("#ocr-nombre-" + i, fila).value.trim();
+        const qty = parseInt($("#ocr-qty-" + i, fila).value, 10);
+        const min = parseInt($("#ocr-min-" + i, fila).value, 10);
+        const score = parseInt($("#ocr-score-" + i, fila).value, 10);
+        if (!nombre) { mensajeError = "Hay un alimento sin nombre: escríbele uno o desmarca su casilla."; return; }
+        if (!Number.isFinite(qty) || qty < 0) { mensajeError = `La cantidad de "${nombre}" va de 0 en adelante.`; return; }
+        if (!Number.isFinite(min) || min < 0) { mensajeError = `El mínimo de "${nombre}" va de 0 en adelante.`; return; }
+        if (!Number.isFinite(score) || score < 1 || score > 10) { mensajeError = `La importancia de "${nombre}" va de 1 a 10.`; return; }
+        seleccion.push({ nombre, qty, min, score });
+      });
+      if (mensajeError) { toast(mensajeError, "error"); return; }
+      if (!seleccion.length) { toast("No hay alimentos marcados para guardar", "error"); return; }
+      const result = ocr.guardarCandidatos(foods, seleccion, { uid, ahora: Date.now() });
+      foods = result.foods;
+      save(LS.foods, foods);
+      renderFoods();
+      renderWeeklyAlert();
+      closeModal();
+      toast(result.actualizados
+        ? `Despensa al día: ${result.añadidos} añadidos y ${result.actualizados} actualizados`
+        : `Despensa al día: ${result.añadidos} alimentos añadidos`);
+    });
+  }
+
   // ===== RECETAS =====
   const recipeDesc = $("#recipe-desc");
   const recipeMeal = $("#recipe-meal");

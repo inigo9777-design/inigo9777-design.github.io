@@ -287,6 +287,23 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   ("Queso azul" ≠ "Queso rallado"; "Lomo de cerdo" ≠ "Lomo salado"). Cambio semántico asumido:
   la despensa es más honesta y las sugerencias pueden exigir el ingrediente específico en la
   lista de la compra; tests de matching actualizados a ambos lados + suite completa verde.
+- `2026-10-18 · @AI-agent · #epic-ocr-despensa-camara · Principio: O/ISP · Justificación:`
+  la despensa se rellena ESCANEANDO el frigorífico/armario en vez de teclear: foto en el navegador →
+  OCR (Tesseract.js@5 desde CDN, carga PEREZOSA — cero coste mientras no se use; la foto no sale del
+  dispositivo) → detección de alimentos contra el vocabulario compartido `classify.FOOD_TYPES` → modal
+  de confirmación donde el NOMBRE es editable y se pide cantidad / mínimo para la alerta / importancia
+  / "incluir" — el mismo triple del formulario manual. La decisión vive en el módulo puro NUEVO
+  `modules/ocr-despensa.js` (`esMovil`, `extraerCandidatos`, `guardarCandidatos`; spec co-localizada
+  `tests/ocr-despensa.test.js` con el vocabulario REAL de classify), `app.js` aporta sólo la infra de
+  vista (activar cámara / cargar motor / moldes). Políticas deliberadas: (a) la CÁMARA sólo se oferta
+  en móvil (input file con `capture="environment"` → app de cámara del sistema, SIN permisos
+  getUserMedia y SIN exigir https; en escritorio, vía "elegir foto", el flujo es idéntico); (b) el
+  matcher perdona ruido del OCR pero no inventa nada fuera del vocabulario — igualdad de token o
+  prefijo/sufijo con palabras ≥4 letras, palabras <4 sólo igualdad ("ensalada" NO es "sal"), un token
+  del texto alimenta UNA palabra (la más larga) y una palabra declara UN candidato (`veces`); (c)
+  `guardarCandidatos` actualiza COPIAS: array y objetos nuevos — la despensa del llamador no se muta
+  (§3), alta/actualización case-insensitive como el formulario manual. Tesseract NO entra en
+  el app-shell del SW (cross-origin), ni nuevas dependencias de npm (CDN en runtime).
 - `2026-10-18 · @AI-agent · #epic-download-web-like-app-from-browser · Principio: O · Justificación:`
   la webapp se hace INSTALABLE como app (PWA) sin cambiar ningún framework ni añadir build: NO se pasa
   a React — una web estática es el caso ideal y sólo faltaba el embalaje. Se añaden ficheros nuevos
