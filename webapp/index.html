@@ -2,7 +2,12 @@
 <html lang="es" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Zoom del PWA bloqueado a petición explícita del producto (móvil 2026-10-18): el pinch
+         del navegador dejaba manipular la maqueta. Tradeoff WCAG 1.4.4 conocido y asumido:
+         Chromium de Android lo respeta de raíz (y un usuario con "forzar zoom" en ajustes de
+         accesibilidad lo puede reactivar); iOS se remata con el preventDefault de
+         gesturestart en app.js. El zoom del SISTEMA (tamaño de texto) sigue funcionando. -->
     <meta name="color-scheme" content="dark light">
     <title>Mr Cheff · Asistente de Cocina</title>
     <link rel="stylesheet" href="style.css">
@@ -295,6 +300,10 @@
     </div>
 
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <!-- Anuncio silencioso para lectores de pantalla: el viewpager cambia de vista sin foco
+         (gesto táctil), así que el cambio se anuncia por región viva; los clicks en las
+         pestañas ya anuncian el botón activado por sí mismos. -->
+    <div id="aviso-vista" class="sr-only" role="status" aria-live="polite"></div>
 
     <script src="data/data.js"></script>
     <script src="app.js"></script>
