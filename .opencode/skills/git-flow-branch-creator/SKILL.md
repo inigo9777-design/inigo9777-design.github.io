@@ -78,13 +78,25 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 			</indicators>
 		</hotfix>
 
+		<bugfix>
+			<purpose>Fixes for BUGS REPORTED by the user/QA on a feature ALREADY SHIPPED (merged into develop). Not a production emergency (that is a hotfix from master)</purpose>
+			<branch-from>develop</branch-from>
+			<merge-to>develop</merge-to>
+			<naming>bugfix/descriptive-name (kebab-case)</naming>
+			<indicators>
+				<indicator>Functional error reported in a feature already merged to develop: it does not work as specified</indicator>
+				<indicator>Regressions introduced by a previous change</indicator>
+				<indicator>Deletable after its merge into develop</indicator>
+			</indicators>
+		</bugfix>
+
 		<tasks>
-			<purpose>Changes, fixes or improvements that belong to an ALREADY EXISTING feature branch/feature scope (not brand-new features)</purpose>
+			<purpose>Polish, tweaks, refactors or follow-up work that belong to an ALREADY EXISTING feature branch/feature scope (not brand-new features; REPORTED functional BUGS go to bugfix/)</purpose>
 			<branch-from>develop</branch-from>
 			<merge-to>develop</merge-to>
 			<naming>tasks/short-description (kebab-case)</naming>
 			<indicators>
-				<indicator>Bug fix or UX tweak inside an already-shipped feature</indicator>
+				<indicator>UX tweak or polish inside an already-shipped feature (no functional error — bugs belong to bugfix/)</indicator>
 				<indicator>Behaviour refinement requested on an existing feature</indicator>
 				<indicator>Follow-up work on a feature that already merged to develop</indicator>
 			</indicators>
@@ -126,11 +138,19 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 		</examples>
 	</hotfix-branches>
 
+	<bugfix-branches>
+		<format>bugfix/descriptive-name</format>
+		<examples>
+			<example>bugfix/fix-matching-pantry</example>
+			<example>bugfix/viewpager-tab-activo-visible</example>
+		</examples>
+	</bugfix-branches>
+
 	<task-branches>
 		<format>tasks/short-description</format>
 		<examples>
 			<example>tasks/menu-semanal-cocinar-post-aprobado</example>
-			<example>tasks/fix-matching-pantry</example>
+			<example>tasks/tema-movil-topbar</example>
 		</examples>
 	</task-branches>
 </naming-conventions>
@@ -198,12 +218,16 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 			<question>Are these critical fixes for production issues?</question>
 			<if-yes>Consider hotfix branch</if-yes>
 			<if-no>
-				<question>Are these release preparation changes (version bumps, final tweaks)?</question>
-				<if-yes>Consider release branch</if-yes>
+				<question>Is it a reported BUG (it does not work as specified) on a feature already merged into develop — NOT a production emergency?</question>
+				<if-yes>Consider bugfix branch (bugfix/descriptive-name, deletable after merge). The user explicitly marks reported bugs with "bug"/"error" — map them here</if-yes>
 				<if-no>
-					<question>Is this a change/fix/improvement on an ALREADY EXISTING feature?</question>
-					<if-yes>Consider tasks branch (deletable after merge)</if-yes>
-					<if-no>Default to feature branch</if-no>
+					<question>Are these release preparation changes (version bumps, final tweaks)?</question>
+					<if-yes>Consider release branch</if-yes>
+					<if-no>
+						<question>Is this polish/refinement/follow-up on an ALREADY EXISTING feature (no functional error)?</question>
+						<if-yes>Consider tasks branch (deletable after merge)</if-yes>
+						<if-no>Default to feature branch</if-no>
+					</if-no>
 				</if-no>
 			</if-no>
 		</decision-tree>
@@ -283,6 +307,14 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 		<branch-name>feature/database-performance-optimization</branch-name>
 		<command>git checkout -b feature/database-performance-optimization develop</command>
 	</example-4>
+
+	<example-5>
+		<scenario>User reports a bug: "el viewpager cambia de vista pero el tab del header no se mueve con el swipe"</scenario>
+		<analysis>Reported functional error on a feature ALREADY merged to develop (the viewpager); not a production emergency</analysis>
+		<branch-type>bugfix</branch-type>
+		<branch-name>bugfix/viewpager-tab-activo-visible</branch-name>
+		<command>git checkout -b bugfix/viewpager-tab-activo-visible develop</command>
+	</example-5>
 </examples>
 ```
 
@@ -292,7 +324,7 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 <validation>
 	<pre-analysis>
 		<check>Repository is in a clean state (no uncommitted changes that would conflict)</check>
-		<check>Current branch is appropriate starting point (develop for features/releases, master for hotfixes)</check>
+		<check>Current branch is appropriate starting point (develop for features/releases/bugfix, master/main for hotfixes)</check>
 		<check>Remote repository is up to date</check>
 	</pre-analysis>
 
@@ -300,6 +332,7 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 		<check>Change analysis covers all modified files</check>
 		<check>Branch type selection follows Git Flow principles</check>
 		<check>Branch name is semantic and follows conventions</check>
+		<check>A reported BUG maps to bugfix/ (never tasks/ for functional errors); only production emergencies map to hotfix/</check>
 		<check>Edge cases are considered and handled</check>
 	</analysis-quality>
 
@@ -340,14 +373,15 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 ```xml
 <gitflow-reference>
 	<main-branches>
-		<master>Production-ready code, every commit is a release</master>
+		<master>Production-ready code, every commit is a release (in repos like this one the production branch is named main — use the repo's actual trunk name)</master>
 		<develop>Integration branch for features, latest development changes</develop>
 	</main-branches>
 
 	<supporting-branches>
-		<feature>Branch from develop, merge back to develop</feature>
+		<feature>Branch from develop, merge back to develop, KEEP after merge (history/reference per product decision)</feature>
+		<bugfix>Branch from develop for reported bugs on shipped features, merge back to develop with --no-ff, deletable after merge</bugfix>
 		<release>Branch from develop, merge to both develop and master</release>
-		<hotfix>Branch from master, merge to both develop and master</hotfix>
+		<hotfix>Branch from master/main, merge to both develop and master</hotfix>
 	</supporting-branches>
 
 	<merge-strategy>
