@@ -140,9 +140,24 @@ try {
   const p3 = await ctx3.newPage();
   await p3.addInitScript(`localStorage.setItem("mrcheff.foods", JSON.stringify([${PANTRY}]));`);
   await p3.goto(APP);
+  await p3.waitForSelector(".food-item");
   await snap(p3, "07-movil-topbar.png");
   const sinScrollX = await p3.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
-  console.log("4. móvil 390px: sinScrollHorizontal=" + sinScrollX);
+  // El NOMBRE del alimento no debe partirse en vertical: su altura de caja debe ser la de pocas
+  // líneas de texto (≤ 3 líneas ≈ 66px), no una torreta de 1 carácter por línea.
+  const nombreVertical = await p3.evaluate(() => {
+    const nombres = [...document.querySelectorAll(".food-item .food-name")];
+    return nombres.filter(el => el.getBoundingClientRect().height > 66).length;
+  });
+  const accionesEnSuFila = await p3.evaluate(() => {
+    const [item] = document.querySelectorAll(".food-item");
+    const name = item.querySelector(".food-name").getBoundingClientRect();
+    const acts = item.querySelector(".food-actions").getBoundingClientRect();
+    return acts.top >= name.bottom - 2;   // acciones en la 2ª línea, debajo del nombre
+  });
+  console.log("4. móvil 390px: sinScrollHorizontal=" + sinScrollX + " nombresEnVertical=" + nombreVertical + " accionesFila2=" + accionesEnSuFila);
+  if (nombreVertical > 0) throw new Error("Hay nombres de alimentos partidos en vertical en móvil");
+  if (!accionesEnSuFila) throw new Error("Las acciones no quedaron en la segunda línea");
   await ctx3.close();
 
   writeFileSync(path.join(OUT_DIR, "resumen.txt"),
