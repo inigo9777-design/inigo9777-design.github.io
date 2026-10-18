@@ -108,8 +108,25 @@ describe("recipeEditor.applyEdit — copia desde catálogo/plane (no guardada)",
     expect(res.guardada.createdAt).toBe(555);          // now inyectado (determinismo §6)
     expect(res.guardada.source).toBe("receta_sugerida");
     expect(res.guardada.from).toBe("Receta española");
+    expect(res.guardada.origen).toBeUndefined();        // sin deps.origen NO se sella nada (etiqueta cae a título)
     expect(res.recipes).toHaveLength(1);
     expect(platoCatalogo.title).toBe("Tortilla de la abuela"); // el original no se toca
+  });
+
+  it("con deps.origen la copia SELLA ese origen (mantener el original a pesar de renombrar, feature 2026-10-18)", () => {
+    let idFalso = 0;
+    const draft = buildDraft("Pizza jamón y queso casera", "cena", "Masa\nQueso", "Hornea");
+    const res = applyEdit([], platoCatalogo, draft, { uid: () => `uid-${++idFalso}`, now: () => 555, origen: "italiana" });
+    expect(res.guardada.origen).toBe("italiana");       // sellada al momento del guardado
+    expect(res.guardada.title).toBe("Pizza jamón y queso casera");
+  });
+
+  it("en modo IN-SITU el sello deps.origen se IGNORA: se preserva el que ya tiene la guardada", () => {
+    const recipes = [{ id: "guard-1", title: "Vieja", meal: "comida", origen: "espanola", ingredients: ["X"], method: ["Y"] }];
+    const draft = buildDraft("Renombrada", "comida", "X", "Y");
+    const res = applyEdit(recipes, recipes[0], draft, { uid: () => "otro", origen: "italiana" });
+    expect(res.modo).toBe("in-situ");
+    expect(res.guardada.origen).toBe("espanola");       // no re-sella: el de la guardada manda
   });
 });
 
@@ -125,12 +142,13 @@ describe("recipeEditor.patchPlan — refresco de las copias del plan semanal", (
 
   it("parchea por recetaEditada.id las copias incrustadas y devuelve true", () => {
     const plan = JSON.parse(JSON.stringify(planBase));   // copy: patchPlan muta el snapshot en memoria
-    const guardada = { id: "r-1", title: "Nuevo B", meal: "cena", ingredients: ["P"], method: ["M"] };
+    const guardada = { id: "r-1", title: "Nuevo B", meal: "cena", ingredients: ["P"], method: ["M"], origen: "italiana" };
     expect(patchPlan(plan, guardada)).toBe(true);
     expect(plan[0].meals[1].recipe.title).toBe("Nuevo B");
     expect(plan[0].meals[1].recipe.meal).toBe("cena");
     expect(plan[0].meals[1].recipe.ingredients).toEqual(["P"]);
     expect(plan[0].meals[1].recipe.method).toEqual(["M"]);
+    expect(plan[0].meals[1].recipe.origen).toBe("italiana");  // el sello viaja a las copias del plan (2026-10-18)
     expect(plan[0].meals[0].recipe.title).toBe("Viejo A"); // otros platos intactos
   });
 

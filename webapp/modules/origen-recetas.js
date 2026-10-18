@@ -5,7 +5,10 @@
 // de recetas — Recetas (Mis Recetas), Innovación (que ya tenía la etiqueta "Receta española" con valor fijo),
 // "Sugerir ahora", Menú semanal y el modal de detalle.
 //
-// Detección (2 claves, por orden):
+// Detección (3 claves, por orden):
+//   0. campo persistido `rec.origen` (2026-10-18: 'italiana'/'espanola' que app.js sella al GUARDAR una copia
+//      desde Innovación/editor) → GANA SIEMPRE. Razón: al editar el TÍTULO la copia pierde cualquier señal
+//      derivada; el origen debe conservarse como el original, no re-derivase después (feature del editor).
 //   1. id directo  → el registro del catálogo (o cualquier objeto que conserve su id) cae en el Set de ids italianos
 //                    curados (`dataset.idsItalianas` en data/recetas-espanolas-data.js).
 //   2. título      → ideas/sugerencias/huecos del plan generan id PROPIO NUEVO (uid, ver planner.js/innovations.js
@@ -76,6 +79,9 @@
     const resuelto = resolverContexto(ctx);
     if (!resuelto) return false;                       // sin catálogo/ids → por defecto española (comportamiento previo)
     const { idsSet, titulos } = setsDe(resuelto.catalog, resuelto.ids);
+    // (0) El origen PERSISTIDO al guardar la copia gana SIEMPRE (señal más fuerte e invariante a renombrados).
+    if (rec && rec.origen != null) return normTitulo(rec.origen) === "italiana";
+    // (1) id directo del dataset / (2) título
     if (rec && rec.id != null && idsSet.has(String(rec.id))) return true;
     const t = normTitulo(rec && rec.title);
     return !!t && titulos.has(t);

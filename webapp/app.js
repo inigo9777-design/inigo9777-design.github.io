@@ -431,7 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="recipe-meta">
         <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
         ${badgeOrigenHTML(r)}
-        ${r.source ? `<span class="tag tag-${r.source}">${(SOURCE_LABEL[r.source] || "Idea").toString()}</span>` : ""}
+        ${(r.source && r.source !== "curada") ? `<span class="tag tag-${r.source}">${(SOURCE_LABEL[r.source] || "Idea").toString()}</span>` : ""}
       </div>
       ${r.from ? `<p class="muted">Base: ${escapeHTML(r.from)}</p>` : ""}
       ${r.uses && r.uses.length ? `<p class="muted">🥣 Usa de tu casa: ${r.uses.map(escapeHTML).join(", ")}</p>` : ""}
@@ -515,7 +515,7 @@ document.addEventListener("DOMContentLoaded", () => {
         toast("Completa nombre, ingredientes y pasos", "error");
         return;
       }
-      const resultado = recipeEditor.applyEdit(recipes, r, draft, { uid, now: () => Date.now() });
+      const resultado = recipeEditor.applyEdit(recipes, r, draft, { uid, now: () => Date.now(), origen: origenAlGuardar(r).origen });
       recipes = resultado.recipes;
       save(LS.recipes, recipes);
       if (recipeEditor.patchPlan(weeklyMenu && weeklyMenu.plan, resultado.guardada, resultado.modo === "in-situ" ? null : r.id)) {
@@ -574,6 +574,15 @@ document.addEventListener("DOMContentLoaded", () => {
   function tagOrigenOClasico(rec) {
     return esRecetaCatalogo(rec) ? badgeOrigenHTML(rec)
       : `<span class="tag tag-${String(rec && rec.source)}">${SOURCE_LABEL[rec && rec.source] || "Nueva"}</span>`;
+  }
+  // Sello de ORIGEN al guardar una copia (⭐ de Innovación / ✏️ editor): fija 'italiana'/'espanola' en el
+  // MOMENTO del guardado (por id o título del plato ORIGINAL), para que la etiqueta persista aunque el
+  // usuario renombre la copia después (el título ya no deriva nada). El módulo de origen da precedencia
+  // a este campo sobre id/título en las recetas guardadas.
+  function origenAlGuardar(rec) {
+    const m = window.MRCheff.origenRecetas;
+    if (!m || !m.esItaliana) return {};     // sin módulo → no se sella nada (etiqueta por defecto española)
+    return { origen: m.esItaliana(rec) ? "italiana" : "espanola" };
   }
 
   btnGenerateInnov.addEventListener("click", () => {
@@ -685,7 +694,7 @@ document.addEventListener("DOMContentLoaded", () => {
         e.stopPropagation();
         const idea = innovations.find(x => x.id === btn.dataset.save);
         if (!idea) return;
-        recipes.push({ id: uid(), title: idea.title, meal: idea.meal, ingredients: idea.ingredients.slice(), method: idea.method.slice(), createdAt: Date.now() });
+        recipes.push({ id: uid(), title: idea.title, meal: idea.meal, ingredients: idea.ingredients.slice(), method: idea.method.slice(), createdAt: Date.now(), ...(origenAlGuardar(idea)) });
         save(LS.recipes, recipes);
         // No repintamos la vista "Recetas" a ciegas aqui (probablemente estamos mirando Innovacion ahora y su lista
         // iria oculta/innecesaria de pintar): solo marcamos la vista como sucia. El propio cambio de tab al volver a
@@ -841,7 +850,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <h4 class="menu-meal-title">${escapeHTML(rec.title)}</h4>
         <div class="recipe-meta">
           ${badgeOrigenHTML(rec)}
-          ${rec.source ? `<span class="tag tag-${String(rec.source)}">${SOURCE_LABEL[rec.source] || SOURCE_LABEL.sugerenciaHoy}</span>` : ""}
+          ${(rec.source && rec.source !== "curada") ? `<span class="tag tag-${String(rec.source)}">${SOURCE_LABEL[rec.source] || SOURCE_LABEL.sugerenciaHoy}</span>` : ""}
           <span class="muted" style="font-size:.8rem">${rec.ingredients.length} ingr.</span>
         </div>
         ${rec.uses && rec.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${rec.uses.map(escapeHTML).join(" · ")}</div>` : ""}

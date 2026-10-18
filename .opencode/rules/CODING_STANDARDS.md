@@ -264,3 +264,14 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   Sugerencias, Menú, modal); fuentes legacy distintas de curada/receta_sugerida conservan su tag
   clásico y una receta de usuario manual sin señal de origen se trata como española (señal ausente
   ≠ italiana).
+- `2026-10-18 · @AI-agent · #feature-sello-origen-guardado · Principio: O · Justificación`: guardar
+  una copia (⭐ estrella / ✏️ editor desde catálogo/plan) derivaba la etiqueta por TÍTULO en el
+  render, con dos defectos: renombrar la copia perdía el origen de la idea italiana (quedaba como
+  "española") y la guardada con `source:"curada"` pintaba DOS veces "Receta española" (badge nuevo +
+  tag clásico). Se SELLAN ahora al momento del guardado: campo opcional `origen:"italiana"|"espanola"`
+  en la receta persistida — `recipe-editor.applyEdit` lo recibe por `deps.origen` SOLO en modo copia
+  (in-situ preserva el de la guardada) y `patchPlan` lo lleva a las copias incrustadas del plan; el
+  módulo `origen-recetas` le da PRECEDENCIA sobre id/título. En las vistas, el tag clásico `curada`
+  se oculta cuando duplica literalmente la etiqueta de origen (los demás tags, como
+  "Sugerencia de hoy", se conservan). Copias guardadas ANTES de este cambio no tienen sello: para
+  ellas sigue rigiendo la deducción por id/título (o corrección manual).

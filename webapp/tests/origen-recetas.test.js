@@ -69,6 +69,27 @@ describe("(4) Ruta de los platos guardados del usuario (Mis Recetas)", () => {
   });
 });
 
+describe("(4b) SELLO del origen al guardar (feature editor 2026-10-18): el campo `origen` persistido GANA", () => {
+  it("copia RENOMBRADA desde una idea italiana guarda origen:'italiana' → sigue italiana aunque el título ya no matchee", () => {
+    const renombrada = { id: "uid-900", title: "Pizza jamón y queso casera", meal: "cena", origen: "italiana" };
+    expect(origen.esItaliana(renombrada, ctx)).toBe(true);
+    expect(origen.etiquetaOrigen(renombrada, ctx)).toBe("Receta italiana");
+  });
+
+  it("el sello español ('espanola' o 'española') mantiene española aunque el TÍTULO parezca italiano", () => {
+    expect(origen.etiquetaOrigen({ title: "Pasta alla norma", origen: "espanola" }, ctx)).toBe("Receta española");
+    expect(origen.etiquetaOrigen({ title: "Tiramisú casero", origen: "española" }, ctx)).toBe("Receta española");
+  });
+
+  it("el sello gana SIEMPRE, incluso sobre un registro del catálogo (defensa contra sello contradictorio a mano)", () => {
+    // registro del dataset cuya copia en Mis Recetas quedó sellada distinto: el sello manda (señal más explícita)
+    const it = dataset.find(r => r.id === "tiramisu-casero");
+    expect(origen.etiquetaOrigen({ ...it, origen: "espanola" }, ctx)).toBe("Receta española");
+    // …y sellado correcto sobre receta de título español → italiana
+    expect(origen.etiquetaOrigen({ title: "Tostada de tomate y ajo", origen: "italiana" }, ctx)).toBe("Receta italiana");
+  });
+});
+
 describe("(5) Degradación / resolución global (la vía de PRODUCCIÓN es window.MRCheff, misma que el navegador)", () => {
   it("sin ctx → resuelve del namespace global cargado por el harness (window.MRCheff.recetasEspanolas) → italiana", () => {
     // En el navegador real el orden de index.html (data → origen-recetas.js) deja el ns lleno ANTES de pintar;

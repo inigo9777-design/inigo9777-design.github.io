@@ -76,6 +76,10 @@
       source: recetaOriginal.source,
       from: recetaOriginal.from,
     });
+    // (2026-10-18 el editor SELLA el origen de la copia): deps.origen lo calcula app.js en el MOMENTO del
+    // guardado vía origen-recetas.esItaliana (id o título del plato ORIGINAL) y así la copia conserva la
+    // etiqueta aunque el usuario renombre el plato después. In-situ NO la toca: preservada como siempre.
+    if (deps.origen) copia.origen = String(deps.origen);
     return { recipes: recipes.concat([copia]), guardada: copia, modo: "copia" };
   }
 
@@ -101,6 +105,9 @@
           comida.recipe.meal = guardada.meal;
           comida.recipe.ingredients = guardada.ingredients.slice();
           comida.recipe.method = guardada.method.slice();
+          // (2026-10-18): el ORIGEN sellado de la guardada viaja también a las copias del plan,
+          // si no un hueco que incrusta la editada volvería a derivar su etiqueta por título.
+          if (guardada.origen != null) comida.recipe.origen = guardada.origen;
           tocado = true;
         }
       });
