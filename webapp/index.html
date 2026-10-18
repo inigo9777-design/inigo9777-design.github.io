@@ -126,6 +126,16 @@
             </div>
 
             <div class="card">
+                <h2>🔎 Buscador del catálogo</h2>
+                <p class="muted">Busca en las 200 recetas del catálogo curado por título o por ingrediente ("tortilla patatas", "mascarpone"…). Click en una para verla.</p>
+                <div class="toolbar">
+                    <input type="text" id="recipe-catalog-search" placeholder="Escribe para buscar en el catálogo…" autocomplete="off">
+                </div>
+                <div id="recipe-catalog-results" class="recipe-grid"></div>
+                <p id="recipe-catalog-empty" class="empty muted hidden">Sin resultados en el catálogo.</p>
+            </div>
+
+            <div class="card">
                 <h2>Mis Recetas</h2>
                 <div class="toolbar">
                     <input type="text" id="recipe-filter" placeholder="Buscar receta...">
@@ -288,6 +298,10 @@
     <!-- Matcher PURe compartido ingrediente↔alimento (tokens+plural, NO subcadena cruda): lo consumen planner.js (uses/missing con qty>0),
          innovations.js (uses/haveRatio para ideas) y menu-semanal.js (dedup de la lista de compra). DEBE ir ANTES de planner.js. -->
     <script src="modules/ingredient-matching.js"></script>
+    <!-- PURe BUSCADOR del catálogo curado (feature 2026-10-18, tab RECETAS): busca por título/ingredientes
+         REUTILIZANDO tokensOf del matcher compartido — por eso DEBE ir ANTES de que app.js lo consuma
+         (window.MRCheff.busquedaRecetas; si el tag faltara, la card del buscador queda sin resultados). -->
+    <script src="modules/busqueda-recetas.js"></script>
     <!-- Nueva capa modular de "Sugerencias y menú" (planFeatureRecetasSugeridasYPlanSemana.md): lógica PURe SIN DOM,
          consumida por la wiring de app.js sólo en tiempo de click (no se desestructura al parsear el closure). -->
     <script src="modules/planner.js"></script>

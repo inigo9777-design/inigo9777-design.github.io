@@ -286,7 +286,7 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 	<merge-strategy>
 		<flag>Always use --no-ff flag to preserve branch history</flag>
 		<tagging>Tag releases on master branch</tagging>
-		<cleanup>Delete hotfix branches after successful merge</cleanup>
+		<cleanup>Delete hotfix branches after successful merge, if there are merge conflicts then avoid doing the merge and inform the user</cleanup>
 	</merge-strategy>
 </gitflow-reference>
 ```

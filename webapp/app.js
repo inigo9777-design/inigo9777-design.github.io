@@ -252,7 +252,40 @@ document.addEventListener("DOMContentLoaded", () => {
   const recipeEmpty = $("#recipe-empty");
   const recipeFilter = $("#recipe-filter");
   const recipeMealFilter = $("#recipe-meal-filter");
+  const recipeCatalogSearch = $("#recipe-catalog-search");
+  const recipeCatalogResults = $("#recipe-catalog-results");
+  const recipeCatalogEmpty = $("#recipe-catalog-empty");
   const mealLabels = { desayuno: "🌅 Desayuno", comida: "🍽️ Comida", cena: "🌙 Cena" };
+
+  // ===== BUSCADOR DEL CATÁLOGO (feature 2026-10-18, card entre crear receta y Mis Recetas) =====
+  // TODA la decisión (normalizar consulta vía el matcher compartido, score por título x3 /
+  // ingrediente x1, orden estable, límite) vive en el módulo puro modules/busqueda-recetas.js;
+  // aquí sólo el molde de tarjetas (igual que las de Mis Recetas) y el click → modal de detalle.
+  function renderBusquedaCatalogo() {
+    const q = recipeCatalogSearch.value;
+    const busqueda = (window.MRCheff.busquedaRecetas)
+      ? window.MRCheff.busquedaRecetas.buscar(q, catalogoEspanol, { limite: 8 })
+      : { tokens: [], resultados: [] };
+    const hits = busqueda.resultados;
+    recipeCatalogResults.innerHTML = "";
+    recipeCatalogEmpty.classList.toggle("hidden", !(busqueda.tokens.length && hits.length === 0));
+    hits.forEach(({ receta: r, hitsTitulo, hitsIngredientes }) => {
+      const donde = hitsTitulo.length ? "en el título" : "en los ingredientes";
+      const card = document.createElement("div");
+      card.className = "recipe-card";
+      card.dataset.id = r.id;
+      card.innerHTML = `
+        <h3>${escapeHTML(r.title)}</h3>
+        <div class="recipe-meta">
+          <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
+          ${badgeOrigenHTML(r)}
+          <span class="muted" style="font-size:.8rem">${escapeHTML(donde)}</span>
+        </div>`;
+      card.addEventListener("click", () => openRecipeModal(r));
+      recipeCatalogResults.appendChild(card);
+    });
+  }
+  recipeCatalogSearch.addEventListener("input", renderBusquedaCatalogo);
 
   btnGenerate.addEventListener("click", () => {
     const desc = recipeDesc.value.trim();
