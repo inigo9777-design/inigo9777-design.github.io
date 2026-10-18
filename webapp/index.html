@@ -32,15 +32,15 @@
             <button class="tab" data-view="seasonal" role="tab">🥦 Temporada</button>
         </nav>
 
-        <!-- Nuevo: botón de alternar tema -->
-        <button id="theme-toggle" class="theme-toggle" title="Cambiar a modo claro" aria-label="Cambiar tema">🌙</button>
-
-        <!-- Copia de seguridad: pestaña compacta AL LADO del alternador de tema. Sólo el icono; la etiqueta se
-             despliega al pasar el ratón (y en foco por teclado o cuando está activa). Sigue siendo una .tab con
-             data-view → la navegación de app.js no necesita cambios. -->
+        <!-- Copia de seguridad: icono compacto JUSTO A LA IZQUIERDA del alternador de tema (mismo estilo de
+             botón redondo). Sólo el icono en reposo; la etiqueta se despliega al pasar el ratón (y en foco por
+             teclado o cuando está activa). Sigue siendo una .tab con data-view → la navegación de app.js no cambia. -->
         <button class="tab tab-side" data-view="backup" role="tab" aria-label="Copia de seguridad" title="Copia de seguridad">
             <span class="tab-icon" aria-hidden="true">🗄️</span><span class="tab-label">Copia de seguridad</span>
         </button>
+
+        <!-- Nuevo: botón de alternar tema -->
+        <button id="theme-toggle" class="theme-toggle" title="Cambiar a modo claro" aria-label="Cambiar tema">🌙</button>
     </header>
 
     <main class="content">

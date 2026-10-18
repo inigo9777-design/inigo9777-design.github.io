@@ -714,22 +714,53 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Rotación de "↻ Sugerir ahora": historial ACUMULADO de títulos ya mostrados en la tarjeta 1 (se reinicia con
-  // "Limpiar"). Cada click pide a planner.suggestToday una TANDA de 8 platos NO vistos aún (misma lógica de siempre:
-  // aforo qty>0, cooldown de cooked, ranking por aprovechamiento). Al agotarse el pool, el módulo reinicia el ciclo.
-  let sugeridosRecientes = [];
+  // Rotación de "↻ Sugerir ahora" (Card 1): lote de 4 tarjetas con 1 desayuno + 1 comida + 1 cena y, como 4ª,
+  // la mejor de un tipo de comida que VA ROTANDO en cada click. El módulo planner NO cambia: seguimos usando
+  // suggestToday tal cual (ranking completo por aprovechamiento, aforo qty>0 y cooldown de cocinadas intactos) y
+  // aquí abajo sólo repartimos ese ranking por tipo de comida y avanzamos un cursor por click — así el lote CAMBIA
+  // en cada pulsación aunque el aforo cocinable sea pequeño (el caso "4/6 recetas que no rotaban"), porque cada
+  // cursor avanza a la siguiente receta de su tipo. Los cursores viven en memoria: recargar la página reinicia.
+  const COMIDAS_DIA = ["desayuno", "comida", "cena"];
+  const cursorPorComida = { desayuno: 0, comida: 0, cena: 0 };
+  let clicksSugerencia = 0;
 
   btnSuggestGenerate.addEventListener("click", () => {
     const cooked = load(LS.cooked, []);
     const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
-    const ideas = planner.suggestToday(pool, foods, { recientes: sugeridosRecientes, lote: 8 });
-    sugeridosRecientes = [...new Set([...sugeridosRecientes, ...ideas.map(i => i.title)])];
-    renderSuggestCards(ideas);
+    const todas = planner.suggestToday(pool, foods);   // ranking completo de SIEMPRE (contrato cerrado del módulo, sin opts extra)
+
+    // Reparto del ranking por tipo de comida, conservando el orden del ranking dentro de cada tipo:
+    const porComida = { desayuno: [], comida: [], cena: [] };
+    todas.forEach(i => { (porComida[i.meal] || porComida.comida).push(i); });
+
+    // Lote de 4: 1 por cada tipo de comida (avanzando su cursor) + una 4ª del tipo que toca rotar este click.
+    const lote = [];
+    COMIDAS_DIA.forEach((m, idx) => {
+      const lista = porComida[m];
+      if (!lista.length) return;
+      const pos = cursorPorComida[m] % lista.length;
+      lote.push(lista[pos]);
+      if (idx === clicksSugerencia % 3 && lista.length > 1) {
+        lote.push(lista[(pos + 1) % lista.length]);    // la 4ª tarjeta: siguiente mejor de ese tipo de comida
+      }
+    });
+    // Relleno hasta 4 con lo mejor del ranking global aún no en el lote (tapas el tipo de comida que hoy no tenga candidatos):
+    for (const r of todas) {
+      if (lote.length >= 4) break;
+      if (!lote.some(b => b.title === r.title)) lote.push(r);
+    }
+    // Presentación coherente con "ordenadas por aprovechamiento": las 4 quedan en el orden del ranking global.
+    lote.sort((a, b) => todas.indexOf(a) - todas.indexOf(b));
+
+    COMIDAS_DIA.forEach(m => { cursorPorComida[m] += 1; });   // cada click avanza TODOS los cursores → el lote rota
+    clicksSugerencia += 1;
+    renderSuggestCards(lote);
   });
 
   btnSuggestClear.addEventListener("click", () => {
     suggestList.innerHTML = "";
-    sugeridosRecientes = [];                // al limpiar la tarjeta, la rotación también empieza de cero
+    COMIDAS_DIA.forEach(m => { cursorPorComida[m] = 0; });   // al limpiar, la rotación también empieza de cero
+    clicksSugerencia = 0;
     suggestEmpty.classList.remove("hidden");
     toast("Sugerencia limpiada");
   });

@@ -252,21 +252,30 @@ h1, h2, h3 {
 .theme-toggle:hover { background: var(--hover-wash); }
 .theme-toggle:active { transform: scale(0.94); }
 
-/* ---------- Pestaña compacta de Copia de seguridad ----------
-   Vive en el clúster derecho, junto al alternador de tema. Reposo = sólo el
-   icono (medida equivalente a .theme-toggle); la etiqueta se despliega al pasar
-   el ratón, en foco visible de teclado y cuando la vista está activa — así la
+/* ---------- Icono compacto de Copia de seguridad ----------
+   Mismo estilo de botón redondo que .theme-toggle (borde y fondo del clúster
+   derecho), con SU propio icono 🗄️. Va justo a la IZQUIERDA del alternador de
+   tema. En reposo sólo se ve el icono; la etiqueta se despliega al pasar el
+   ratón, en foco visible de teclado y cuando la vista está activa — así la
    persona siempre sabe DÓNDE está sin gastar ancho de la barra de tabs. */
 .tab-side {
+  background: var(--toggle-bg);           /* base idéntica al toggle: botón redondo con borde */
+  border: 1px solid var(--topbar-border);
+  color: var(--toggle-fg);
   height: 38px;
   padding: 0;
   border-radius: 999px;
   overflow: hidden;
-  line-height: 38px;                      /* centra el emoji verticalmente sin flex-box */
+  display: inline-flex;                   /* centrado del icono en AMBOS ejes, igual que .theme-toggle */
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.18s, transform 0.12s;
 }
-.tab-side .tab-icon { display: inline-block; padding: 0 12px; line-height: normal; }
+.tab-side:hover { background: var(--hover-wash); }
+.tab-side:active { transform: scale(0.94); }
+.tab-side .tab-icon { display: inline; padding: 0 12px; line-height: normal; }
 .tab-side .tab-label {
-  display: inline-block;                  /* max-width/overflow SOLO muerden en inline-block (un span inline pretendería crecer siempre) */
+  display: inline-block;                  /* max-width/overflow SOLO muerden en inline-block (un span inline crecería siempre) */
   max-width: 0;
   padding-right: 0;
   opacity: 0;
@@ -281,7 +290,7 @@ h1, h2, h3 {
   padding-right: 12px;
   opacity: 1;
 }
-.tab-side.active { font-weight: 600; }
+.tab-side.active { background: var(--tab-active-bg); color: var(--tab-active-fg); font-weight: 600; }
 
 /* En pantallas estrechas: marca + tema + copia de seguridad en la primera fila, tabs a scroll en la segunda */
 @media (max-width: 820px) {
