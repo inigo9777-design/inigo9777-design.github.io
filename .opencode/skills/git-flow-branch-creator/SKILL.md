@@ -75,6 +75,18 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 				<indicator>Emergency configuration changes</indicator>
 			</indicators>
 		</hotfix>
+
+		<tasks>
+			<purpose>Changes, fixes or improvements that belong to an ALREADY EXISTING feature branch/feature scope (not brand-new features)</purpose>
+			<branch-from>develop</branch-from>
+			<merge-to>develop</merge-to>
+			<naming>tasks/short-description (kebab-case)</naming>
+			<indicators>
+				<indicator>Bug fix or UX tweak inside an already-shipped feature</indicator>
+				<indicator>Behaviour refinement requested on an existing feature</indicator>
+				<indicator>Follow-up work on a feature that already merged to develop</indicator>
+			</indicators>
+		</tasks>
 	</branch-types>
 </analysis-framework>
 ```
@@ -111,6 +123,14 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 			<example>hotfix-2.1.1</example>
 		</examples>
 	</hotfix-branches>
+
+	<task-branches>
+		<format>tasks/short-description</format>
+		<examples>
+			<example>tasks/menu-semanal-cocinar-post-aprobado</example>
+			<example>tasks/fix-matching-pantry</example>
+		</examples>
+	</task-branches>
 </naming-conventions>
 ```
 
@@ -137,7 +157,11 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 			<if-no>
 				<question>Are these release preparation changes (version bumps, final tweaks)?</question>
 				<if-yes>Consider release branch</if-yes>
-				<if-no>Default to feature branch</if-no>
+				<if-no>
+					<question>Is this a change/fix/improvement on an ALREADY EXISTING feature?</question>
+					<if-yes>Consider tasks branch (deletable after merge)</if-yes>
+					<if-no>Default to feature branch</if-no>
+				</if-no>
 			</if-no>
 		</decision-tree>
 	</step-2>
@@ -286,7 +310,7 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 	<merge-strategy>
 		<flag>Always use --no-ff flag to preserve branch history</flag>
 		<tagging>Tag releases on master branch</tagging>
-		<cleanup>Delete only hotfix and bugfix branches, not feature or release branches after successful merge, if required commit yourself, use a concise a clear message of the changes, avoid adding too especific references or validation steps just the general idea, if there are merge conflicts then avoid doing the merge and inform the user</cleanup>
+		<cleanup>Delete hotfix, bugfix and tasks branches after successful merge, not feature or release branches after successful merge, if required commit yourself, use a concise a clear message of the changes, avoid adding too especific references or validation steps just the general idea, if there are merge conflicts then avoid doing the merge and inform the user</cleanup>
 	</merge-strategy>
 </gitflow-reference>
 ```
