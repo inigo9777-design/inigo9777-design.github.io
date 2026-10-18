@@ -93,6 +93,32 @@ document.addEventListener("DOMContentLoaded", () => {
   // El cambio de vista vive en UNA función: la llaman los clicks del topbar y el gesto
   // swipe (viewpager móvil, sección siguiente) — un solo lugar decide el estado activo.
   const tabs = $$(".tab");
+  // El header sigue al contenido (el pill activo siempre a la vista): .tabs es un scroller-x
+  // interno con scrollbar invisible en móvil y, llegando por swipe a las vistas de la derecha
+  // (p. ej. "Temporada"), el activo quedaba FUERA de la ventana visible — el usuario seguía
+  // viendo "Alimentos y Recetas" en el header tras 4 swipes (bug 2026-10-19, captura 28).
+  // La decisión (centrar + fijar a [0, máximo]) vive en el módulo puro
+  // (scrollIzquierdaParaTab); aquí sólo el metro de DOM y el scroll del scroller.
+  function centrarTabActivo() {
+    const pestaña = tabs.find(t => t.classList.contains("active"));
+    if (!pestaña || pestaña.classList.contains("tab-side")) return;   // el side de backup no vive en .tabs
+    const barra = pestaña.parentElement;
+    if (!barra || barra.clientWidth <= 0) return;
+    const rBarra = barra.getBoundingClientRect();
+    const rTab = pestaña.getBoundingClientRect();
+    const dominio = window.MRCheff && window.MRCheff.swipeTabs;
+    const izquierda = dominio
+      ? dominio.scrollIzquierdaParaTab({
+          dentro: rTab.left - rBarra.left + barra.scrollLeft,
+          anchoVisible: barra.clientWidth,
+          anchoContenido: barra.scrollWidth,
+          anchoTab: rTab.width,
+        })
+      : rTab.left - rBarra.left + barra.scrollLeft - (barra.clientWidth - rTab.width) / 2;
+    if (Math.abs(barra.scrollLeft - izquierda) < 1) return;           // ya está a la vista
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    barra.scrollTo({ left: izquierda, behavior: reduce ? "auto" : "smooth" });
+  }
   function activarVista(view) {
     tabs.forEach(t => {
       const es = t.dataset.view === view;
@@ -108,6 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (view === "recipes" && recetasDirty) {
       renderRecipes();
     }
+    centrarTabActivo();
   }
   tabs.forEach(tab => {
     tab.addEventListener("click", () => activarVista(tab.dataset.view));
@@ -164,13 +191,15 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!dir) return;
       const actual = tabs.find(t => t.classList.contains("active"));
       const destino = swipeApi.vecina(ORDEN_VISTAS, actual && actual.dataset.view, dir);
-      if (destino) activarVista(destino);
-      // El gesto no mueve el foco: anuncio silencioso del cambio para lectores de pantalla.
-      const aviso = document.getElementById("aviso-vista");
-      if (aviso) {
-        const pestaña = tabs.find(t => t.dataset.view === destino);
-        const etiqueta = pestaña ? pestaña.textContent.replace(/^[^\p{L}\p{N}]+/u, "").trim() : destino;
-        aviso.textContent = `Vista: ${etiqueta}`;
+      if (destino) {
+        activarVista(destino);
+        // El gesto no mueve el foco: anuncio silencioso del cambio para lectores de pantalla.
+        const aviso = document.getElementById("aviso-vista");
+        if (aviso) {
+          const pestaña = tabs.find(t => t.dataset.view === destino);
+          const etiqueta = pestaña ? pestaña.textContent.replace(/^[^\p{L}\p{N}]+/u, "").trim() : destino;
+          aviso.textContent = `Vista: ${etiqueta}`;
+        }
       }
     }, { passive: true });
   }

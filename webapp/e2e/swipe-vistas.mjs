@@ -75,6 +75,31 @@ try {
   await swipe(page, ".content", 300, 320, 80, 322);
   ok((await vistaActiva(page)) === "view-foods", "(2c) wrap: seasonal → foods");
 
+  // (7) El header SIGUE al viewpager (bug 2026-10-19: el pill activo quedaba a 0px de la
+  //     ventana del scroller-x invisible del nav y el usuario veía aún "Alimentos y Recetas").
+  await page.click(".tab[data-view='foods']");
+  for (let i = 0; i < 4; i++) await swipe(page, ".content", 300, 320, 80, 322);   // foods → seasonal
+  await page.waitForTimeout(500);            // el recentre es smooth: deja terminar la animación
+  const header = await page.evaluate(() => {
+    const barra = document.querySelector(".tabs");
+    const activo = barra.querySelector(".active");
+    const rb = barra.getBoundingClientRect();
+    const rt = activo.getBoundingClientRect();
+    const visible = Math.max(0, Math.min(rt.right, rb.right) - Math.max(rt.left, rb.left));
+    return { activo: activo.dataset.view, scrollLeft: barra.scrollLeft, visible, ancho: rt.width };
+  });
+  ok(header.activo === "seasonal" && header.visible >= header.ancho - 1 && header.scrollLeft > 0,
+    `(7) swipe hasta Temporada: el pill activo VISIBLE (scrollLeft=${Math.round(header.scrollLeft)}, visible=${Math.round(header.visible)}/${Math.round(header.ancho)}px)`);
+  await page.screenshot({ path: path.join(OUT_DIR, "28-header-sigue-al-swipe.png"), clip: { x: 0, y: 0, width: 390, height: 140 } });
+  await swipe(page, ".content", 300, 320, 80, 322);            // seasonal → foods (wrap otra vez)
+  await page.waitForTimeout(500);
+  const vuelve = await page.evaluate(() => ({
+    activo: document.querySelector(".tabs .active")?.dataset.view,
+    scrollLeft: document.querySelector(".tabs").scrollLeft,
+  }));
+  ok(vuelve.activo === "foods" && Math.round(vuelve.scrollLeft) <= 1,
+    `(7) vuelta a foods: el header vuelve al principio (scrollLeft=${Math.round(vuelve.scrollLeft)})`);
+
   // (3a) El gesto VERTICAL no cambia de vista (es scroll, no swipe)
   await swipe(page, ".content", 200, 150, 200, 620);       // hacia abajo, dx=0
   ok((await vistaActiva(page)) === "view-foods", "(3a) arrastre vertical: sigue en foods");

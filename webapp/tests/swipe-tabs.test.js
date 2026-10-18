@@ -62,3 +62,35 @@ describe("swipeTabs.vecina", () => {
     expect(swipeTabs.vecina(["foods"], "foods", 1)).toBe("foods");
   });
 });
+
+// Header que sigue al viewpager (bug 2026-10-19: el tab activo quedaba fuera de la
+// ventana visible del scroller-x invisible del nav). Caso REAL medido en móvil 390px:
+// clientWidth 358 × scrollWidth 638, tab temporada 122px → visible 0px con scrollLeft=0.
+describe("swipeTabs.scrollIzquierdaParaTab", () => {
+  const HEADER = { anchoVisible: 358, anchoContenido: 638, anchoTab: 122 };
+
+  it("centra al tab activo en la ventana del scroller", () => {
+    // dentro=300 → objetivo = 300 − (358−122)/2 = 182 (sin choque con el máximo de 280)
+    expect(swipeTabs.scrollIzquierdaParaTab({ ...HEADER, dentro: 300 })).toBe(182);
+  });
+
+  it("tabs del principio → remata a 0 (no hay nada a la izquierda por ver)", () => {
+    expect(swipeTabs.scrollIzquierdaParaTab({ ...HEADER, dentro: 0 })).toBe(0);
+    expect(swipeTabs.scrollIzquierdaParaTab({ ...HEADER, dentro: 60 })).toBe(0);
+  });
+
+  it("el ÚLTIMO tab (el caso del bug) → remata al máximo posible: pasa a ser visible", () => {
+    // máximo = 638 − 358 = 280; el último tab (dentro=516) pedía 398 → clamp 280
+    expect(swipeTabs.scrollIzquierdaParaTab({ ...HEADER, dentro: 516 })).toBe(280);
+  });
+
+  it("si todo cabe no hay movimiento (máximo 0)", () => {
+    expect(swipeTabs.scrollIzquierdaParaTab({ dentro: 400, anchoVisible: 500, anchoContenido: 480, anchoTab: 122 })).toBe(0);
+  });
+
+  it("métricas raras (0/NaN/null) se normalizan: nunca NaN ni scroll suicida", () => {
+    expect(swipeTabs.scrollIzquierdaParaTab({ dentro: NaN, anchoVisible: 358, anchoContenido: 638, anchoTab: 122 })).toBe(0);
+    expect(swipeTabs.scrollIzquierdaParaTab({ dentro: 400, anchoVisible: 100, anchoContenido: 638, anchoTab: 122 })).toBe(411);
+    expect(swipeTabs.scrollIzquierdaParaTab(null)).toBe(0);
+  });
+});
