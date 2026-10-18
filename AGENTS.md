@@ -87,12 +87,21 @@ italiana" (see `modules/origen-recetas.js` below).
   contraste de texto en las 5 vistas + modal, dark y claro): de ahí nacieron
   `min-width/height: 24px` para checkbox/radio y `min-height: 24px` para
   `input[type=range]`. Las transiciones se congelan para escanear (colores a mitad de
-  transición = falsos contrastes bajos). (7) **Entrega del shell (sw.js)**: el índice va
-  NETWORK-PRIMERO con el caché como respaldo offline (sin conexión la app sigue viva) y los
-  assets cache-primero; el caché del shell es versionado (`mrcheff-v2`) — SUBIR +1 al tocar
-  ficheros del shell, y el precache incluye `modules/swipe-tabs.js`. En el iPhone el sw.js
-  re-válido contra la caché HTTP de Pages (max-age 600): si un cambio "no llega", cerrar el
-  app del app switcher y reabrir (el SW nuevo instala por skipWaiting y activa por claim).
+  transición = falsos contrastes bajos). (7) **Entrega del shell (sw.js)**: TODO (índice Y
+  assets) va NETWORK-FIRST con revalidación (`fetch(req, {cache:"no-cache"})`); el caché
+  (`mrcheff-v3`) es SOLO el respaldo offline y se repuebla en cada acierto de red — SUBIR +1
+  al nombre del caché sólo si cambia la lista SHELL o la estrategia (olvidarlo ya NO congela
+  la entrega: el bug 2026-10-19 de assets cache-primero + sw.js byte-idéntico entre releases
+  servía el shell viejo para siempre, aunque el índice llegara fresco). El check del worker
+  SALTA la caché HTTP de Pages (`register("sw.js", {updateViaCache:"none"})`, Pages sirve
+  max-age=600) y se revisa al entrar, al volver al primer plano y cada 10 min; si un worker
+  NUEVO toma el mando con la app ya abierta, la página se recarga UNA vez por sesión (guard
+  `mrcheff.recargaUpdate`): la release llega sin gestos del usuario. El precache incluye
+  `modules/swipe-tabs.js`. Guardia repetible: `node e2e/pwa-entrega.mjs` (servidor mutado
+  en caliente: data.js v1→v2 se ve con un reload; offline real cerrando el servidor sigue
+  viva con la v2 — 6 checks, captura reports/ui-brave/30). El app se sirve en
+  `https://inigo9777-design.github.io/webapp/` — la raíz de la user page da 404 porque el
+  repo del Pages es este repo ENTERO y no hay index.html en la raíz (normal, no es bug).
   (8) **Botón de caja fuerte en móvil**: círculo 38×38 SIEMPRE (idéntico al toggle del
   tema; petición 2026-10-19) — el despliegue de la etiqueta al activar "Copia de
   seguridad" era un artificio de hover que en táctil derramaba el clúster a una 2ª fila
