@@ -25,7 +25,9 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 4. Determine the appropriate branch type based on the analysis.
 5. Generate a semantic branch name following Git Flow conventions.
 6. Create the branch and switch to it automatically.
-7. Provide a summary of the analysis and next steps.
+7. When committing (before merging), follow the **Standardized Git Commits** section (Conventional
+   Commits + intelligent diff analysis) — one commit per independent change group, concise subject.
+8. Provide a summary of the analysis and next steps.
 
 ### Git Flow Branch Analysis Framework
 
@@ -132,6 +134,47 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 		</examples>
 	</task-branches>
 </naming-conventions>
+```
+
+### Standardized Git Commits (Conventional Commits)
+
+```xml
+<standardized-commits>
+	<specification>Conventional Commits 1.0.0 — format: &lt;type&gt;(&lt;scope&gt;): &lt;subject&gt;</specification>
+
+	<intelligent-diff-analysis>
+		<step-1>git status — grepup the modified/untracked files by DOMAIN (webapp/modules, webapp/tests, webapp/e2e, webapp/data, docs/AGENTS, .opencode skills &amp; rules, root config)</step-1>
+		<step-2>git diff per domain — classify the NATURE of each change group: new capability (feat), behaviour fix (fix), structure move without behaviour change (refactor), test-only (test), docs/rules-only (docs), tooling/config (chore)</step-2>
+		<step-3>type = nature of the DOMINANT group; if groups are truly independent, split into several commits instead of one mixed commit</step-3>
+		<step-4>scope = the most specific meaningful domain (module name, feature card, skill name — NOT the file list)</step-4>
+		<step-5>breaking change (public API removed/reshaped, persisted keys changed) → type! or footer BREAKING CHANGE: <reason> — in this repo it must also be logged in CODING_STANDARDS.md §8</step-5>
+	</intelligent-diff-analysis>
+
+	<message-rules>
+		<rule>Subject: imperative mood, ≤72 chars, NO trailing period; language of the repo's history is Spanish — keep it</rule>
+		<rule>ONE general idea per message: no test counts, no file-by-file lists, no validation narratives (matches the cleanup rule: concise &amp; clear, avoid too specific references or validation steps)</rule>
+		<rule>Body optional — only when the WHY is not obvious; ≤3 lines</rule>
+		<rule>Never commit node_modules/, coverage reports or .DS_Store; check git status for UNRELATED files and exclude them (dataBackup/*.json are tracked — decide consciously)</rule>
+	</message-rules>
+
+	<type-map>
+		<mapping branch="feature">feat</mapping>
+		<mapping branch="hotfix">fix (or fix! if breaking)</mapping>
+		<mapping branch="bugfix">fix</mapping>
+		<mapping branch="tasks">fix if it corrects behaviour, refactor if internal-only, feat if it extends the feature's public behaviour</mapping>
+		<mapping branch="release">chore(release) / build</mapping>
+		<mapping content="only tests">test</mapping>
+		<mapping content="only docs/rules/skills">docs</mapping>
+	</type-map>
+
+	<examples>
+		<example>feat(webapp): buscador de recetas del catálogo en el tab Recetas</example>
+		<example>fix(matching): subconjunto único de tokens — el género genérico cubre al específico, dos específicos ya no casan</example>
+		<example>refactor(menu): extraer la regla de visibilidad de botones de fila al módulo menu-semanal</example>
+		<example>docs(skill): tipo tasks/ y sección de commits estandarizados en git-flow-branch-creator</example>
+		<example>chore(release): preparar versión X.Y.Z (bump docs + lock de dependencias)</example>
+	</examples>
+</standardized-commits>
 ```
 
 ### Analysis Process
