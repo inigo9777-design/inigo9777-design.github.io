@@ -51,10 +51,23 @@ try {
     return cs.height === "38px" && parseFloat(cs.borderRadius) >= 19 && cs.borderStyle === "solid";
   });
   const etiquetaOculta = await side.locator(".tab-label").evaluate(el => getComputedStyle(el).opacity === "0");
+  // Tabs centrados en el header: el centro de .tabs debe coincidir con el centro del .topbar (±6px)
+  // y el clúster derecho sigue pegado al borde derecho (pegado del toggle ≈ padding del header).
+  const geoHeader = await page.evaluate(() => {
+    const bar = document.querySelector(".topbar").getBoundingClientRect();
+    const tabs = document.querySelector(".tabs").getBoundingClientRect();
+    return { centroTabs: tabs.x + tabs.width / 2, centroBarra: bar.x + bar.width / 2, barRight: bar.right };
+  });
+  const bordeDerechoToggle = geoHeader.barRight - (boxT.x + boxT.width);   // pegado del toggle al borde del header
+  const tabsCentrados = Math.abs(geoHeader.centroTabs - geoHeader.centroBarra) <= 6;
+  const toggleEnSuSitio = bordeDerechoToggle >= 0 && bordeDerechoToggle <= 30;
   await snap(page, "01-topbar-reposo.png");
   console.log("1a. reposo: aLaIzquierda=" + aLaIzquierda + " pegado=" + pegado + " estiloToggle=" + estiloToggle +
-    " anchoPill=" + Math.round(boxB.width) + "px etiquetaOculta=" + etiquetaOculta);
+    " anchoPill=" + Math.round(boxB.width) + "px etiquetaOculta=" + etiquetaOculta +
+    " | tabsCentrados=" + tabsCentrados + " (desvío " + Math.round(geoHeader.centroTabs - geoHeader.centroBarra) + "px) toggleEnSuSitio=" + toggleEnSuSitio);
   if (!aLaIzquierda || !pegado || !estiloToggle || !etiquetaOculta) throw new Error("El icono de backup no está como se pidió");
+  if (!tabsCentrados) throw new Error("Los tabs NO están centrados en el header");
+  if (!toggleEnSuSitio) throw new Error("El clúster derecho (backup+tema) se movió del borde");
 
   // (1b) Hover: la etiqueta "Copia de seguridad" se despliega.
   await side.hover();

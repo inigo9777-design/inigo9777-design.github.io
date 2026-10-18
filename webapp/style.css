@@ -165,13 +165,15 @@ h1, h2, h3 {
 }
 
 /* ========== 4. CABECERA ========== */
+/* Grid 3 columnas (1fr auto 1fr): marca a la izquierda, TABS CENTRADOS en el header y el clúster
+   derecho (backup + tema) donde estaba. En ≤820px vuelve a flex-wrap (media query más abajo). */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 50;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  flex-wrap: wrap;
   gap: 10px 18px;
   padding: 10px 24px;
   background: var(--topbar-bg);
@@ -184,7 +186,14 @@ h1, h2, h3 {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-right: auto;                    /* el resto queda a la derecha */
+  justify-self: start;                   /* columna izquierda, pegado al borde */
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: end;                     /* columna derecha: backup + tema, donde estaban */
 }
 
 .brand-logo {
@@ -205,6 +214,7 @@ h1, h2, h3 {
   display: flex;
   gap: 4px;
   flex-wrap: nowrap;
+  justify-self: center;                  /* columna central del grid: tabs centrados en el header */
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -232,8 +242,8 @@ h1, h2, h3 {
   font-weight: 600;
 }
 
-/* Botón de tema: icono puro, si se solapara con los tabs en pantallas
-   intermedias simplemente cede la fila (flex-wrap lo reubica abajo). */
+/* Botón de tema: icono puro, igual estilo que el icono de copia de seguridad a su izquierda.
+   (El centrado de los tabs lo resuelve el grid del .topbar; aquí nada que hacer.) */
 .theme-toggle {
   background: var(--toggle-bg);
   border: 1px solid var(--topbar-border);
@@ -292,14 +302,14 @@ h1, h2, h3 {
 }
 .tab-side.active { background: var(--tab-active-bg); color: var(--tab-active-fg); font-weight: 600; }
 
-/* En pantallas estrechas: marca + tema + copia de seguridad en la primera fila, tabs a scroll en la segunda */
+/* En pantallas estrechas: volvemos a flex-wrap — marca + clúster (backup+tema) en la primera fila,
+   tabs a scroll en la segunda. Las posiciones relativas no cambian: backup a la izquierda del tema. */
 @media (max-width: 820px) {
-  .topbar { padding: 10px 16px 0; }
+  .topbar { display: flex; flex-wrap: wrap; padding: 10px 16px 0; }
+  .topbar-actions { order: 2; }           /* el clúster derecho sigue en la primera fila */
   .tabs { order: 3; flex-basis: 100%; gap: 2px; }
   .tab { padding: 7px 11px; }
-  .theme-toggle { order: 2; }
-  .tab-side { order: 2; }                 /* el icono de backup sigue pegado al del tema, no cae a la fila de tabs */
-  .brand { margin-right: auto; }          /* empuja toggle+backup a la derecha del clúster compacto */
+  .brand { margin-right: auto; }          /* empuja el clúster derecho al borde */
   .topbar { gap: 10px 12px; }
 }
 
