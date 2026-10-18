@@ -431,7 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="recipe-meta">
         <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
         ${badgeOrigenHTML(r)}
-        ${(r.source && r.source !== "curada") ? `<span class="tag tag-${r.source}">${(SOURCE_LABEL[r.source] || "Idea").toString()}</span>` : ""}
+        ${tagClasicoHTML(r, "Idea")}
       </div>
       ${r.from ? `<p class="muted">Base: ${escapeHTML(r.from)}</p>` : ""}
       ${r.uses && r.uses.length ? `<p class="muted">🥣 Usa de tu casa: ${r.uses.map(escapeHTML).join(", ")}</p>` : ""}
@@ -553,36 +553,34 @@ document.addEventListener("DOMContentLoaded", () => {
   const SOURCE_LABEL = { curada: "Receta española", variacion: "Variación", combo: "Combinación", libre: "Creada", protagonista: "Enfocado", nueva: "Nueva", sugerenciaHoy: "Sugerencia de hoy", receta_sugerida: "Sugerencia de hoy" };
 
   // Etiqueta de ORIGEN del catálogo curado (2026-10-18): "Receta española" / "Receta italiana" en TODAS las vistas
-  // de recetas. La decisión (id del catálogo + respaldo por título normalizado, porque las ideas/sugerencias/huecos
-  // del plan generan un uid propio nuevo) vive en el módulo puro modules/origen-recetas.js; aquí sólo el molde HTML.
-  // Sin etiqueta variación de fuente: si la idea es "curada" (o del plan sugerido) SIEMPRE sale el badge de origen;
-  // para fuentes legacy del almacenamiento viejo se conserva el tag clásico de SOURCE_LABEL.
-  function esRecetaCatalogo(rec) {
-    return rec && (rec.source === "curada" || rec.source === "receta_sugerida" || rec.source === "sugerenciaHoy");
-  }
+  // de recetas. TODA la decisión vive en el módulo puro modules/origen-recetas.js (detección por id/título/sello,
+  // sello al guardar, clase CSS y si el tag clásico de fuente es redundante); aquí sólo quedan los MOLDES <span>
+  // con el fallback visible si el módulo no cargara (§ guard débil, mismo espíritu que recipeMissing).
   function etiquetaOrigenSegura(rec) {
     const m = window.MRCheff.origenRecetas;
     return (m && m.etiquetaOrigen) ? m.etiquetaOrigen(rec) : "Receta española";
   }
+  function claseOrigenSegura(rec) {
+    const m = window.MRCheff.origenRecetas;
+    return (m && m.claseOrigen) ? m.claseOrigen(rec) : "tag-origen-espanola";
+  }
   function badgeOrigenHTML(rec) {
-    const etiqueta = etiquetaOrigenSegura(rec);
-    const cls = etiqueta === "Receta italiana" ? "tag-origen-italiana" : "tag-origen-espanola";
-    return `<span class="tag ${cls}">${etiqueta}</span>`;
+    return `<span class="tag ${claseOrigenSegura(rec)}">${etiquetaOrigenSegura(rec)}</span>`;
   }
-  // Badge de origen correcto para cualquier vista: ideas curadas/sugeridas → etiqueta por origen;
-  // fuentes legacy → su tag clásico (NUNCA se inventa un origen español para lo que no lo es).
-  function tagOrigenOClasico(rec) {
-    return esRecetaCatalogo(rec) ? badgeOrigenHTML(rec)
-      : `<span class="tag tag-${String(rec && rec.source)}">${SOURCE_LABEL[rec && rec.source] || "Nueva"}</span>`;
+  // Tag clásico de FUENTE ("%Variación", "Sugerencia de hoy"…): el módulo decide si se pinta (null ⇒ no).
+  function tagClasicoHTML(rec, fallback) {
+    const m = window.MRCheff.origenRecetas;
+    const texto = (m && m.etiquetaClasicaVisible) ? m.etiquetaClasicaVisible(rec, SOURCE_LABEL, { fallback }) : (rec && rec.source ? (SOURCE_LABEL[rec.source] || fallback) : null);
+    return texto ? `<span class="tag tag-${String(rec.source)}">${texto.toString()}</span>` : "";
   }
-  // Sello de ORIGEN al guardar una copia (⭐ de Innovación / ✏️ editor): fija 'italiana'/'espanola' en el
-  // MOMENTO del guardado (por id o título del plato ORIGINAL), para que la etiqueta persista aunque el
-  // usuario renombre la copia después (el título ya no deriva nada). El módulo de origen da precedencia
-  // a este campo sobre id/título en las recetas guardadas.
+  // Sello de ORIGEN al guardar una copia (⭐ de Innovación / ✏️ editor): el módulo calculó id/título del plato
+  // ORIGINAL en el MOMENTO del guardado para que la etiqueta persista aunque el usuario renombre después.
+  // El campo queda persistido en la receta (origen:"italiana"|"espanola") y el módulo le da precedencia.
   function origenAlGuardar(rec) {
     const m = window.MRCheff.origenRecetas;
-    if (!m || !m.esItaliana) return {};     // sin módulo → no se sella nada (etiqueta por defecto española)
-    return { origen: m.esItaliana(rec) ? "italiana" : "espanola" };
+    if (!m || !m.origenAlGuardar) return {};
+    const sello = m.origenAlGuardar(rec);          // string 'italiana'|'espanola' (o null sin datos)
+    return sello ? { origen: sello } : {};
   }
 
   btnGenerateInnov.addEventListener("click", () => {
@@ -670,7 +668,8 @@ document.addEventListener("DOMContentLoaded", () => {
         <h3>${escapeHTML(i.title)}</h3>
         <div class="recipe-meta">
           <span class="tag meal-${i.meal}">${mealLabels[i.meal]}</span>
-          ${i.source === "curada" ? badgeOrigenHTML(i) : `<span class="tag tag-${i.source}">${SOURCE_LABEL[i.source] || "Nueva"}</span>`}
+          ${badgeOrigenHTML(i)}
+          ${i.source === "curada" ? "" : `<span class="tag tag-${i.source}">${SOURCE_LABEL[i.source] || "Nueva"}</span>`}
         </div>
         ${i.uses && i.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${i.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
       card.addEventListener("click", (e) => {
@@ -748,7 +747,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="recipe-meta">
           <span class="tag meal-${idea.meal}">${mealLabels[idea.meal] || ""}</span>
           ${badgeOrigenHTML(idea)}
-        ${idea.source ? `<span class="tag tag-${String(idea.source)}">${SOURCE_LABEL[idea.source] || SOURCE_LABEL.sugerenciaHoy}</span>` : ""}
+        ${tagClasicoHTML(idea, SOURCE_LABEL.sugerenciaHoy)}
         </div>
         ${idea.uses && idea.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${idea.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
       card.addEventListener("click", (e) => {
@@ -850,7 +849,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <h4 class="menu-meal-title">${escapeHTML(rec.title)}</h4>
         <div class="recipe-meta">
           ${badgeOrigenHTML(rec)}
-          ${(rec.source && rec.source !== "curada") ? `<span class="tag tag-${String(rec.source)}">${SOURCE_LABEL[rec.source] || SOURCE_LABEL.sugerenciaHoy}</span>` : ""}
+          ${tagClasicoHTML(rec, SOURCE_LABEL.sugerenciaHoy)}
           <span class="muted" style="font-size:.8rem">${rec.ingredients.length} ingr.</span>
         </div>
         ${rec.uses && rec.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${rec.uses.map(escapeHTML).join(" · ")}</div>` : ""}

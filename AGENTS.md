@@ -14,21 +14,29 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
   There is no linter/formatter/typecheck for the app itself; "verify a change" = open index.html
   and exercise the affected tab.
 - **Tests:** `cd webapp && npm test` (`jest`) / `npm run coverage` (`jest --coverage`). Jest IS a
-  declared devDependency with installed `node_modules/`. Spec files now **do** exist under
-  `webapp/tests/` — one per module so far: `classify.test.js`, `priority.test.js`, `recipe-analysis.test.js`,
-  `innovations.test.js`, plus harness scaffolding (`boot.js` / `setup.js`). As of the last run on 2026-10-16,
-  the whole suite is green (`4 passed / 60 tests total`) — verify with a fresh run before trusting it: **logic
-- Note: there is **no `.gitignore`** and `webapp/node_modules/` is **untracked** — never `git add -A`
-  it. `dataBackup/*.json` backups *are* tracked.
+  declared devDependency with installed `node_modules/`. Specs live under `webapp/tests/` —
+  per-module specs (classify, priority, recipe-analysis, ingredient-matching, util, innovations,
+  planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas) + integration specs
+  (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
+  e2e-flow-receta-a-alerta-compra) + harness scaffolding (`boot.js` / `setup.js`). As of the last
+  run on 2026-10-18 the whole suite is green (**256 tests across 19 suites**) — verify with a fresh
+  run before trusting it.
+- **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
+  and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`
+  blindless with `webapp/node_modules/` present; `dataBackup/*.json` backups *are* tracked.
 
 ## Architecture (`webapp/`)
-Single-page, five-tab app loaded via `index.html`, in this order (order matters): inline `<script>`
-→ `data.js` → `app.js`. All logic lives inside one `DOMContentLoaded` closure in `app.js`, sectioned
-by `// ===== SECTION =====` banners. Files:
+Single-page, six-tab app loaded via `index.html`. Script order (order matters): inline `<script>`
+→ `data.js` → `app.js` (registers the one `DOMContentLoaded` closure; module `<script>`s load after
+it but still before the DOM-ready event fires) → `modules/…` (`priority`, `classify`,
+`recipe-analysis`, catalog data, `origen-recetas`, `innovations`, `util`, `backup`,
+`ingredient-matching`, `planner`, `menu-semanal`, `recipe-missing`, `recipe-editor`). `app.js`
+is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
 
 - **data.js** — static seasonal data; exposes `window.MR_CHEFF_DATA = { MESES, TEMPORADA }`. `app.js`
   depends on this having run first (keep the script order).
-- **app.js** — everything else, sectioned by banner.
+- **app.js** — composition-root: event wiring, persistence glue and HTML molds only; the domain
+  logic lives in `modules/` (see below). Sectioned by banner.
 - **style.css** — hand-written CSS (no framework); desde 2026-10-18 es un **sistema tokenizado**: todo color
   vive en `:root` (claro) / `[data-theme="dark"]` (oscuro), **ningún componente usa hex sueltos**; añadir un
   color nuevo = añadir token en ambos temas (con `color-scheme` nativo por tema). Tipografía: Georgia (serif
@@ -36,13 +44,30 @@ by `// ===== SECTION =====` banners. Files:
   comentario en la línea 2 (`Apply`) invalidaba el bloque `:root` entero del modo claro — parser CSS lo engulle
   como selector; mantener el fichero sin tokens basura fuera de comentario].
 
-Views: **Alimentos** (pantry/restock alerts) · **Recetas** (free-text → structured recipe) ·
-**Innovación** (invent recipes from the pantry) · **Temporada** (in-season fruit/veg by month) ·
-**Copia de seguridad** (cross-browser Export/Import — its own tab).
+Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts) · **Recetas** (free-text →
+structured recipe + Mis Recetas) · **Innovación** (curated-catalog suggestions from the pantry) ·
+**Sugerencias y menú** (↻ Sugerir ahora lote rotado + plan semanal 7×3 + lista de la compra) ·
+**Temporada** (in-season fruit/veg by month) · **Copia de seguridad** (side icon tab). Every recipe
+viewed anywhere (cards, plan slots, modal) shows an ORIGIN badge — "Receta española"/"Receta
+italiana" (see `modules/origen-recetas.js` below).
 
-- New module **`webapp/modules/recetas-espanolas.data.js`** (IIFE + dual-export identical to `classify.js`/`priority.js`,
-  loaded before `innovations.js`) holds a curated catalog of real, plausible everyday Spanish recipes. Each record is minimal:
-  `{ id, title, meal: "desayuno"|"comida"|"cena", ingredients[], method[] }`.
+- **`webapp/data/recetas-espanolas-data.js`** — curated catalog (IIFE + dual-export like
+  `classify.js`/`priority.js`, loaded before `innovations.js`/`origen-recetas.js`): **200 records as of
+  2026-10-18** (53 desayunos / 97 comidas / 50 cenas; the last 20 are ITALIAN home recipes). Each record is
+  minimal: `{ id, title, meal: "desayuno"|"comida"|"cena", ingredients[], method[] }` (5-field schema).
+  It also attaches `dataset.idsItalianas` (list of the 20 Italian ids, consumed by `origen-recetas.js`) as
+  a PROPERTY of the exported array — `module.exports` stays a plain array for tests/e2e. New Italian
+  recipe ⇒ also add its id to `idsItalianas`.
+- **Pure modules (`webapp/modules/`, all IIFE + dual-export, no DOM/localStorage — §3 CODING_STANDARDS):**
+  `classify.js` · `priority.js` · `recipe-analysis.js` · `ingredient-matching.js` (token matcher,
+  shared by planner/menu-semanal/innovations) · `util.js` · `innovations.js` · `planner.js` (public API:
+  buildCandidatePool, matchDetails, suggestToday, buildWeeklyMenu, pickRecipeForSlot, loteRotado…) ·
+  `menu-semanal.js` (shoppingListFor, approveMenu, markItemBought, cookEntry, swapSlotRecipe, clearMenu) ·
+  `recipe-editor.js` (buildDraft, validateDraft, estaGuardada, applyEdit, patchPlan) · `recipe-missing.js`
+  (qué ingredientes faltan para el modal) · `backup.js` · **`origen-recetas.js`** (etiqueta/sello de origen:
+  esItaliana, etiquetaOrigen, claseOrigen, origenAlGuardar, etiquetaClasicaVisible — inyectable ctx
+  `{catalog, ids}` para tests). `app.js` keeps ONLY HTML molds (`badgeOrigenHTML`, `tagClasicoHTML`),
+  event wiring and persistence.
 - `modules/innovations.js` `generate(count, focus, state)` keeps its **exact public signature** (the sole call-site at
   `app.js:~445` is unaffected), but internally stops assembling random ingredient combinations from `STYLES`/`TWISTS`/
   `ARCHETYPES`. Instead it scores the curated catalog deterministically and ranks the top 6 by a named-weighted formula
@@ -77,6 +102,13 @@ Views: **Alimentos** (pantry/restock alerts) · **Recetas** (free-text → struc
     si es un plato del catálogo o del plan — los huecos del plan que incrustan la receta editada se refrescan
     por `recipe.id` (`recipeEditor.patchPlan` del módulo puro `modules/recipe-editor.js`: buildDraft /
     validateDraft / estaGuardada / applyEdit / patchPlan; el plan sigue snapshot para missing/needyFoods).
+- Origen en recetas guardadas: las copias guardadas (⭐ desde Innovación o ✏️ editor sobre plato del
+  catálogo/plan) pueden llevar el campo opcional `origen: "italiana"|"espanola"` — sellado EN EL MOMENTO
+  del guardado por `origenRecetas.origenAlGuardar` (el título no vuelve a derivarse tras renombrar).
+  Copias antiguas (pre-sello) no lo llevan; su etiqueta cae por id/título (normalmente española).
+  El tag clásico `curada` ("Receta española") se OCULTA cuando duplicaría el badge de origen
+  (`origenRecetas.etiquetaClasicaVisible` decide; tokens con texto distinto como
+  "Sugerencia de hoy" se conservan).
 - Lista de la compra (Card 3): dedup por el matcher de tokens (`modules/ingredient-matching.js`,
   NO lower-case exacto) contra comida real (qty>0), y semáforo dinámico por fecha de preparación
   (`onDay`/`daysUntil`/`urgency`): hoy/mañana=rojo, 2–3 días=naranja, ≥4 días (o sin fecha)=verde;

@@ -8,8 +8,8 @@ const origen = require("../modules/origen-recetas.js");
 const ctx = { catalog: dataset, ids: dataset.idsItalianas };
 
 describe("(1) Contrato del módulo y de los datos de origen", () => {
-  it("exporta exactamente 2 funciones públicas: esItaliana y etiquetaOrigen", () => {
-    expect(Object.keys(origen).sort()).toEqual(["esItaliana", "etiquetaOrigen"]);
+  it("exporta exactamente 5 funciones públicas (etiqueta + sello + clase CSS + tag clásico + decisión)", () => {
+    expect(Object.keys(origen).sort()).toEqual(["claseOrigen", "esItaliana", "etiquetaClasicaVisible", "etiquetaOrigen", "origenAlGuardar"]);
   });
 
   it("dataset.idsItalianas: 20 ids curados, TODAS presentes en el catálogo y sin duplicados", () => {
@@ -102,5 +102,41 @@ describe("(5) Degradación / resolución global (la vía de PRODUCCIÓN es windo
     expect(origen.etiquetaOrigen({ title: "Tiramisú casero" }, { catalog: [], ids: [] })).toBe("Receta española");
     expect(origen.etiquetaOrigen(null, ctx)).toBe("Receta española");     // receta rota/recibida a medias
     expect(origen.etiquetaOrigen({ title: "Tiramisú casero" }, { catalog: dataset, ids: [] })).toBe("Receta española"); // catalog pero ids vacíos
+  });
+});
+
+describe("(6) Extracción desde app.js (2026-10-18): sello, clase CSS y tag clásico de fuente", () => {
+  it("origenAlGuardar: 'italiana'/'espanola' por id-título del ORIGINAL; null sin datos → no se sella nada", () => {
+    expect(origen.origenAlGuardar(dataset.find(r => r.id === "pizza-margarita"), ctx)).toBe("italiana");
+    const idea = { id: "uid-x", title: "Tiramisú casero" };
+    expect(origen.origenAlGuardar(idea, ctx)).toBe("italiana");
+    expect(origen.origenAlGuardar({ id: "uid-y", title: "Guiso de la abuela" }, ctx)).toBe("espanola");
+    expect(origen.origenAlGuardar(idea, { catalog: [], ids: [] })).toBe(null);
+  });
+
+  it("claseOrigen: única fuente de verdad del par etiqueta↔clase CSS (la UI no replica el if)", () => {
+    expect(origen.claseOrigen({ id: "x", title: "Risotto de setas" }, ctx)).toBe("tag-origen-italiana");
+    expect(origen.claseOrigen({ id: "x", title: "Tostada de tomate y ajo" }, ctx)).toBe("tag-origen-espanola");
+  });
+
+  it("etiquetaClasicaVisible: 'curada' NUNCA pinta su tag clásico (texto redundante con el badge — bug del modal)", () => {
+    const guardada = { id: "uid-1", source: "curada", title: "Mi plato casero" };
+    expect(origen.etiquetaClasicaVisible(guardada, { curada: "Receta española", receta_sugerida: "Sugerencia de hoy" }, {}, ctx)).toBe(null);
+  });
+
+  it("etiquetaClasicaVisible: copia sellada italiana con source 'curada' → tampoco tag (badge 'italiana' basta)", () => {
+    const sellada = { id: "uid-2", source: "curada", origen: "italiana", title: "Pizza jamón y queso casera" };
+    expect(origen.etiquetaClasicaVisible(sellada, { curada: "Receta española" }, {}, ctx)).toBe(null);
+  });
+
+  it("etiquetaClasicaVisible: 'receta_sugerida' SÍ conserva 'Sugerencia de hoy' (texto distinto, no duplica)", () => {
+    const idea = { id: "uid-3", source: "receta_sugerida", title: "Tiramisú casero" };
+    expect(origen.etiquetaClasicaVisible(idea, { receta_sugerida: "Sugerencia de hoy" }, {}, ctx)).toBe("Sugerencia de hoy");
+  });
+
+  it("etiquetaClasicaVisible: legacy 'variacion' muestra su texto; token desconocido → fallback; sin fuente → null", () => {
+    expect(origen.etiquetaClasicaVisible({ id: "u", source: "variacion", title: "X" }, { variacion: "Variación" }, {}, ctx)).toBe("Variación");
+    expect(origen.etiquetaClasicaVisible({ id: "u", source: "rarita", title: "X" }, { variacion: "Variación" }, { fallback: "Nueva" }, ctx)).toBe("Nueva");
+    expect(origen.etiquetaClasicaVisible({ id: "u", title: "X" }, { variacion: "Variación" }, {}, ctx)).toBe(null);
   });
 });

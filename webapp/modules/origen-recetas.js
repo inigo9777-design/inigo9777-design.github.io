@@ -1,9 +1,17 @@
 // modules/origen-recetas.js — Etiqueta de ORIGEN de las recetas del catálogo curado: "Receta española"
 // o "Receta italiana" (2026-10-18, recetas italianas añadidas al catálogo — ver data/recetas-espanolas-data.js).
 //
-// Lógica PURe (sin DOM ni localStorage): la UI (app.js) la llama para pintar la etiqueta en TODAS las vistas
-// de recetas — Recetas (Mis Recetas), Innovación (que ya tenía la etiqueta "Receta española" con valor fijo),
-// "Sugerir ahora", Menú semanal y el modal de detalle.
+// API PÚBLICA (6 funciones):
+//   esItaliana(rec, ctx?)                 → ¿esa receta es del lote italiano del catálogo?
+//   etiquetaOrigen(rec, ctx?)             → "Receta italiana" | "Receta española" (texto del badge)
+//   claseOrigen(rec, ctx?)                → "tag-origen-italiana" | "tag-origen-espanola" (clase CSS del badge)
+//   origenAlGuardar(rec, ctx?)            → sello 'italiana' | 'espanola' a fijar en la copia al GUARDAR; null si
+//                                           no hay datos de catálogo/ids (no se sella nada, etiqueta cae a española)
+//   etiquetaClasicaVisible(rec, etiquetas, opts?, ctx?) → texto del TAG clásico de FUENTE (Source_LABEL) a pintar,
+//                                           o null cuando NO se pinta: fuente "curada" (su texto SIEMPRE solapa con
+//                                           la etiqueta de origen — ese era el duplicado del modal) o texto idéntico
+//                                           a la etiqueta de origen. `opts.fallback` cubre tokens sin clave en el mapa.
+// Sin DOM ni I/O: testeable 100% en Node (§6 Capa-1); inyección por contexto (§3.7/§8) como planner.js/innovations.js.
 //
 // Detección (3 claves, por orden):
 //   0. campo persistido `rec.origen` (2026-10-18: 'italiana'/'espanola' que app.js sella al GUARDAR una copia
@@ -92,5 +100,34 @@
     return esItaliana(rec, ctx) ? "Receta italiana" : "Receta española";
   }
 
-  return { esItaliana, etiquetaOrigen };               // API pública cerrada (2 funciones).
+  // Sello de ORIGEN al GUARDAR una copia (⭐ / ✏️ del editor): valor a fijar en el campo persistido `origen`.
+  // null si no hay datos de origen → el caller NO sella nada (la etiqueta de esa copia caerá a española).
+  function origenAlGuardar(rec, ctx) {
+    const resuelto = resolverContexto(ctx);
+    if (!resuelto || !resuelto.catalog.length) return null;   // sin catálogo real → NO sellar nada (caerá a española)
+    return esItaliana(rec, ctx) ? "italiana" : "espanola";
+  }
+
+  // Clase CSS del badge (molde de la UI): única fuente de verdad del par etiqueta↔clase, para que app.js
+  // no replique el if de "italiana → verde" en cada vista.
+  function claseOrigen(rec, ctx) {
+    return esItaliana(rec, ctx) ? "tag-origen-italiana" : "tag-origen-espanola";
+  }
+
+  // Texto del TAG clásico de FUENTE a pintar bajo el badge de origen, o null si NO se pinta.
+  // Regla anti-duplicado: el token "curada" (SOURCE_LABEL = "Receta española") usa por diseño UNA FRASE de
+  // origen → su tag clásico es siempre redundante con el badge y se oculta (bug reportado: la copia editada
+  // de una idea italiana pintaba dos veces "Receta española" en el modal). Por el mismo criterio se oculta
+  // cualquier fuente cuyo texto clásico coincida LITERALMENTE con la etiqueta de origen. Las demás fuentes
+  // ("receta_sugerida" → "Sugerencia de hoy", legacy "Variación"/"Combinación"…) conservan su tag.
+  function etiquetaClasicaVisible(rec, etiquetas, opts, ctx) {
+    const fuente = rec && rec.source ? String(rec.source) : "";
+    if (!fuente) return null;
+    const texto = (etiquetas && etiquetas[fuente] != null) ? String(etiquetas[fuente]) : ((opts && opts.fallback) || null);
+    if (texto == null) return null;
+    if (fuente === "curada" || texto === etiquetaOrigen(rec, ctx)) return null;
+    return texto;
+  }
+
+  return { esItaliana, etiquetaOrigen, claseOrigen, origenAlGuardar, etiquetaClasicaVisible }; // API pública cerrada (5 funciones).
 });
