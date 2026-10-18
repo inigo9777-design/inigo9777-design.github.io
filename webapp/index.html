@@ -6,6 +6,14 @@
     <meta name="color-scheme" content="dark light">
     <title>Mr Cheff · Asistente de Cocina</title>
     <link rel="stylesheet" href="style.css">
+    <!-- PWA (#epic-download-web-like-app-from-browser): manifest + icono para "Instalar aplicación".
+         En Android (⋮ → Instalar aplicación) el navegador exige MANIFEST + SERVICE WORKER + https;
+         en iOS el "Añadir a pantalla de inicio" usa el apple-touch-icon. Sin área data funciona igual. -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#17150f">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Mr Cheff">
     <!-- Aplicar el tema guardado ANTES de pintar para evitar el parpadeo -->
     <script>
       (function () {
@@ -319,5 +327,14 @@
          Consumido por app.js al abrir/guardar el editor (tiempo de click); ver planFeature… §12 y CODING_STANDARDS.md §3. -->
     <script src="modules/recipe-editor.js"></script>
 
+    <noscript>Mr Cheff necesita JavaScript: toda la lógica funciona en tu navegador, sin servidor.</noscript>
+    <script>
+      // Registro del service worker SÓLO en contexto seguro (https:// o localhost). En file://
+      // (doble clic al index.html) no hay service worker disponible y no se toca nada: la app
+      // sigue funcionando igual de siempre abriendo el archivo directamente.
+      if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+        navigator.serviceWorker.register("sw.js");
+      }
+    </script>
 </body>
 </html>

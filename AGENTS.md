@@ -11,6 +11,10 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
 
 ## Commands (run from `webapp/` unless noted)
 - **Run:** open `webapp/index.html` in a browser. No server or build step needed for the app.
+  Para INSTALARLA como app (PWA): sí requiere servirla por https:// (o localhost en escritorio) —
+  `cd webapp && python3 -m http.server 8000` → Brave ⋮ → "Instalar página como aplicación…";
+  en móvil Android hay que alojarla en https (GitHub Pages / Netlify Drop). Abrirla por `file://`
+  sigue funcionando exactamente igual (sin service worker, sin opción de instalar).
   There is no linter/formatter/typecheck for the app itself; "verify a change" = open index.html
   and exercise the affected tab.
 - **Tests:** `cd webapp && npm test` (`jest`) / `npm run coverage` (`jest --coverage`). Jest IS a

@@ -287,6 +287,18 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   ("Queso azul" ≠ "Queso rallado"; "Lomo de cerdo" ≠ "Lomo salado"). Cambio semántico asumido:
   la despensa es más honesta y las sugerencias pueden exigir el ingrediente específico en la
   lista de la compra; tests de matching actualizados a ambos lados + suite completa verde.
+- `2026-10-18 · @AI-agent · #epic-download-web-like-app-from-browser · Principio: O · Justificación:`
+  la webapp se hace INSTALABLE como app (PWA) sin cambiar ningún framework ni añadir build: NO se pasa
+  a React — una web estática es el caso ideal y sólo faltaba el embalaje. Se añaden ficheros nuevos
+  `manifest.webmanifest` + `sw.js` + `icons/` (192/512 derivados del logo) y tres líneas en el head de
+  `index.html` (manifest, theme-color, apple-touch-icon) con el registro del service worker GUARDADO a
+  contexto seguro (`http(s)`; en `file://` no hay SW y la app estática sigue funcionando idéntica). El
+  SW es cache-primero del app-shell (26 recursos) con red de respaldo y cache versionado `mrcheff-v1`
+  (+1 para refrescar a los instalados). Contrato nuevo IMPLÍCITO que conviene no olvidar: el flujo
+  "⋮ → Instalar aplicación" de Android exige manifest + SW + **https** — por `file://` o LAN-http el
+  navegador no lo oferta (por eso los e2e documentan las 2 vías de prueba real: GitHub Pages/Netlify
+  Drop, o localhost en el Mac). Verificado con Brave real servido en 127.0.0.1: SW activado, cache
+  completo (13 módulos), recarga offline viva (`e2e/pwa-instalable.mjs`, 9 checks); suite 291/291 intacta.
 - `2026-10-18 · @AI-agent · #tasks-analisis-texto-recetas · Principio: O · Justificación:` el análisis
   del texto libre de "Crear receta" (módulo puro `recipe-analysis.js`, sin red) perdía contenido que el
   usuario escribió a mano: (1) toda palabra inicial en MAYÚSCULA se cortaba en el tokenizador ("Tortilla"
