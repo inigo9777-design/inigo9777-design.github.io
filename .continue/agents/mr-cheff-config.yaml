@@ -50,6 +50,20 @@ models:
     capabilities:
        - tool_use        
        - image_input  
+       - thinking 
+  - name: qwen3.8:27b-mlx-code-50k
+    provider: ollama
+    model: qwen3.8:27b-mlx-fast
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      contextLength: 50000
+      maxTokens: 25000
+    capabilities:
+       - tool_use        
+       - image_input  
        - thinking   
   - name: Autodetect
     provider: ollama
