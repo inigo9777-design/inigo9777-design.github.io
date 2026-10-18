@@ -1,2 +1,3 @@
 node_modules/
-webapp/coverage/
+webapp/coverage/*
+reports/ui-brave/*
