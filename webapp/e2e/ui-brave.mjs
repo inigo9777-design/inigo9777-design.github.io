@@ -124,6 +124,61 @@ try {
   if (nuevosEnT2.length === 0) throw new Error("El segundo click NO trajo recetas nuevas");
   if (nuevosEnT3.length === 0) throw new Error("El tercer click NO trajo recetas nuevas");
 
+  // ============ (2b) Etiqueta de origen (Española/Italiana) en todas las vistas de recetas ============
+  // Contexto PROPIO: su aforo restringido (sólo tiramisú) NO debe tocar el localStorage que usa la sección 3 (p2).
+  const ctx4 = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+  const p4 = await ctx4.newPage();
+  // Aforo EXACTO del tiramisú: la única receta 100% cubierta es él → la primera idea saldrá italiana (determinista).
+  const tiramisu = catalogo.find(r => r.id === "tiramisu-casero");
+  const pantryIt = [...new Set(tiramisu.ingredients)].map((n, i) => JSON.stringify({ id: "i-" + i, name: n, qty: 5, min: 1, score: 5, checked: false, createdAt: i }));
+  await p4.addInitScript(`localStorage.setItem("mrcheff.foods", JSON.stringify([${pantryIt}]));`);
+  await p4.goto(APP);
+  await p4.locator('.topbar .tab[data-view="innovation"]').click();
+  await p4.waitForSelector("#btn-generate-innov");
+  // Decisión vía ns global (la de producción): módulo cargado + dataset con ids italianos
+  const origenGlobal = await p4.evaluate(() => {
+    const m = window.MRCheff.origenRecetas;
+    const it = window.MRCheff.recetasEspanolas.find(r => r.id === "tiramisu-casero");
+    const es = window.MRCheff.recetasEspanolas.find(r => r.id === "tostada-tomate-ajo");
+    return { ita: m.etiquetaOrigen(it), esp: m.etiquetaOrigen(es), idea: m.etiquetaOrigen({ id: "uid-x", title: "Tiramisú casero" }) };
+  });
+  console.log("2b-global:", JSON.stringify(origenGlobal));
+  if (origenGlobal.ita !== "Receta italiana" || origenGlobal.esp !== "Receta española" || origenGlobal.idea !== "Receta italiana")
+    throw new Error("etiquetaOrigen por global NO distingue origen: " + JSON.stringify(origenGlobal));
+  // Badge VIVO en Innovación: la ETIQUETA existente ("Receta española" fija) debe actualizarse a italiana
+  await p4.locator("#btn-generate-innov").click();
+  await p4.waitForSelector("#innovation-list .recipe-card");
+  const badgesInnov = await p4.evaluate(() => [...document.querySelectorAll("#innovation-list .recipe-card")].map(c => {
+    const tag = c.querySelector('[class*="tag-origen-"]');
+    if (!tag) return null;
+    return { txt: tag.textContent.trim(), ita: tag.className.includes("tag-origen-italiana") };
+  }));
+  if (badgesInnov.some(b => !b)) throw new Error("Hay tarjetas de Innovación SIN badge de origen");
+  if (!badgesInnov.some(b => b.ita && b.txt === "Receta italiana"))
+    throw new Error("La etiqueta de Innovación NO se actualizó a 'Receta italiana'");
+  const resumo = await p4.locator("#innov-summary").textContent();
+  if (!resumo.includes("Receta italiana")) throw new Error("El resumen de Innovación no menciona 'Receta italiana'");
+  await snap(p4, "11-innovacion-etiqueta-italiana.png");
+  // Sugerencias (~misma wiring en app.js): TODAS las tarjetas llevan badge de origen
+  await p4.locator('.topbar .tab[data-view="suggest"]').click();
+  await p4.locator("#btn-suggest-generate").click();
+  await p4.waitForSelector("#suggest-list .recipe-card");
+  const sinBadgeSug = await p4.locator("#suggest-list .recipe-card:not(:has([class*='tag-origen-']))").count();
+  if (sinBadgeSug > 0) throw new Error(sinBadgeSug + " tarjetas de Sugerencias sin badge de origen");
+  // Menú semanal: generar plan 7×3 y comprobar badges en los huecos
+  await p4.locator("#btn-menu-generate").click();
+  await p4.waitForSelector(".menu-meal-row .menu-meal-title");
+  const slotsSinBadge = await p4.locator(".menu-meal-row[data-meal-idx]:not(:has([class*='tag-origen-']))").count();
+  if (slotsSinBadge > 0) throw new Error(slotsSinBadge + " huecos del plan sin badge de origen");
+  await snap(p4, "12-menu-etiquetas-origen.png");
+  // Modal de detalle: badge de origen presente junto a la comida
+  await p4.locator("#suggest-list .recipe-card").first().click();
+  await p4.waitForSelector("#modal:not(.hidden)");
+  const badgeModal = await p4.locator("#modal-content [class*='tag-origen-']").count();
+  if (badgeModal !== 1) throw new Error("El modal de detalle NO lleva badge de origen");
+  await p4.keyboard.press("Escape");
+  await ctx4.close();
+
   // ============ (3) Modal de detalle (verificación final con estilos nuevos) ============
   const primera = p2.locator("#suggest-list .recipe-card").first();
   if (await primera.count()) {

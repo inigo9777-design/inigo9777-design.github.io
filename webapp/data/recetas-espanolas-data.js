@@ -1,5 +1,6 @@
-// modules/recetas-espanolas-data.js — Catálogo CURADO de recetas caseras españolas SENCILLAS y cotidianas.
-// No es lógica: es CONTENIDO fijo. Lógica PURe en cuanto a DOM/I/O → testeable con Node/Jest sin jsdom, igual que
+// modules/recetas-espanolas-data.js — Catálogo CURADO de recetas caseras SENCILLAS y cotidianas:
+// base española (con muchos desayunos desde 2026-10-18) + sección final de recetas ITALIANAS de casa
+// (últimos 20 registros, ids tipo "risotto-setas" etc.). No es lógica: es CONTENIDO fijo. Lógica PURe en cuanto a DOM/I/O → testeable con Node/Jest sin jsdom, igual que
 // classify.js / priority.js. Mismo patrón IIFE + doble-export (window.MRCheff.recetasEspanolas para el navegador y
 // module.exports = array como default export CommonJS para require() desde tests), idéntico al ya existente en
 // classify.js / priority.js. Ver plan-inovacion-recetas-espanolas.md §4.1.
@@ -15,8 +16,24 @@
 (function (root, factory) {
   const dataset = factory();
   if (typeof module === "object" && module.exports) module.exports = dataset;
+
   root.MRCheff = root.MRCheff || {};
   Object.assign(root.MRCheff, { recetasEspanolas: dataset });
+
+  // Origen por receta para la etiqueta de UI (Española/Italiana): ids CURADOS del lote italiano
+  // (los 20 añadidos 2026-10-18, ver cabecera del fichero). Se adjunta como PROPIEDAD del array
+  // (module.exports sigue siendo un array puro: require() de tests/e2e no se ve afectado); el
+  // módulo puro modules/origen-recetas.js la consume para decidir la etiqueta de cada vista.
+  // Si se añade una receta italiana nueva, meter su id AQUÍ TAMBIÉN.
+  dataset.idsItalianas = [
+    "torta-mele", "tosta-ricotta-pistachos",
+    "frittata-espinacas", "pasta-norma", "bruschetta-tomate", "pasta-pesto-genoves",
+    "lasana-carne", "pizza-margarita", "risotto-setas", "pasta-carbonara",
+    "pasta-aglio-olio", "pasta-amatriciana", "noquis-tomate-albahaca", "berenjena-parmigiana",
+    "ossobuco-milan", "scaloppine-limon", "polenta-parmesano", "minestrone-verduras",
+    "saltimbocca-romana", "tiramisu-casero"
+  ];
+  root.MRCheff.idsRecetasItalianas = dataset.idsItalianas;
 })(typeof self !== 'undefined' ? self : this, function () {
 
 return [
@@ -1411,6 +1428,729 @@ return [
       "Casca los huevos encima del chorizo.",
       "Hornea 8 minutos a 200°C hasta que cuajen las claras.",
       "Espolvorea pimentón y sirve con pan para mojar."
+    ]
+  },
+  { id: "tostadas-aceite-salgorda", title: "Tostadas con aceite de oliva y sal gorda", meal: "desayuno",
+    ingredients: ["Pan", "Aceite de oliva virgen extra", "Sal gorda"],
+    method: [
+      "Tuesta el pan al gusto.",
+      "Riega con un buen chorro de aceite de oliva virgen extra.",
+      "Espolvorea la sal gorda por encima y sirve."
+    ]
+  },
+  { id: "tostada-sobrasada-miel", title: "Tostada de sobrasada con miel", meal: "desayuno",
+    ingredients: ["Pan", "Sobrasada", "Miel"],
+    method: [
+      "Tuesta el pan.",
+      "Unta una capa fina de sobrasada.",
+      "Riega con hilos de miel y sirve templado."
+    ]
+  },
+  { id: "tostada-jamon-tomate", title: "Tostada de jamón serrano con tomate", meal: "desayuno",
+    ingredients: ["Pan", "Tomates maduros", "Jamón serrano", "Aceite de oliva virgen extra"],
+    method: [
+      "Tuesta el pan y ralla el tomate maduro encima.",
+      "Añade un chorrito de aceite de oliva.",
+      "Coloca las lonchas de jamón serrano al momento."
+    ]
+  },
+  { id: "tostada-aguacate-tomate", title: "Tostada de aguacate con tomate", meal: "desayuno",
+    ingredients: ["Pan", "Aguacate", "Tomates", "Sal", "Aceite de oliva virgen extra"],
+    method: [
+      "Machaca el aguacate con un tenedor y una pizca de sal.",
+      "Unta sobre el pan tostado.",
+      "Corona con rodajas de tomate y un hilo de aceite."
+    ]
+  },
+  { id: "magdalenas-caseras", title: "Magdalenas caseras", meal: "desayuno",
+    ingredients: ["Harina", "Huevos", "Azúcar", "Aceite de oliva", "Leche", "Levadura química", "Ralladura de limón"],
+    method: [
+      "Bate los huevos con el azúcar hasta blanquear.",
+      "Añade el aceite, la leche y la ralladura de limón.",
+      "Incorpora la harina con la levadura y mezcla sin pasarse.",
+      "Rellena los moldes y hornea 15-18 minutos a 180°C."
+    ]
+  },
+  { id: "churros-caseros", title: "Churros caseros", meal: "desayuno",
+    ingredients: ["Harina", "Agua", "Sal", "Azúcar", "Aceite de oliva para freír"],
+    method: [
+      "Hierve el agua con la sal y añade la harina fuera del fuego.",
+      "Trabaja la masa hasta que quede lisa y sin grumos.",
+      "Introdúcela en la churrera y fríe tiras en aceite bien caliente.",
+      "Escurre y espolvorea azúcar al gusto."
+    ]
+  },
+  { id: "porras-caseras", title: "Porras caseras", meal: "desayuno",
+    ingredients: ["Harina", "Agua", "Sal", "Levadura química", "Azúcar", "Aceite de oliva para freír"],
+    method: [
+      "Amasa harina, agua, levadura, sal y azúcar hasta una masa pegajosa.",
+      "Deja reposar media hora tapada.",
+      "Fríe porras gruesas en aceite muy caliente.",
+      "Escurre sobre papel y sirve recién hechas."
+    ]
+  },
+  { id: "gachas-canela", title: "Gachas dulces de canela", meal: "desayuno",
+    ingredients: ["Leche", "Harina", "Azúcar", "Canela"],
+    method: [
+      "Disuelve la harina en un poco de leche fría.",
+      "Calienta el resto de la leche y añade la mezcla removiendo sin parar.",
+      "Cuece hasta espesar, endulza y espolvorea canela."
+    ]
+  },
+  { id: "leche-galletas", title: "Leche fría con galletas María", meal: "desayuno",
+    ingredients: ["Leche", "Galletas María"],
+    method: [
+      "Calienta o enfría la leche al gusto.",
+      "Sumerge las galletas unos segundos para que se empapen sin romperse.",
+      "Desayuna mojando galleta a galleta."
+    ]
+  },
+  { id: "torrijas-leche", title: "Torrijas de leche caseras", meal: "desayuno",
+    ingredients: ["Pan del día anterior", "Leche", "Huevos", "Azúcar", "Canela", "Aceite de oliva para freír"],
+    method: [
+      "Infusiona la leche con canela y azúcar.",
+      "Empapa las rebanadas de pan del día anterior.",
+      "Pásalas por huevo batido y fríelas en aceite caliente.",
+      "Espolvorea azúcar con canela al salir."
+    ]
+  },
+  { id: "bikini-jamon", title: "Bikini de jamón y queso", meal: "desayuno",
+    ingredients: ["Pan de molde", "Jamón cocido", "Queso", "Mantequilla"],
+    method: [
+      "Monta el sándwich con jamón y queso.",
+      "Úntalo por fuera con mantequilla y pásalo por la plancha.",
+      "Corta en triangulitos y sirve bien caliente."
+    ]
+  },
+  { id: "bocadillo-lomo-queso", title: "Bocadillo caliente de lomo con queso", meal: "desayuno",
+    ingredients: ["Pan", "Lomo adobado", "Queso"],
+    method: [
+      "Corta el lomo adobado en filetes finos.",
+      "Hazlo en la sartén a fuego fuerte.",
+      "Monta el bocadillo con queso encima del lomo caliente."
+    ]
+  },
+  { id: "revuelto-champinones", title: "Revuelto de champiñones", meal: "desayuno",
+    ingredients: ["Huevos", "Champiñones", "Ajos", "Perejil", "Aceite de oliva"],
+    method: [
+      "Dora los champiñones laminados con ajo en aceite.",
+      "Bate los huevos y añádelos fuera del fuego removiendo suave.",
+      "Termina con perejil picado y puntita de sal."
+    ]
+  },
+  { id: "revuelto-espinacas-pinones", title: "Revuelto de espinacas y piñones", meal: "desayuno",
+    ingredients: ["Huevos", "Espinacas", "Piñones", "Aceite de oliva", "Sal"],
+    method: [
+      "Saltea las espinacas hasta que marchiten.",
+      "Tuesta los piñones en la misma sartén.",
+      "Añade los huevos batidos, remueve fuera del fuego y sala."
+    ]
+  },
+  { id: "tortilla-francesa-queso", title: "Tortilla francesa de queso", meal: "desayuno",
+    ingredients: ["Huevos", "Queso", "Aceite de oliva", "Sal"],
+    method: [
+      "Bate los huevos con sal.",
+      "Cuaja la tortilla en sartén baja con poco aceite.",
+      "Reparte el queso, dobla y sirve jugosa."
+    ]
+  },
+  { id: "mollete-chocolate-aceite", title: "Mollete con chocolate negro y aceite", meal: "desayuno",
+    ingredients: ["Molletes", "Chocolate negro", "Aceite de oliva virgen extra"],
+    method: [
+      "Abre el mollete y tóstalo ligeramente.",
+      "Coloca trozos de chocolate negro sobre el calor.",
+      "Añade un hilillo de aceite de oliva y sirve."
+    ]
+  },
+  { id: "rosquillas-anis", title: "Rosquillas caseras de anís", meal: "desayuno",
+    ingredients: ["Harina", "Huevos", "Azúcar", "Anís (licor)", "Aceite de oliva para freír"],
+    method: [
+      "Amasa harina, huevos, azúcar y un chorro de anís.",
+      "Forma rosquillas con la masa.",
+      "Fríelas en aceite caliente y pásalas por azúcar."
+    ]
+  },
+  { id: "fartons-horchata", title: "Fartons con horchata", meal: "desayuno",
+    ingredients: ["Fartons", "Horchata"],
+    method: [
+      "Sirve la horchata bien fría.",
+      "Acompaña con los fartons para mojar, como en Valencia.",
+      "Desayuna sin prisa."
+    ]
+  },
+  { id: "tostada-pavo-queso", title: "Tostada de pavo con queso fresco", meal: "desayuno",
+    ingredients: ["Pan", "Pavo en filetes", "Queso fresco", "Tomates"],
+    method: [
+      "Tuesta el pan y úntalo con queso fresco.",
+      "Coloca los filetes de pavo encima.",
+      "Termina con rodajas de tomate."
+    ]
+  },
+  { id: "torta-aceite-queso", title: "Torta de aceite con queso batido y mermelada de higos", meal: "desayuno",
+    ingredients: ["Torta de aceite", "Queso batido", "Mermelada de higos"],
+    method: [
+      "Reparte el queso batido sobre la torta de aceite.",
+      "Corona con una cucharada de mermelada de higos.",
+      "Sirve acompañada de café."
+    ]
+  },
+  { id: "bikini-sobrasada", title: "Bikini de sobrasada y queso", meal: "desayuno",
+    ingredients: ["Pan de molde", "Sobrasada", "Queso", "Mantequilla"],
+    method: [
+      "Unta la sobrasada en una rebanada y pon queso en la otra.",
+      "Monta el sándwich y úntalo por fuera con mantequilla.",
+      "Pásalo por la plancha hasta fundir el queso."
+    ]
+  },
+  { id: "tostada-queso-tomillo", title: "Tostada de queso fresco con tomillo", meal: "desayuno",
+    ingredients: ["Pan", "Queso fresco", "Tomillo", "Aceite de oliva"],
+    method: [
+      "Tuesta el pan y extiende el queso fresco.",
+      "Espolvorea tomillo seco y un punto de sal.",
+      "Riega con un hilo de aceite de oliva."
+    ]
+  },
+  { id: "migas-chorizo", title: "Migas de pan con chorizo", meal: "desayuno",
+    ingredients: ["Pan del día anterior", "Chorizo", "Ajos", "Aceite de oliva", "Pimentón dulce"],
+    method: [
+      "Desmenuza el pan del día anterior humedecido la noche antes.",
+      "Dora los ajos y el chorizo en aceite.",
+      "Añade el pan y trabaja a fuego medio unos 10 minutos.",
+      "Pon pimentón fuera del fuego y mezcla."
+    ]
+  },
+  { id: "bollos-prenaos", title: "Bollos preñaos de chorizo", meal: "desayuno",
+    ingredients: ["Pan de bollo", "Chorizos", "Aceite de oliva"],
+    method: [
+      "Reserva bollos recién amasados o de panadería.",
+      "Encaja un chorizo crudo en el centro de cada bollo.",
+      "Hornea a 180°C unos 15 minutos hasta que el chorizo sude grasa."
+    ]
+  },
+  { id: "ensaimada-sobrasada", title: "Ensaimada tostada con sobrasada y queso", meal: "desayuno",
+    ingredients: ["Ensaimada", "Sobrasada", "Queso"],
+    method: [
+      "Abre la ensaimada por la mitad y tóstala en la plancha.",
+      "Unta la sobrasada en la mitad caliente.",
+      "Termina con dados de queso fundidos encima del calor y sirve."
+    ]
+  },
+  { id: "tostada-morcilla-huevo", title: "Tostada de morcilla con huevo frito", meal: "desayuno",
+    ingredients: ["Pan", "Morcilla", "Huevos", "Aceite de oliva"],
+    method: [
+      "Fríe la morcilla desmenuzada en su propia grasa.",
+      "Prepara un huevo frito con la yema jugosa.",
+      "Monta la tostada con la morcilla y el huevo encima."
+    ]
+  },
+  { id: "tostada-queso-burgos", title: "Tostada de queso de Burgos con tomate", meal: "desayuno",
+    ingredients: ["Molletes", "Queso de Burgos", "Tomates maduros", "Aceite de oliva"],
+    method: [
+      "Tosta los molletes y ralla el tomate encima.",
+      "Reparte el queso de Burgos fresco troceado.",
+      "Riega con aceite de oliva y sal."
+    ]
+  },
+  { id: "revuelto-gulas", title: "Revuelto de gulas con ajos", meal: "desayuno",
+    ingredients: ["Huevos", "Gulas", "Ajos", "Guindilla", "Aceite de oliva"],
+    method: [
+      "Sofríe los ajos fileteados y la guindilla en aceite.",
+      "Añade las gulas y saltea al momento.",
+      "Fuera del fuego, mezcla los huevos batidos hasta cuajar cremosos."
+    ]
+  },
+  { id: "revuelto-gambas-ajos", title: "Revuelto de gambas con ajos tiernos", meal: "desayuno",
+    ingredients: ["Huevos", "Gambas", "Ajos tiernos", "Aceite de oliva", "Sal"],
+    method: [
+      "Saltea las gambas con los ajos tiernos picados.",
+      "Bate los huevos y añádelos fuera del fuego.",
+      "Remueve hasta cuajar y sirve al momento."
+    ]
+  },
+  { id: "macedonia-frutas", title: "Macedonia de frutas", meal: "desayuno",
+    ingredients: ["Plátanos", "Manzanas", "Naranjas", "Uvas", "Zumo de naranja"],
+    method: [
+      "Pela y trocea las frutas en dados regulares.",
+      "Mezcla en un bol grande.",
+      "Riega con zumo de naranja y deja enfriar."
+    ]
+  },
+  { id: "leche-merengada", title: "Leche merengada casera", meal: "desayuno",
+    ingredients: ["Leche", "Azúcar", "Canela en rama", "Piel de limón", "Clara de huevo"],
+    method: [
+      "Infusiona la leche con canela y piel de limón.",
+      "Endulza y deja enfriar del todo.",
+      "Bate la clara semi montada, mézclala con la leche y sirve bien fría."
+    ]
+  },
+  { id: "cuajada-miel", title: "Cuajada con miel y nueces", meal: "desayuno",
+    ingredients: ["Cuajada", "Miel", "Nueces"],
+    method: [
+      "Sirve la cuajada bien fría en cuencos.",
+      "Riega con miel a hilo.",
+      "Termina con nueces troceadas."
+    ]
+  },
+  { id: "tostada-membrillo-queso", title: "Tostada de membrillo con queso manchego", meal: "desayuno",
+    ingredients: ["Pan", "Membrillo", "Queso manchego"],
+    method: [
+      "Tuesta el pan con buen color.",
+      "Corta láminas de membrillo y de queso manchego.",
+      "Monta la tostada y gratina un minuto si te apetece."
+    ]
+  },
+  { id: "tostada-anchoas", title: "Tostada de anchoas del Cantábrico", meal: "desayuno",
+    ingredients: ["Pan", "Anchoas del Cantábrico", "Tomates maduros", "Aceite de oliva"],
+    method: [
+      "Tuesta el pan y frota con tomate maduro rallado.",
+      "Coloca las anchoas bien escurridas.",
+      "Riega con aceite de oliva al momento de servir."
+    ]
+  },
+  { id: "huevos-escalfados-espinacas", title: "Huevos escalfados sobre espinacas", meal: "desayuno",
+    ingredients: ["Huevos", "Espinacas", "Ajos", "Vino blanco", "Aceite de oliva", "Sal"],
+    method: [
+      "Saltea las espinacas con ajo en aceite.",
+      "Añade un chorrito de vino blanco y deja reducir.",
+      "Escalfa los huevos 3 minutos y colócalos encima."
+    ]
+  },
+  { id: "batido-platano", title: "Batido de plátano con leche", meal: "desayuno",
+    ingredients: ["Plátanos", "Leche", "Canela"],
+    method: [
+      "Pela y trocea los plátanos maduros.",
+      "Tritura con leche fría hasta cremoso.",
+      "Espolvorea canela y sirve al momento."
+    ]
+  },
+  { id: "batido-fresas", title: "Batido de fresas", meal: "desayuno",
+    ingredients: ["Fresas", "Leche", "Azúcar", "Hielo"],
+    method: [
+      "Lava las fresas y quítale los rabitos.",
+      "Tritura con leche, azúcar y un puñado de hielo.",
+      "Sirve inmediatamente bien frío."
+    ]
+  },
+  { id: "pan-chocolate-negro", title: "Pan con chocolate negro", meal: "desayuno",
+    ingredients: ["Pan", "Chocolate negro", "Mantequilla"],
+    method: [
+      "Tuesta el pan y úntalo con mantequilla.",
+      "Funde el chocolate negro al baño maría o en microondas.",
+      "Unta el chocolate caliente y sirve."
+    ]
+  },
+  { id: "bocadillo-chorizo-caliente", title: "Bocadillo caliente de chorizo", meal: "desayuno",
+    ingredients: ["Pan", "Chorizo"],
+    method: [
+      "Corta el chorizo en lonchas finas.",
+      "Dóralo un momento en la sartén para que suelte su grasa.",
+      "Monta el bocadillo con el pan templado."
+    ]
+  },
+  { id: "tostada-cabra-miel", title: "Tostada de queso de cabra con miel y nueces", meal: "desayuno",
+    ingredients: ["Pan", "Queso de cabra", "Miel", "Nueces"],
+    method: [
+      "Tuesta el pan y reparte rodajas de queso de cabra.",
+      "Gratina hasta fundir ligeramente.",
+      "Riega con miel y corona con nueces picadas."
+    ]
+  },
+  { id: "arroz-a-banda", title: "Arroz a banda", meal: "comida",
+    ingredients: ["Arroz", "Calamares", "Fondo de pescado", "Ajos", "Pimentón dulce", "Azafrán"],
+    method: [
+      "Sofríe los calamares con los ajos picados.",
+      "Añade el pimentón fuera del fuego y el arroz.",
+      "Cubre con el doble de fondo de pescado bien caliente.",
+      "Añade el azafrán y deja reposar 5 minutos al final."
+    ]
+  },
+  { id: "arroz-negro-calamares", title: "Arroz negro con calamares", meal: "comida",
+    ingredients: ["Arroz", "Calamares", "Tinta de calamar", "Fondo de pescado", "Cebolla", "Alioli"],
+    method: [
+      "Sofríe cebolla y calamares en la paella.",
+      "Añade la tinta de calamar y el arroz.",
+      "Cubre con el doble de fondo de pescado.",
+      "Sirve con un buen alioli aparte."
+    ]
+  },
+  { id: "fideua-marisco", title: "Fideuà de marisco", meal: "comida",
+    ingredients: ["Fideos gordos", "Gambas", "Almejas", "Calamares", "Fondo de pescado", "Tomates"],
+    method: [
+      "Sofríe el marisco en la fideuera con tomate.",
+      "Añade los fideos tostados un minuto.",
+      "Cubre con el doble de fondo de pescado.",
+      "Cuece 10 minutos sin remover y repasa."
+    ]
+  },
+  { id: "marmitako-bonito", title: "Marmitako de bonito", meal: "comida",
+    ingredients: ["Bonito", "Patatas", "Pimientos", "Cebolla", "Tomates", "Guindilla"],
+    method: [
+      "Haz un sofrito de cebolla, pimiento y tomate con guindilla.",
+      "Chasca las patatas y añádelas con agua hasta cubrir.",
+      "Cuando estén tiernas, reparte el bonito en dados.",
+      "Cuece justo 5 minutos para que quede jugoso."
+    ]
+  },
+  { id: "espinacas-garbanzos", title: "Espinacas con garbanzos al estilo sevillano", meal: "comida",
+    ingredients: ["Garbanzos cocidos", "Espinacas", "Comino", "Ajos", "Pimentón dulce", "Vinagre"],
+    method: [
+      "Dora los ajos con comino en aceite.",
+      "Añade el pimentón fuera del fuego y un chorrito de vinagre.",
+      "Incorpora las espinacas y los garbanzos.",
+      "Estofa 10 minutos hasta que ligue."
+    ]
+  },
+  { id: "judias-blancas-chorizo", title: "Judías blancas con chorizo", meal: "comida",
+    ingredients: ["Judías blancas cocidas", "Chorizo", "Cebolla", "Laurel", "Tomates"],
+    method: [
+      "Sofríe la cebolla con laurel.",
+      "Añade el chorizo en rodajas y el tomate rallado.",
+      "Incorpora las judías con algo de su caldo.",
+      "Estofa 15 minutos tapadas y repasa sal."
+    ]
+  },
+  { id: "alubias-rojas-chorizo", title: "Alubias rojas con chorizo", meal: "comida",
+    ingredients: ["Alubias rojas cocidas", "Chorizo", "Cebolla", "Pimentón dulce", "Laurel"],
+    method: [
+      "Sofríe cebolla y chorizo en rodajas.",
+      "Añade el pimentón fuera del fuego.",
+      "Incorpora las alubias con su caldo y el laurel.",
+      "Cuece 20 minutos a fuego manso."
+    ]
+  },
+  { id: "potaje-vigilia", title: "Potaje de vigilia", meal: "comida",
+    ingredients: ["Garbanzos cocidos", "Bacalao desalado", "Espinacas", "Cebolla", "Azafrán", "Huevos"],
+    method: [
+      "Sofríe la cebolla picada con azafrán.",
+      "Añade garbanzos, espinacas y bacalao en trozos.",
+      "Cuece 15 minutos hasta que el bacalao se desmenuce.",
+      "Termina con huevo duro en rodajas."
+    ]
+  },
+  { id: "tortilla-bacalao", title: "Tortilla de bacalao", meal: "comida",
+    ingredients: ["Huevos", "Bacalao desalado", "Cebolla", "Perejil", "Aceite de oliva"],
+    method: [
+      "Sofríe la cebolla hasta translúcida.",
+      "Añade el bacalao desmigado un par de minutos.",
+      "Mezcla con los huevos batidos y perejil.",
+      "Cuaja la tortilla jugosa en poco aceite."
+    ]
+  },
+  { id: "bacalao-vizcaino", title: "Bacalao a la vizcaína", meal: "comida",
+    ingredients: ["Bacalao desalado", "Pimientos choriceros", "Cebolla", "Ajos", "Aceite de oliva"],
+    method: [
+      "Rehidrata la piel de los pimientos choriceros y tritúrala.",
+      "Pocha cebolla y ajo hasta tener un sofrito fino.",
+      "Coloca el bacalao con la piel arriba a fuego bajo.",
+      "Baña con la salsa sin que hierva fuerte 8 minutos."
+    ]
+  },
+  { id: "pollo-chilindron", title: "Pollo al chilindrón", meal: "comida",
+    ingredients: ["Pollo", "Pimiento rojo", "Tomates", "Ajos", "Vino blanco", "Laurel"],
+    method: [
+      "Dora el pollo troceado en aceite.",
+      "Añade cinta de pimiento rojo, ajo y tomate.",
+      "Baña con vino blanco y añade laurel.",
+      "Estofa tapado 30 minutos."
+    ]
+  },
+  { id: "conejo-ajillo", title: "Conejo al ajillo", meal: "comida",
+    ingredients: ["Conejo", "Ajos", "Vino blanco", "Romero", "Aceite de oliva", "Sal"],
+    method: [
+      "Dora el conejo troceado con cabezas de ajo enteras.",
+      "Añade vino blanco y romero.",
+      "Estofa tapado 35 minutos hasta tiernizar.",
+      "Sirve calentito, mojando pan en la salsa."
+    ]
+  },
+  { id: "sopa-fideos-albondiguillas", title: "Sopa de fideos con albóndiguillas", meal: "cena",
+    ingredients: ["Fideos", "Carne picada", "Cebolla", "Tomates", "Caldo"],
+    method: [
+      "Mezcla la carne picada con especias y forma albóndiguillas pequeñas.",
+      "Dóralas y resérvalas.",
+      "Haz un sofrito cebolla-tomate y moja con caldo.",
+      "Cuece los fideos 8 minutos y añade las albóndiguillas."
+    ]
+  },
+  { id: "salmorejo-cordobes", title: "Salmorejo cordobés", meal: "cena",
+    ingredients: ["Tomates maduros", "Pan del día anterior", "Ajos", "Aceite de oliva virgen extra", "Huevos", "Jamón serrano"],
+    method: [
+      "Tritura los tomates maduros con el pan remojado y el ajo.",
+      "Emulsiona con aceite de oliva hasta que quede espeso y rosado.",
+      "Sirve bien frío con huevo duro picado y taquitos de jamón."
+    ]
+  },
+  { id: "ajo-blanco-uvas", title: "Ajo blanco con uvas", meal: "cena",
+    ingredients: ["Pan", "Ajos", "Almendras molidas", "Aceite de oliva", "Vinagre", "Uvas"],
+    method: [
+      "Tritura almendras, ajos y pan remojado.",
+      "Emulsiona con aceite y vinagre.",
+      "Ajusta con agua fría hasta consistencia de crema ligera.",
+      "Sirve bien frío con uvas peladas."
+    ]
+  },
+  { id: "tosta-cabra-cebolla", title: "Tosta de queso de cabra con cebolla caramelizada", meal: "cena",
+    ingredients: ["Pan", "Queso de cabra", "Cebolla", "Azúcar", "Vino blanco"],
+    method: [
+      "Carameliza la cebolla en juliana con azúcar y vino blanco.",
+      "Tuesta el pan.",
+      "Coloca el queso de cabra y gratínalo.",
+      "Corona con la cebolla caramelizada caliente."
+    ]
+  },
+  { id: "montadito-anchoa-piparra", title: "Montadito de anchoa y piparra", meal: "cena",
+    ingredients: ["Pan", "Anchoas del Cantábrico", "Piparras", "Aceite de oliva"],
+    method: [
+      "Tuesta el pan en rebanadas pequeñas.",
+      "Coloca una anchoa y una piparra cruzadas.",
+      "Riega con aceite de oliva y sirve."
+    ]
+  },
+  { id: "piquillos-bacalao-bechamel", title: "Pimientos del piquillo rellenos de bacalao", meal: "cena",
+    ingredients: ["Pimientos del piquillo", "Bacalao desalado", "Leche", "Harina", "Mantequilla"],
+    method: [
+      "Haz una bechamel espesa con mantequilla, harina y leche.",
+      "Mezcla con bacalao desmigado y deja enfriar.",
+      "Rellena los pimientos del piquillo.",
+      "Cubre con la bechamel restante y gratina al momento."
+    ]
+  },
+  { id: "ensaladilla-rusa", title: "Ensaladilla rusa", meal: "cena",
+    ingredients: ["Patatas", "Huevos", "Atún en lata", "Judías verdes", "Zanahorias", "Mayonesa"],
+    method: [
+      "Cuece las patatas y las zanahorias troceadas junto a los huevos.",
+      "Añade las judías verdes los últimos minutos.",
+      "Mezcla todo en dados con el atún escurrido y mayonesa.",
+      "Enfría un rato antes de servir."
+    ]
+  },
+  { id: "gambas-plancha-salgorda", title: "Gambas a la plancha con sal gorda", meal: "cena",
+    ingredients: ["Gambas", "Sal gorda", "Aceite de oliva", "Perejil"],
+    method: [
+      "Pon una base de sal gorda en plancha o sartén fuerte.",
+      "Asa las gambas 2 minutos por cara.",
+      "Sirve con perejil y un hilo de aceite."
+    ]
+  },
+  { id: "chipirones-encebollados", title: "Chipirones encebollados", meal: "cena",
+    ingredients: ["Chipirones", "Cebolla", "Vino blanco", "Laurel", "Aceite de oliva"],
+    method: [
+      "Pocha la cebolla en juliana a fuego manso 15 minutos.",
+      "Añade los chipirones limpios.",
+      "Añade vino blanco y laurel.",
+      "Estofa tapado 20 minutos."
+    ]
+  },
+  { id: "sardinas-espeto", title: "Sardinas al espeto", meal: "cena",
+    ingredients: ["Sardinas", "Sal gorda", "Limones"],
+    method: [
+      "Ensarta las sardinas por la espina en espeto o las hornea en bandeja.",
+      "Sazona con sal gorda.",
+      "Sirve justo al salir con limón al momento."
+    ]
+  },
+  { id: "berenjenas-rellenas-carne", title: "Berenjenas rellenas de carne", meal: "cena",
+    ingredients: ["Berenjenas", "Carne picada", "Tomates", "Cebolla", "Queso rallado"],
+    method: [
+      "Hornea las berenjenas por la mitad 25 minutos.",
+      "Vacía la pulpa y saltéala con cebolla y carne picada.",
+      "Rellena las mitades con la mezcla.",
+      "Cubre con queso rallado y gratina."
+    ]
+  },
+  { id: "solomillo-whisky", title: "Solomillo al whisky", meal: "cena",
+    ingredients: ["Solomillo de cerdo", "Whisky", "Ajos", "Aceite de oliva", "Sal"],
+    method: [
+      "Sella el solomillo en plancha fuerte y resérvalo.",
+      "En la misma sartén, machaca ajos con sal y vierte el whisky.",
+      "Termina la salsa reducida un minuto.",
+      "Corta el solomillo en medallones y baña con la salsa."
+    ]
+  },
+  { id: "fritura-malaguena", title: "Fritura de pescado malagueña", meal: "cena",
+    ingredients: ["Merluza", "Anillas de calamar", "Boquerones", "Harina", "Aceite de oliva para freír", "Limones"],
+    method: [
+      "Reboza el pescado limpio en harina con sal.",
+      "Fríe en aceite bien caliente por tandas cortas.",
+      "Escurre sobre papel de cocina y sazona.",
+      "Sirve tan pronto con limón."
+    ]
+  },
+  { id: "torta-mele", title: "Torta di mele (tarta de manzana italiana)", meal: "desayuno",
+    ingredients: ["Manzanas", "Harina", "Huevos", "Azúcar", "Mantequilla", "Levadura química", "Canela"],
+    method: [
+      "Monta huevos y azúcar con mantequilla fundida.",
+      "Incorpora harina, levadura y canela.",
+      "Reparte la manzana en láminas por toda la masa.",
+      "Hornea 40 minutos a 180°C."
+    ]
+  },
+  { id: "tosta-ricotta-pistachos", title: "Tostada de ricotta con miel y pistachos", meal: "desayuno",
+    ingredients: ["Pan", "Ricotta", "Miel", "Pistachos"],
+    method: [
+      "Tuesta el pan y úntalo con ricotta.",
+      "Riega con miel a hilo.",
+      "Termina con pistachos troceados."
+    ]
+  },
+  { id: "frittata-espinacas", title: "Frittata de espinacas y parmesano", meal: "comida",
+    ingredients: ["Huevos", "Espinacas", "Parmesano", "Cebolla", "Aceite de oliva"],
+    method: [
+      "Pocha la cebolla y añade las espinacas hasta marchitar.",
+      "Mezcla con los huevos batidos y el parmesano.",
+      "Cuaja a fuego medio tapada.",
+      "Termina un minuto bajo el gratinador."
+    ]
+  },
+  { id: "pasta-norma", title: "Pasta alla norma", meal: "comida",
+    ingredients: ["Pasta", "Berenjenas", "Tomates", "Ricotta salada", "Albahaca"],
+    method: [
+      "Asa o fríe las berenjenas en dados.",
+      "Rehoga el tomate y mezcla con las berenjenas.",
+      "Saltea la pasta en la salsa fuera del fuego.",
+      "Termina con ricotta salada rallada y albahaca."
+    ]
+  },
+  { id: "bruschetta-tomate", title: "Bruschetta de tomate", meal: "comida",
+    ingredients: ["Pan", "Tomates", "Ajos", "Albahaca", "Aceite de oliva", "Sal"],
+    method: [
+      "Tuesta el pan y frótalo con ajo.",
+      "Mezcla tomate en dados con albahaca, aceite y sal.",
+      "Reparte encima al momento de servir."
+    ]
+  },
+  { id: "pasta-pesto-genoves", title: "Pasta al pesto genovés", meal: "comida",
+    ingredients: ["Pasta", "Pesto", "Parmesano", "Piñones"],
+    method: [
+      "Cuece la pasta en agua con sal.",
+      "Reserva agua de cocción.",
+      "Mezcla el pesto con un chorro de agua de la pasta.",
+      "Termina con parmesano y piñones tostados."
+    ]
+  },
+  { id: "lasana-carne", title: "Lasaña de carne clásica", meal: "comida",
+    ingredients: ["Láminas de lasaña", "Carne picada", "Tomates", "Bechamel", "Queso rallado"],
+    method: [
+      "Prepara el ragú con carne picada y tomate.",
+      "Monta las láminas de pasta alternando ragú y bechamel.",
+      "Termina con bechamel y queso rallado.",
+      "Hornea 40 minutos a 200°C."
+    ]
+  },
+  { id: "pizza-margarita", title: "Pizza margarita casera", meal: "comida",
+    ingredients: ["Harina", "Tomates triturados", "Mozzarella", "Albahaca", "Aceite de oliva", "Levadura"],
+    method: [
+      "Amasa harina, agua, levadura y sal; deja levar una hora.",
+      "Estira la base fina y cubre con tomate triturado.",
+      "Reparte la mozzarella y hornea al máximo 10 minutos.",
+      "Termina con albahaca fresca y aceite crudo."
+    ]
+  },
+  { id: "risotto-setas", title: "Risotto de setas", meal: "comida",
+    ingredients: ["Arroz arborio", "Setas", "Caldo", "Cebolla", "Mantequilla", "Parmesano"],
+    method: [
+      "Pocha la cebolla y tosta ligeramente el arroz.",
+      "Moja el arroz con caldo caliente, poco a poco, 18 minutos.",
+      "Añade las setas salteadas a mitad de la cocción.",
+      "Termina con mantequilla y parmesano."
+    ]
+  },
+  { id: "pasta-carbonara", title: "Pasta a la carbonara italiana", meal: "comida",
+    ingredients: ["Espaguetis", "Panceta", "Huevos", "Parmesano", "Pimienta negra"],
+    method: [
+      "Dora la panceta en dados sin añadir aceite.",
+      "Mezcla huevos con parmesano y pimienta.",
+      "Fuera del fuego, saltea la pasta con la panceta y la mezcla.",
+      "Ajusta con agua de cocción hasta que quede cremosa (sin nata)."
+    ]
+  },
+  { id: "pasta-aglio-olio", title: "Espaguetis aglio e olio", meal: "cena",
+    ingredients: ["Espaguetis", "Ajos", "Aceite de oliva", "Guindilla", "Perejil"],
+    method: [
+      "Funde los ajos laminados con la guindilla en aceite.",
+      "Cuece la pasta al dente y reserva agua.",
+      "Saltea la pasta en el aceite con un chorro de agua de cocción.",
+      "Termina con perejil picado."
+    ]
+  },
+  { id: "pasta-amatriciana", title: "Espaguetis a la amatriciana", meal: "cena",
+    ingredients: ["Espaguetis", "Panceta", "Tomates", "Pecorino", "Guindilla"],
+    method: [
+      "Dora la panceta con un poco de guindilla.",
+      "Añade el tomate triturado y reduce 10 minutos.",
+      "Mezcla la pasta con la salsa fuera del fuego.",
+      "Termina con pecorino rallado."
+    ]
+  },
+  { id: "noquis-tomate-albahaca", title: "Ñoquis con tomate y albahaca", meal: "cena",
+    ingredients: ["Ñoquis", "Tomates", "Albahaca", "Parmesano", "Ajos"],
+    method: [
+      "Haz una salsa de tomate con ajo y albahaca.",
+      "Saltea los ñoquis en la salsa hasta que doren ligeramente.",
+      "Termina con parmesano y albahaca fresca."
+    ]
+  },
+  { id: "berenjena-parmigiana", title: "Berenjena a la parmigiana", meal: "cena",
+    ingredients: ["Berenjenas", "Tomates", "Mozzarella", "Parmesano", "Albahaca"],
+    method: [
+      "Fríe o asa láminas de berenjena.",
+      "Pon capas alternas de berenjena, salsa de tomate y mozzarella.",
+      "Cubre con parmesano.",
+      "Hornea 30 minutos a 180°C y repasa en frío."
+    ]
+  },
+  { id: "ossobuco-milan", title: "Osso buco a la milanesa", meal: "cena",
+    ingredients: ["Jarretes de ternera", "Cebolla", "Zanahorias", "Apio", "Vino blanco", "Tomates"],
+    method: [
+      "Sella los jarretes de ternera en aceite caliente.",
+      "Añade el sofrito de cebolla, zanahoria y apio.",
+      "Moja con vino blanco y añade tomate.",
+      "Estofa tapado 2 horas a fuego suave hasta tiernizar."
+    ]
+  },
+  { id: "scaloppine-limon", title: "Scaloppine al limón", meal: "cena",
+    ingredients: ["Filetes finos de ternera", "Limones", "Mantequilla", "Harina", "Vino blanco"],
+    method: [
+      "Pasa los filetes finos por harina y dóralos en mantequilla.",
+      "Retíralos y desglasa con zumo de limón y vino blanco.",
+      "Termina la salsa con mantequilla fría.",
+      "Baña los scaloppine con la salsa al servir."
+    ]
+  },
+  { id: "polenta-parmesano", title: "Polenta cremosa con parmesano", meal: "cena",
+    ingredients: ["Harina de maíz", "Caldo", "Mantequilla", "Parmesano"],
+    method: [
+      "Hierve el caldo y vierte la harina de maíz en lluvia, removiendo sin parar.",
+      "Remueve 30 minutos a fuego bajo.",
+      "Termina con mantequilla y parmesano hasta quedar cremosa.",
+      "Sirve en plato hondo."
+    ]
+  },
+  { id: "minestrone-verduras", title: "Minestrone de verduras", meal: "cena",
+    ingredients: ["Zanahorias", "Apio", "Cebolla", "Judías blancas cocidas", "Tomates", "Pasta pequeña", "Caldo"],
+    method: [
+      "Pocha el trío de zanahoria, apio y cebolla.",
+      "Añade tomate, judías y caldo.",
+      "Cuece 20 minutos y añade la pasta pequeña.",
+      "Termina cuando la pasta esté al dente."
+    ]
+  },
+  { id: "saltimbocca-romana", title: "Saltimbocca a la romana", meal: "cena",
+    ingredients: ["Filetes finos de ternera", "Salvia", "Jamón cocido en lonchas", "Mantequilla", "Vino blanco"],
+    method: [
+      "Coloca salvia y una loncha de jamón sobre cada filete.",
+      "Sujeta con palillo y dóralos en mantequilla.",
+      "Desglasa con vino blanco.",
+      "Sirve calentito bañado con la salsa."
+    ]
+  },
+  { id: "tiramisu-casero", title: "Tiramisú casero", meal: "cena",
+    ingredients: ["Mascarpone", "Huevos", "Soletillas", "Café", "Cacao en polvo", "Azúcar"],
+    method: [
+      "Monta yemas con azúcar y mezcla con mascarpone.",
+      "Monta las claras y integra con movimientos suaves.",
+      "Moja las soletillas en café y monta capas alternas.",
+      "Enfriar 4 horas y espolvorea cacao justo antes de servir."
     ]
   }
 ];

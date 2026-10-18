@@ -252,3 +252,15 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   del registro "cocinado hoy" (`registrarCocinado`) SÍ quedan en `app.js` como glue del composition
   root: la parte pura ya vive y se testea en `menu-semanal.cookEntry` (§6 Capa 1) y el wrapper no
   contiene más que load/save/toast (§3: `app.js` permanece como composition-root legacy).
+- `2026-10-18 · @AI-agent · #feature-etiqueta-origen · Principio: S-O · Justificación`: el catálogo
+  curado pasa a incluir 20 recetas italianas (dataset 200 registros), y la etiqueta de fuente de
+  Innovación era "Receta española" FIJA vía `SOURCE_LABEL.curada`. Se extrae la decisión a un módulo
+  puro NUEVO `modules/origen-recetas.js` (2 funciones: `esItaliana` / `etiquetaOrigen`; decisión por
+  id del catálogo + respaldo por título normalizado, porque ideas/sugerencias/huecos del plan
+  generan un uid propio que NO conserva el id del dataset); el valor `curada` del dataset sigue
+  siendo su única marca de fuente. Los ids italianos se publican como PROPIEDAD del array exportado
+  (`dataset.idsItalianas`) para no romper el contrato "module.exports = array" de consumers
+  existentes. La etiqueta se pinta dinámicamente en TODAS las vistas de recetas (Recetas, Innovación,
+  Sugerencias, Menú, modal); fuentes legacy distintas de curada/receta_sugerida conservan su tag
+  clásico y una receta de usuario manual sin señal de origen se trata como española (señal ausente
+  ≠ italiana).

@@ -53,6 +53,8 @@
   --tag-libre-bg: #e9eff6;     --tag-libre-fg: #3b5f8a;
   --tag-protagonista-bg: #faf1dd; --tag-protagonista-fg: #94620f;
   --tag-fuente-bg: #f0ede6;    --tag-fuente-fg: #6d6557;
+  /* Origen de la receta del catálogo (2026-10-18): española = tono de marca (como tag-curada), italiana = verde */
+  --tag-italiana-bg: #e3efe9;  --tag-italiana-fg: #2f6b45;
 
   /* Componentes */
   --card-muted-bg: #f0ede6;            /* chips de metadato */
@@ -114,6 +116,9 @@
   --tag-libre-bg: #26303c;     --tag-libre-fg: #8fb0d6;
   --tag-protagonista-bg: #38301b; --tag-protagonista-fg: #d9a441;
   --tag-fuente-bg: #2b2820;    --tag-fuente-fg: #a29a8a;
+
+  /* Origen de la receta del catálogo (2026-10-18): española = tono de marca, italiana = verde */
+  --tag-italiana-bg: #2a3a2e;  --tag-italiana-fg: #a3d3b0;
 
   --card-muted-bg: #2b2820;
   --hover-wash: #2b2820;
@@ -390,6 +395,9 @@ code {
 .tag.tag-nueva        { background: var(--tag-libre-bg); color: var(--tag-libre-fg); }
 .tag.tag-curada       { background: var(--brand-soft); color: var(--brand-strong); }
 .tag.tag-receta_sugerida { background: var(--brand-soft); color: var(--brand-strong); }
+/* Origen del catálogo curado (2026-10-18): la española usa el tono de marca equivaleente a tag-curada; la italiana, verde propio */
+.tag.tag-origen-espanola { background: var(--brand-soft); color: var(--brand-strong); }
+.tag.tag-origen-italiana { background: var(--tag-italiana-bg); color: var(--tag-italiana-fg); }
 
 /* Chip de urgencia (leyenda y badges) */
 .urg {

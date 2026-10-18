@@ -366,6 +366,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <h3>${escapeHTML(r.title)}</h3>
         <div class="recipe-meta">
           <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
+          ${badgeOrigenHTML(r)}
           <span class="muted" style="font-size:.8rem">${r.ingredients.length} ingr.</span>
         </div>`;
       // Abrir detalle al hacer click en la tarjeta (el lápiz abre el EDITOR directamente: para eso está;
@@ -429,6 +430,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <h2>${escapeHTML(r.title)}</h2>
       <div class="recipe-meta">
         <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
+        ${badgeOrigenHTML(r)}
         ${r.source ? `<span class="tag tag-${r.source}">${(SOURCE_LABEL[r.source] || "Idea").toString()}</span>` : ""}
       </div>
       ${r.from ? `<p class="muted">Base: ${escapeHTML(r.from)}</p>` : ""}
@@ -550,6 +552,30 @@ document.addEventListener("DOMContentLoaded", () => {
   // feature; ambas apuntan a la misma etiqueta visible.
   const SOURCE_LABEL = { curada: "Receta española", variacion: "Variación", combo: "Combinación", libre: "Creada", protagonista: "Enfocado", nueva: "Nueva", sugerenciaHoy: "Sugerencia de hoy", receta_sugerida: "Sugerencia de hoy" };
 
+  // Etiqueta de ORIGEN del catálogo curado (2026-10-18): "Receta española" / "Receta italiana" en TODAS las vistas
+  // de recetas. La decisión (id del catálogo + respaldo por título normalizado, porque las ideas/sugerencias/huecos
+  // del plan generan un uid propio nuevo) vive en el módulo puro modules/origen-recetas.js; aquí sólo el molde HTML.
+  // Sin etiqueta variación de fuente: si la idea es "curada" (o del plan sugerido) SIEMPRE sale el badge de origen;
+  // para fuentes legacy del almacenamiento viejo se conserva el tag clásico de SOURCE_LABEL.
+  function esRecetaCatalogo(rec) {
+    return rec && (rec.source === "curada" || rec.source === "receta_sugerida" || rec.source === "sugerenciaHoy");
+  }
+  function etiquetaOrigenSegura(rec) {
+    const m = window.MRCheff.origenRecetas;
+    return (m && m.etiquetaOrigen) ? m.etiquetaOrigen(rec) : "Receta española";
+  }
+  function badgeOrigenHTML(rec) {
+    const etiqueta = etiquetaOrigenSegura(rec);
+    const cls = etiqueta === "Receta italiana" ? "tag-origen-italiana" : "tag-origen-espanola";
+    return `<span class="tag ${cls}">${etiqueta}</span>`;
+  }
+  // Badge de origen correcto para cualquier vista: ideas curadas/sugeridas → etiqueta por origen;
+  // fuentes legacy → su tag clásico (NUNCA se inventa un origen español para lo que no lo es).
+  function tagOrigenOClasico(rec) {
+    return esRecetaCatalogo(rec) ? badgeOrigenHTML(rec)
+      : `<span class="tag tag-${String(rec && rec.source)}">${SOURCE_LABEL[rec && rec.source] || "Nueva"}</span>`;
+  }
+
   btnGenerateInnov.addEventListener("click", () => {
     if (foods.length === 0 && recipes.length === 0) {
       toast("Añade alimentos o guarda una receta para inventar", "error");
@@ -606,9 +632,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!innovations.length) { innovSummary.classList.add("hidden"); return; }
     innovSummary.classList.remove("hidden");
     const bySrc = {};
-    innovations.forEach(i => { bySrc[i.source] = (bySrc[i.source] || 0) + 1; });
-    const parts = Object.entries(bySrc).map(([s, n]) => `${n} ${SOURCE_LABEL[s] || "nuevas"}`).join(" · ");
+    innovations.forEach(i => { const k = claveDeGrupoFuente(i); bySrc[k] = (bySrc[k] || 0) + 1; });
+    const parts = Object.entries(bySrc).map(([s, n]) =>
+      String(s).startsWith("Receta ") ? `${n} ${s}` : `${n} ${SOURCE_LABEL[s] || "nuevas"}`).join(" · ");
     innovSummary.textContent = `${innovations.length} idea(s) en la lista (${parts}). Guarda las que te gusten con ⭐.`;
+  }
+
+  // Resumen del generador: agrupa por FUENTE, pero para las curadas agrupa por ORIGEN visible
+  // ("x Receta española · y Receta italiana") — la etiqueta es la MISMA que pintan las tarjetas.
+  function claveDeGrupoFuente(i) {
+    return i.source === "curada" ? etiquetaOrigenSegura(i) : i.source;
   }
 
   function renderInnovations() {
@@ -628,7 +661,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <h3>${escapeHTML(i.title)}</h3>
         <div class="recipe-meta">
           <span class="tag meal-${i.meal}">${mealLabels[i.meal]}</span>
-          <span class="tag tag-${i.source}">${SOURCE_LABEL[i.source] || "Nueva"}</span>
+          ${i.source === "curada" ? badgeOrigenHTML(i) : `<span class="tag tag-${i.source}">${SOURCE_LABEL[i.source] || "Nueva"}</span>`}
         </div>
         ${i.uses && i.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${i.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
       card.addEventListener("click", (e) => {
@@ -705,7 +738,8 @@ document.addEventListener("DOMContentLoaded", () => {
         <h3>${escapeHTML(idea.title)}</h3>
         <div class="recipe-meta">
           <span class="tag meal-${idea.meal}">${mealLabels[idea.meal] || ""}</span>
-          ${idea.source ? `<span class="tag tag-${String(idea.source)}">${SOURCE_LABEL[idea.source] || SOURCE_LABEL.sugerenciaHoy}</span>` : ""}
+          ${badgeOrigenHTML(idea)}
+        ${idea.source ? `<span class="tag tag-${String(idea.source)}">${SOURCE_LABEL[idea.source] || SOURCE_LABEL.sugerenciaHoy}</span>` : ""}
         </div>
         ${idea.uses && idea.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${idea.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
       card.addEventListener("click", (e) => {
@@ -806,6 +840,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="menu-meal-body">
         <h4 class="menu-meal-title">${escapeHTML(rec.title)}</h4>
         <div class="recipe-meta">
+          ${badgeOrigenHTML(rec)}
           ${rec.source ? `<span class="tag tag-${String(rec.source)}">${SOURCE_LABEL[rec.source] || SOURCE_LABEL.sugerenciaHoy}</span>` : ""}
           <span class="muted" style="font-size:.8rem">${rec.ingredients.length} ingr.</span>
         </div>
