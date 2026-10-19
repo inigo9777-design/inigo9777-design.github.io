@@ -800,10 +800,10 @@ document.addEventListener("DOMContentLoaded", () => {
       <h4>👨‍🍳 Método</h4>
       <ol>${r.method.map(m => `<li>${escapeHTML(limpiarPaso(m))}</li>`).join("")}</ol>
       <div class="modal-footer">
-        <button class="btn ghost" data-close data-tip="Cierra la ficha sin guardar nada">Cerrar</button>
-        <button class="btn ghost" data-edit data-tip="Ajusta el título, los ingredientes o los pasos a tu gusto">${enMisRecetas ? "✏️ Editar" : "✏️ Editar y guardar"}</button>
+        <button class="btn ghost" data-close>Cerrar</button>
+        <button class="btn ghost" data-edit>${enMisRecetas ? "✏️ Editar" : "✏️ Editar y guardar"}</button>
         <button class="btn ghost" data-cook data-tip="Anota que la has cocinado hoy: 7 días sin volverse a sugerir">🍳 Cocinar hoy</button>
-        <button class="btn primary" data-copy data-tip="Copia la receta completa al portapapeles">📋 Copiar</button>
+        <button class="btn primary" data-copy>📋 Copiar</button>
       </div>`;
     abrirModal("Detalle de receta: " + r.title);
     const btnCerrarModal = $(".modal-close", modal);
@@ -889,6 +889,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.documentElement.classList.remove("modal-abierto");
     document.body.classList.remove("modal-abierto");
     if (focoAntesDeModal) { focoAntesDeModal.focus(); focoAntesDeModal = null; }
+    // El botón con consejero desaparece (además el foco salta al DOM): sin mouseout/focusout,
+    // la píldora se quedaría ahí por encima de lo que abra después (2026-10-20).
+    const tipChef = document.getElementById("tip-chef");
+    if (tipChef) tipChef.classList.remove("show");
   }
   $$("[data-close]").forEach(el => el.addEventListener("click", closeModal));
   document.addEventListener("keydown", (e) => {

@@ -3,7 +3,8 @@
 //  - el div del modal lleva la clase .modal-content: si la pierde, TODO el bloque editorial del
 //    CSS (secciones con filete, sangrías, pie) muere — fue el bug de "la ficha no se ve bien".
 //  - filete con fade (.receta-linea) justo debajo del título, ANTES de las etiquetas.
-//  - los botones del pie llevan data-tip (consejero) y SIN title (no duplicar el consejo).
+//  - SOLO el botón "🍳 Cocinar hoy" lleva data-tip (consejero); el resto del pie va limpio
+//    y SIN title (petición 2026-10-19: los consejos solo en Cocinar hoy).
 //  - consejero: hover muestra, mouseout oculta (delegado en #modal-content).
 //  - táctil: long-press (450 ms) muestra el consejo y ESE toque largo NO acciona el botón; el
 //    toque corto sigue accionando; y tras un long-press el SIGUIENTE tap tampoco queda
@@ -44,13 +45,14 @@ describe("ficha de receta en el modal — presente, ordenada y bien botones (int
     expect(ficha.children[2].classList.contains("recipe-meta")).toBe(true);
   });
 
-  it("los botones del pie llevan data-tip y ya sin title (el consejo no se duplica)", () => {
+  it("solo '🍳 Cocinar hoy' lleva consejero (data-tip), el resto del pie va limpio y sin title", () => {
     const app = bootConReceta();
     app.document.querySelector('[data-view="recipes"]').click();
     app.document.querySelector("#recipe-list .recipe-card").click();
     const botones = [...app.document.querySelectorAll("#modal-content .modal-footer .btn")];
     expect(botones.map(b => b.textContent.trim())).toEqual(["Cerrar", "✏️ Editar", "🍳 Cocinar hoy", "📋 Copiar"]);
-    botones.forEach(b => expect(b.dataset.tip).toBeTruthy());
+    const conTip = botones.filter(b => b.dataset.tip != null);
+    expect(conTip.map(b => b.textContent.trim())).toEqual(["🍳 Cocinar hoy"]);
     botones.forEach(b => expect(b.hasAttribute("title")).toBe(false));
   });
 
@@ -67,6 +69,18 @@ describe("ficha de receta en el modal — presente, ordenada y bien botones (int
     expect(tip.textContent).toContain("7 días");
     btn.dispatchEvent(new app.window.MouseEvent("mouseout", { bubbles: true }));
     expect(tip.classList.contains("show")).toBe(false);
+  });
+
+  it("cerrar el modal con la píldora activa la RETIRA (el botón muerto no deja consejo colgado)", () => {
+    const app = bootConReceta();
+    app.document.querySelector('[data-view="recipes"]').click();
+    app.document.querySelector("#recipe-list .recipe-card").click();
+    const btn = app.document.querySelector("#modal-content [data-cook]");
+    btn.dispatchEvent(new app.window.MouseEvent("mouseover", { bubbles: true }));
+    expect(app.document.getElementById("tip-chef").classList.contains("show")).toBe(true);
+    // Escape: sin foco en el botón no hay focusout, y el hover moriría sin mouseout al deskapearse el DOM
+    app.document.dispatchEvent(new app.window.KeyboardEvent("keydown", { key: "Escape" }));
+    expect(app.document.getElementById("tip-chef").classList.contains("show")).toBe(false);
   });
 });
 
