@@ -126,6 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
     barra.scrollTo({ left: izquierda, behavior: reduce ? "auto" : "smooth" });
   }
   function activarVista(view) {
+    soltarCandadoAlerta();                             // el candado vive sólo dentro de la vista de Alimentos
     tabs.forEach(t => {
       const es = t.dataset.view === view;
       t.classList.toggle("active", es);
@@ -325,24 +326,109 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ---- Rediseño 2026-10-19 de la alerta semanal: cap FÍSICO a 8 filas + candado de scroll ----
+  // buildWeeklyAlert ya recorta en el módulo (antes escondía el 9º pendiente en adelante): ahora el límite
+  // es de ALTO — con 8+ pendientes la lista se cap a 8 filas y scrollea DENTRO de sí. El candado (arriba a
+  // la derecha) congela el scroll del DOCUMENTO mientras está activo (clase `scroll-candado` SOLO en <html>:
+  // el overflow del html se propaga al viewport sin romper el sticky del topbar; en body rompería el header,
+  // ver el fix del overflow-x del 2026-10-19). Ni candado ni scroll salen con menos de 8 items.
+  // El candado es SÓLO MÓVIL: en escritorio la rueda recorre la lista sin ayuda y no hace falta
+  // congelar la página — en desktop la UI ni lo pinta (afinación de 2026-10-19 tras probarlo).
+  let candadoAlertaActivo = false;
+
+  // ¿Es la versión móvil? Corte +≤820px, el mismo que usa el header al volver a flex.
+  // `window.__mrcheffEsMovil` es inyección de TEST (igual que `__mrcheffCryptoImpl`, §6): jsdom no
+  // evalúa mediaqueries de layout, así que la suite decide movilidad por inyección.
+  function esMovil() {
+    if (typeof window.__mrcheffEsMovil === "boolean") return window.__mrcheffEsMovil;
+    try {
+      if (typeof window.matchMedia !== "function") return false;    // entorno sin layout (jsdom p. ej.)
+      return window.matchMedia("(max-width: 820px)").matches;
+    } catch { return false; }
+  }
+
+  function soltarCandadoAlerta() {
+    candadoAlertaActivo = false;
+    document.documentElement.classList.remove("scroll-candado");
+  }
+
+  // Pero al cruzar el corte móvil↔desktop (rotar tablet, estirar la ventana) ni candado rancio
+  // ni página congelada: se suelta y se repinta para que la UI viva de verdad.
+  // (entornos sin matchMedia — jsdom p. ej. —: sin listener y sin romper el arranque)
+  const mqMovil = typeof window.matchMedia === "function" ? window.matchMedia("(max-width: 820px)") : null;
+  const alCruzarMovil = () => { soltarCandadoAlerta(); renderWeeklyAlert(); };
+  if (mqMovil) {
+    if (typeof mqMovil.addEventListener === "function") mqMovil.addEventListener("change", alCruzarMovil);
+    else if (typeof mqMovil.addListener === "function") mqMovil.addListener(alCruzarMovil);   // Safari viejo
+  }
+
   function renderWeeklyAlert() {
-    // La DECISIÓN de qué entra la alerta y cómo se presenta (nivel/icono/título/orden/CAPA a 8) es lógica PURe extraída a
-    // modules/priority.js → buildWeeklyAlert. Aquí sólo PINTAMOS el HTML resultante (§2-D DIp: separar decidir del render).
+    // La DECISIÓN de qué entra la alerta y cómo se presenta (nivel/icono/título/orden — lista COMPLETA ya sin
+    // recortar) es lógica pura extraída a modules/priority.js → buildWeeklyAlert. Aquí sólo pintamos el HTML
+    // resultante y el cap físico de alto (§2-D DIP: separar decidir del render).
     const m = buildWeeklyAlert(foods);
-    if (!m.show) { weeklyAlert.className = "card alert-card hidden"; weeklyAlert.innerHTML = ""; return; }
+    if (!m.show) {
+      soltarCandadoAlerta();
+      weeklyAlert.className = "card alert-card hidden";
+      weeklyAlert.innerHTML = "";
+      return;
+    }
 
     // El color de la alerta lo marca la importancia del alimento MÁS URGENTE → ya resuelto por `m.level`/icon/título, pero el
     // per-fila todavía consulta urgencyLevel(f.score) para su propio badge, idéntico al código heredado.
     weeklyAlert.className = `card alert-card alert-${m.level}`;
+    const conScroll = m.items.length >= 8;    // a partir de 8: cap de alto + scroll interno (desktop y móvil)
+    const hayCandado = conScroll && esMovil(); // candado: SOLO móvil (en desktop ni se pinta)
     weeklyAlert.innerHTML = `
-      <h3>${m.icon} ${m.title}</h3>
-      <ul class="alert-list-${m.level}">
-        ${m.items.map(f => `
-          <li class="alert-row urg-${urgencyLevel(f.score)}">
-            <span class="alert-name"><strong>${escapeHTML(f.name)}</strong></span>
-            <span class="alert-meta">tienes <b>${f.qty ?? 0}</b> · mínimo <b>${f.min ?? 0}</b> · importancia <b>${f.score}/10</b></span>
-          </li>`).join("")}
-      </ul>`;
+      <div class="alert-cabecera">
+        <h3>${m.icon} ${m.title}</h3>
+        ${hayCandado ? `<button id="candado-alerta" class="btn ghost small" aria-pressed="false" aria-label="Candado del scroll de la página" title="Congelar el scroll de la página y recorrer esta lista con el dedo">🔓</button>` : ""}
+      </div>
+      <div class="alert-scroll">
+        <ul class="alert-list-${m.level}">
+          ${m.items.map(f => `
+            <li class="alert-row urg-${urgencyLevel(f.score)}">
+              <span class="alert-name"><strong>${escapeHTML(f.name)}</strong></span>
+              <span class="alert-meta">tienes <b>${f.qty ?? 0}</b> · mínimo <b>${f.min ?? 0}</b> · importancia <b>${f.score}/10</b></span>
+            </li>`).join("")}
+        </ul>
+      </div>`;
+
+    // SUELTA el candado antes que nada (menos de 8 items en móvil, o desktop: candado sólo móvil).
+    if (!hayCandado) soltarCandadoAlerta();
+    // Cap EXACTO a 8 filas medido del DOM — INDEPENDIENTE del candado (también en desktop): las
+    // filas varían de alto (envoltura del texto), no hay valor CSS fijo que dé siempre 8. Si el
+    // render llega con la vista OCULTA (display:none al cambiar de tab, p. ej. importar en backup)
+    // las medidas salen a 0: se queda el retén del CSS.
+    const ulAlerta = weeklyAlert.querySelector(".alert-scroll ul");
+    const fila8 = ulAlerta.children[7];
+    if (fila8) {
+      const fila1 = ulAlerta.children[0].getBoundingClientRect();
+      const fila8b = fila8.getBoundingClientRect();
+      if (fila1.height > 0 && fila8b.height > 0) {
+        weeklyAlert.querySelector(".alert-scroll").style.maxHeight = Math.ceil(fila8b.bottom - fila1.top) + "px";
+      }
+    }
+    const btnCandado = weeklyAlert.querySelector("#candado-alerta");
+    if (!btnCandado) {
+      return;                                           // sin candado (desktop o <8): nada más que engarzar
+    }
+    // El candado SOBREVIVE a los re-renders mientras la lista siga con 8+: tocar ➕/➖/✅ dentro
+    // de la lista no debe dejar la página desatada. Se suelta por botón, por cambio de vista o
+    // si la lista cae bajo 8.
+    if (candadoAlertaActivo) {
+      document.documentElement.classList.add("scroll-candado");
+      btnCandado.textContent = "🔒";
+      btnCandado.setAttribute("aria-pressed", "true");
+    }
+    btnCandado.addEventListener("click", () => {
+      candadoAlertaActivo = document.documentElement.classList.toggle("scroll-candado");
+      btnCandado.textContent = candadoAlertaActivo ? "🔒" : "🔓";
+      btnCandado.setAttribute("aria-pressed", String(candadoAlertaActivo));
+      btnCandado.title = candadoAlertaActivo
+        ? "Suelta el candado para volver a scrollear la página"
+        : "Congelar el scroll de la página y recorrer esta lista con el dedo";
+    });
   }
 
   // ===== RECETAS =====
@@ -562,6 +648,93 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalContent = $("#modal-content");
   const modalBox = $(".modal-box", modal);
 
+  // ---------- Consejero del botón (explicación breve desktop + táctil) ----------
+  // Desktop: se ve con ENVESAR el botón (o al llegarle el foco) y se VA al salir; móvil:
+  // LONG-PRESS de 450 ms — se lee el consejo mientras se mantiene el dedo, al SOLTAR se
+  // va y ese toque largo NO acaba accionando el botón (se consultó, no se usó). Todo
+  // delegado en #modal-content: cada botón nuevo con data-tip lo hereda sin wiring.
+  let tipChefEl = null;
+  function tipChef() {
+    if (!tipChefEl) {
+      tipChefEl = document.createElement("div");
+      tipChefEl.id = "tip-chef";
+      tipChefEl.className = "tip-chef";
+      tipChefEl.setAttribute("role", "tooltip");
+      document.body.appendChild(tipChefEl);
+    }
+    return tipChefEl;
+  }
+  function mostrarTip(btn) {
+    if (!btn || !btn.dataset || !btn.dataset.tip) return;
+    const tip = tipChef();
+    tip.textContent = btn.dataset.tip;                       // textos propios, nunca dato del usuario
+    const r = btn.getBoundingClientRect();
+    const cabeArriba = r.top > 48;                           // píldora ~36px + huelgo
+    tip.style.left = "0px";                                  // fuera de pantalla para medir sin parpadeo
+    tip.style.top = "0px";
+    tip.style.visibility = "hidden";
+    tip.classList.add("show");
+    const tr = tip.getBoundingClientRect();
+    let x = r.left + r.width / 2 - tr.width / 2;
+    x = Math.min(Math.max(8, x), Math.max(8, window.innerWidth - tr.width - 8));
+    tip.style.left = Math.round(x) + "px";
+    tip.style.top = Math.round(cabeArriba ? r.top - tr.height - 8 : r.bottom + 8) + "px";
+    tip.style.visibility = "";
+  }
+  function ocultarTip() {
+    if (tipChefEl) tipChefEl.classList.remove("show");
+  }
+
+  let suprimirTrasToqueLargo = false;
+  (function consejosDeBotones(raiz) {
+    if (!raiz || typeof raiz.addEventListener !== "function") return;
+    raiz.addEventListener("mouseover", (e) => {              // desktop: envesar
+      const b = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (b) mostrarTip(b);
+    });
+    raiz.addEventListener("mouseout", (e) => {               // desktop: quitar el ratón
+      const b = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (b) ocultarTip();
+    });
+    raiz.addEventListener("focusin", (e) => {                // teclado: el consejo llega con el foco
+      const b = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (b) mostrarTip(b);
+    });
+    raiz.addEventListener("focusout", ocultarTip);
+    let toque = null;                                        // táctil: long-press
+    raiz.addEventListener("touchstart", (e) => {
+      const b = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (!b) return;
+      suprimirTrasToqueLargo = false;                        // contacto NUEVO: se confía en él de nuevo
+      toque = { btn: b, largo: false };
+      toque.timer = setTimeout(() => {
+        toque.largo = true;
+        mostrarTip(b);
+        if (navigator.vibrate) navigator.vibrate(10);
+      }, 450);
+    }, { passive: true });
+    const finToque = () => {
+      if (!toque) return;
+      clearTimeout(toque.timer);
+      if (toque.largo) {
+        ocultarTip();
+        suprimirTrasToqueLargo = true;                       // el click que sigue a leer NO acciona
+      }
+      toque = null;
+    };
+    raiz.addEventListener("touchend", finToque);
+    raiz.addEventListener("touchcancel", finToque);
+    // captura: se interviene ANTES de que cualquier listener del botón vea el click
+    raiz.addEventListener("click", (e) => {
+      if (!suprimirTrasToqueLargo) return;
+      suprimirTrasToqueLargo = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+    // el consejo es fijo: si algo scrollea, el botón se mueve — mejor retirarlo
+    document.addEventListener("scroll", ocultarTip, true);
+  })(modalContent);
+
   // Accesibilidad del modal: al abrir se recuerda el control que lo llamó (para devolverle el
   // foco al cerrar) y se anuncia un nombre por aria-label; al cerrar el foco vuelve a su sitio.
   // Sólo glue de vista: la decisión de qué se muestra sigue viniendo de cada aceptor.
@@ -607,6 +780,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const enMisRecetas = recipeEditor.estaGuardada(recipes, r);
     modalContent.innerHTML = `
       <h2>${escapeHTML(r.title)}</h2>
+      <div class="receta-linea" aria-hidden="true"></div>
       <div class="recipe-meta">
         <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
         ${badgeOrigenHTML(r)}
@@ -627,8 +801,8 @@ document.addEventListener("DOMContentLoaded", () => {
       <ol>${r.method.map(m => `<li>${escapeHTML(limpiarPaso(m))}</li>`).join("")}</ol>
       <div class="modal-footer">
         <button class="btn ghost" data-close>Cerrar</button>
-        <button class="btn ghost" data-edit title="Ajusta el título, los ingredientes o los pasos a tu gusto">${enMisRecetas ? "✏️ Editar" : "✏️ Editar y guardar"}</button>
-        <button class="btn ghost" data-cook title="Anota que la has cocinado hoy: entra en cooldown de 7 días y no se volverá a sugerir">🍳 Cocinar hoy</button>
+        <button class="btn ghost" data-edit>${enMisRecetas ? "✏️ Editar" : "✏️ Editar y guardar"}</button>
+        <button class="btn ghost" data-cook data-tip="Anota que la has cocinado hoy: 7 días sin volverse a sugerir">🍳 Cocinar hoy</button>
         <button class="btn primary" data-copy>📋 Copiar</button>
       </div>`;
     abrirModal("Detalle de receta: " + r.title);
@@ -715,6 +889,10 @@ document.addEventListener("DOMContentLoaded", () => {
     document.documentElement.classList.remove("modal-abierto");
     document.body.classList.remove("modal-abierto");
     if (focoAntesDeModal) { focoAntesDeModal.focus(); focoAntesDeModal = null; }
+    // El botón con consejero desaparece (además el foco salta al DOM): sin mouseout/focusout,
+    // la píldora se quedaría ahí por encima de lo que abra después (2026-10-20).
+    const tipChef = document.getElementById("tip-chef");
+    if (tipChef) tipChef.classList.remove("show");
   }
   $$("[data-close]").forEach(el => el.addEventListener("click", closeModal));
   document.addEventListener("keydown", (e) => {
@@ -1175,29 +1353,73 @@ document.addEventListener("DOMContentLoaded", () => {
           <li class="alert-row urg-${urg}">
             <span class="alert-name"><strong>${escapeHTML(item.name)}</strong></span>
             <span class="alert-meta">qty <b>${item.qty}</b> · mínimo <b>${item.min}</b> · importante <b>${item.score}/10</b> ${escapeHTML(cuando)}</span>
-            <button class="btn ghost small" data-buy="${escapeHTML(item.name)}" title="Marcar como comprada">✅ comprado</button>
+            <span class="alert-acciones">
+              ${(menuSemanal.candidatosDespensa(item.name, foods)).length
+                ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.name)}" title="¿Ya lo tienes en la despensa con otro nombre?">🛒 Despensa?</button>`
+                : ""}
+              <button class="btn ghost small" data-buy="${escapeHTML(item.name)}" title="Marcar como comprada">✅ comprado</button>
+            </span>
           </li>`;
         }).join("")}
       </ul>`;
     shoppingListEl.querySelectorAll("[data-buy]").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
-        // 2026-10-18: NO se cuela ya el alimento con qty 0 / score 5 — se PREGUNTA cuánto se ha
-        // comprado y con qué importancia (modal). La decisión de añadir/actualizar vive en el
-        // módulo puro menuSemanal.markItemBought(..., compra); aquí sólo el molde del diálogo.
-        const name = btn.dataset.buy;
+        abrirModalCompra(btn.dataset.buy);
+      });
+    });
+    // FEATURE 2026-10-19 "🛒 Despensa?": variantes del mismo alimento que el casador de tokens
+    // sóla une ("Jamón serrano" ↔ "Jamón ibérico", "Pan de pueblo" ↔ "Pan"). Los candidatos los
+    // decide el módulo puro (menuSemanal.candidatosDespensa) — sin ellos el botón ni sale — y la
+    // ÚLTIMA PALABRA la tiene la persona: el diálogo lista las opciones y confirma una a una.
+    shoppingListEl.querySelectorAll("[data-despensa]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const itemName = btn.dataset.despensa;
+        const candidatos = menuSemanal.candidatosDespensa(itemName, foods);
+        if (!candidatos.length) return;
+        modalContent.innerHTML = `
+        <h2>🛒 ¿Despensa?</h2>
+        <p class="muted">Posible alimento identificado en tu despensa — confirma si "<strong>${escapeHTML(itemName)}</strong>" es alguno de estos:</p>
+        <div class="despensa-elegir">
+          ${candidatos.map(c => `
+            <button class="btn ghost" data-despensa-elegir="${escapeHTML(c.name)}">${escapeHTML(c.name)} <span class="muted">· tienes ${c.qty ?? 0}</span></button>`).join("")}
+        </div>
+        <div class="modal-footer">
+          <button class="btn ghost" data-close>Cancelar (nada cambia)</button>
+        </div>`;
+        abrirModal("¿Ya está en tu despensa? " + itemName);
+        $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+        $$("[data-despensa-elegir]", modalContent).forEach(b =>
+          b.addEventListener("click", () => abrirModalCompra(itemName, b.dataset.despensaElegir)));
+      });
+    });
+
+    // 2026-10-18: NO se cuela el alimento con qty 0 / score 5 — se PREGUNTA cuánto se ha comprado
+    // y con qué importancia. La decisión de añadir/actualizar vive en el módulo puro
+    // (menuSemanal.markItemBought / markItemBoughtComo); aquí sólo el molde del diálogo.
+    // 2026-10-19: 2º parámetro `nombreDespensa` = el usuario confirmó en "🛒 Despensa?" que el
+    // ítem es una variante de ESE alimento ya guardado: la compra va a él IN-SITU, sin alta nueva,
+    // y el modal ABRIR ya carga el MÍNIMO y la IMPORTANCIA del alimento de despensa (afinación del
+    // mismo día: la despensa ya tenía su criterio de alerta — no re-preguntar de cero).
+    function abrirModalCompra(name, nombreDespensa) {
+        const objetivo = nombreDespensa ? foods.find(f => f.name === nombreDespensa) : null;
+        const minPrevio = (objetivo && Number.isFinite(objetivo.min) && objetivo.min != null) ? objetivo.min : 1;
+        const scorePrevio = (objetivo && Number.isFinite(objetivo.score) && objetivo.score != null) ? objetivo.score : 5;
         modalContent.innerHTML = `
         <h2>✅ ¿Comprado?</h2>
-        <p class="muted">"<strong>${escapeHTML(name)}</strong>" se añadirá a la despensa con estos datos:</p>
+        <p class="muted">"<strong>${escapeHTML(name)}</strong>"${nombreDespensa
+          ? ` se anota en la que ya tienes: <strong>${escapeHTML(nombreDespensa)}</strong> — misma cosa con otra variante, sin crear un alimento nuevo, con estos datos:`
+          : " se añadirá a la despensa con estos datos:"}</p>
         <div class="recipe-edit">
           <label for="compra-qty">Cantidad comprada
             <input type="number" id="compra-qty" min="1" step="1" value="1">
           </label>
           <label for="compra-min">Cantidad mínima para la alerta de reponer
-            <input type="number" id="compra-min" min="0" step="1" value="1" title="Cuando baje de aquí te avisamos">
+            <input type="number" id="compra-min" min="0" step="1" value="${escapeHTML(String(minPrevio))}" title="Cuando baje de aquí te avisamos">
           </label>
           <label for="compra-score">Importancia (1–10)
-            <input type="number" id="compra-score" min="1" max="10" step="1" value="5">
+            <input type="number" id="compra-score" min="1" max="10" step="1" value="${escapeHTML(String(scorePrevio))}">
           </label>
         </div>
         <div class="modal-footer">
@@ -1226,7 +1448,13 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
           }
           const compra = { qty, score, ...(min !== null ? { min } : {}) };
-          const result = menuSemanal.markItemBought(foods, weeklyMenu, name, uid, Date.now(), compra);
+          const result = nombreDespensa
+            ? menuSemanal.markItemBoughtComo(foods, weeklyMenu, name, nombreDespensa, compra)
+            : menuSemanal.markItemBought(foods, weeklyMenu, name, uid, Date.now(), compra);
+          if (nombreDespensa && !result) {           // guard del módulo: objetivo no hallado → NADA se escribe
+            toast("No se encontró ese alimento en la despensa", "error");
+            return;
+          }
           if (result.actualizado) {
             toast(`"${escapeHTML(name)}" actualizado en la despensa (qty ${qty})`);
           } else if (!result.alreadyExists) {
@@ -1245,8 +1473,7 @@ document.addEventListener("DOMContentLoaded", () => {
           renderShoppingList();
           closeModal();
         });
-      });
-    });
+    }
   }
 
   btnMenuGenerate.addEventListener("click", () => {

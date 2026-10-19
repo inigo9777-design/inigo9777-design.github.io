@@ -78,9 +78,23 @@ italiana" (see `modules/origen-recetas.js` below).
   container y mataría el `position: sticky` del header topbar
   [fix 2026-10-19: se iba con la página en desktop y móvil]; el viewport hereda el
   overflow-x del html y el drag lateral sigue muerto) ni rebote (`html overscroll-behavior-y:contain`) ni fondo duro (`html
-  background: var(--bg)`). (3) Modal: `.modal-box` con `overscroll-behavior:contain` + clase
+  background: var(--bg)`). (3) Modal: el div `#modal-content` DEBE llevar la clase `modal-content`
+  (así vive en index.html; si se pierde, TODO el bloque editorial de la ficha en style.css —
+  secciones con filete, sangría de listas, pie de botones igualados, filete con fade
+  `.receta-linea` — deja de aplicarse: bug de 2026-10-19, la ficha se veía cruda por ese
+  descuido). Pie de la ficha: botones repartidos igual (flex 1·1·0; 2×2 en ≤420px) y el
+  consejero del botón (`data-tip` + píldora `.tip-chef`, delegado en `#modal-content`) SOLO en
+  "🍳 Cocinar hoy" (petición 2026-10-19/20: Cerrar/Editar/Copiar van sin consejo):
+  desktop hover/foco, móvil long-press de 450 ms que al soltar NO acciona el botón (su click
+  queda suprimido, y el contacto NUEVO desarma la bandera). Con `.modal-box` con
+  `overscroll-behavior:contain` + clase
   `modal-abierto` en `<html>` Y `<body>` (en Android scrollea `<html>`; si un día la quitáis,
-  idem) congelando el scroll del documento. (4) `theme-color` meta sigue al tema activo (dark
+  idem) congelando el scroll del documento. Blindaje de compatibilidad móvil (2026-10-20):
+  `.modal` y `.modal-backdrop` llevan offsets EXPLÍCITOS `top/right/bottom/left` (el shorthand
+  `inset` no existe en WebViews viejos y los diálogos salían pegados a la izquierda del móvil);
+  `style.css` empieza por `@charset "UTF-8";` y la viñeta de ingredientes se escribe como escape
+  ASCII `content: "\2022"` (evita el mojibake "â€¢" del carácter literal decodificado con otro
+  charset). (4) `theme-color` meta sigue al tema activo (dark
   `#1b1913` / light `#ffffff`) desde el script de `<head>` y `applyTheme` — nunca hex sueltos
   de más en el markup. (5) **Zoom bloqueado** en el PWA (petición de producto 2026-10-19):
   viewport `maximum-scale=1.0, user-scalable=no` + preventDefault de
@@ -198,13 +212,33 @@ italiana" (see `modules/origen-recetas.js` below).
 - Lista de la compra (Card 3): dedup por el matcher de tokens (`modules/ingredient-matching.js`,
   NO lower-case exacto) contra comida real (qty>0), y semáforo dinámico por fecha de preparación
   (`onDay`/`daysUntil`/`urgency`): hoy/mañana=rojo, 2–3 días=naranja, ≥4 días (o sin fecha)=verde;
-  orden salida rojo→verde. "✅ comprado" PREGUNTA antes cuánto se ha comprado, su importancia y el
-  MÍNIMO para la alerta de reponer (modal) — no cuela el alimento con qty 0/score 5/min 0:
+  orden salida rojo→verde. "🛒 Despensa?" (2026-10-19) sale en la fila SÓLO cuando hay candidatos
+  del módulo puro (`menuSemanal.candidatosDespensa`: comparten algún token del matcher — "Jamón
+  serrano" ↔ despensa "Jamón ibérico", "Pan de pueblo" ↔ "Pan") y abre el diálogo de confirmación:
+  la persona elige la variante (o nada) y la compra va IN-SITU a ese alimento vía
+  `menuSemanal.markItemBoughtComo` (mismo id/nombre, sin alta nueva, el ítem sale de needyFoods;
+  el modal viene PRE-CARGADO con el mínimo y la importancia del alimento de despensa — afinación
+  2026-10-19: su criterio de alerta ya existía, sólo se pregunta cuánto se compró)
+  — regla simple, decisión final siempre del usuario. Los DOS botones de cada fila van
+  agrupados en `.alert-acciones` pegados al borde derecho con huelgo igual (antes en desktop
+  se descuadraban porque cada botón tiraba el suyo por su cuenta). En MÓVIL (≤820px) el grupo
+  vuelve a la alineación de siempre: "🛒 Despensa?" a la izquierda junto al texto de la fila y
+  "✅ comprado" empujado al borde derecho (petición 2026-10-20). "✅ comprado" PREGUNTA antes cuánto se ha
+  comprado, su importancia y el MÍNIMO para la alerta de reponer (modal) — no cuela el alimento
+  con qty 0/score 5/min 0:
   `markItemBought(..., compra)` añade con esos datos; si el alimento ya estaba en la despensa
   (incluso con qty 0), lo ACTUALIZA en-situ (sin `min` pedido conserva el suyo).
   (contrato ampliado, log §8 del CODING_STANDARDS.md).
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
-  red 8–10, orange 6–7, green 1–5; weekly alert caps the list at 8.
+  red 8–10, orange 6–7, green 1–5; weekly alert shows the FULL list (el cap de 8 del módulo
+  se quitó el 2026-10-19: escondía del 9º pendiente en adelante) y A PARTIR DE 8 items la lista
+  se cap de alto a 8 filas y scrollea dentro; con botón candado (🔒) arriba a la derecha que
+  congela el scroll del DOCUMENTO vía `html.scroll-candado { overflow: hidden }` — SOLO en
+  MÓVIL (afinación 2026-10-19: en desktop la rueda scrollea la lista sin más y el candado ni
+  se pinta; corte ≤ 820px, inyectable en suite con `bootApp({ esMovil })` porque jsdom no
+  evalúa mediaqueries). La clase vive en
+  `<html>` (en body mataría el sticky del topbar, ver fix del overflow-x); se suelta por clic,
+  cambio de vista o al caer bajo 8 items; con menos de 8 ni candado ni cap.
 - Innovations auto-expire: on load, if `mrcheff.innov.date != today`, wipe `mrcheff.innov`; also
   capped at the most recent 30. Generated "ideas" are deterministic heuristics (UI: "Modo simulado"),
   **not an LLM** — this is where real integration would go, nothing hidden elsewhere.

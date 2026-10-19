@@ -5,7 +5,7 @@
 // `regenerateAfterCook` (cocinar desde el menú = cookEntry + swap de SOLO ese hueco) y `shoppingListFor` añade
 // urgencia de compra (semáforo rojo/naranja/verde según la fecha de preparación).
 
-const { shoppingListFor, approveMenu, markItemBought, cookEntry, swapSlotRecipe, clearMenu, accionesMenuSlot } = require("../modules/menu-semanal.js");
+const { shoppingListFor, approveMenu, markItemBought, markItemBoughtComo, candidatosDespensa, cookEntry, swapSlotRecipe, clearMenu, accionesMenuSlot } = require("../modules/menu-semanal.js");
 
 // cookEntryFor determinista para tests (imita planner.cookEntryFor pero inyectable).
 function cookEntryFor(recipe, opts) {
@@ -475,6 +475,90 @@ describe("modules/menu-semanal.js", () => {
       expect(accionesMenuSlot(null)).toEqual({ cocinar: false, cambiar: false });
       expect(accionesMenuSlot(undefined)).toEqual({ cocinar: false, cambiar: false });
       expect(accionesMenuSlot({})).toEqual({ cocinar: false, cambiar: true });   // {} = plan existe pero sin approved
+    });
+  });
+
+  describe("candidatosDespensa — «¿Despensa?» (feature 2026-10-19: variantes del mismo alimento)", () => {
+    const alimento = (name, qty = 0) => ({ id: "f-" + name, name, qty, min: 1, score: 5, checked: false });
+
+    it("ofrece variantes que comparten token pero el casador subconjunto no une solo (jamón serrano ↔ jamón ibérico)", () => {
+      const despensa = [alimento("Jamón ibérico", 0), alimento("Leche", 3), alimento("Queso azul", 2)];
+      expect(candidatosDespensa("Jamón serrano", despensa).map(f => f.name)).toEqual(["Jamón ibérico"]);
+    });
+
+    it("«Pan de pueblo» ↔ despensa «Pan» (a qty 0 el match subconjunto sigue siendo DUDA: el usuario confirma)", () => {
+      const despensa = [alimento("Pan", 0), alimento("Chorizo", 1)];
+      expect(candidatosDespensa("Pan de pueblo", despensa).map(f => f.name)).toEqual(["Pan"]);
+    });
+
+    it("es puro de candidatos: no mira la cantidad (la fila suprimida por la dedup nunca llega a llamarla)", () => {
+      // con despensa "Pan" a qty>0, shoppingListFor NO emite la fila "Pan de pueblo" y el botón
+      // «¿Despensa?» ni se renderiza; la función sola lista candidatos igualmente.
+      expect(candidatosDespensa("Pan de pueblo", [{ ...alimento("Pan", 0), qty: 4 }]).map(f => f.name)).toEqual(["Pan"]);
+    });
+
+    it("sin tokens comunes → [] (leche no es ni jamón ni pan)", () => {
+      expect(candidatosDespensa("Leche", [alimento("Jamón ibérico"), alimento("Pan")])).toEqual([]);
+    });
+
+    it("el NOMBRE idéntico se excluye (mayúsculas aparte; una variante SÍ candidata: plátanos ↔ plátanos maduros)", () => {
+      expect(candidatosDespensa("Jamón serrano", [alimento("Jamón serrano", 2)])).toEqual([]);
+      expect(candidatosDespensa("Plátanos", [alimento("plátanos", 0)])).toEqual([]);
+    });
+
+    it("mantiene las falsas-subcadena FUERA: necesitan TOKEN EXACTO (sal no es salchichón)", () => {
+      expect(candidatosDespensa("Sal", [alimento("Salchichón ibérico")])).toEqual([]);
+    });
+
+    it("más tokens comunes primero (el más parecido abre la lista) y máx 8 candidatos", () => {
+      const despensa = [alimento("Aceite de oliva"), alimento("Aceite de oliva virgen extra"), alimento("Aceite de girasol")];
+      const cand = candidatosDespensa("Aceite de oliva virgen", despensa);
+      expect(cand.map(f => f.name)).toEqual(["Aceite de oliva virgen extra", "Aceite de oliva", "Aceite de girasol"]);
+      expect(cand).toHaveLength(3);
+    });
+  });
+
+  describe("markItemBoughtComo — la compra va al alimento YA EXISTENTE elegido en «¿Despensa?» (2026-10-19)", () => {
+    const despensa = [
+      { id: "ib1", name: "Jamón ibérico", qty: 0, min: 1, score: 5, checked: false, createdAt: 1 },
+      { id: "lc1", name: "Leche", qty: 3, min: 1, score: 2, checked: true, createdAt: 2 },
+    ];
+    const weekmenu = { approved: true, plan: [], needyFoods: [{ name: "Jamón serrano" }, { name: "Patatas" }] };
+    const compra = { qty: 2, score: 7 };
+
+    it("update IN-SITU del alimento objetivo (mismo id/nombre) y el ítem sale de needyFoods; sin alta nueva", () => {
+      const result = markItemBoughtComo(despensa, weekmenu, "Jamón serrano", "Jamón ibérico", compra);
+      expect(result.mapped).toBe(true);
+      expect(result.actualizado).toBe(true);
+      expect(result.foods).toHaveLength(2);                       // NO entra alimento nuevo
+      const objetivo = result.foods[0];
+      expect(objetivo.id).toBe("ib1");
+      expect(objetivo.name).toBe("Jamón ibérico");                // conserva SU nombre
+      expect(objetivo.qty).toBe(2);
+      expect(objetivo.score).toBe(7);
+      expect(result.foods[1]).toEqual(despensa[1]);               // los demás intactos
+      expect(result.weekmenu.needyFoods.map(f => f.name)).toEqual(["Patatas"]);
+      // inmutabilidad de las entradas
+      expect(despensa[0].qty).toBe(0);
+      expect(weekmenu.needyFoods).toHaveLength(2);
+    });
+
+    it("sin `min` pedido: el objetivo CONSERVA su mínimo", () => {
+      const base = [{ id: "p1", name: "Pan", qty: 1, min: 3, score: 4, checked: false }];
+      const result = markItemBoughtComo(base, null, "Pan de pueblo", "Pan", compra);
+      expect(result.foods[0].min).toBe(3);
+      expect(result.foods[0].qty).toBe(2);
+    });
+
+    it("con `min` pedido: se fija", () => {
+      const result = markItemBoughtComo(despensa, weekmenu, "Jamón serrano", "Jamón ibérico", { qty: 1, score: 5, min: 2 });
+      expect(result.foods[0].min).toBe(2);
+    });
+
+    it("guard: alimento objetivo inexistente o compra inválida → null y NADA se escribe", () => {
+      expect(markItemBoughtComo(despensa, weekmenu, "Jamón serrano", "Jamón de York", compra)).toBeNull();
+      expect(markItemBoughtComo(despensa, weekmenu, "Jamón serrano", "Jamón ibérico", { qty: 0, score: 5 })).toBeNull();
+      expect(markItemBoughtComo(despensa, weekmenu, "Jamón serrano", "Jamón ibérico")).toBeNull();
     });
   });
 });

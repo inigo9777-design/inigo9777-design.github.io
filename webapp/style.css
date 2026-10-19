@@ -1,3 +1,4 @@
+@charset "UTF-8";
 /* ==========================================================================
    webapp/style.css — Sistema de diseño "La cocina tranquila"
    --------------------------------------------------------------------------
@@ -677,8 +678,51 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .alert-card li .alert-meta { font-size: 0.8rem; color: var(--muted); }
 .alert-card li .alert-meta b { font-variant-numeric: tabular-nums; }
 
-/* La compra: el botón "✅ comprado" empuja al final de la fila */
-#shopping-list li [data-buy] { margin-left: auto; flex: 0 0 auto; }
+/* Aviso semanal cuando no caben todos los pendientes: rediseño 2026-10-19 — el módulo ya entrega
+   la lista COMPLETA (antes un cap de 8 escondía el resto como si no existieran) y ahora el límite
+   es de alto: con 8+ pendientes la caja deja de crecer y scrollea DENTRO de sí. El cap exacto
+   (borde inferior de la 8ª fila) lo mide app.js al render (maxHeight inline); este max-height es
+   sólo el retén para cuando no hay medidas (render con la vista oculta por display:none).
+   contain: el sobre-scroll de la lista NUNCA arrastra al documento (nada de chaining). */
+.alert-card .alert-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.alert-card .alert-cabecera h3 { flex: 1; }
+.alert-card .alert-scroll {
+  max-height: 28rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* La compra: los dos botones van EN GRUPO pegados al borde derecho — "🛒 Despensa?" queda
+   justo antes de "✅ comprado" con el mismo huelgo entre ellos en cualquier ancho (antes
+   cada uno tiraba por su cuenta y en desktop se descuadraban). */
+#shopping-list li .alert-acciones {
+  margin-left: auto;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+/* Móvil: el grupo vuelva a comportarse como antes del agrupado — "🛒 Despensa?" alineado a la
+   izquierda pegado al texto de la fila y "✅ comprado" empujado al borde derecho (la regla del
+   [data-buy] que siempre hubo). Para que el empujón llegue al borde el span GRUPO debe estirar
+   (flex-grow) tal como hacía el propio <li> cuando los botones eran items directos suyos.
+   Desktop conserva el grupo igualado (shrink-to-fit) a la derecha. */
+@media (max-width: 820px) {
+  #shopping-list li .alert-acciones { margin-left: 0; justify-content: flex-start; flex: 1 1 auto; }
+  #shopping-list li [data-buy] { margin-left: auto; }
+}
+
+/* "¿Despensa?" (2026-10-19): diálogo de confirmación de variantes — opciones apiladas en
+   columna para que el toque sea cómodo en móvil. */
+.despensa-elegir { display: flex; flex-direction: column; gap: 10px; margin: 14px 0 0; }
+.despensa-elegir .btn { justify-content: flex-start; text-align: left; width: 100%; }
 
 /* ========== 12. RECETAS — rejilla y tarjetas ========== */
 .recipe-grid {
@@ -925,9 +969,15 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 
 /* ========== 14. MODAL, TOAST Y NOTAS ========== */
+/* Offsets EXPLÍCITOS (nada de shorthand `inset`): en WebViews de móvil algo viejos el
+   shorthand no existe, el overlay fixed queda sin anclar y el diálogo sale pegado a la
+   izquierda a mitad de pantalla (bug 2026-10-19 en el PWA del móvil). */
 .modal {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 100;
   display: flex;
   align-items: center;
@@ -935,7 +985,7 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   padding: 20px;
 }
 .modal.hidden { display: none; }
-.modal-backdrop { position: absolute; inset: 0; background: var(--overlay); }
+.modal-backdrop { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: var(--overlay); }
 .modal-box {
   position: relative;
   background: var(--card);
@@ -954,6 +1004,35 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
    La clase se aplica al documentElement TAMBIÉN: en Android el scroller del documento
    es <html> (y con html overflow-x:hidden el body ya no representa el scroll de página). */
 html.modal-abierto, body.modal-abierto { overflow: hidden; }
+
+/* Consejero del botón: píldora invertida con tokens (tinta sobre papel al revés) — legible en
+   los dos temas sin hex sueltos. Fija, no intercepta el puntero y se va con la clase .show. */
+.tip-chef {
+  position: fixed;
+  z-index: 150;
+  max-width: 260px;
+  padding: 6px 11px;
+  border-radius: var(--radius-m);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: var(--shadow-2);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.tip-chef.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .tip-chef { transition: none; } }
+
+/* Candado del scroll del aviso semanal (8+ items): congela el scroll del DOCUMENTO mientras
+   está activo para que el desplazamiento vaya por la lista interna (touch/wheel). SOLO en
+   <html>: los overflow del html se PROPAGAN al viewport y el html queda con used overflow
+   visible — el sticky del topbar NO se rompe. En body sucedería la trampa del fix del
+   overflow-x del 2026-10-19: el body volvería a ser scroll container y mataría el header. */
+html.scroll-candado { overflow: hidden; }
 .modal-close {
   position: absolute;
   top: 12px;
@@ -974,8 +1053,15 @@ html.modal-abierto, body.modal-abierto { overflow: hidden; }
    El detalle de receta se lee como una página: el título manda, después las
    etiquetas, después la descripción — cada bloque respira por separado y las
    secciones (Ingredientes / Método) se separan además con su filete superior. */
-.modal-content h2 { font-size: 1.5rem; line-height: 1.25; margin-bottom: 14px; padding-right: 34px; }   /* deja hueco al botón ✕ */
-.modal-content .recipe-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }   /* las etiquetas NO se pegan al título */
+.modal-content h2 { font-size: 1.5rem; line-height: 1.25; margin-bottom: 12px; padding-right: 34px; }   /* deja hueco al botón ✕ */
+.modal-content .receta-linea {          /* filete a todo el ancho que se disuelve en los extremos */
+  height: 1px;
+  border: 0;
+  margin: 0 0 14px;
+  background: linear-gradient(90deg, transparent, var(--brand) 20%, var(--brand) 80%, transparent);
+  opacity: 0.7;
+}
+.modal-content .recipe-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }   /* las etiquetas arrancan en la MISMA columna que el título y las secciones */
 .modal-content > p.muted { margin: 0 0 6px; line-height: 1.55; }   /* descripción (Base / Usa de tu casa) */
 
 /* La ficha se lee como una página editorial: columna de lectura cómoda dentro
@@ -1001,6 +1087,9 @@ html.modal-abierto, body.modal-abierto { overflow: hidden; }
   padding-top: 18px;                      /* el filete se separa del bloque anterior */
   border-top: 1px solid var(--border);
 }
+.modal-content ul,
+.modal-content ol { margin-left: 14px; }   /* las listas van UN PELÍN más adentro que «Ingredientes»/«Método»: jerarquía de lectura */
+
 .modal-content ul {
   list-style: none;
   display: flex;
@@ -1015,7 +1104,10 @@ html.modal-abierto, body.modal-abierto { overflow: hidden; }
   overflow-wrap: anywhere;
 }
 .modal-content ul li::before {
-  content: "•";
+  /* Escapa la viñeta (\2022 = U+2022) en ASCII: el carácter literal llega a corromperse
+     (mojibake "â€¢") en móviles que decodifican el CSS con otro charset. Junto al
+     @charset de la línea 1 queda blindado en cualquier engine. */
+  content: "\2022";
   position: absolute;
   left: 16px;                             /* colgada DENTRO del hueco, derecha del borde del título */
   top: 6px;
@@ -1080,9 +1172,18 @@ html.modal-abierto, body.modal-abierto { overflow: hidden; }
   padding-top: 20px;
   border-top: 1px solid var(--border);
   display: flex;
+  align-items: stretch;                   /* la altura la marca el más alto: misma tanda, sin botón chico/chico */
   gap: 10px;
-  justify-content: flex-end;
   flex-wrap: wrap;                        /* en pantallas estrechas los botones bajan de fila, jamás fuerzan el ancho del box */
+}
+.modal-content .modal-footer .btn {
+  flex: 1 1 0;                            /* IGUAL tamaño: repartir el ancho, todos pesan lo mismo */
+  min-width: 0;
+  justify-content: center;
+  text-align: center;
+}
+@media (max-width: 420px) {
+  .modal-content .modal-footer .btn { flex: 1 1 40%; padding: 9px 10px; }   /* empinado: 2×2 cómodos, el texto entero por botón */
 }
 
 .toast {
