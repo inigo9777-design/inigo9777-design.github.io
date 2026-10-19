@@ -199,19 +199,20 @@ este diseño.
 
 ## 10. Orden de ejecución (fases de implementación)
 
-- [ ] **F1** Identidad + backup v2: mergeIncoming/buildBackup (uid preservado, fingerprint,
+- [x] **F1** Identidad + backup v2: mergeIncoming/buildBackup (uid preservado, fingerprint,
       cooked/weekmenu, editedAt) + `tests/merge-identidad.test.js`.
-- [ ] **F2** `modules/sync-crypto.js` + `tests/sync-crypto.test.js`.
-- [ ] **F3** `modules/sync.js` (máquina de estados, fetcher inyectable) + `e2e/sync-protocol.spec.js`.
-- [ ] **F4** `modules/diff-merge.js` (diff3 + identidad) + `tests/diff-merge.test.js`.
-- [ ] **F5** Wiring `app.js` (botón Sync, modal config, resolver, badges, textos de estado)
+- [x] **F2** `modules/sync-crypto.js` + `tests/sync-crypto.test.js`.
+- [x] **F3** `modules/sync.js` (máquina de estados, fetcher inyectable) + `e2e/sync-protocol.spec.js`.
+- [x] **F4** `modules/diff-merge.js` (diff3 + identidad) + `tests/diff-merge.test.js`.
+- [x] **F5** Wiring `app.js` (botón Sync, modal config, resolver, badges, textos de estado)
       + integración `e2e/sync-ui.spec.js` (obligatoria: cruza storage+DOM, CODING_STANDARDS).
-- [ ] **F6** `sw.js` SHELL + caché v4; AGENTS.md + CODING_STANDARDS §8; suite completa verde;
+- [x] **F6** `sw.js` SHELL + caché v4; AGENTS.md + CODING_STANDARDS §8; suite completa verde;
       e2e manual real con 2 dispositivos y gist real.
 
 ## 11. Criterios de aceptación
 
-- [ ] Entre sincronizaciones, el gist solo contiene `{"kind":"empty"}` o ciphertext ilegible.
+- [x] Entre sincronizaciones, el gist solo contiene `{"kind":"empty"}` o ciphertext ilegible.
+      (verificado por Jest con gist en memoria; el check EN UN gist real corre con `e2e/sync-buzon.mjs`).
 - [ ] El caso exacto de la sesión (misma línea del method editada en A y B sin sync previo)
       termina con ambas versiones preservadas y resueltas por el usuario, sin duplicados
       eternos ni texto perdido.

@@ -19,10 +19,11 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
   and exercise the affected tab.
 - **Tests:** `cd webapp && npm test` (`jest`) / `npm run coverage` (`jest --coverage`). Jest IS a
   declared devDependency with installed `node_modules/`. Specs live under `webapp/tests/` — per-module specs (classify, priority, recipe-analysis, ingredient-matching, util, innovations,
-  planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas, swipe-tabs) +
+  planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas, swipe-tabs,
+  merge-identidad, sync-crypto, diff-merge) +
   integration specs (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
-  buscador-catalogo, e2e-flow-receta-a-alerta-compra) + harness scaffolding (`boot.js` / `setup.js`). As of the last
-  run on 2026-10-18 the whole suite is green (**302 tests across 22 suites**) — verify with a fresh
+  buscador-catalogo, e2e-flow-receta-a-alerta-compra, sync-protocol, sync-ui) + harness scaffolding (`boot.js` / `setup.js`). As of the last
+  run on 2026-10-19 the whole suite is green (**382 tests across 27 suites**) — verify with a fresh
   run before trusting it.
 - **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
   and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`
@@ -33,7 +34,8 @@ Single-page, six-tab app loaded via `index.html`. Script order (order matters): 
 → `data.js` → `app.js` (registers the one `DOMContentLoaded` closure; module `<script>`s load after
 it but still before the DOM-ready event fires) → `modules/…` (`priority`, `classify`,
 `recipe-analysis`, catalog data, `origen-recetas`, `innovations`, `util`, `backup`,
-`ingredient-matching`, `planner`, `menu-semanal`, `recipe-missing`, `recipe-editor`, `swipe-tabs`). `app.js`
+`ingredient-matching`, `sync-crypto`, `diff-merge`, `sync`, `planner`, `menu-semanal`, `recipe-missing`,
+`recipe-editor`, `swipe-tabs`). `app.js`
 is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
 
 - **data.js** — static seasonal data; exposes `window.MR_CHEFF_DATA = { MESES, TEMPORADA }`. `app.js`
@@ -109,6 +111,28 @@ italiana" (see `modules/origen-recetas.js` below).
   etiqueta es `display: none` (el nombre accesible vive en el aria-label) y el estado
   activo se nota por el relleno marca del círculo; en escritorio conserva el despliegue
   por hover/foco/activo. La agarra la auditoría `e2e/pwa-accesibilidad.mjs` (check 6).
+- **Sync entre dispositivos por buzón GitHub (feature 2026-10-19, `e2e/plan-sync-buzon.md`):** sincroniza los
+  datos entre 2 dispositivos (móvil PWA + escritorio) con un gist privado como buzón y cifrado extremo a
+  extremo: AES-GCM-256 con clave PBKDF2-SHA256 (600k iteraciones) derivada de una passphrase que el usuario
+  comparte; **la passphrase NUNCA se persiste** (sólo `sessionStorage` — se re-pide al reabrir), token/gist
+  viven en `mrcheff.sync.config` y GitHub solo ve ciphertext o `{"kind":"empty"}`. En la vista Copia de
+  seguridad: card "⇄ Sync entre dispositivos" con **⚙️ Configurar** (PAT scope solo gist + id del gist +
+  passphrase), **🔄 Sync** (un clic = UNA pasada de la máquina de estados; nada de auto-sync en background)
+  y **🧹 Vaciar buzón** (`{"kind":"empty"}`, JAMÁS borrar/recrear el gist — el id es la config del otro
+  dispositivo). Protocolo (módulo puro `modules/sync.js`): offer/ack/empty con snapshot COMPLETO cifrado
+  (`mrcheff-sync.json`); el merge es **diff3 3-way** contra el antecesor común (`mrcheff.sync.base`) —
+  fusión por identidad de receta (id estable FASE 1, y fingerprint de ingredientes para gemelos LEGACY con
+  uids distintos), listas por LCS escrito a mano (`modules/diff-merge.js`), `editedAt` como ancla LWW del
+  primer sync SIN base (aviso no bloqueante; la perdedora no se descarta). La MISMA zona editada distinta
+  en ambos = **conflicto DECLARADO**: modal resolver lado a lado (Quedarme con este / Usar el del otro /
+  Conservar ambas — la copia remota entra con uid nuevo + badge "⧉ duplicada" para limpieza manual) y NADA
+  queda escrito (ni local ni buzón) hasta resolver. Un fallo de red NUNCA corrompe el estado local.
+  Copias guardadas por ⭐/✏️ llevan `editedAt` y el payload backup v2 (`version: 2`) transporta
+  cooked/weekmenu; el export/import manual queda intocado (plan B, decisión fijada §3 del plan). El sync
+  automático al abrir es idea futura, NO feature. Specs de integración del wiring: `tests/sync-ui.integration.test.js`
+  (boot real + `window.fetch` sustituido; boot.js aporta la WebCrypto cruda + TextEncoder/TextDecoder que
+  jsdom no trae) y `tests/sync-protocol.integration.test.js` (2 dispositivos en memoria); e2e manual real
+  con token de entorno: `node e2e/sync-buzon.mjs` (el PAT NUNCA se hardcodea ni se da a ningún agente).
 - **Pure modules (`webapp/modules/`, all IIFE + dual-export, no DOM/localStorage — §3 CODING_STANDARDS):**
   `classify.js` · `priority.js` · `recipe-analysis.js` · `ingredient-matching.js` (token matcher,
   shared by planner/menu-semanal/innovations) · `util.js` · `innovations.js` · `planner.js` (public API:
@@ -120,8 +144,13 @@ italiana" (see `modules/origen-recetas.js` below).
   catálogo: texto libre → resultado por título x3/ingrediente x1, reutiliza matching de tokens
   del matcher compartido, orden estable y límite ctx.limite) · **`origen-recetas.js`** (etiqueta/sello de origen:
   esItaliana, etiquetaOrigen, claseOrigen, origenAlGuardar, etiquetaClasicaVisible — inyectable ctx
-  `{catalog, ids}` para tests). `app.js` keeps ONLY HTML molds (`badgeOrigenHTML`, `tagClasicoHTML`),
-  event wiring and persistence.
+  `{catalog, ids}` para tests) · **`sync-crypto.js`** (AES-GCM 256 + PBKDF2: deriveKey/encryptJson/
+  decryptJson/nuevoSalt + base64 helpers; crypto inyectable — jsdom no trae .subtle) ·
+  **`diff-merge.js`** (fusión 3-way: merge3 base/mio/suyo → {estado, conflictos, avisos} + aplicarResoluciones
+  local/remota/ambas; CERO dependencias) · **`sync.js`** (máquina del buzón: ejecutar/
+  continuarTrasConflictos/crearBuzón + MENSAJES; fetcher/cripto/almacen/fusionar inyectables).
+  `app.js` keeps ONLY HTML molds (`badgeOrigenHTML`, `tagClasicoHTML`, `badgeSyncHTML`), event wiring
+  and persistence.
 - `modules/innovations.js` `generate(count, focus, state)` keeps its **exact public signature** (the sole call-site at
   `app.js:~445` is unaffected), but internally stops assembling random ingredient combinations from `STYLES`/`TWISTS`/
   `ARCHETYPES`. Instead it scores the curated catalog deterministically and ranks the top 6 by a named-weighted formula
