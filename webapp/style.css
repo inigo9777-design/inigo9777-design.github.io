@@ -677,6 +677,26 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .alert-card li .alert-meta { font-size: 0.8rem; color: var(--muted); }
 .alert-card li .alert-meta b { font-variant-numeric: tabular-nums; }
 
+/* Aviso semanal cuando no caben todos los pendientes: rediseño 2026-10-19 — el módulo ya entrega
+   la lista COMPLETA (antes un cap de 8 escondía el resto como si no existieran) y ahora el límite
+   es de alto: con 8+ pendientes la caja deja de crecer y scrollea DENTRO de sí. El cap exacto
+   (borde inferior de la 8ª fila) lo mide app.js al render (maxHeight inline); este max-height es
+   sólo el retén para cuando no hay medidas (render con la vista oculta por display:none).
+   contain: el sobre-scroll de la lista NUNCA arrastra al documento (nada de chaining). */
+.alert-card .alert-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.alert-card .alert-cabecera h3 { flex: 1; }
+.alert-card .alert-scroll {
+  max-height: 28rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
 /* La compra: el botón "✅ comprado" empuja al final de la fila */
 #shopping-list li [data-buy] { margin-left: auto; flex: 0 0 auto; }
 
@@ -954,6 +974,13 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
    La clase se aplica al documentElement TAMBIÉN: en Android el scroller del documento
    es <html> (y con html overflow-x:hidden el body ya no representa el scroll de página). */
 html.modal-abierto, body.modal-abierto { overflow: hidden; }
+
+/* Candado del scroll del aviso semanal (8+ items): congela el scroll del DOCUMENTO mientras
+   está activo para que el desplazamiento vaya por la lista interna (touch/wheel). SOLO en
+   <html>: los overflow del html se PROPAGAN al viewport y el html queda con used overflow
+   visible — el sticky del topbar NO se rompe. En body sucedería la trampa del fix del
+   overflow-x del 2026-10-19: el body volvería a ser scroll container y mataría el header. */
+html.scroll-candado { overflow: hidden; }
 .modal-close {
   position: absolute;
   top: 12px;
