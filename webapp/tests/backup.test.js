@@ -19,14 +19,14 @@ describe("backup — API pública: sólo {buildBackup, makeFilename, mergeIncomi
 });
 
 describe("backup — buildBackup(state, opts)", () => {
-  it("construye un payload completo con version=1 y todos los campos pasados por referencia", () => {
+  it("construye un payload completo con version=2 (payload v2 con cooked/weekmenu) y todos los campos pasados por referencia", () => {
     const foods = [{ name: "A" }];
     const recipes = [{ title: "B" }];
     const innovations = [{ title: "C" }];
     const innovDay = "2026-10-16";
 
     const out = backup.buildBackup({ foods, recipes, innovations, innovDay }, { now: "FIXED_ISO_NOW" });
-    expect(out.version).toBe(1);
+    expect(out.version).toBe(2);
     expect(out.exportedAt).toBe("FIXED_ISO_NOW");             // el valor INYECTADO gana sobre new Date().toISOString() (determinismo §6)
     expect(out.foods).toBe(foods);                           // se pasa POR REFERENCIA, no hace un deep-copy.
     expect(out.recipes).toBe(recipes);
@@ -41,7 +41,7 @@ describe("backup — buildBackup(state, opts)", () => {
 
   it("soporta que el `state` traiga fields ausentes sin error (recetas/innovaciones undefined queda tal cual)", () => {
     const out = backup.buildBackup({ foods: [] }, { now: "N" }); // sólo `foods`, y ni `recipes`, `innovations` ni `innovDay`.
-    expect(out.version).toBe(1);
+    expect(out.version).toBe(2);
     expect(out.foods).toEqual([]);
     expect(out.recipes).toBeUndefined();        // no se "inventa": la entrada no lo traía.
     expect(out.innovations).toBeUndefined();
@@ -50,7 +50,7 @@ describe("backup — buildBackup(state, opts)", () => {
 
   it("recibe opts vacío/ausente sin que importe (opts={}) por defecto en el código del módulo", () => {
     const out = backup.buildBackup({ foods: [{ name: "x" }] }); // ni opts, ni now → cae de nuevo a new Date() real.
-    expect(out.version).toBe(1);
+    expect(out.version).toBe(2);
     expect(typeof out.exportedAt).toBe("string");
   });
 });

@@ -872,7 +872,8 @@ document.addEventListener("DOMContentLoaded", () => {
         e.stopPropagation();
         const idea = innovations.find(x => x.id === btn.dataset.save);
         if (!idea) return;
-        recipes.push({ id: uid(), title: idea.title, meal: idea.meal, ingredients: idea.ingredients.slice(), method: idea.method.slice(), createdAt: Date.now(), ...(origenAlGuardar(idea)) });
+        // editedAt ISO (sync-buzon §1): toda ruta que CREA/EDITA una receta guarda su marca de edición estable.
+        recipes.push({ id: uid(), title: idea.title, meal: idea.meal, ingredients: idea.ingredients.slice(), method: idea.method.slice(), createdAt: Date.now(), editedAt: new Date().toISOString(), ...(origenAlGuardar(idea)) });
         save(LS.recipes, recipes);
         // No repintamos la vista "Recetas" a ciegas aqui (probablemente estamos mirando Innovacion ahora y su lista
         // iria oculta/innecesaria de pintar): solo marcamos la vista como sucia. El propio cambio de tab al volver a
@@ -1359,7 +1360,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // sólo orquestamos: guardar (save) + re-renderizar + toast. Los dos "aliases" locales dejan intocados los call-sites existentes
   // ("buildBackup()" / "backupFilename()") delegando en el módulo — sin tocar ni una línea de esos handlers.
   const buildBackApi = window.MRCheff.backup;
-  const buildBackup  = () => buildBackApi.buildBackup({ foods, recipes, innovations, innovDay });
+  const buildBackup  = () => buildBackApi.buildBackup({ foods, recipes, innovations, innovDay, cooked: load(LS.cooked, []), weekmenu: load(LS.weekmenu, null) });
   const backupFilename = () => buildBackApi.makeFilename();   // hora REAL por defecto inyectable por el módulo (tests §6)
 
   const btnExport = $("#btn-export");
@@ -1452,7 +1453,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Wrapper de CAPA VISTA sobre la fusión PURA del módulo: sólo decide CUÁNDO/CÓMO persistir/re-renderizar + toast; TODA la lógica
   // decisoria (dedup por nombre, normalización MEAL_SET/recorte a 30, uids frescos) vive en modules/backup.js. Ver CODING_STANDARDS.md §5 / DIp:
   function commitImport(data) {
-    const plan = buildBackApi.mergeIncoming({ foods, recipes, innovations }, data, { today });
+    // (sync-buzon §1, payload v2): cooked/weekmenu participan del anexo al importar; versiones v1 sin
+    // esas claves siguen funcionando — el módulo las trata como vacías/ausentes (§ regreso comprobado).
+    const plan = buildBackApi.mergeIncoming({ foods, recipes, innovations, cooked: load(LS.cooked, []), weekmenu: load(LS.weekmenu, null) }, data, { today });
     if (!plan) { toast("Archivo no válido", "error"); return; }   // el módulo devuelve null si la entrada NO es un objeto
     foods = plan.foods;        // las referencias LOCALES se reasignan: son exactamente lo que luego pintan los renders de abajo.
     recipes = plan.recipes;
@@ -1460,6 +1463,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     save(LS.foods, foods);
     save(LS.recipes, recipes);
+    if (plan.addedCooked > 0) save(LS.cooked, plan.cooked);                      // anexo del historial cocinado (v2)
+    if (plan.weekmenu != null && !load(LS.weekmenu, null)) save(LS.weekmenu, plan.weekmenu);   // se deja constancia de la adopción del plan entrante (v2)
     if (plan.persistInnov) {   // solo si la entrada trajo innovaciones nuevas: marca "hoy" para que el auto-expiry del cierre DOMContentLoaded no las borre en la próxima carga (§5 "Alcance de expiración automática")
       innovDay = today;
       save(LS.innov, innovations);
