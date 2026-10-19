@@ -1234,6 +1234,9 @@ document.addEventListener("DOMContentLoaded", () => {
           <li class="alert-row urg-${urg}">
             <span class="alert-name"><strong>${escapeHTML(item.name)}</strong></span>
             <span class="alert-meta">qty <b>${item.qty}</b> · mínimo <b>${item.min}</b> · importante <b>${item.score}/10</b> ${escapeHTML(cuando)}</span>
+            ${(menuSemanal.candidatosDespensa(item.name, foods)).length
+              ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.name)}" title="¿Ya lo tienes en la despensa con otro nombre?>">🛒 Despensa?</button>`
+              : ""}
             <button class="btn ghost small" data-buy="${escapeHTML(item.name)}" title="Marcar como comprada">✅ comprado</button>
           </li>`;
         }).join("")}
@@ -1241,13 +1244,47 @@ document.addEventListener("DOMContentLoaded", () => {
     shoppingListEl.querySelectorAll("[data-buy]").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
-        // 2026-10-18: NO se cuela ya el alimento con qty 0 / score 5 — se PREGUNTA cuánto se ha
-        // comprado y con qué importancia (modal). La decisión de añadir/actualizar vive en el
-        // módulo puro menuSemanal.markItemBought(..., compra); aquí sólo el molde del diálogo.
-        const name = btn.dataset.buy;
+        abrirModalCompra(btn.dataset.buy);
+      });
+    });
+    // FEATURE 2026-10-19 "🛒 Despensa?": variantes del mismo alimento que el casador de tokens
+    // sóla une ("Jamón serrano" ↔ "Jamón ibérico", "Pan de pueblo" ↔ "Pan"). Los candidatos los
+    // decide el módulo puro (menuSemanal.candidatosDespensa) — sin ellos el botón ni sale — y la
+    // ÚLTIMA PALABRA la tiene la persona: el diálogo lista las opciones y confirma una a una.
+    shoppingListEl.querySelectorAll("[data-despensa]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const itemName = btn.dataset.despensa;
+        const candidatos = menuSemanal.candidatosDespensa(itemName, foods);
+        if (!candidatos.length) return;
+        modalContent.innerHTML = `
+        <h2>🛒 ¿Despensa?</h2>
+        <p class="muted">Posible alimento identificado en tu despensa — confirma si "<strong>${escapeHTML(itemName)}</strong>" es alguno de estos:</p>
+        <div class="despensa-elegir">
+          ${candidatos.map(c => `
+            <button class="btn ghost" data-despensa-elegir="${escapeHTML(c.name)}">${escapeHTML(c.name)} <span class="muted">· tienes ${c.qty ?? 0}</span></button>`).join("")}
+        </div>
+        <div class="modal-footer">
+          <button class="btn ghost" data-close>Cancelar (nada cambia)</button>
+        </div>`;
+        abrirModal("¿Ya está en tu despensa? " + itemName);
+        $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+        $$("[data-despensa-elegir]", modalContent).forEach(b =>
+          b.addEventListener("click", () => abrirModalCompra(itemName, b.dataset.despensaElegir)));
+      });
+    });
+
+    // 2026-10-18: NO se cuela el alimento con qty 0 / score 5 — se PREGUNTA cuánto se ha comprado
+    // y con qué importancia. La decisión de añadir/actualizar vive en el módulo puro
+    // (menuSemanal.markItemBought / markItemBoughtComo); aquí sólo el molde del diálogo.
+    // 2026-10-19: 2º parámetro `nombreDespensa` = el usuario confirmó en "🛒 Despensa?" que el
+    // ítem es una variante de ESE alimento ya guardado: la compra va a él IN-SITU, sin alta nueva.
+    function abrirModalCompra(name, nombreDespensa) {
         modalContent.innerHTML = `
         <h2>✅ ¿Comprado?</h2>
-        <p class="muted">"<strong>${escapeHTML(name)}</strong>" se añadirá a la despensa con estos datos:</p>
+        <p class="muted">"<strong>${escapeHTML(name)}</strong>"${nombreDespensa
+          ? ` se anota en la que ya tienes: <strong>${escapeHTML(nombreDespensa)}</strong> — misma cosa con otra variante, sin crear un alimento nuevo, con estos datos:`
+          : " se añadirá a la despensa con estos datos:"}</p>
         <div class="recipe-edit">
           <label for="compra-qty">Cantidad comprada
             <input type="number" id="compra-qty" min="1" step="1" value="1">
@@ -1285,7 +1322,13 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
           }
           const compra = { qty, score, ...(min !== null ? { min } : {}) };
-          const result = menuSemanal.markItemBought(foods, weeklyMenu, name, uid, Date.now(), compra);
+          const result = nombreDespensa
+            ? menuSemanal.markItemBoughtComo(foods, weeklyMenu, name, nombreDespensa, compra)
+            : menuSemanal.markItemBought(foods, weeklyMenu, name, uid, Date.now(), compra);
+          if (nombreDespensa && !result) {           // guard del módulo: objetivo no hallado → NADA se escribe
+            toast("No se encontró ese alimento en la despensa", "error");
+            return;
+          }
           if (result.actualizado) {
             toast(`"${escapeHTML(name)}" actualizado en la despensa (qty ${qty})`);
           } else if (!result.alreadyExists) {
@@ -1304,8 +1347,7 @@ document.addEventListener("DOMContentLoaded", () => {
           renderShoppingList();
           closeModal();
         });
-      });
-    });
+    }
   }
 
   btnMenuGenerate.addEventListener("click", () => {

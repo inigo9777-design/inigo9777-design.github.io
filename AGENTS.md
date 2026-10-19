@@ -198,8 +198,14 @@ italiana" (see `modules/origen-recetas.js` below).
 - Lista de la compra (Card 3): dedup por el matcher de tokens (`modules/ingredient-matching.js`,
   NO lower-case exacto) contra comida real (qty>0), y semáforo dinámico por fecha de preparación
   (`onDay`/`daysUntil`/`urgency`): hoy/mañana=rojo, 2–3 días=naranja, ≥4 días (o sin fecha)=verde;
-  orden salida rojo→verde. "✅ comprado" PREGUNTA antes cuánto se ha comprado, su importancia y el
-  MÍNIMO para la alerta de reponer (modal) — no cuela el alimento con qty 0/score 5/min 0:
+  orden salida rojo→verde. "🛒 Despensa?" (2026-10-19) sale en la fila SÓLO cuando hay candidatos
+  del módulo puro (`menuSemanal.candidatosDespensa`: comparten algún token del matcher — "Jamón
+  serrano" ↔ despensa "Jamón ibérico", "Pan de pueblo" ↔ "Pan") y abre el diálogo de confirmación:
+  la persona elige la variante (o nada) y la compra va IN-SITU a ese alimento vía
+  `menuSemanal.markItemBoughtComo` (mismo id/nombre, sin alta nueva, el ítem sale de needyFoods)
+  — regla simple, decisión final siempre del usuario. "✅ comprado" PREGUNTA antes cuánto se ha
+  comprado, su importancia y el MÍNIMO para la alerta de reponer (modal) — no cuela el alimento
+  con qty 0/score 5/min 0:
   `markItemBought(..., compra)` añade con esos datos; si el alimento ya estaba en la despensa
   (incluso con qty 0), lo ACTUALIZA en-situ (sin `min` pedido conserva el suyo).
   (contrato ampliado, log §8 del CODING_STANDARDS.md).
