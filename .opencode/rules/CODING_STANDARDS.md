@@ -420,3 +420,17 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
      contrato de menu-semanal a 9 funciones públicas (compra IN-SITU al alimento elegido, sin alta
      nueva). Tests: unitarios en menu-semanal.test.js + integración en
      despensa-candidatos.integration.test.js.
+   10. **Memoria de scroll por vista del viewpager** (2026-10-20): API pública de swipe-tabs
+      ampliada a 7 funciones (`crearMemoriaScroll`/`recordarScroll`/`scrollParaVista`, objeto
+      memoria puro sin DOM; default SIEMPRE arriba). El behavior de scroll NO es estado del
+      módulo: app.js·activarVista(view, origen) captura la vista saliente (ANTES de tocar las
+      clases: el alto del documento cambia al ocultarse la vista) y aplica swipe=restaurar
+      instantáneo (sujeto al alto scrolleable real) / click=subida animada ({top:0,
+      behavior:"smooth"}, con reduce-motion a "auto" y fallback para WebViews sin options).
+      Trazas de harnés registradas: jsdom NO implementa window.scrollTo → boot.js trae sustituto
+      propio (licencia §6: aplica el resultado final sin el flag "Not implemented"); y el
+      page.click(selector) de Playwright hace scrollIntoViewIfNeeded y MUEVE el scroll del
+      documento antes del gesto — el e2e clica con page.mouse+coords y SOLO tabs SIEMPRE
+      visibles (la 5ª pill queda fuera del scroller del header en 390px). Tests: unitarios en
+      swipe-tabs.test.js + integración en viewpager-scroll.integration.test.js + e2e real en
+      e2e/scroll-vistas.mjs.
