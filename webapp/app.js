@@ -38,7 +38,13 @@ document.addEventListener("DOMContentLoaded", () => {
     innov: "mrcheff.innov",
     innovDate: "mrcheff.innov.date",
     cooked: "mrcheff.cooked",
-    weekmenu: "mrcheff.weekmenu"
+    weekmenu: "mrcheff.weekmenu",
+    // Sync por buzón GitHub (plan-sync-buzon §6): config + estado del protocolo. NUNCA passphrase.
+    syncConfig: "mrcheff.sync.config",
+    syncDeviceId: "mrcheff.sync.deviceId",
+    syncBase: "mrcheff.sync.base",
+    syncPendiente: "mrcheff.sync.pendiente",
+    syncConsumida: "mrcheff.sync.consumida"
   };
 
   const load = (key, def) => {
@@ -381,6 +387,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="recipe-meta">
           <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
           ${badgeOrigenHTML(r)}
+          ${badgeSyncHTML(r)}
           <span class="muted" style="font-size:.8rem">${escapeHTML(donde)}</span>
         </div>`;
       card.setAttribute("role", "button");
@@ -505,6 +512,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="recipe-meta">
           <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
           ${badgeOrigenHTML(r)}
+          ${badgeSyncHTML(r)}
           <span class="muted" style="font-size:.8rem">${r.ingredients.length} ingr.</span>
         </div>`;
       // Abrir detalle al hacer click en la tarjeta (el lápiz abre el EDITOR directamente: para eso está;
@@ -602,6 +610,7 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="recipe-meta">
         <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
         ${badgeOrigenHTML(r)}
+        ${badgeSyncHTML(r)}
         ${tagClasicoHTML(r, "Idea")}
       </div>
       ${r.from ? `<p class="muted">Base: ${escapeHTML(r.from)}</p>` : ""}
@@ -847,6 +856,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="recipe-meta">
           <span class="tag meal-${i.meal}">${mealLabels[i.meal]}</span>
           ${badgeOrigenHTML(i)}
+          ${badgeSyncHTML(i)}
           ${i.source === "curada" ? "" : `<span class="tag tag-${i.source}">${SOURCE_LABEL[i.source] || "Nueva"}</span>`}
         </div>
         ${i.uses && i.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${i.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
@@ -872,7 +882,8 @@ document.addEventListener("DOMContentLoaded", () => {
         e.stopPropagation();
         const idea = innovations.find(x => x.id === btn.dataset.save);
         if (!idea) return;
-        recipes.push({ id: uid(), title: idea.title, meal: idea.meal, ingredients: idea.ingredients.slice(), method: idea.method.slice(), createdAt: Date.now(), ...(origenAlGuardar(idea)) });
+        // editedAt ISO (sync-buzon §1): toda ruta que CREA/EDITA una receta guarda su marca de edición estable.
+        recipes.push({ id: uid(), title: idea.title, meal: idea.meal, ingredients: idea.ingredients.slice(), method: idea.method.slice(), createdAt: Date.now(), editedAt: new Date().toISOString(), ...(origenAlGuardar(idea)) });
         save(LS.recipes, recipes);
         // No repintamos la vista "Recetas" a ciegas aqui (probablemente estamos mirando Innovacion ahora y su lista
         // iria oculta/innecesaria de pintar): solo marcamos la vista como sucia. El propio cambio de tab al volver a
@@ -926,6 +937,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="recipe-meta">
           <span class="tag meal-${idea.meal}">${mealLabels[idea.meal] || ""}</span>
           ${badgeOrigenHTML(idea)}
+          ${badgeSyncHTML(idea)}
         ${tagClasicoHTML(idea, SOURCE_LABEL.sugerenciaHoy)}
         </div>
         ${idea.uses && idea.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${idea.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
@@ -1032,6 +1044,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <h4 class="menu-meal-title">${escapeHTML(rec.title)}</h4>
         <div class="recipe-meta">
           ${badgeOrigenHTML(rec)}
+          ${badgeSyncHTML(rec)}
           ${tagClasicoHTML(rec, SOURCE_LABEL.sugerenciaHoy)}
           <span class="muted" style="font-size:.8rem">${rec.ingredients.length} ingr.</span>
         </div>
@@ -1359,7 +1372,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // sólo orquestamos: guardar (save) + re-renderizar + toast. Los dos "aliases" locales dejan intocados los call-sites existentes
   // ("buildBackup()" / "backupFilename()") delegando en el módulo — sin tocar ni una línea de esos handlers.
   const buildBackApi = window.MRCheff.backup;
-  const buildBackup  = () => buildBackApi.buildBackup({ foods, recipes, innovations, innovDay });
+  const buildBackup  = () => buildBackApi.buildBackup({ foods, recipes, innovations, innovDay, cooked: load(LS.cooked, []), weekmenu: load(LS.weekmenu, null) });
   const backupFilename = () => buildBackApi.makeFilename();   // hora REAL por defecto inyectable por el módulo (tests §6)
 
   const btnExport = $("#btn-export");
@@ -1452,7 +1465,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Wrapper de CAPA VISTA sobre la fusión PURA del módulo: sólo decide CUÁNDO/CÓMO persistir/re-renderizar + toast; TODA la lógica
   // decisoria (dedup por nombre, normalización MEAL_SET/recorte a 30, uids frescos) vive en modules/backup.js. Ver CODING_STANDARDS.md §5 / DIp:
   function commitImport(data) {
-    const plan = buildBackApi.mergeIncoming({ foods, recipes, innovations }, data, { today });
+    // (sync-buzon §1, payload v2): cooked/weekmenu participan del anexo al importar; versiones v1 sin
+    // esas claves siguen funcionando — el módulo las trata como vacías/ausentes (§ regreso comprobado).
+    const plan = buildBackApi.mergeIncoming({ foods, recipes, innovations, cooked: load(LS.cooked, []), weekmenu: load(LS.weekmenu, null) }, data, { today });
     if (!plan) { toast("Archivo no válido", "error"); return; }   // el módulo devuelve null si la entrada NO es un objeto
     foods = plan.foods;        // las referencias LOCALES se reasignan: son exactamente lo que luego pintan los renders de abajo.
     recipes = plan.recipes;
@@ -1460,6 +1475,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     save(LS.foods, foods);
     save(LS.recipes, recipes);
+    if (plan.addedCooked > 0) save(LS.cooked, plan.cooked);                      // anexo del historial cocinado (v2)
+    if (plan.weekmenu != null && !load(LS.weekmenu, null)) save(LS.weekmenu, plan.weekmenu);   // se deja constancia de la adopción del plan entrante (v2)
     if (plan.persistInnov) {   // solo si la entrada trajo innovaciones nuevas: marca "hoy" para que el auto-expiry del cierre DOMContentLoaded no las borre en la próxima carga (§5 "Alcance de expiración automática")
       innovDay = today;
       save(LS.innov, innovations);
@@ -1475,10 +1492,273 @@ document.addEventListener("DOMContentLoaded", () => {
     toast(`Importados: ${plan.addedFoods} alimento(s), ${plan.addedRecipes} receta(s)`);
   }
 
+  // ===== SYNC ENTRE DISPOSITIVOS (buzón GitHub cifrado — plan-sync-buzon §6, FASE 5) =====
+  // SÓLO CAPA VISTA (CODING_STANDARDS §5): la máquina de estados vive en modules/sync.js (F3), el
+  // diff3 en modules/diff-merge.js (F4) y la cripto en modules/sync-crypto.js (F2 — todo puro e
+  // inyectable). Aquí: botón "🔄 Sync", modal de configuración (token/gist en LS, passphrase SOLO
+  // en sessionStorage), modal resolver de conflictos (§5) y badges "⇄ conflicto"/"duplicada".
+  const syncApi = window.MRCheff.sync;
+  const syncCryptoApi = window.MRCheff.syncCrypto;
+  const diffMergeApi = window.MRCheff.diffMerge;
+  const SESS_PASS = "mrcheff.sync.pass";   // passphrase de SESIÓN: nunca localStorage (§2 del plan)
+
+  const btnSync = $("#btn-sync");
+  const btnSyncConfig = $("#btn-sync-config");
+  const btnSyncVaciar = $("#btn-sync-vaciar");
+  const syncNote = $("#sync-note");
+
+  function notaSync(texto) {
+    syncNote.textContent = texto || "";
+    syncNote.classList.toggle("hidden", !texto);
+  }
+
+  // Estado del clúster según la configuración: sin token/gist el Sync queda deshabilitado (hint §6).
+  function actualizarSyncUI() {
+    const cfg = load(LS.syncConfig, null) || {};
+    const listo = !!(cfg.token && cfg.gistId);
+    btnSync.disabled = !listo;
+    btnSyncVaciar.disabled = !listo;
+    const passSesion = !!sessionStorage.getItem(SESS_PASS);
+    if (!listo) notaSync("Sin configurar — pulsa ⚙️ Configurar para poner el token de GitHub, el gist y la passphrase.");
+    else if (!passSesion) notaSync("Buzón y token listos — falta la passphrase de esta sesión (se pedirá al pulsar Sync).");
+    else notaSync("🟢 Listo para sincronizar con el buzón configurado (passphrase en esta sesión).");
+  }
+
+  // Copia "duplicada" (elección "Conservar ambas" del resolver): badge junto a los de origen, §5.
+  function badgeSyncHTML(rec) {
+    return rec && rec.duplicada ? '<span class="tag tag-sync-duplicada" title="Copia conservada por una resolución del sync">⧉ duplicada</span>' : "";
+  }
+
+  // ---- snapshot local completo (payload v2 del §1: misma forma que merge3 consume) ----
+  function estadoLocalCompleto() {
+    return {
+      foods, recipes, innovations,
+      cooked: load(LS.cooked, []),
+      weekmenu: load(LS.weekmenu, null)
+    };
+  }
+
+  // Aplicar el estado fusionado que trae el protocolo: persistir TODO, re-asignar las variables en
+  // memoria y re-pintar (misma cronología que commitImport del import manual).
+  function aplicarEstadoSync(estado) {
+    if (!estado || typeof estado !== "object") return;
+    foods = Array.isArray(estado.foods) ? estado.foods : [];
+    recipes = Array.isArray(estado.recipes) ? estado.recipes : [];
+    innovations = Array.isArray(estado.innovations) ? estado.innovations : [];
+    save(LS.foods, foods);
+    save(LS.recipes, recipes);
+    save(LS.innov, innovations);
+    if (estado.cooked != null) save(LS.cooked, estado.cooked);
+    if (estado.weekmenu != null) {
+      weeklyMenu = estado.weekmenu;                     // la variable de Card 2 se reasigna también
+      save(LS.weekmenu, weeklyMenu);
+    }
+    renderFoods();
+    renderWeeklyAlert();
+    renderRecipes();                                    // recetasDirty no cuenta: llega contenido nuevo de verdad
+    renderInnovations();
+    if (weeklyMenu && weeklyMenu.plan) renderWeeklyMenu(weeklyMenu.plan);
+    if (weeklyMenu && weeklyMenu.approved) renderShoppingList();
+  }
+
+  // ---- ctx del protocolo: la ÚNICA unión de app.js con red/localStorage/sessionStorage/cripto ----
+  function contextoSync(passphrase) {
+    let deviceId = load(LS.syncDeviceId, null);
+    if (!deviceId) { deviceId = uid(); save(LS.syncDeviceId, deviceId); }
+    const cfg = load(LS.syncConfig, {}) || {};
+    // Inyecciones de TEST (CODING_STANDARDS §6): `mrcheff.sync.iteraciones` baja el coste de
+    // PBKDF2 en suite (viaja en el header de la envolvente, sin efecto en producción) y
+    // `window.__mrcheffCryptoImpl` aporta la WebCrypto cruda donde el global no trae .subtle (jsdom).
+    const iteracionesTest = parseInt(localStorage.getItem("mrcheff.sync.iteraciones") || "", 10);
+    const claveLS = (k) => k === "base" ? LS.syncBase : k === "pendiente" ? LS.syncPendiente : LS.syncConsumida;
+    return {
+      dispositivo: cfg.nombre || deviceId,
+      deviceId,
+      token: cfg.token, gistId: cfg.gistId, passphrase,
+      iteraciones: Number.isFinite(iteracionesTest) && iteracionesTest > 0 ? iteracionesTest : undefined,
+      uid, ahora: () => new Date().toISOString(),
+      fetcher: window.fetch.bind(window),
+      crypto: syncCryptoApi,
+      cryptoImpl: (typeof crypto !== "undefined" && crypto.subtle) ? undefined : window.__mrcheffCryptoImpl,
+      snapshotLocal: estadoLocalCompleto,
+      fusionar: (base, mio, suyo) => diffMergeApi.merge3(base, mio, suyo),
+      almacen: {
+        leer: (k) => load(claveLS(k), null),
+        escribir: (k, v) => save(claveLS(k), v),
+        guardarLocal: aplicarEstadoSync
+      }
+    };
+  }
+
+  // ---- Modal de configuración (token + gist + passphrase de sesión) ----
+  function abrirModalSyncConfig() {
+    const cfg = load(LS.syncConfig, null) || {};
+    const passSesion = sessionStorage.getItem(SESS_PASS);
+    modalContent.innerHTML = `
+      <h2>⚙️ Sync entre dispositivos</h2>
+      <p class="muted">Crea un PAT de GitHub con SOLO el scope <code>gist</code> (github.com/settings/tokens)
+        y pégalo aquí junto al ID del gist que hace de buzón. El token y el gist se guardan en ESTE
+        navegador; la passphrase se recuerda SOLO en esta sesión y debe ser la MISMA en los dos dispositivos.</p>
+      <div class="recipe-edit">
+        <label for="sync-token">Token (PAT, scope solo gist)
+          <input type="password" id="sync-token" autocomplete="off" value="${escapeHTML(cfg.token || "")}">
+        </label>
+        <label for="sync-gist">ID del gist (buzón)
+          <input type="text" id="sync-gist" autocomplete="off" placeholder="32 hex del gist" value="${escapeHTML(cfg.gistId || "")}">
+        </label>
+        <label for="sync-nombre">Nombre de este dispositivo (p. ej. «Móvil», «PC»)
+          <input type="text" id="sync-nombre" maxlength="24" placeholder="opcional" value="${escapeHTML(cfg.nombre || "")}">
+        </label>
+        <label for="sync-pass">Passphrase compartida${passSesion ? " (ya memorizada en esta sesión)" : ""}
+          <input type="password" id="sync-pass" autocomplete="new-password" placeholder="${passSesion ? "no escribir para conservarla" : "la misma en ambos dispositivos"}">
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn ghost" data-close>Cerrar</button>
+        <button class="btn primary" id="sync-guardar">Guardar configuración</button>
+      </div>`;
+    abrirModal("Configuración del sync entre dispositivos");
+    $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+    $("#sync-token", modalContent).focus();
+    $("#sync-guardar", modalContent).addEventListener("click", () => {
+      const token = $("#sync-token", modalContent).value.trim();
+      const gistId = $("#sync-gist", modalContent).value.trim();
+      const nombre = $("#sync-nombre", modalContent).value.trim();
+      const pass = $("#sync-pass", modalContent).value;
+      if (!token || !gistId) { toast("Token e ID del gist son obligatorios", "error"); return; }
+      save(LS.syncConfig, { token, gistId, nombre });
+      if (pass) sessionStorage.setItem(SESS_PASS, pass);
+      closeModal();
+      actualizarSyncUI();
+      toast("Configuración del sync guardada");
+    });
+  }
+  btnSyncConfig.addEventListener("click", abrirModalSyncConfig);
+
+  // ---- Botón Sync: un clic = una pasada de la máquina (nada de auto-sync en background, §6) ----
+  btnSync.addEventListener("click", async () => {
+    const cfg = load(LS.syncConfig, null) || {};
+    if (!cfg.token || !cfg.gistId) { abrirModalSyncConfig(); return; }
+    const pass = sessionStorage.getItem(SESS_PASS);
+    if (!pass) { abrirModalSyncConfig(); toast("Escribe la passphrase de esta sesión para sincronizar", "error"); return; }
+    btnSync.disabled = true;
+    notaSync("⏳ Sincronizando con el buzón…");
+    const ctx = contextoSync(pass);
+    const resultado = await syncApi.ejecutar(ctx);
+    btnSync.disabled = false;
+    await encaminarResultado(resultado, ctx);
+    // SIN actualizarSyncUI() aquí: pisaría el mensaje de la rama con el hint genérico —
+    // la nota de resultado manda hasta el próximo clic/config.
+  });
+
+  async function encaminarResultado(resultado, ctx) {
+    if (!resultado) {
+      notaSync("No se pudo completar el sync — tus datos locales no han cambiado.");
+      toast("El sync no se completó", "error");
+      return;
+    }
+    notaSync(resultado.mensaje || "");
+    if (resultado.rama === "conflictos") {
+      abrirModalResolver(resultado, ctx);   // §5: nada queda escrito hasta resolver
+      return;
+    }
+    toast(resultado.mensaje || "Sync completado", resultado.rama === "error" ? "error" : "success");
+  }
+
+  // "🧹 Vaciar buzón": PATCH con {"kind":"empty"} (nunca borrar el gist: el id es la config del otro).
+  btnSyncVaciar.addEventListener("click", async () => {
+    btnSyncVaciar.disabled = true;
+    notaSync("⏳ Dejando el buzón vacío…");
+    const resultado = await syncApi.crearBuzon(contextoSync(""));
+    btnSyncVaciar.disabled = false;
+    notaSync(resultado.mensaje || "");
+    toast(resultado.mensaje, resultado.rama === "error" ? "error" : "success");
+  });
+
+  // ---- Modal RESOLVER de conflictos (§5): las dos versiones lado a lado; la decisión es por
+  // RECETA (quedarse con este dispositivo / el otro / conservar ambas — la copia hereda "duplicada").
+  function textoVersion(v) {
+    if (Array.isArray(v)) return v.length ? v.join(" · ") : "(vacío)";
+    if (v === undefined || v === null || v === "") return "(sin valor)";
+    return String(v);
+  }
+
+  function abrirModalResolver(resultado, ctx) {
+    const provisional = resultado.estadoProvisional || {};
+    const suyo = (resultado.recibida && resultado.recibida.estadoSuyo) || {};
+    const grupos = new Map();
+    (resultado.conflictos || []).forEach((c) => {
+      if (!grupos.has(c.recetaId)) grupos.set(c.recetaId, []);
+      grupos.get(c.recetaId).push(c);
+    });
+    const tituloPorId = (id) => {
+      const enProv = (provisional.recipes || []).find(r => r && r.id === id);
+      const enSuyo = (suyo.recipes || []).find(r => r && r.id === id);
+      return (enProv && enProv.title) || (enSuyo && enSuyo.title) || "Receta";
+    };
+    const elecciones = new Map();   // recetaId → "local" | "remota" | "ambas"
+
+    modalContent.innerHTML = `
+      <h2>⇄ Cambios en conflicto</h2>
+      <p class="muted">${escapeHTML(resultado.mensaje || "")}</p>
+      ${(resultado.avisos || []).length
+        ? `<p class="muted">ℹ️ ${resultado.avisos.length} diferencia(s) menor(es) ya se resolvieron solas (gana la edición más nueva): revisa las recetas tras el sync.</p>`
+        : ""}
+      ${Array.from(grupos.entries()).map(([id, lista]) => `
+        <div class="resolver-receta">
+          <h4>${escapeHTML(tituloPorId(id))} <span class="tag tag-sync-conflicto">⇄ conflicto</span></h4>
+          ${lista.map((c) => `
+            <div class="resolver-campo">
+              <div class="resolver-lado"><span class="resolver-rotulo">Este dispositivo · ${escapeHTML(c.campo || "campo")}:</span> ${escapeHTML(textoVersion(c.local))}</div>
+              <div class="resolver-lado"><span class="resolver-rotulo">El otro dispositivo:</span> ${escapeHTML(textoVersion(c.remota))}</div>
+            </div>`).join("")}
+          <div class="resolver-decision">
+            <button type="button" class="btn ghost small" data-decision="local" data-receta="${escapeHTML(id)}">Quedarme con este</button>
+            <button type="button" class="btn ghost small" data-decision="remota" data-receta="${escapeHTML(id)}">Usar el del otro</button>
+            <button type="button" class="btn ghost small" data-decision="ambas" data-receta="${escapeHTML(id)}">Conservar ambas</button>
+          </div>
+        </div>`).join("")}
+      <div class="modal-footer">
+        <button class="btn ghost" data-close>Cancelar (nada se escribe)</button>
+        <button class="btn primary" id="resolver-aplicar" disabled title="Marca una decisión por cada receta">Aplicar resolución</button>
+      </div>`;
+    abrirModal("Resolver conflictos del sync");
+    $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", () => {
+      toast("Sync cancelado: tus datos no han cambiado");
+      closeModal();
+    }));
+
+    const btnAplicar = $("#resolver-aplicar", modalContent);
+    $$(".resolver-decision [data-decision]", modalContent).forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.receta;
+        elecciones.set(id, btn.dataset.decision);
+        $$(".resolver-decision [data-decision]", modalContent)
+          .filter(b => b.dataset.receta === id)
+          .forEach(b => b.classList.toggle("primary", b === btn));
+        btnAplicar.disabled = elecciones.size !== grupos.size;
+      });
+    });
+
+    btnAplicar.addEventListener("click", async () => {
+      const lista = Array.from(elecciones.entries()).map(([recetaId, decision]) => ({ recetaId, decision }));
+      const estadoResuelto = diffMergeApi.aplicarResoluciones(provisional, suyo, lista, { uid });
+      closeModal();
+      btnSync.disabled = true;
+      notaSync("⏳ Aplicando la resolución y cerrando el sync…");
+      const r2 = await syncApi.continuarTrasConflictos(ctx, estadoResuelto, resultado.recibida);
+      btnSync.disabled = false;
+      notaSync((r2 && r2.mensaje) || "");
+      if (r2) toast(r2.mensaje, r2.rama === "error" ? "error" : "success");
+    });
+  }
+
   // ===== INICIALIZACIÓN =====
+
   renderFoods();
   renderWeeklyAlert();
   renderRecipes();
   renderInnovations();
   renderSeason();
+  actualizarSyncUI();
 });

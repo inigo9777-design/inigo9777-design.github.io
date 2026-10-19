@@ -62,9 +62,13 @@
       ingredients: draft.ingredients.slice(),
       method: draft.method.slice(),
     };
+    // (sync-buzon §1) marca de edición ESTABLE (ISO) en TODO lo que el editor toca: la usa el
+    // fallback LWW del primer sync sin base y el orden de presentación del resolver. Derivada del
+    // `now` inyectado (determinismo §6), no de un reloj paralelo.
+    const editedAt = new Date(now()).toISOString();
     const idx = estaGuardadaInicial(recipes, recetaOriginal);
     if (idx >= 0) {
-      const guardada = Object.assign({}, recipes[idx], campos);   // preserva source/uses/createdAt…
+      const guardada = Object.assign({}, recipes[idx], campos, { editedAt });   // preserva source/uses/createdAt…
       const nuevas = recipes.slice();
       nuevas[idx] = guardada;
       return { recipes: nuevas, guardada, modo: "in-situ" };
@@ -72,6 +76,7 @@
     const copia = Object.assign({
       id: uid(),
       createdAt: now(),
+      editedAt,
     }, campos, {
       source: recetaOriginal.source,
       from: recetaOriginal.from,

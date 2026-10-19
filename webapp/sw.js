@@ -12,7 +12,10 @@
 // caché ignoraba la query (ignoreSearch). Ahora lo nuevo SIEMPRE viene de la red cuando
 // hay conexión; el número del caché sólo ronda el shell (SHELL) y su estrategia, no la
 // frescura de cada release.
-const CACHE = "mrcheff-v3";
+// CACHE v4 (2026-10-19, feature sync-buzón): los 3 módulos nuevos del sync entran al shell
+// precacheado (sync-crypto/diff-merge/sync); el nombre SUBE +1 para forzar la re-instalación
+// del worker aunque el fichero byte-idéntico y el respaldo offline ya los traiga.
+const CACHE = "mrcheff-v4";
 
 const SHELL = [
   "./",
@@ -37,6 +40,9 @@ const SHELL = [
   "modules/recipe-missing.js",
   "modules/recipe-editor.js",
   "modules/swipe-tabs.js",
+  "modules/sync-crypto.js",
+  "modules/diff-merge.js",
+  "modules/sync.js",
   "icons/icon-192.png",
   "icons/icon-512.png"
 ];

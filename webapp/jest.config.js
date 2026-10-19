@@ -21,7 +21,10 @@ module.exports = {
     "<rootDir>/modules/recipe-editor.js",
     "<rootDir>/modules/origen-recetas.js",
     "<rootDir>/modules/busqueda-recetas.js",
-    "<rootDir>/modules/swipe-tabs.js"
+    "<rootDir>/modules/swipe-tabs.js",
+    "<rootDir>/modules/sync-crypto.js",
+    "<rootDir>/modules/sync.js",
+    "<rootDir>/modules/diff-merge.js"
   ],
   coverageThreshold: {
     global: { statements: 70, branches: 65, functions: 70, lines: 70 }

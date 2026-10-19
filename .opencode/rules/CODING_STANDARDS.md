@@ -374,3 +374,40 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   llave de la frescura: +1 sólo si cambia la lista SHELL o la estrategia. Afecta SÓLO a
   `sw.js` + su registro (sin shapes de §5 — suite 307 tests verde) y estrena guardia
   externa `e2e/pwa-entrega.mjs` (6 checks con servidor mutable).
+- `2026-10-19 · @AI-agent · #feature-sync-buzon · Principio: O, D · Justificación:` sincronización de
+  2 dispositivos vía gesto + gist de GitHub con cifrado extremo a extremo (plan completo en
+  `webapp/e2e/plan-sync-buzon.md`, 6 fases branch+merge). Cambios de contrato y desviaciones trazadas:
+  1. **Payload backup v2** (§1 del plan): `buildBackup`/`mergeIncoming` (`modules/backup.js`) añaden
+     `version: 2` con `cooked` y `weekmenu`; el import v1 sigue funcionando sin esas claves (no rompiente,
+     probado en `tests/merge-identidad.test.js`). Recetas con `uid` PRESERVADO al importar + dedup por
+     fingerprint de ingredientes (`claveIngredientes`, réplica literal de la mecánica Jaccard-1.0 del
+     hard-exclude) — precedent §8 del feature "matching-casa", duplicado A PROPÓSITO en backup/diff-merge
+     para mantener los módulos puros independientes.
+  2. **`editedAt`**: rutas de guardado/edición (`recipe-editor.applyEdit` por deps + guardado ⭐/✏️ de
+     app.js) añaden el campo ISO cuando tocan una receta — ancla del fallback LWW del primer sync.
+  3. **`sync.ejecutar`** amplía su resultado de rama "conflictos" con `estadoProvisional` + `avisos`
+     (necesarios para reconstruir el estado final tras el modal — cruzar `continuarTrasConflictos`).
+  4. **Desviación §3 literal del plan, trazada en la cabecera de sync.js**: al publicar un ACK se limpia
+     la marca "offer pendiente" propia (`almacen.escribir("pendiente", null)`); el ACK full-snapshot
+     SUSTITUYE a la offer y el bucle converge sin vaivén de ACKs idénticos ("convergecidoYa" evita el
+     ACK que no aporta). weekmenu fusiona por **LWW `generatedOn`** y foods/cooked/innovations por
+     **unión idempotente (gana local)** — sin diff3 fino, decisión §8 propia de esta release.
+  5. **`merge3` (modules/diff-merge.js, FASE 4)** recetas por identidad id → fingerprint (gemelos LEGACY
+     con uids distintos comparten columna, gana el uid LOCAL como canónico); escalares diff3 canónico
+     con base / LWW `editedAt` sin base (aviso NO bloqueante — la perdedora NO se descarta, viaja al
+     resolver); `editedAt` es ANCLA del LWW y nunca campo en disputa (0 avisos/conflictos propios);
+     listas por listDiff3-LCS a mano (CERO dependencias) — sin base, unión literal del plan §4.
+  6. **Ubicación de specs de integración:** `tests/*.integration.test.js` (Jest real) en lugar de los
+     `e2e/*.spec.js` que el plan §7 pedía — los stubs de e2e/ son dead-code que Jest NO ejecuta
+     (`roots` de jest.config.js); los stubs se mantienen SÓLO como trazabilidad del flujo real
+     (sync-protocol.spec.js / sync-ui.spec.js) + `e2e/sync-buzon.mjs` para la verificación manual con
+     token de entorno (MCHEFF_TOKEN/MCHEFF_GIST, NUNCA hardcodeados).
+  7. **Inyecciones de test de boot.js y contextos** (§6): `bootApp({cryptoImpl})` expone
+     `window.__mrcheffCryptoImpl` (jsdom no trae `.subtle`) y re-aprovecha TextEncoder/TextDecoder de
+     Node (jsdom no los implementa — navegadores sí); `mrcheff.sync.iteraciones` en localStorage baja el
+     coste de PBKDF2 en suite (los parámetros viajan en el header de la envolvente, así que es libre).
+  8. **Caché v4 del sw.js** con los 3 módulos del sync en SHELL (§7 del plan) — la entrega ya era
+     network-first, pero el respaldo offline debe precachear los ficheros nuevos.
+  Suite al cierre: **382 tests / 27 suites verdes** (global 93.24/81.90); cobertura de los módulos
+  nuevos ≥ 91/80. Verificación de 2 dispositivos + gist real queda manual (`e2e/sync-buzon.mjs`,
+  checklists §8 del plan) — no ejecutable en CI.
