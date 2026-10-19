@@ -204,7 +204,12 @@ italiana" (see `modules/origen-recetas.js` below).
   (incluso con qty 0), lo ACTUALIZA en-situ (sin `min` pedido conserva el suyo).
   (contrato ampliado, log §8 del CODING_STANDARDS.md).
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
-  red 8–10, orange 6–7, green 1–5; weekly alert caps the list at 8.
+  red 8–10, orange 6–7, green 1–5; weekly alert shows the FULL list (el cap de 8 del módulo
+  se quitó el 2026-10-19: escondía del 9º pendiente en adelante) y A PARTIR DE 8 items la lista
+  se cap de alto a 8 filas y scrollea dentro con botón candado (🔒) arriba a la derecha que
+  congela el scroll del DOCUMENTO vía `html.scroll-candado { overflow: hidden }` — SOLO en
+  `<html>` (en body mataría el sticky del topbar, ver fix del overflow-x); se suelta por clic,
+  cambio de vista o al caer bajo 8 items; con menos de 8 ni candado ni cap.
 - Innovations auto-expire: on load, if `mrcheff.innov.date != today`, wipe `mrcheff.innov`; also
   capped at the most recent 30. Generated "ideas" are deterministic heuristics (UI: "Modo simulado"),
   **not an LLM** — this is where real integration would go, nothing hidden elsewhere.

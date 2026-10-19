@@ -126,6 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
     barra.scrollTo({ left: izquierda, behavior: reduce ? "auto" : "smooth" });
   }
   function activarVista(view) {
+    soltarCandadoAlerta();                             // el candado vive sólo dentro de la vista de Alimentos
     tabs.forEach(t => {
       const es = t.dataset.view === view;
       t.classList.toggle("active", es);
@@ -325,24 +326,82 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ---- Rediseño 2026-10-19 de la alerta semanal: cap FÍSICO a 8 filas + candado de scroll ----
+  // buildWeeklyAlert ya recorta en el módulo (antes escondía el 9º pendiente en adelante): ahora el límite
+  // es de ALTO — con 8+ pendientes la lista se cap a 8 filas y scrollea DENTRO de sí. El candado (arriba a
+  // la derecha) congela el scroll del DOCUMENTO mientras está activo (clase `scroll-candado` SOLO en <html>:
+  // el overflow del html se propaga al viewport sin romper el sticky del topbar; en body rompería el header,
+  // ver el fix del overflow-x del 2026-10-19). Ni candado ni scroll salen con menos de 8 items.
+  let candadoAlertaActivo = false;
+
+  function soltarCandadoAlerta() {
+    candadoAlertaActivo = false;
+    document.documentElement.classList.remove("scroll-candado");
+  }
+
   function renderWeeklyAlert() {
-    // La DECISIÓN de qué entra la alerta y cómo se presenta (nivel/icono/título/orden/CAPA a 8) es lógica PURe extraída a
-    // modules/priority.js → buildWeeklyAlert. Aquí sólo PINTAMOS el HTML resultante (§2-D DIp: separar decidir del render).
+    // La DECISIÓN de qué entra la alerta y cómo se presenta (nivel/icono/título/orden — lista COMPLETA ya sin
+    // recortar) es lógica pura extraída a modules/priority.js → buildWeeklyAlert. Aquí sólo pintamos el HTML
+    // resultante y el cap físico de alto (§2-D DIP: separar decidir del render).
     const m = buildWeeklyAlert(foods);
-    if (!m.show) { weeklyAlert.className = "card alert-card hidden"; weeklyAlert.innerHTML = ""; return; }
+    if (!m.show) {
+      soltarCandadoAlerta();
+      weeklyAlert.className = "card alert-card hidden";
+      weeklyAlert.innerHTML = "";
+      return;
+    }
 
     // El color de la alerta lo marca la importancia del alimento MÁS URGENTE → ya resuelto por `m.level`/icon/título, pero el
     // per-fila todavía consulta urgencyLevel(f.score) para su propio badge, idéntico al código heredado.
     weeklyAlert.className = `card alert-card alert-${m.level}`;
+    const conScroll = m.items.length >= 8;   // a partir de 8: cap de alto + scroll interno + candado
     weeklyAlert.innerHTML = `
-      <h3>${m.icon} ${m.title}</h3>
-      <ul class="alert-list-${m.level}">
-        ${m.items.map(f => `
-          <li class="alert-row urg-${urgencyLevel(f.score)}">
-            <span class="alert-name"><strong>${escapeHTML(f.name)}</strong></span>
-            <span class="alert-meta">tienes <b>${f.qty ?? 0}</b> · mínimo <b>${f.min ?? 0}</b> · importancia <b>${f.score}/10</b></span>
-          </li>`).join("")}
-      </ul>`;
+      <div class="alert-cabecera">
+        <h3>${m.icon} ${m.title}</h3>
+        ${conScroll ? `<button id="candado-alerta" class="btn ghost small" aria-pressed="false" aria-label="Candado del scroll de la página" title="Congelar el scroll de la página y recorrer esta lista con el dedo">🔓</button>` : ""}
+      </div>
+      <div class="alert-scroll">
+        <ul class="alert-list-${m.level}">
+          ${m.items.map(f => `
+            <li class="alert-row urg-${urgencyLevel(f.score)}">
+              <span class="alert-name"><strong>${escapeHTML(f.name)}</strong></span>
+              <span class="alert-meta">tienes <b>${f.qty ?? 0}</b> · mínimo <b>${f.min ?? 0}</b> · importancia <b>${f.score}/10</b></span>
+            </li>`).join("")}
+        </ul>
+      </div>`;
+
+    const btnCandado = weeklyAlert.querySelector("#candado-alerta");
+    if (!conScroll) {
+      soltarCandadoAlerta();                            // cayó bajo 8 items: nada que congelar
+      return;
+    }
+    // Cap EXACTO a 8 filas medido del DOM: las filas varían de alto (envoltura del texto, tamaños), no hay
+    // valor CSS fijo que dé siempre 8. Si el render se ejecuta con la vista OCULTA (display:none en el change de
+    // tab destino, p. ej. importar en backup) las medidas salen a 0: se queda el fallback del CSS.
+    const ulAlerta = weeklyAlert.querySelector(".alert-scroll ul");
+    const fila8 = ulAlerta.children[7];
+    if (fila8) {
+      const fila1 = ulAlerta.children[0].getBoundingClientRect();
+      const fila8b = fila8.getBoundingClientRect();
+      if (fila1.height > 0 && fila8b.height > 0) {
+        weeklyAlert.querySelector(".alert-scroll").style.maxHeight = Math.ceil(fila8b.bottom - fila1.top) + "px";
+      }
+    }
+    // El candado SOBREVIVE a los re-renders mientras la lista siga con 8+ (➕/➖/✅ dentro de la lista no
+    // no deben soltarlo); se suelta por botón, por cambio de vista o si la lista cae bajo 8.
+    if (candadoAlertaActivo) {
+      document.documentElement.classList.add("scroll-candado");
+      btnCandado.textContent = "🔒";
+      btnCandado.setAttribute("aria-pressed", "true");
+    }
+    btnCandado.addEventListener("click", () => {
+      candadoAlertaActivo = document.documentElement.classList.toggle("scroll-candado");
+      btnCandado.textContent = candadoAlertaActivo ? "🔒" : "🔓";
+      btnCandado.setAttribute("aria-pressed", String(candadoAlertaActivo));
+      btnCandado.title = candadoAlertaActivo
+        ? "Suelta el candado para volver a scrollear la página"
+        : "Congelar el scroll de la página y recorrer esta lista con el dedo";
+    });
   }
 
   // ===== RECETAS =====

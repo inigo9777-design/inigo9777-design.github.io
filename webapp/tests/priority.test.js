@@ -47,3 +47,42 @@ describe("priority — needsRestock(food)", () => {
     expect(priority.needsRestock({ qty: null, min: 2 })).toBe(true);
   });
 });
+
+describe("priority — buildWeeklyAlert(foods): lista COMPLETA sin cap (rediseño 2026-10-19)", () => {
+  const mk = (name, score, qty = 0, min = 1, checked = false) => ({ name, score, qty, min, checked });
+
+  it("sin pendientes no muestra la alerta", () => {
+    expect(priority.buildWeeklyAlert([])).toEqual({ show: false });
+    // todo suficiente y/o marcado de un tirón: nada que avisar
+    expect(priority.buildWeeklyAlert([mk("arroz", 5, 4, 1), mk("leche", 9, 3, 1, true)])).toEqual({ show: false });
+  });
+
+  it("devuelve TODOS los pendientes (antes el slice(0, 8) escondía del 9º en adelante)", () => {
+    const diez = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"].map((n, i) => mk(n, 9 - i));
+    const m = priority.buildWeeklyAlert(diez);
+    expect(m.show).toBe(true);
+    expect(m.items).toHaveLength(10);
+    expect(m.items.map(x => x.name)).toEqual(["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]);
+  });
+
+  it("ordena desc por score (el más urgente manda color y título, el resto le sigue de cerca)", () => {
+    const m = priority.buildWeeklyAlert([mk("bajo", 2), mk("alto", 9), mk("medio", 6)]);
+    expect(m.items.map(x => x.name)).toEqual(["alto", "medio", "bajo"]);
+  });
+
+  it("el nivel/icono/título lo marca el MÁS URGENTE de TODA la lista (también del 9º en adelante)", () => {
+    // el más urgente está FUERA del antiguo cap de 8: con el slice viejo el nivel saldría green
+    const m = priority.buildWeeklyAlert(
+      ["a", "b", "c", "d", "e", "f", "g", "h", "critico"].map(n => mk(n, n === "critico" ? 10 : 4))
+    );
+    expect(m.level).toBe("red");
+    expect(m.icon).toBe("🚨");
+    expect(m.title).toBe("Repuestos urgentes esta semana");
+  });
+
+  it("excluye los marcados en casa y los que no necesitan reponer", () => {
+    const m = priority.buildWeeklyAlert([mk("ok", 5, 5, 1), mk("marcado", 5, 0, 1, true), mk("falta", 5, 0, 1)]);
+    expect(m.items).toHaveLength(1);
+    expect(m.items[0].name).toBe("falta");
+  });
+});
