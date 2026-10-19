@@ -144,7 +144,7 @@ italiana" (see `modules/origen-recetas.js` below).
   etiqueta es `display: none` (el nombre accesible vive en el aria-label) y el estado
   activo se nota por el relleno marca del círculo; en escritorio conserva el despliegue
   por hover/foco/activo. La agarra la auditoría `e2e/pwa-accesibilidad.mjs` (check 6).
-- **Sync entre dispositivos por buzón GitHub (feature 2026-10-19, `e2e/plan-sync-buzon.md`):** sincroniza los
+- **Sync entre dispositivos por buzón GitHub (feature 2026-10-19; su fichero de plan fue retirado del repo, el protocolo vive documentado en módulos/comments/tests):** sincroniza los
   datos entre 2 dispositivos (móvil PWA + escritorio) con un gist privado como buzón y cifrado extremo a
   extremo: AES-GCM-256 con clave PBKDF2-SHA256 (600k iteraciones) derivada de una passphrase que el usuario
   comparte; **la passphrase NUNCA se persiste** (sólo `sessionStorage` — se re-pide al reabrir), token/gist

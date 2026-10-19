@@ -132,7 +132,7 @@ try {
   ok(Math.abs(y5) < 20, `(5) click en el tab ya ACTIVO → arriba (${y5.toFixed(0)})`);
 
   // Captura de la vista con la posición restaurada (recuerdo visual)
-  await page.screenshot({ path: OUT_DIR + "66-scroll-foods-restaurado.png" });
+  await page.screenshot({ path: path.join(OUT_DIR, "66-scroll-foods-restaurado.png") });
 
   await browser.close();
 } catch (e) {
