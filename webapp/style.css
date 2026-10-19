@@ -151,12 +151,19 @@ html { scroll-padding-top: 84px; }          /* el ancla no se esconde bajo el he
    de Android) es lo que descolgaba el header sticky a media pantalla y asomaba una franja
    negra por arriba detrás de él. Se mata el rebote, el fondo del canvas manda el TOKEN
    del tema activo (nunca un color duro por fuera del sistema) y el desplazamiento
-   horizontal del documento queda muerto: la página ya no se "arrastra" de lado en el móvil. */
+   horizontal del documento queda muerto: la página ya no se "arrastra" de lado en el móvil.
+   FIX 2026-10-19 (header sticky roto en desktop Y móvil): el overflow-x:hidden estaba en
+   html Y body, y eso mataba el position:sticky del .topbar. Los overflow del html se
+   PROPAGAN al viewport (el html queda con used overflow visible y el sticky sigue anclado
+   al scroll del viewport), pero los del body NO se propagan: body pasaba a ser scroll
+   container (overflow-x hidden => overflow-y auto) y el header se anclaba a un scrollport
+   que nunca scrollea => se iba con la página. Basta con html: el viewport hereda el
+   overflow-x hidden y el body vuelve a ser un contenedor normal. */
 html {
   background: var(--bg);
   overscroll-behavior-y: contain;
 }
-html, body { overflow-x: hidden; }
+html { overflow-x: hidden; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
