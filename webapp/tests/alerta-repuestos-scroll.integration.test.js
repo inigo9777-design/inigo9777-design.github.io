@@ -6,7 +6,10 @@
 //   3) el candado se suelta por clic (toggle), por cambio de vista y si la lista cae bajo 8;
 //   4) con menos de 8 items NO hay candado NI cap de alto (la lista crece libre como siempre).
 // En jsdom no hay layout: getBoundingClientRect da 0 y el cap EXACTO inline no se aplica
-// (queda el retén del CSS en producción). Estos tests fijan el wiring y las decisiones del candado.
+// (queda el retén del CSS en producción). El candado es SÓLO MÓVIL (2026-10-19, afinación tras
+// probarlo: en escritorio la rueda recorre la lista sin ayuda) — por eso la movilidad va
+// INYECTADA con `bootApp({ esMovil })` (jsdom no evalúa mediaqueries); los tests fijan el wiring
+// del candado en móvil y su AUSENCIA en desktop con el mismo render.
 
 const { bootApp } = require("./boot");
 
@@ -17,7 +20,7 @@ const pendientes = (n) => Array.from({ length: n }, (_, i) => ({
 
 describe("alerta semanal — cap físico a 8 filas + candado de scroll (integración)", () => {
   it("con 9 pendientes pinta los 9 (sin el recorte antiguo a 8) y salen candado + caja de scroll", () => {
-    const app = bootApp({ seed: { foods: pendientes(9) } });
+    const app = bootApp({ seed: { foods: pendientes(9) }, esMovil: true });
     const alerta = app.document.getElementById("weekly-alert");
     expect(alerta.classList.contains("hidden")).toBe(false);
     expect(alerta.querySelectorAll(".alert-scroll li.alert-row")).toHaveLength(9);
@@ -30,7 +33,7 @@ describe("alerta semanal — cap físico a 8 filas + candado de scroll (integrac
   });
 
   it("con 7 pendientes: sin candado y sin congelación (menos de 8, nada que recortar)", () => {
-    const app = bootApp({ seed: { foods: pendientes(7) } });
+    const app = bootApp({ seed: { foods: pendientes(7) }, esMovil: true });
     const alerta = app.document.getElementById("weekly-alert");
     expect(alerta.querySelectorAll(".alert-scroll li.alert-row")).toHaveLength(7);
     expect(alerta.querySelector("#candado-alerta")).toBeNull();
@@ -38,7 +41,7 @@ describe("alerta semanal — cap físico a 8 filas + candado de scroll (integrac
   });
 
   it("el candado es un TOGGLE: 1er clic congela el documento (html.scroll-candado), 2º lo suelta", () => {
-    const app = bootApp({ seed: { foods: pendientes(9) } });
+    const app = bootApp({ seed: { foods: pendientes(9) }, esMovil: true });
     const candado = app.document.getElementById("candado-alerta");
     candado.click();
     expect(app.window.document.documentElement.classList.contains("scroll-candado")).toBe(true);
@@ -51,7 +54,7 @@ describe("alerta semanal — cap físico a 8 filas + candado de scroll (integrac
   });
 
   it("el candado CAE al cambiar de vista (el congelado no tiene sentido fuera de Alimentos)", () => {
-    const app = bootApp({ seed: { foods: pendientes(9) } });
+    const app = bootApp({ seed: { foods: pendientes(9) }, esMovil: true });
     app.document.getElementById("candado-alerta").click();
     expect(app.window.document.documentElement.classList.contains("scroll-candado")).toBe(true);
     app.document.querySelector('[data-view="recipes"]').click();
@@ -59,7 +62,7 @@ describe("alerta semanal — cap físico a 8 filas + candado de scroll (integrac
   });
 
   it("el candado SOBREVIVE a los re-renders (➕/➖ de una fila no lo suelta a la espalda del usuario)", () => {
-    const app = bootApp({ seed: { foods: pendientes(9) } });
+    const app = bootApp({ seed: { foods: pendientes(9) }, esMovil: true });
     app.document.getElementById("candado-alerta").click();
     expect(app.window.document.documentElement.classList.contains("scroll-candado")).toBe(true);
     // borrar un alimento de la lista: renderFoods + renderWeeklyAlert re-pintan el clúster entero
@@ -73,7 +76,7 @@ describe("alerta semanal — cap físico a 8 filas + candado de scroll (integrac
   });
 
   it("si la lista CAE bajo 8 items al resolver filas, el candado se suelta solo", () => {
-    const app = bootApp({ seed: { foods: pendientes(9) } });
+    const app = bootApp({ seed: { foods: pendientes(9) }, esMovil: true });
     app.document.getElementById("candado-alerta").click();
     expect(app.window.document.documentElement.classList.contains("scroll-candado")).toBe(true);
     // borrar 1 alimento: quedan 8 pendientes, seguimos con candado (aún toca scrollear);
@@ -84,5 +87,21 @@ describe("alerta semanal — cap físico a 8 filas + candado de scroll (integrac
     expect(app.window.document.documentElement.classList.contains("scroll-candado")).toBe(true);
     app.document.querySelectorAll("#food-list [data-del]")[0].click();   // 7 pendientes: fuera candado
     expect(app.document.querySelector("#candado-alerta")).toBeNull();
+  });
+});
+
+describe("alerta semanal — el candado es SÓLO MÓVIL (afinación 2026-10-19)", () => {
+  it("DESKTOP con 9 pendientes: el cap y el scroll quedan, el candado NO se pinta y nada se congela", () => {
+    const app = bootApp({ seed: { foods: pendientes(9) }, esMovil: false });
+    const alerta = app.document.getElementById("weekly-alert");
+    expect(alerta.querySelectorAll(".alert-scroll li.alert-row")).toHaveLength(9);   // lista completa
+    expect(alerta.querySelector(".alert-scroll")).toBeTruthy();                     // cap de alto sigue
+    expect(alerta.querySelector("#candado-alerta")).toBeNull();                     // ni candado en la UI
+    expect(app.window.document.documentElement.classList.contains("scroll-candado")).toBe(false);
+  });
+
+  it("MÓVIL con 9 pendientes: el candado SÍ está (control negativo del anterior)", () => {
+    const app = bootApp({ seed: { foods: pendientes(9) }, esMovil: true });
+    expect(app.document.getElementById("weekly-alert").querySelector("#candado-alerta")).toBeTruthy();
   });
 });

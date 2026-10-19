@@ -57,6 +57,11 @@ function bootApp(opts = {}) {
   // subtle — https/localhost — y esta inyección no existe). Inyectable §6 CODING_STANDARDS.
   if (opts.cryptoImpl) window.__mrcheffCryptoImpl = opts.cryptoImpl;
 
+  // ¿Es móvil? (inyección de test, §6): jsdom no evalúa mediaqueries de layout, así que la suite
+  // decide la movilidad por inyección igual que hace con la WebCrypto. En producción el navegador
+  // real trae matchMedia y este valor NO existe (app.js consulta (max-width: 820px)).
+  if (opts.esMovil != null) window.__mrcheffEsMovil = !!opts.esMovil;
+
   // jsdom NO implementa TextEncoder/TextDecoder (todos los navegadores reales los traen): la
   // cripto del sync (UTF-8 de passphrase/JSON, §2 del plan) los necesita. Se reaprovechan los
   // globals de Node — misma pedida por nodes 18+ — en lugar de fabricar un polyfill a mano.

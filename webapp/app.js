@@ -332,11 +332,34 @@ document.addEventListener("DOMContentLoaded", () => {
   // la derecha) congela el scroll del DOCUMENTO mientras está activo (clase `scroll-candado` SOLO en <html>:
   // el overflow del html se propaga al viewport sin romper el sticky del topbar; en body rompería el header,
   // ver el fix del overflow-x del 2026-10-19). Ni candado ni scroll salen con menos de 8 items.
+  // El candado es SÓLO MÓVIL: en escritorio la rueda recorre la lista sin ayuda y no hace falta
+  // congelar la página — en desktop la UI ni lo pinta (afinación de 2026-10-19 tras probarlo).
   let candadoAlertaActivo = false;
+
+  // ¿Es la versión móvil? Corte +≤820px, el mismo que usa el header al volver a flex.
+  // `window.__mrcheffEsMovil` es inyección de TEST (igual que `__mrcheffCryptoImpl`, §6): jsdom no
+  // evalúa mediaqueries de layout, así que la suite decide movilidad por inyección.
+  function esMovil() {
+    if (typeof window.__mrcheffEsMovil === "boolean") return window.__mrcheffEsMovil;
+    try {
+      if (typeof window.matchMedia !== "function") return false;    // entorno sin layout (jsdom p. ej.)
+      return window.matchMedia("(max-width: 820px)").matches;
+    } catch { return false; }
+  }
 
   function soltarCandadoAlerta() {
     candadoAlertaActivo = false;
     document.documentElement.classList.remove("scroll-candado");
+  }
+
+  // Pero al cruzar el corte móvil↔desktop (rotar tablet, estirar la ventana) ni candado rancio
+  // ni página congelada: se suelta y se repinta para que la UI viva de verdad.
+  // (entornos sin matchMedia — jsdom p. ej. —: sin listener y sin romper el arranque)
+  const mqMovil = typeof window.matchMedia === "function" ? window.matchMedia("(max-width: 820px)") : null;
+  const alCruzarMovil = () => { soltarCandadoAlerta(); renderWeeklyAlert(); };
+  if (mqMovil) {
+    if (typeof mqMovil.addEventListener === "function") mqMovil.addEventListener("change", alCruzarMovil);
+    else if (typeof mqMovil.addListener === "function") mqMovil.addListener(alCruzarMovil);   // Safari viejo
   }
 
   function renderWeeklyAlert() {
@@ -354,11 +377,12 @@ document.addEventListener("DOMContentLoaded", () => {
     // El color de la alerta lo marca la importancia del alimento MÁS URGENTE → ya resuelto por `m.level`/icon/título, pero el
     // per-fila todavía consulta urgencyLevel(f.score) para su propio badge, idéntico al código heredado.
     weeklyAlert.className = `card alert-card alert-${m.level}`;
-    const conScroll = m.items.length >= 8;   // a partir de 8: cap de alto + scroll interno + candado
+    const conScroll = m.items.length >= 8;    // a partir de 8: cap de alto + scroll interno (desktop y móvil)
+    const hayCandado = conScroll && esMovil(); // candado: SOLO móvil (en desktop ni se pinta)
     weeklyAlert.innerHTML = `
       <div class="alert-cabecera">
         <h3>${m.icon} ${m.title}</h3>
-        ${conScroll ? `<button id="candado-alerta" class="btn ghost small" aria-pressed="false" aria-label="Candado del scroll de la página" title="Congelar el scroll de la página y recorrer esta lista con el dedo">🔓</button>` : ""}
+        ${hayCandado ? `<button id="candado-alerta" class="btn ghost small" aria-pressed="false" aria-label="Candado del scroll de la página" title="Congelar el scroll de la página y recorrer esta lista con el dedo">🔓</button>` : ""}
       </div>
       <div class="alert-scroll">
         <ul class="alert-list-${m.level}">
@@ -370,14 +394,12 @@ document.addEventListener("DOMContentLoaded", () => {
         </ul>
       </div>`;
 
-    const btnCandado = weeklyAlert.querySelector("#candado-alerta");
-    if (!conScroll) {
-      soltarCandadoAlerta();                            // cayó bajo 8 items: nada que congelar
-      return;
-    }
-    // Cap EXACTO a 8 filas medido del DOM: las filas varían de alto (envoltura del texto, tamaños), no hay
-    // valor CSS fijo que dé siempre 8. Si el render se ejecuta con la vista OCULTA (display:none en el change de
-    // tab destino, p. ej. importar en backup) las medidas salen a 0: se queda el fallback del CSS.
+    // SUELTA el candado antes que nada (menos de 8 items en móvil, o desktop: candado sólo móvil).
+    if (!hayCandado) soltarCandadoAlerta();
+    // Cap EXACTO a 8 filas medido del DOM — INDEPENDIENTE del candado (también en desktop): las
+    // filas varían de alto (envoltura del texto), no hay valor CSS fijo que dé siempre 8. Si el
+    // render llega con la vista OCULTA (display:none al cambiar de tab, p. ej. importar en backup)
+    // las medidas salen a 0: se queda el retén del CSS.
     const ulAlerta = weeklyAlert.querySelector(".alert-scroll ul");
     const fila8 = ulAlerta.children[7];
     if (fila8) {
@@ -387,8 +409,13 @@ document.addEventListener("DOMContentLoaded", () => {
         weeklyAlert.querySelector(".alert-scroll").style.maxHeight = Math.ceil(fila8b.bottom - fila1.top) + "px";
       }
     }
-    // El candado SOBREVIVE a los re-renders mientras la lista siga con 8+ (➕/➖/✅ dentro de la lista no
-    // no deben soltarlo); se suelta por botón, por cambio de vista o si la lista cae bajo 8.
+    const btnCandado = weeklyAlert.querySelector("#candado-alerta");
+    if (!btnCandado) {
+      return;                                           // sin candado (desktop o <8): nada más que engarzar
+    }
+    // El candado SOBREVIVE a los re-renders mientras la lista siga con 8+: tocar ➕/➖/✅ dentro
+    // de la lista no debe dejar la página desatada. Se suelta por botón, por cambio de vista o
+    // si la lista cae bajo 8.
     if (candadoAlertaActivo) {
       document.documentElement.classList.add("scroll-candado");
       btnCandado.textContent = "🔒";

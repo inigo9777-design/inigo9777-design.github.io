@@ -212,8 +212,11 @@ italiana" (see `modules/origen-recetas.js` below).
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
   red 8–10, orange 6–7, green 1–5; weekly alert shows the FULL list (el cap de 8 del módulo
   se quitó el 2026-10-19: escondía del 9º pendiente en adelante) y A PARTIR DE 8 items la lista
-  se cap de alto a 8 filas y scrollea dentro con botón candado (🔒) arriba a la derecha que
+  se cap de alto a 8 filas y scrollea dentro; con botón candado (🔒) arriba a la derecha que
   congela el scroll del DOCUMENTO vía `html.scroll-candado { overflow: hidden }` — SOLO en
+  MÓVIL (afinación 2026-10-19: en desktop la rueda scrollea la lista sin más y el candado ni
+  se pinta; corte ≤ 820px, inyectable en suite con `bootApp({ esMovil })` porque jsdom no
+  evalúa mediaqueries). La clase vive en
   `<html>` (en body mataría el sticky del topbar, ver fix del overflow-x); se suelta por clic,
   cambio de vista o al caer bajo 8 items; con menos de 8 ni candado ni cap.
 - Innovations auto-expire: on load, if `mrcheff.innov.date != today`, wipe `mrcheff.innov`; also
