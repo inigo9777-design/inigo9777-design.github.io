@@ -1305,8 +1305,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // y con qué importancia. La decisión de añadir/actualizar vive en el módulo puro
     // (menuSemanal.markItemBought / markItemBoughtComo); aquí sólo el molde del diálogo.
     // 2026-10-19: 2º parámetro `nombreDespensa` = el usuario confirmó en "🛒 Despensa?" que el
-    // ítem es una variante de ESE alimento ya guardado: la compra va a él IN-SITU, sin alta nueva.
+    // ítem es una variante de ESE alimento ya guardado: la compra va a él IN-SITU, sin alta nueva,
+    // y el modal ABRIR ya carga el MÍNIMO y la IMPORTANCIA del alimento de despensa (afinación del
+    // mismo día: la despensa ya tenía su criterio de alerta — no re-preguntar de cero).
     function abrirModalCompra(name, nombreDespensa) {
+        const objetivo = nombreDespensa ? foods.find(f => f.name === nombreDespensa) : null;
+        const minPrevio = (objetivo && Number.isFinite(objetivo.min) && objetivo.min != null) ? objetivo.min : 1;
+        const scorePrevio = (objetivo && Number.isFinite(objetivo.score) && objetivo.score != null) ? objetivo.score : 5;
         modalContent.innerHTML = `
         <h2>✅ ¿Comprado?</h2>
         <p class="muted">"<strong>${escapeHTML(name)}</strong>"${nombreDespensa
@@ -1317,10 +1322,10 @@ document.addEventListener("DOMContentLoaded", () => {
             <input type="number" id="compra-qty" min="1" step="1" value="1">
           </label>
           <label for="compra-min">Cantidad mínima para la alerta de reponer
-            <input type="number" id="compra-min" min="0" step="1" value="1" title="Cuando baje de aquí te avisamos">
+            <input type="number" id="compra-min" min="0" step="1" value="${escapeHTML(String(minPrevio))}" title="Cuando baje de aquí te avisamos">
           </label>
           <label for="compra-score">Importancia (1–10)
-            <input type="number" id="compra-score" min="1" max="10" step="1" value="5">
+            <input type="number" id="compra-score" min="1" max="10" step="1" value="${escapeHTML(String(scorePrevio))}">
           </label>
         </div>
         <div class="modal-footer">

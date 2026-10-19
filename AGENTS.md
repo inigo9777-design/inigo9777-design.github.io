@@ -202,7 +202,9 @@ italiana" (see `modules/origen-recetas.js` below).
   del módulo puro (`menuSemanal.candidatosDespensa`: comparten algún token del matcher — "Jamón
   serrano" ↔ despensa "Jamón ibérico", "Pan de pueblo" ↔ "Pan") y abre el diálogo de confirmación:
   la persona elige la variante (o nada) y la compra va IN-SITU a ese alimento vía
-  `menuSemanal.markItemBoughtComo` (mismo id/nombre, sin alta nueva, el ítem sale de needyFoods)
+  `menuSemanal.markItemBoughtComo` (mismo id/nombre, sin alta nueva, el ítem sale de needyFoods;
+  el modal viene PRE-CARGADO con el mínimo y la importancia del alimento de despensa — afinación
+  2026-10-19: su criterio de alerta ya existía, sólo se pregunta cuánto se compró)
   — regla simple, decisión final siempre del usuario. "✅ comprado" PREGUNTA antes cuánto se ha
   comprado, su importancia y el MÍNIMO para la alerta de reponer (modal) — no cuela el alimento
   con qty 0/score 5/min 0:
