@@ -181,7 +181,11 @@
       const resultadoFusion = ctx.fusionar(base, ctx.snapshotLocal(), estadoSuyo);   // diff3 (F4) — inyectado
       if (Array.isArray(resultadoFusion.conflictos) && resultadoFusion.conflictos.length > 0) {
         // conflictos BLOQUEANTES: NADA se escribe (ni local ni buzón) hasta que el usuario resuelve (F5).
-        return { rama: "conflictos", mensaje: MENSAJES.conflictos, conflictos: resultadoFusion.conflictos,
+        // `estadoProvisional` + `avisos` viajan juntos: el resolver (diff-merge.aplicarResoluciones)
+        // necesita el provisional de merge3 para reconstruir el estado final con las elecciones.
+        return { rama: "conflictos", mensaje: MENSAJES.conflictos,
+                 conflictos: resultadoFusion.conflictos, avisos: resultadoFusion.avisos || [],
+                 estadoProvisional: resultadoFusion.estado,
                  recibida: { nonce: envolvente.nonce, parentId: envolvente.parentId, deviceId: envolvente.deviceId,
                              estadoSuyo, base } };
       }
