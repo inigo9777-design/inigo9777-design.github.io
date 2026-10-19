@@ -55,10 +55,13 @@ describe("🛒 Despensa? — candidatos de variantes en la fila de la compra (in
     app.document.querySelector("#modal-content [data-despensa-elegir]").click();
     const modal = app.document.getElementById("modal-content");
     expect(modal.querySelector("h2").textContent).toContain("¿Comprado?");
-    expect(modal.textContent).toContain("Jamón ibérico");   // el texto del destino explicará la despensa
+    expect(modal.textContent).toContain("Jamón ibérico");   // el texto del destino explicará despensa
+    // afinación 2026-10-19: el modal viene pre-cargado con el MÍNIMO y la IMPORTANCIA del
+    // alimento de despensa (su criterio de alerta ya existe — no re-preguntar de cero)
+    expect(app.document.getElementById("compra-min").value).toBe("1");
+    expect(app.document.getElementById("compra-score").value).toBe("5");
     app.document.getElementById("compra-qty").value = "2";
     app.document.getElementById("compra-score").value = "7";
-    // compra-min vacío → se conserva el mínimo propio del alimento objetivo
     app.document.getElementById("compra-min").value = "";
     app.document.querySelector("[data-buy-confirm]").click();
 
@@ -68,7 +71,7 @@ describe("🛒 Despensa? — candidatos de variantes en la fila de la compra (in
     expect(jamon.id).toBe("ib1");                           // mismo alimento, no un gemelo nuevo
     expect(jamon.qty).toBe(2);
     expect(jamon.score).toBe(7);
-    expect(jamon.min).toBe(1);                              // conserva el suyo (no se pidió)
+    expect(jamon.min).toBe(1);                              // conservó su mínimo de despensa
     const weekmenu = JSON.parse(app.localStorage.getItem("mrcheff.weekmenu"));
     expect(weekmenu.needyFoods).toHaveLength(0);            // el ítem sale de la compra
     expect(app.document.getElementById("shopping-list").classList.contains("hidden")).toBe(true);
@@ -105,3 +108,25 @@ describe("🛒 Despensa? — candidatos de variantes en la fila de la compra (in
     expect(JSON.parse(app.localStorage.getItem("mrcheff.weekmenu")).needyFoods).toHaveLength(0);
   });
 });
+
+  it("el pre-cargado trae el criterio REAL de despensa (mín 4 / importancia 8) y se conserva al confirmar", () => {
+    const app = mkHandle(
+      [{ id: "ch1", name: "Chorizo riojano", qty: 0, min: 4, score: 8, checked: false }],
+      [{ name: "Chorizo de la sierra" }]
+    );
+    const fila = app.document.querySelector("#shopping-list li.alert-row");
+    expect(fila).toBeTruthy();                              // comparten el token "chorizo"
+    fila.querySelector("[data-despensa]").click();
+    app.document.querySelector("#modal-content [data-despensa-elegir]").click();
+    // ambos campos llegan PRE-CARGADOS con los datos del Chorizo riojano de la despensa
+    expect(app.document.getElementById("compra-min").value).toBe("4");
+    expect(app.document.getElementById("compra-score").value).toBe("8");
+    app.document.getElementById("compra-qty").value = "1";  // lo único que cambia: cuánto se compró
+    app.document.querySelector("[data-buy-confirm]").click();
+    const foods = JSON.parse(app.localStorage.getItem("mrcheff.foods"));
+    const chorizo = foods.find(f => f.name === "Chorizo riojano");
+    expect(chorizo.qty).toBe(1);
+    expect(chorizo.min).toBe(4);
+    expect(chorizo.score).toBe(8);
+    expect(JSON.parse(app.localStorage.getItem("mrcheff.weekmenu")).needyFoods).toHaveLength(0);
+  });
