@@ -52,6 +52,18 @@ function bootApp(opts = {}) {
   // al inicializarse, así que el estado precargado debe estar ya en localStorage (ver seedState más abajo).
   if (opts.seed) seedState(opts.seed, window);
 
+  // WebCrypto de TEST: en jsdom el global window.crypto NO trae .subtle, así que app.js sincroniza
+  // leyendo window.__mrcheffCryptoImpl cuando .subtle falta (en el navegador real el global trae
+  // subtle — https/localhost — y esta inyección no existe). Inyectable §6 CODING_STANDARDS.
+  if (opts.cryptoImpl) window.__mrcheffCryptoImpl = opts.cryptoImpl;
+
+  // jsdom NO implementa TextEncoder/TextDecoder (todos los navegadores reales los traen): la
+  // cripto del sync (UTF-8 de passphrase/JSON, §2 del plan) los necesita. Se reaprovechan los
+  // globals de Node — misma pedida por nodes 18+ — en lugar de fabricar un polyfill a mano.
+  const { TextEncoder: TE, TextDecoder: TD } = require("util");
+  if (typeof window.TextEncoder !== "function") window.TextEncoder = TE;
+  if (typeof window.TextDecoder !== "function") window.TextDecoder = TD;
+
   const srcScripts = [...html.matchAll(/<script\s+src="([^"]+)"><\/script>/g)].map(m => m[1]);
   if (srcScripts.length === 0) throw new Error("[boot.js] index.html no declara ningún <script src> — parseo roto");
   for (const src of srcScripts) runScriptInWindow(window, read(src));   // read lanza si el path no existe → falla ruidoso en CI

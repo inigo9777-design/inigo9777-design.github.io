@@ -349,11 +349,19 @@
   function aplicarResoluciones(estado, estadoSuyo, elecciones, deps = {}) {
     const resultado = Object.assign({}, estado, { recipes: (estado.recipes || []).slice() });
     (elecciones || []).forEach(({ recetaId, decision }) => {
-      const remota = ((estadoSuyo && estadoSuyo.recipes) || []).find(r => r && (r.id === recetaId || identidadDe(r) === "id:" + recetaId));
-      const idx = resultado.recipes.findIndex(r => r && r.id === recetaId);
+      const recetasSuyo = (estadoSuyo && estadoSuyo.recipes) || [];
+      // El gemelo LEGACY (FASE 1) puede tener UN id DISTINTO en el otro dispositivo: si ningún id
+      // casa, la remota se busca por fingerprint de ingredientes del provisional (misma identidad).
+      const idx = resultado.recipes.findIndex(r => r && (r.id === recetaId || identidadDe(r) === "id:" + recetaId));
+      const provisional = idx >= 0 ? resultado.recipes[idx] : null;
+      let remota = recetasSuyo.find(r => r && (r.id === recetaId || identidadDe(r) === "id:" + recetaId));
+      if (!remota && provisional) {
+        const fp = claveIngredientes(provisional.ingredients);
+        if (fp) remota = recetasSuyo.find(r => r && claveIngredientes(r.ingredients) === fp);
+      }
       if (decision === "remota" && remota && idx >= 0) {
         resultado.recipes[idx] = Object.assign({}, remota);            // el otro dispositivo gana ÍNTEGRO
-      } else if (decision === "ambas" && remota) {
+      } else if (decision === "ambas" && remota && idx >= 0) {
         // conservar ambas: la copia remota entra con id NUEVO + marca "duplicada" (limpieza manual, §5)
         const copia = Object.assign({}, remota, { id: deps.uid ? deps.uid() : String(remota.id) + "-copia", duplicada: true });
         resultado.recipes.push(copia);
