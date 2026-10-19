@@ -73,8 +73,11 @@ italiana" (see `modules/origen-recetas.js` below).
   scroller-x interno con scrollbar invisible y el pill activo se RECENTRA al cambiar de vista
   (bug: en Temporada el header mostraba aún "Alimentos y Recetas" — `scrollIzquierdaParaTab`
   decide en el módulo puro, `centrarTabActivo` en app.js mide y scrollea; con
-  `prefers-reduced-motion` sin suavizado). (2) El documento NO tiene overflow-x (`html,body
-  overflow-x:hidden`) ni rebote (`html overscroll-behavior-y:contain`) ni fondo duro (`html
+  `prefers-reduced-motion` sin suavizado). (2) El documento NO tiene overflow-x
+  (`html overflow-x:hidden` — SOLO en html: en body convertiría al body en scroll
+  container y mataría el `position: sticky` del header topbar
+  [fix 2026-10-19: se iba con la página en desktop y móvil]; el viewport hereda el
+  overflow-x del html y el drag lateral sigue muerto) ni rebote (`html overscroll-behavior-y:contain`) ni fondo duro (`html
   background: var(--bg)`). (3) Modal: `.modal-box` con `overscroll-behavior:contain` + clase
   `modal-abierto` en `<html>` Y `<body>` (en Android scrollea `<html>`; si un día la quitáis,
   idem) congelando el scroll del documento. (4) `theme-color` meta sigue al tema activo (dark
