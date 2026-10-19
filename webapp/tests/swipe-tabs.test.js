@@ -94,3 +94,45 @@ describe("swipeTabs.scrollIzquierdaParaTab", () => {
     expect(swipeTabs.scrollIzquierdaParaTab(null)).toBe(0);
   });
 });
+
+// Memoria de scroll por vista (petición 2026-10-20): el swipe del viewpager RESTAURA la
+// posición individual que dejó cada tab (listas largas de móvil) y el CLICK en la categoría
+// del topbar siempre es "arriba". El wiring (app.js·activarVista) captura y aplica; aquí el
+// contrato de la memoria pura: guardar sólo lo razonable y devolver SIN POSICIÓN → arriba (0).
+describe("swipeTabs — memoria de scroll por vista", () => {
+  it("recordarScroll guarda la posición entera de cada vista en su clave", () => {
+    const mem = swipeTabs.crearMemoriaScroll();
+    swipeTabs.recordarScroll(mem, "recipes", 852.7);
+    swipeTabs.recordarScroll(mem, "foods", 120);
+    expect(swipeTabs.scrollParaVista(mem, "recipes")).toBe(852);
+    expect(swipeTabs.scrollParaVista(mem, "foods")).toBe(120);
+  });
+
+  it("vistas sin posición guardada → 0: nunca te deja colgada en el fondo ajeno", () => {
+    const mem = swipeTabs.crearMemoriaScroll();
+    expect(swipeTabs.scrollParaVista(mem, "seasonal")).toBe(0);
+    expect(swipeTabs.scrollParaVista(mem, "savanna")).toBe(0);
+  });
+
+  it("valores inservibles (negativo, NaN, texto, Infinity) NO se guardan", () => {
+    const mem = swipeTabs.crearMemoriaScroll();
+    swipeTabs.recordarScroll(mem, "recipes", -5);
+    swipeTabs.recordarScroll(mem, "recipes", NaN);
+    swipeTabs.recordarScroll(mem, "recipes", "medio");
+    swipeTabs.recordarScroll(mem, "recipes", Infinity);
+    expect(swipeTabs.scrollParaVista(mem, "recipes")).toBe(0);
+  });
+
+  it("una llamada sobre arguments inválidos no revienta (memoria/vista undefined)", () => {
+    expect(() => swipeTabs.recordarScroll(null, "recipes", 10)).not.toThrow();
+    expect(() => swipeTabs.recordarScroll(undefined, undefined, 10)).not.toThrow();
+    expect(swipeTabs.scrollParaVista(null, "recipes")).toBe(0);
+  });
+
+  it("reescribir la clave de una vista sustituye el valor viejo (último gana)", () => {
+    const mem = swipeTabs.crearMemoriaScroll();
+    swipeTabs.recordarScroll(mem, "foods", 500);
+    swipeTabs.recordarScroll(mem, "foods", 30);          // la persona volvió arriba antes de salir
+    expect(swipeTabs.scrollParaVista(mem, "foods")).toBe(30);
+  });
+});

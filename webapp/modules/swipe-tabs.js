@@ -8,7 +8,7 @@
 // arrastrar el dedo. El usuario pidió "comportamiento viewpager": deslizar de lado cambia de
 // pestaña en vez de mover toda la pantalla (y el scroll-x accidental se bloquea por CSS).
 //
-// API PÚBLICA CERRADA (2 funciones, sin fugas de helpers internos):
+// API PÚBLICA CERRADA (7 funciones, sin fugas de helpers internos):
 //   dirDeGesto(dx, dy) → 1 (avanzar a la vista siguiente: deslizar a la IZQUIERDA),
 //                        -1 (retroceder a la anterior: deslizar a la DERECHA), 0 (no es swipe).
 //                        Es un swipe si |dx| >= UMBRAL_DX y |dy| < UMBRAL_DY (y |dx| manda
@@ -24,6 +24,14 @@
 //                        seguía mostrando las primeras dos pills (tab activo con 0px en
 //                        pantalla — captura reports/ui-brave/28). Ampliación de contrato
 //                        API CERRADA con asiento en CODING_STANDARDS.md §8.
+//   crearMemoriaScroll() / recordarScroll(memoria, vista, y) /
+//   scrollParaVista(memoria, vista) — memoria de posición vertical POR VISTA para el
+//                        viewpager (petición 2026-10-20): el swipe RESTAURA la posición
+//                        que dejó la vista (listas largas, móvil) y el click en la
+//                        categoría del topbar siempre vale "arriba + animación". Sin DOM:
+//                        el wiring captura el scroll saliente y sujeta al alto scrolleable
+//                        real; aquí solo objeto memoria, guardado filtrando no-números y
+//                        negativos, y el default 0 (arriba). Ampliación de contrato §8.
 
 (function (root, factory) {
   const api = factory();
@@ -75,5 +83,31 @@
     return Math.min(Math.max(0, objetivo), max);
   }
 
-  return { dirDeGesto, vecina, scrollIzquierdaParaTab, UMBRAL_DX, UMBRAL_DY };
+  // Memoria de scroll POR VISTA (petición 2026-10-20): en móvil sostenida la persona
+  // recorre listas largas y quiere recuperar la posición al llegar por SWIPE (viewpager),
+  // no empezar de cero; el CLICK en la categoría del topbar es el gesto de "navegar de
+  // verdad" y siempre sube a la parte superior (con animación, no salto). El wiring
+  // (app.js·activarVista) captura el scroll de la vista saliente y aplica el destino;
+  // aquí solo vive la memoria y el valor por defecto, sin DOM.
+  function crearMemoriaScroll() {
+    return Object.create(null);
+  }
+
+  function recordarScroll(memoria, vista, y) {
+    if (!memoria || typeof memoria !== "object" || !vista) return;
+    const n = Number(y);
+    if (Number.isFinite(n) && n >= 0) memoria[vista] = Math.floor(n);
+  }
+
+  // Posición restaurada: la guardada o SIEMPRE arriba si la vista aún no tiene posición.
+  // El clamp a lo scrolleable real (alto del día) lo aplica el wiring, que es quien ve el DOM.
+  function scrollParaVista(memoria, vista) {
+    const n = memoria && typeof memoria === "object" ? Number(memoria[vista]) : NaN;
+    return Number.isFinite(n) && n >= 0 ? n : 0;
+  }
+
+  return {
+    dirDeGesto, vecina, scrollIzquierdaParaTab, UMBRAL_DX, UMBRAL_DY,
+    crearMemoriaScroll, recordarScroll, scrollParaVista,
+  };
 });

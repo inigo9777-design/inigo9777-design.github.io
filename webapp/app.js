@@ -125,8 +125,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     barra.scrollTo({ left: izquierda, behavior: reduce ? "auto" : "smooth" });
   }
-  function activarVista(view) {
+  // Memoria de posición vertical POR VISTA del viewpager (petición 2026-10-20): cada tab
+  // recuerda dónde se quedó y el swipe RECUPERA esa posición sin animación; el click
+  // directo en la categoría del topbar es el gesto "empezar de cero" y sube a la parte
+  // superior CON animación — y al salir de esa vista la captura de 0 la resetea por sí
+  // sola (nada de memoria fantasma del click). La memoria (objeto puro) y el default
+  // viven en modules/swipe-tabs.js; aquí sólo el metro del DOM y el punto de captura.
+  const scrollVistas = window.MRCheff && window.MRCheff.swipeTabs.crearMemoriaScroll
+    ? window.MRCheff.swipeTabs : null;
+  const memoriaScroll = scrollVistas ? scrollVistas.crearMemoriaScroll() : {};
+
+  function activarVista(view, origen) {
     soltarCandadoAlerta();                             // el candado vive sólo dentro de la vista de Alimentos
+    // Captura de la vista SALIENTE antes de tocar las clases: el gesto que cambia de vista
+    // (swipe en touchend / tab click) marca "cómo estaba" el scroll del documento — cuando
+    // activa otra vista cambia el alto del documento (el alto oculto desaparece del canvas).
+    const vistaSaliente = tabs.find(t => t.classList.contains("active"));
+    const idSaliente = vistaSaliente && vistaSaliente.dataset.view;
+    if (scrollVistas && idSaliente && idSaliente !== view) {
+      scrollVistas.recordarScroll(memoriaScroll, idSaliente, window.scrollY);
+    }
     tabs.forEach(t => {
       const es = t.dataset.view === view;
       t.classList.toggle("active", es);
@@ -140,6 +158,21 @@ document.addEventListener("DOMContentLoaded", () => {
     // invariante final que lo limpia, dentro de renderRecipes().
     if (view === "recipes" && recetasDirty) {
       renderRecipes();
+    }
+    // Posición vertical según ORIGEN del cambio: swipe restaura la posición de la vista
+    // (instantáneo: el viewpager no "llega rodando"); click del nav (y cualquier atajo)
+    // sube arriba de forma animada. Reduce-motion: sin animación.
+    const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (origen === "swipe" && scrollVistas) {
+      const altoScrolleable = document.documentElement.scrollHeight - window.innerHeight;
+      const yGuardada = scrollVistas.scrollParaVista(memoriaScroll, view);
+      window.scrollTo(0, Math.max(0, Math.min(yGuardada, Math.max(0, altoScrolleable))));   // RESTAURA: instantáneo
+    } else {
+      try {
+        window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });                // CLICK: arriba animado
+      } catch (e) {
+        window.scrollTo(0, 0);                           // WebView viejo sin options object
+      }
     }
     centrarTabActivo();
   }
@@ -199,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const actual = tabs.find(t => t.classList.contains("active"));
       const destino = swipeApi.vecina(ORDEN_VISTAS, actual && actual.dataset.view, dir);
       if (destino) {
-        activarVista(destino);
+        activarVista(destino, "swipe");          // la captura de la vista saliente vive DENTRO de activarVista
         // El gesto no mueve el foco: anuncio silencioso del cambio para lectores de pantalla.
         const aviso = document.getElementById("aviso-vista");
         if (aviso) {

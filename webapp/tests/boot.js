@@ -48,6 +48,20 @@ function bootApp(opts = {}) {
   // TODO debe estar registrado ANTES de disparar el evento.
   const { window } = dom;
 
+  // window.scrollTo de TEST: jsdom NO lo implementa (dispara "Not implemented" a la consola
+  // virtual y los specs que cuentan jsdomErrors limpios explotan). Sustituto MÍNIMO: aplica
+  // el resultado final en scrollX/scrollY (como el engine, sin animación) y SOPORTE el objeto
+  // options {top, behavior} que activarVista usa para la subida animada del click (§6).
+  window.scrollTo = (xOrOpts, y) => {
+    if (xOrOpts && typeof xOrOpts === "object") {
+      window.scrollX = Number(xOrOpts.left) || 0;
+      window.scrollY = Number(xOrOpts.top ?? xOrOpts.scrollY) || 0;
+      return;
+    }
+    window.scrollX = Number(xOrOpts) || 0;
+    window.scrollY = Number(y) || 0;
+  };
+
   // Semear localStorage ANTES de disparar DOMContentLoaded: los closures de app.js leen foods/recipes/innov/cooked
   // al inicializarse, así que el estado precargado debe estar ya en localStorage (ver seedState más abajo).
   if (opts.seed) seedState(opts.seed, window);

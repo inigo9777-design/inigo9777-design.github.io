@@ -73,7 +73,23 @@ italiana" (see `modules/origen-recetas.js` below).
   scroller-x interno con scrollbar invisible y el pill activo se RECENTRA al cambiar de vista
   (bug: en Temporada el header mostraba aún "Alimentos y Recetas" — `scrollIzquierdaParaTab`
   decide en el módulo puro, `centrarTabActivo` en app.js mide y scrollea; con
-  `prefers-reduced-motion` sin suavizado). (2) El documento NO tiene overflow-x
+  `prefers-reduced-motion` sin suavizado). **Memoria de scroll por vista** (petición 2026-10-20):
+  cada tab recuerda dónde se quedó — el swipe RESTAURA esa posición sin animación (sujeta al alto
+  scrolleable real) y el click directo en la categoría del topbar sube SIEMPRE arriba CON
+  animación (`window.scrollTo({top:0, behavior:"smooth"})`, reduce-motion → "auto", try/catch
+  para WebViews sin options object). API añadida a `modules/swipe-tabs.js` (6→7 públicas,
+  objeto memoria puro sin DOM): `crearMemoriaScroll/recordarScroll/scrollParaVista` (default 0
+  = arriba; filtra NaN/negativos/Infinity). En app.js la captura de la vista saliente vive
+  DENTRO de `activarVista(view, origen)` ANTES de tocar las clases (el alto del documento
+  cambia al ocultarse) y el call-site del swipe pasa `activarVista(destino, "swipe")`; el
+  click que sube arriba resetea por sí solo la memoria de esa vista (al salir se captura su 0).
+  Verificación: unit en `tests/swipe-tabs.test.js`, integración jsdom en
+  `tests/viewpager-scroll.integration.test.js` (stubs de scrollY/innerHeight/scrollHeight +
+  espía de scrollTo; boot.js trae sustituto de `window.scrollTo` — jsdom NO lo implementa) y
+  e2e Brave real en `e2e/scroll-vistas.mjs` (clicks con `page.mouse`+coords: el
+  `page.click(selector)` de Playwright mueve el scroll del documento con su
+  scrollIntoViewIfNeeded previo; truco del `::after` de 3000px para alto constante en todas las
+  vistas). (2) El documento NO tiene overflow-x
   (`html overflow-x:hidden` — SOLO en html: en body convertiría al body en scroll
   container y mataría el `position: sticky` del header topbar
   [fix 2026-10-19: se iba con la página en desktop y móvil]; el viewport hereda el
