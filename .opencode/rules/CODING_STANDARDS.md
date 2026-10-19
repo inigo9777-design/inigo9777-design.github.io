@@ -411,3 +411,12 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   Suite al cierre: **382 tests / 27 suites verdes** (global 93.24/81.90); cobertura de los módulos
   nuevos ≥ 91/80. Verificación de 2 dispositivos + gist real queda manual (`e2e/sync-buzon.mjs`,
   checklists §8 del plan) — no ejecutable en CI.
+  9. **"🛒 Despensa?"** (2026-10-19): el matcher anti-falsos-positivos (2026-10-18) dejó FUERA los
+     matches por subconjunto que unían variantes del mismo alimento ("Jamón serrano" ↔ "Jamón
+     ibérico") — correcto para el aforo, pero la lista de la compra necesitaba reconocerlas. En vez
+     de heurísticas de "calidad/tipo" (meten más casos raros de los que resuelven), regla simple de
+     candidatos (`menuSemanal.candidatosDespensa`: token común del matcher, sin match total) y la
+     decisión SIEMPRE en el usuario vía modal de confirmación; `markItemBoughtComo` amplía el
+     contrato de menu-semanal a 9 funciones públicas (compra IN-SITU al alimento elegido, sin alta
+     nueva). Tests: unitarios en menu-semanal.test.js + integración en
+     despensa-candidatos.integration.test.js.
