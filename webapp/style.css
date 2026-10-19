@@ -1,3 +1,4 @@
+@charset "UTF-8";
 /* ==========================================================================
    webapp/style.css — Sistema de diseño "La cocina tranquila"
    --------------------------------------------------------------------------
@@ -708,6 +709,15 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   gap: 10px;
   justify-content: flex-end;
 }
+/* Móvil: el grupo vuelva a comportarse como antes del agrupado — "🛒 Despensa?" alineado a la
+   izquierda pegado al texto de la fila y "✅ comprado" empujado al borde derecho (la regla del
+   [data-buy] que siempre hubo). Para que el empujón llegue al borde el span GRUPO debe estirar
+   (flex-grow) tal como hacía el propio <li> cuando los botones eran items directos suyos.
+   Desktop conserva el grupo igualado (shrink-to-fit) a la derecha. */
+@media (max-width: 820px) {
+  #shopping-list li .alert-acciones { margin-left: 0; justify-content: flex-start; flex: 1 1 auto; }
+  #shopping-list li [data-buy] { margin-left: auto; }
+}
 
 /* "¿Despensa?" (2026-10-19): diálogo de confirmación de variantes — opciones apiladas en
    columna para que el toque sea cómodo en móvil. */
@@ -959,9 +969,15 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 
 /* ========== 14. MODAL, TOAST Y NOTAS ========== */
+/* Offsets EXPLÍCITOS (nada de shorthand `inset`): en WebViews de móvil algo viejos el
+   shorthand no existe, el overlay fixed queda sin anclar y el diálogo sale pegado a la
+   izquierda a mitad de pantalla (bug 2026-10-19 en el PWA del móvil). */
 .modal {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 100;
   display: flex;
   align-items: center;
@@ -969,7 +985,7 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   padding: 20px;
 }
 .modal.hidden { display: none; }
-.modal-backdrop { position: absolute; inset: 0; background: var(--overlay); }
+.modal-backdrop { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: var(--overlay); }
 .modal-box {
   position: relative;
   background: var(--card);
@@ -1088,7 +1104,10 @@ html.scroll-candado { overflow: hidden; }
   overflow-wrap: anywhere;
 }
 .modal-content ul li::before {
-  content: "•";
+  /* Escapa la viñeta (\2022 = U+2022) en ASCII: el carácter literal llega a corromperse
+     (mojibake "â€¢") en móviles que decodifican el CSS con otro charset. Junto al
+     @charset de la línea 1 queda blindado en cualquier engine. */
+  content: "\2022";
   position: absolute;
   left: 16px;                             /* colgada DENTRO del hueco, derecha del borde del título */
   top: 6px;

@@ -83,12 +83,18 @@ italiana" (see `modules/origen-recetas.js` below).
   secciones con filete, sangría de listas, pie de botones igualados, filete con fade
   `.receta-linea` — deja de aplicarse: bug de 2026-10-19, la ficha se veía cruda por ese
   descuido). Pie de la ficha: botones repartidos igual (flex 1·1·0; 2×2 en ≤420px) y el
-  consejero del botón (`data-tip` + píldora `.tip-chef`, delegado en `#modal-content`):
+  consejero del botón (`data-tip` + píldora `.tip-chef`, delegado en `#modal-content`) SOLO en
+  "🍳 Cocinar hoy" (petición 2026-10-19/20: Cerrar/Editar/Copiar van sin consejo):
   desktop hover/foco, móvil long-press de 450 ms que al soltar NO acciona el botón (su click
   queda suprimido, y el contacto NUEVO desarma la bandera). Con `.modal-box` con
   `overscroll-behavior:contain` + clase
   `modal-abierto` en `<html>` Y `<body>` (en Android scrollea `<html>`; si un día la quitáis,
-  idem) congelando el scroll del documento. (4) `theme-color` meta sigue al tema activo (dark
+  idem) congelando el scroll del documento. Blindaje de compatibilidad móvil (2026-10-20):
+  `.modal` y `.modal-backdrop` llevan offsets EXPLÍCITOS `top/right/bottom/left` (el shorthand
+  `inset` no existe en WebViews viejos y los diálogos salían pegados a la izquierda del móvil);
+  `style.css` empieza por `@charset "UTF-8";` y la viñeta de ingredientes se escribe como escape
+  ASCII `content: "\2022"` (evita el mojibake "â€¢" del carácter literal decodificado con otro
+  charset). (4) `theme-color` meta sigue al tema activo (dark
   `#1b1913` / light `#ffffff`) desde el script de `<head>` y `applyTheme` — nunca hex sueltos
   de más en el markup. (5) **Zoom bloqueado** en el PWA (petición de producto 2026-10-19):
   viewport `maximum-scale=1.0, user-scalable=no` + preventDefault de
@@ -215,7 +221,9 @@ italiana" (see `modules/origen-recetas.js` below).
   2026-10-19: su criterio de alerta ya existía, sólo se pregunta cuánto se compró)
   — regla simple, decisión final siempre del usuario. Los DOS botones de cada fila van
   agrupados en `.alert-acciones` pegados al borde derecho con huelgo igual (antes en desktop
-  se descuadraban porque cada botón tiraba el suyo por su cuenta). "✅ comprado" PREGUNTA antes cuánto se ha
+  se descuadraban porque cada botón tiraba el suyo por su cuenta). En MÓVIL (≤820px) el grupo
+  vuelve a la alineación de siempre: "🛒 Despensa?" a la izquierda junto al texto de la fila y
+  "✅ comprado" empujado al borde derecho (petición 2026-10-20). "✅ comprado" PREGUNTA antes cuánto se ha
   comprado, su importancia y el MÍNIMO para la alerta de reponer (modal) — no cuela el alimento
   con qty 0/score 5/min 0:
   `markItemBought(..., compra)` añade con esos datos; si el alimento ya estaba en la despensa
