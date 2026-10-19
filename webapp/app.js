@@ -648,6 +648,93 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalContent = $("#modal-content");
   const modalBox = $(".modal-box", modal);
 
+  // ---------- Consejero del botón (explicación breve desktop + táctil) ----------
+  // Desktop: se ve con ENVESAR el botón (o al llegarle el foco) y se VA al salir; móvil:
+  // LONG-PRESS de 450 ms — se lee el consejo mientras se mantiene el dedo, al SOLTAR se
+  // va y ese toque largo NO acaba accionando el botón (se consultó, no se usó). Todo
+  // delegado en #modal-content: cada botón nuevo con data-tip lo hereda sin wiring.
+  let tipChefEl = null;
+  function tipChef() {
+    if (!tipChefEl) {
+      tipChefEl = document.createElement("div");
+      tipChefEl.id = "tip-chef";
+      tipChefEl.className = "tip-chef";
+      tipChefEl.setAttribute("role", "tooltip");
+      document.body.appendChild(tipChefEl);
+    }
+    return tipChefEl;
+  }
+  function mostrarTip(btn) {
+    if (!btn || !btn.dataset || !btn.dataset.tip) return;
+    const tip = tipChef();
+    tip.textContent = btn.dataset.tip;                       // textos propios, nunca dato del usuario
+    const r = btn.getBoundingClientRect();
+    const cabeArriba = r.top > 48;                           // píldora ~36px + huelgo
+    tip.style.left = "0px";                                  // fuera de pantalla para medir sin parpadeo
+    tip.style.top = "0px";
+    tip.style.visibility = "hidden";
+    tip.classList.add("show");
+    const tr = tip.getBoundingClientRect();
+    let x = r.left + r.width / 2 - tr.width / 2;
+    x = Math.min(Math.max(8, x), Math.max(8, window.innerWidth - tr.width - 8));
+    tip.style.left = Math.round(x) + "px";
+    tip.style.top = Math.round(cabeArriba ? r.top - tr.height - 8 : r.bottom + 8) + "px";
+    tip.style.visibility = "";
+  }
+  function ocultarTip() {
+    if (tipChefEl) tipChefEl.classList.remove("show");
+  }
+
+  let suprimirTrasToqueLargo = false;
+  (function consejosDeBotones(raiz) {
+    if (!raiz || typeof raiz.addEventListener !== "function") return;
+    raiz.addEventListener("mouseover", (e) => {              // desktop: envesar
+      const b = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (b) mostrarTip(b);
+    });
+    raiz.addEventListener("mouseout", (e) => {               // desktop: quitar el ratón
+      const b = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (b) ocultarTip();
+    });
+    raiz.addEventListener("focusin", (e) => {                // teclado: el consejo llega con el foco
+      const b = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (b) mostrarTip(b);
+    });
+    raiz.addEventListener("focusout", ocultarTip);
+    let toque = null;                                        // táctil: long-press
+    raiz.addEventListener("touchstart", (e) => {
+      const b = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (!b) return;
+      suprimirTrasToqueLargo = false;                        // contacto NUEVO: se confía en él de nuevo
+      toque = { btn: b, largo: false };
+      toque.timer = setTimeout(() => {
+        toque.largo = true;
+        mostrarTip(b);
+        if (navigator.vibrate) navigator.vibrate(10);
+      }, 450);
+    }, { passive: true });
+    const finToque = () => {
+      if (!toque) return;
+      clearTimeout(toque.timer);
+      if (toque.largo) {
+        ocultarTip();
+        suprimirTrasToqueLargo = true;                       // el click que sigue a leer NO acciona
+      }
+      toque = null;
+    };
+    raiz.addEventListener("touchend", finToque);
+    raiz.addEventListener("touchcancel", finToque);
+    // captura: se interviene ANTES de que cualquier listener del botón vea el click
+    raiz.addEventListener("click", (e) => {
+      if (!suprimirTrasToqueLargo) return;
+      suprimirTrasToqueLargo = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+    // el consejo es fijo: si algo scrollea, el botón se mueve — mejor retirarlo
+    document.addEventListener("scroll", ocultarTip, true);
+  })(modalContent);
+
   // Accesibilidad del modal: al abrir se recuerda el control que lo llamó (para devolverle el
   // foco al cerrar) y se anuncia un nombre por aria-label; al cerrar el foco vuelve a su sitio.
   // Sólo glue de vista: la decisión de qué se muestra sigue viniendo de cada aceptor.
@@ -693,6 +780,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const enMisRecetas = recipeEditor.estaGuardada(recipes, r);
     modalContent.innerHTML = `
       <h2>${escapeHTML(r.title)}</h2>
+      <div class="receta-linea" aria-hidden="true"></div>
       <div class="recipe-meta">
         <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
         ${badgeOrigenHTML(r)}
@@ -712,10 +800,10 @@ document.addEventListener("DOMContentLoaded", () => {
       <h4>👨‍🍳 Método</h4>
       <ol>${r.method.map(m => `<li>${escapeHTML(limpiarPaso(m))}</li>`).join("")}</ol>
       <div class="modal-footer">
-        <button class="btn ghost" data-close>Cerrar</button>
-        <button class="btn ghost" data-edit title="Ajusta el título, los ingredientes o los pasos a tu gusto">${enMisRecetas ? "✏️ Editar" : "✏️ Editar y guardar"}</button>
-        <button class="btn ghost" data-cook title="Anota que la has cocinado hoy: entra en cooldown de 7 días y no se volverá a sugerir">🍳 Cocinar hoy</button>
-        <button class="btn primary" data-copy>📋 Copiar</button>
+        <button class="btn ghost" data-close data-tip="Cierra la ficha sin guardar nada">Cerrar</button>
+        <button class="btn ghost" data-edit data-tip="Ajusta el título, los ingredientes o los pasos a tu gusto">${enMisRecetas ? "✏️ Editar" : "✏️ Editar y guardar"}</button>
+        <button class="btn ghost" data-cook data-tip="Anota que la has cocinado hoy: 7 días sin volverse a sugerir">🍳 Cocinar hoy</button>
+        <button class="btn primary" data-copy data-tip="Copia la receta completa al portapapeles">📋 Copiar</button>
       </div>`;
     abrirModal("Detalle de receta: " + r.title);
     const btnCerrarModal = $(".modal-close", modal);
@@ -1261,10 +1349,12 @@ document.addEventListener("DOMContentLoaded", () => {
           <li class="alert-row urg-${urg}">
             <span class="alert-name"><strong>${escapeHTML(item.name)}</strong></span>
             <span class="alert-meta">qty <b>${item.qty}</b> · mínimo <b>${item.min}</b> · importante <b>${item.score}/10</b> ${escapeHTML(cuando)}</span>
-            ${(menuSemanal.candidatosDespensa(item.name, foods)).length
-              ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.name)}" title="¿Ya lo tienes en la despensa con otro nombre?>">🛒 Despensa?</button>`
-              : ""}
-            <button class="btn ghost small" data-buy="${escapeHTML(item.name)}" title="Marcar como comprada">✅ comprado</button>
+            <span class="alert-acciones">
+              ${(menuSemanal.candidatosDespensa(item.name, foods)).length
+                ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.name)}" title="¿Ya lo tienes en la despensa con otro nombre?">🛒 Despensa?</button>`
+                : ""}
+              <button class="btn ghost small" data-buy="${escapeHTML(item.name)}" title="Marcar como comprada">✅ comprado</button>
+            </span>
           </li>`;
         }).join("")}
       </ul>`;
