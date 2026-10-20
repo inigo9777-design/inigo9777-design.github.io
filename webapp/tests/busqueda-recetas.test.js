@@ -76,6 +76,40 @@ describe("(3) Búsqueda por INGREDIENTE (el token no está en el título)", () =
   });
 });
 
+describe("(5) MATCH por PREFIJO (petición 2026-10-20: menos letras, como el buscador de alimentos)", () => {
+  it("'gamb' encuentra las Gambas al ajillo SIN escribir la palabra completa", () => {
+    const res = buscar("gamb", catalogo);
+    expect(res.resultados.length).toBeGreaterThan(0);
+    expect(res.resultados.some(r => r.receta.title === "Gambas al ajillo")).toBe(true);
+    expect(res.resultados[0].hitsTitulo).toContain("gamb");     // hit de TÍTULO (prefijo del título manda)
+  });
+
+  it("'croqu' encuentra las croquetas por título (y por ingrediente si ahí está el token)", () => {
+    const res = buscar("croqu", catalogo);
+    expect(res.resultados.some(r => r.receta.title === "Croquetas de boletus")).toBe(true);
+  });
+
+  it("el EXACTO puntúa más que el PREFIJO dentro del mismo campo (2 pts vs 3 pts de título)", () => {
+    const prefijo = buscar("tortill", catalogo);     // "tortilla" exacto NO existe como token escrito así
+    expect(prefijo.resultados[0].score).toBe(2);    // título prefijo = PESO_TITULO−1
+    const exacto = buscar("tortilla", catalogo);
+    expect(exacto.resultados[0].score).toBe(3);     // título exacto = PESO_TITULO (la afinidad real manda)
+  });
+
+  it("los hits prefijo se agregan en LOS del campo donde casan (título vs ingrediente según dónde esté)", () => {
+    const res = buscar("gamb", catalogo);
+    res.resultados.forEach(r => {
+      const primero = r.hitsTitulo.length || r.hitsIngredientes.length;
+      expect(primero).toBeGreaterThan(0);           // todo resultado prefijo lleva su hit etiquetado
+    });
+  });
+
+  it("1-2 letras NO crean ruido prefijo (el matcher filtra tokens < 3 letras ya de por sí)", () => {
+    expect(buscar("ga", catalogo).resultados).toEqual([]);
+    expect(buscar("g", catalogo).resultados).toEqual([]);
+  });
+});
+
 describe("(4) Orden determinista y límite", () => {
   it("empate de score → conserva el ORDEN DEL CATÁLOGO (estable, reproducible §6)", () => {
     const res = buscar("patatas", catalogo);
