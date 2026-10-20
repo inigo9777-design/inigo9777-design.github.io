@@ -115,7 +115,27 @@
       cta: "Siguiente",
     },
   ];
-  const PASOS_MENU = [];
+  const PASOS_MENU = [
+    {
+      id: "menu-hoy",
+      vista: "suggest", selector: "#btn-suggest-generate", accionable: true,
+      titulo: "Lo que puedes cocinar HOY",
+      texto: "Recetas ordenadas por lo que aprovechas de tu despensa, con todo lo que falta arriba de todo. \"↻ Sugerir ahora\" trae un lote que no repite lo que ya cocinaste esta semana. Toca el botón para verlo.",
+    },
+    {
+      id: "menu-semana",
+      vista: "suggest", selector: "#btn-menu-generate", accionable: true,
+      titulo: "La semana entera, propuesta",
+      texto: "Genera un plan de 7 días con desayuno, comida y cena, respetando lo ya cocinado. La casilla \"incluir aunque no disponibles\" completa los huecos que te faltan ingredientes y anota los pendientes. Toca Generar menú y mira tu semana.",
+    },
+    {
+      id: "menu-aprobar",
+      vista: "suggest", selector: "#btn-menu-approve", accionable: false,
+      titulo: "Aprobar el plan y la compra",
+      texto: "Cuando la semana te guste, \"Aprobar plan\" la fija: desbloquea el 🍳 Cocinar de cada comida y crea abajo la lista de la compra, con semáforo por fecha (rojo hoy, verde si corre).",
+      cta: "Siguiente",
+    },
+  ];
   const PASOS_TEMPORADA = [];
 
   const PASOS = [].concat(

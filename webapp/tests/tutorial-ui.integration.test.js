@@ -227,3 +227,46 @@ describe("tutorial interactivo — pantalla INNOVACIÓN (generar ideas de verdad
     expect(app.document.getElementById("tutorial-titulo").textContent).toContain("Un lote");   // avanzó sin atascarse
   });
 });
+
+describe("tutorial interactivo — pantalla SUGERENCIAS Y MENÚ (plan real de la semana)", () => {
+  const dormir = (ms) => new Promise(r => setTimeout(r, ms));
+
+  it("sugerencias + menú con despensa sembrada: ambos clicks generan contenido real y avanzan", async () => {
+    const app = bootApp({
+      tutorialAuto: true,
+      seed: {
+        foods: [
+          { name: "Pan", qty: 5, min: 1, score: 5 },
+          { name: "Tomate", qty: 5, min: 1, score: 5 },
+          { name: "Ajo", qty: 5, min: 1, score: 5 },
+          { name: "Aceite de oliva", qty: 5, min: 1, score: 5 },
+          { name: "Sal", qty: 5, min: 1, score: 5 },
+        ],
+      },
+    });
+    await dormir(700);
+    const tut = app.window.MRCheff.tutorial;
+    const bienvenida = tut.PASOS[0];
+    const menu = tut.pasosDeVista("suggest");
+    const listo = tut.PASOS[tut.PASOS.length - 1];
+    tut.PASOS.splice(0, tut.PASOS.length, bienvenida, ...menu, listo);
+    const avanzar = app.document.getElementById("tutorial-avanzar");
+    avanzar.click();                                             // bienvenida → sugerencias#1 (SALTA a suggest)
+    await dormir(60);
+    expect(app.document.getElementById("view-suggest").classList.contains("active")).toBe(true);
+    app.document.getElementById("btn-suggest-generate").click(); // sugerencias REALES
+    await dormir(60);
+    expect(app.document.getElementById("suggest-list").children.length).toBeGreaterThan(0);
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 3 de 5");
+    app.document.getElementById("btn-menu-generate").click();    // el plan 7×3 real
+    await dormir(60);
+    expect(app.document.getElementById("menu-plan-list").classList.contains("hidden")).toBe(false);
+    expect(app.document.getElementById("menu-plan-list").children.length).toBeGreaterThan(0);
+    expect(app.document.getElementById("menu-status").classList.contains("hidden")).toBe(false);
+    expect(app.document.getElementById("tutorial-pista").classList.contains("hidden")).toBe(true);  // último informativo
+    avanzar.click();                                             // → listo
+    expect(avanzar.textContent).toBe("Terminar");
+    avanzar.click();                                             // cierre + visto
+    expect(JSON.parse(app.window.localStorage.getItem("mrcheff.tutorial")).visto).toBe(true);
+  });
+});
