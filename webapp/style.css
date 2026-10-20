@@ -676,8 +676,26 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   padding: 1px 8px; border-radius: 999px;
 }
 .ocr-linea { font-size: 0.78rem; color: var(--muted); overflow-wrap: anywhere; }
+/* Chips del asistente de confirmación (2 pasos): qué destino tiene cada fila en el reparto. */
+.ocr-chip {
+  font-size: 0.72rem; color: var(--muted);
+  background: var(--card-muted-bg);
+  align-self: flex-start;
+  padding: 1px 8px; border-radius: 999px;
+}
+.ocr-chip-duda  { color: var(--amber); background: var(--amber-soft); }
+.ocr-chip-nuevo { color: var(--brand); background: var(--brand-soft); }
 .ocr-item input[type="number"] { width: 84px; flex: 0 0 auto; }
 .ocr-item input[type="checkbox"] { width: 19px; height: 19px; cursor: pointer; flex: 0 0 auto; }
+
+/* Llegada del asistente del ticket: el destino (lista de la compra o despensa) destella una
+   vez — el ojo cae donde acabaron los alimentos SIN que haga falta un toast que lo cuente. */
+@keyframes destello-suave {
+  0%   { box-shadow: 0 0 0 0 var(--brand-soft); }
+  35%  { box-shadow: 0 0 0 10px var(--brand-soft); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.destello-suave { animation: destello-suave 2.1s ease-out 1; border-radius: var(--radius-m); }
 
 /* Móvil estrecho: nombre en línea propia y los tres números + check debajo, sin aplastar el nombre. */
 @media (max-width: 640px) {

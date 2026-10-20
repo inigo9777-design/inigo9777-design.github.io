@@ -310,6 +310,17 @@ italiana" (see `modules/origen-recetas.js` below).
   ESTADO DEL MODAL (`modal.classList "hidden"`, no `isConnected` — closeModal sólo oculta). En la confirmación
   editable la CANTIDAD sale de la línea del ticket (ver módulo); **el modal ya no pide
   min/importancia** (2026-10-20, decisión del usuario: el criterio de alerta no lo sabe el ticket).
+  **ASISTENTE 2 PASOS** (2026-10-21, petición del usuario): tras un escaneo exitoso la revisión va
+  POR PARTES — paso 1: los CONFIRMADOS que se suman a la despensa (nombres exactos con sus
+  cantidades; chips "se suma") → confirmar; paso 2: los de DUDA (dudosos "¿lo tienes?" y nuevos
+  "nuevo en casa", nombre/cantidad corregibles) → confirmar. Al del último paso NO sale toast
+  de éxito: la app SALTA a la vista de destino con desplazamiento suave + destello (box-shadow
+  animado, `.destello-suave`): a la LISTA DE LA COMPRA (`#shopping-list`, filas del ticket arriba
+  con su cantidad y criterios) si hubo pendientes, o a la DESPENSA (`#food-list`) si todo fue
+  suma. El reparto de pasos lo decide el módulo puro (`pasosDeConfirmacion` +
+  `guardarCandidatos` devuelve también `directos`); el reparto FINAL corre contra la selección revisada
+  (renombrar en el paso 2 puede cambiar el destino de una fila y manda el último). reduce-motion
+  desactiva la animación (auto en scrollTo).
   REGLA DE ORO al guardar: NADA del ticket entra en la despensa por su cuenta — los nombres
   EXACTOS ya vividos SUMAN la compra en-situ (sus criterios de alerta quedan como estaban; el
   escaneo no los pisa) y TODOS los demás van como PENDIENTES del ticket en `mrcheff.compraTicket`

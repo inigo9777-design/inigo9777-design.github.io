@@ -49,19 +49,30 @@ describe("Escáner del ticket → despensa y pendientes (integración)", () => {
     expect(typeof window.__mrcheffProcesarTextoOcr).toBe("function");
   });
 
-  it("ticket: exacto SUMA (criterios intactos), nuevo y dudoso van a pendientes (nada entra solo)", () => {
+  it("ticket: exacto SUMA (criterios intactos), nuevo y dudoso van a pendientes (nada entra solo)", async () => {
     const { document, window } = appConDespensa();
     window.__mrcheffProcesarTextoOcr(TICKET);
 
-    const filas = [...document.querySelectorAll(".modal-content .ocr-item")];
-    expect(filas).toHaveLength(3);                             // Leche, Yogur, Pan (el TOTAL no cuenta)
-
-    // la CANTIDAD del ticket va prefijada por línea: "3 Leche…" → 3, "2 x Yogur" → 2, "1 Pan…" → 1
-    expect(document.getElementById("ocr-qty-0").value).toBe("3");
-    expect(document.getElementById("ocr-qty-1").value).toBe("2");
+    // ASISTENTE 2 pasos (2026-10-20): paso 1 = lo ya exacto en la despensa (puro "Pan");
+    // paso 2 = las dudas (Yogur dudoso, Leche nuevo). La CANTIDAD del ticket va prefijada por
+    // línea en su fila del paso que toque: "3 Leche…" → 3, "2 x Yogur" → 2, "1 Pan…" → 1.
+    expect(document.querySelector(".modal-content h2").textContent).toContain("se añaden a la despensa");
+    expect(document.querySelectorAll(".modal-content .ocr-item")).toHaveLength(1);
     expect(document.getElementById("ocr-qty-2").value).toBe("1");
 
+    document.querySelector("[data-ocr-siguiente]").click();
+    expect(document.querySelector(".modal-content h2").textContent).toContain("tienen duda");
+    expect(document.querySelectorAll(".modal-content .ocr-item")).toHaveLength(2);
+    expect(document.getElementById("ocr-qty-1").value).toBe("2");
+    expect(document.getElementById("ocr-qty-0").value).toBe("3");
+
+    // al confirmar el asistente SALTA a la lista de la compra (sin toast de éxito)...
     document.querySelector("[data-ocr-guardar]").click();
+
+    // ...la vista destino es Sugerencias con el destello sobre la lista recién repartida
+    expect(document.querySelector("#view-suggest").classList.contains("active")).toBe(true);
+    await new Promise(r => setTimeout(r, 60));                 // el destello entra vía rAF (2 frames)
+    expect(document.getElementById("shopping-list").className).toContain("destello-suave");
 
     // despensa: SOLO "Pan" cambió (exacto → suma su compra); Leche y Yogur NO (sus veredicto falta)
     const foods = lsFoods(window);
@@ -81,6 +92,7 @@ describe("Escáner del ticket → despensa y pendientes (integración)", () => {
   it("el NUEVO queda como fila ATENUADA con aviso e importancia/mínimo EDITABLES; al definirlos pasa a normal", () => {
     const { document, window } = appConDespensa();
     window.__mrcheffProcesarTextoOcr(TICKET);
+    document.querySelector("[data-ocr-siguiente]").click();   // paso 1 (despensa) → paso 2 (dudas)
     document.querySelector("[data-ocr-guardar]").click();
 
     // sin definir: clase del fade + aviso + sus dos inputs + el botón; NO los botones de resolución aún
@@ -122,6 +134,7 @@ describe("Escáner del ticket → despensa y pendientes (integración)", () => {
   it("'✅ comprado' tras definir: alta en la despensa con los valores DEFINIDOS y la fila sale", () => {
     const { document, window } = appConDespensa();
     window.__mrcheffProcesarTextoOcr(TICKET);
+    document.querySelector("[data-ocr-siguiente]").click();   // paso 1 (despensa) → paso 2 (dudas)
     document.querySelector("[data-ocr-guardar]").click();
 
     const filaLeche = document.querySelector("li[data-fila-ticket='Leche']");
@@ -144,6 +157,7 @@ describe("Escáner del ticket → despensa y pendientes (integración)", () => {
   it("el DUDOSO usa el MISMO botón 'Despensa?' de la lista: variante, diálogo con qty del ticket, fila fuera", () => {
     const { document, window } = appConDespensa();
     window.__mrcheffProcesarTextoOcr(TICKET);
+    document.querySelector("[data-ocr-siguiente]").click();   // paso 1 (despensa) → paso 2 (dudas)
     document.querySelector("[data-ocr-guardar]").click();
 
     const fila = document.querySelector("li[data-fila-ticket='Yogur']");
@@ -179,5 +193,69 @@ describe("Escáner del ticket → despensa y pendientes (integración)", () => {
     expect(document.querySelector(".modal-content h2").textContent).toContain("No he detectado");
     expect(lsFoods(window)).toHaveLength(2);
     expect(window.localStorage.getItem("mrcheff.compraTicket")).toBe(null);
+  });
+
+  it("asistente: chips de destino por paso y el 'Volver' conserva lo ya dicho", () => {
+    const { document, window } = appConDespensa();
+    window.__mrcheffProcesarTextoOcr(TICKET);
+
+    // PASO 1 (sólo exactos): la fila lleva el chip de suma; la fila del paso 2 no está aún
+    expect(document.querySelector(".ocr-chip").textContent).toContain("se suma");
+    expect(document.querySelector(".ocr-chip-duda")).toBeNull();
+    document.querySelector("[data-ocr-siguiente]").click();
+
+    // PASO 2: cada fila su chip — el dudoso pregunta, el nuevo anuncia que es nuevo
+    const chips = [...document.querySelectorAll(".ocr-item .ocr-chip")].map(c => c.textContent);
+    expect(chips).toContain("¿lo tienes?");
+    expect(chips).toContain("nuevo en casa");
+
+    // corregir el nuevo (nombre + cantidad) y VOLVER: al re-entrar, lo dicho sigue ahí
+    document.getElementById("ocr-nombre-0").value = "Leche sin";
+    document.getElementById("ocr-qty-0").value = "4";
+    document.querySelector("[data-ocr-volver]").click();
+    expect(document.querySelector(".modal-content h2").textContent).toContain("se añaden a la despensa");
+    document.querySelector("[data-ocr-siguiente]").click();
+    expect(document.getElementById("ocr-nombre-0").value).toBe("Leche sin");
+    expect(document.getElementById("ocr-qty-0").value).toBe("4");
+
+    // y la corrección llega hasta el final: el pendiente se llama como la persona lo corrigió
+    document.querySelector("[data-ocr-guardar]").click();
+    expect([...document.querySelectorAll("li[data-fila-ticket]")].map(f => f.dataset.filaTicket)).toContain("Leche sin");
+  });
+
+  it("ticket con TODO exacto → un solo paso (sin dudas) y el salto final es a la DESPENSA", async () => {
+    const { document, window } = bootApp({
+      seed: {
+        foods: [
+          { id: "a1", name: "Pan", score: 3, qty: 1, min: 1, checked: false, createdAt: 1 },
+          { id: "a2", name: "Yogur", score: 5, qty: 2, min: 1, checked: false, createdAt: 2 }
+        ],
+        recipes: [], innov: [], cooked: []
+      }
+    });
+    window.__mrcheffProcesarTextoOcr("2 Pan\n1 Yogur natural\nTOTAL 4,10 €");
+
+    // PASO ÚNICO: botón "Añadir lo confirmado" está ya en el paso 1 (no hay dudas que revisar)
+    expect(document.querySelector(".modal-content h2").textContent).toContain("se añaden a la despensa");
+    expect(document.querySelectorAll(".modal-content .ocr-item")).toHaveLength(2);
+    expect(document.querySelector("[data-ocr-siguiente]")).toBeNull();
+    document.querySelector("[data-ocr-guardar]").click();
+
+    expect(document.querySelector("#view-foods").classList.contains("active")).toBe(true);
+    await new Promise(r => setTimeout(r, 60));                 // el destello entra vía rAF (2 frames)
+    expect(document.getElementById("food-list").className).toContain("destello-suave");
+    expect(lsFoods(window).find(f => f.name === "Pan").qty).toBe(3);   // 1 + 2 del ticket
+    expect(window.localStorage.getItem("mrcheff.compraTicket")).toBe(null);   // nada para la lista
+  });
+
+  it("ticket SIN nada exacto → el asistente entra directo en el paso de dudas (no hay paso 1)", () => {
+    const { document, window } = appConDespensa();
+    window.__mrcheffProcesarTextoOcr("3 Leche entera\n2 x Yogur\nTOTAL 6,90 €");
+    expect(document.querySelector(".modal-content h2").textContent).toContain("tienen duda");
+    expect(document.querySelectorAll(".modal-content .ocr-item")).toHaveLength(2);
+    expect(document.querySelector("[data-ocr-siguiente]")).toBeNull();
+    document.querySelector("[data-ocr-guardar]").click();
+    expect(lsFoods(window)).toHaveLength(2);                   // nada sumó: todo era duda/nuevo
+    expect(lsPend(window).map(p => p.nombre)).toEqual(["Leche", "Yogur"]);
   });
 });

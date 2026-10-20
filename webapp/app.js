@@ -856,71 +856,185 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   window.__mrcheffProcesarTextoOcr = procesarTextoOcr;
 
-  // Modal de confirmación: cada candidato llega con nombre EDITABLE (el del OCR es sólo un punto
-  // de partida) y la cantidad leída del ticket ya prefijada (a falta de lectura, 1). Aquí NO se
-  // piden mínimo ni importancia: son decisiones de criterio, no datos del ticket — se definen
-  // DESPUÉS fila a fila en la lista de la compra (las nuevas atenuadas hasta fijarlas). La
-  // repartición final (exacto → suma, dudoso / nuevo → pendiente) la hace el módulo puro.
+  // ===== ASISTENTE DE CONFIRMACIÓN DEL TICKET (2 PASOS) =====
+  // Escaneo correcto → la revisión va POR PARTES, como pidió el producto: (1º) los CONFIRMADOS
+  // que se van a añadir con sus cantidades —nombres ya exactos en la despensa: la compra SUMA a
+  // lo que había—; (2º) los que tienen DUDA —dudosos (¿es una variante de algo de la despensa?)
+  // y nuevos (sin definir)—, corregibles en la propia fila. Al confirmar el último paso NO
+  // sale un toast: la app salta a la LISTA DE LA COMPRA con una animación, donde quedan las
+  // filas del ticket arriba (su cantidad del ticket y, si ya están definidas, su importancia y
+  // mínimo). Si no hubo nada para la lista (todo exacto), el salto es a la DESPENSA (Alimentos).
+  // El reparto PREVIEW de pasos lo decide el módulo puro (ocr.guardarCandidatos sin persistir +
+  // ocr.pasosDeConfirmacion); el reparto FINAL se vuelve a ejecutar al guardar contra la
+  // selección revisada — renombrar en el paso 2 puede cambiar el destino de una fila y el que
+  // manda es el último (una sola fuente de verdad: el módulo, §3).
+  const REDUZ_MOTION = () => typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function desplazarSuaveHasta(el) {
+    // Descontar el topbar sticky: medido a cero, el destino queda escondido debajo de la cabecera.
+    const barra = document.querySelector(".topbar");
+    const margen = barra ? barra.offsetHeight + 8 : 8;
+    const y = Math.max(0, el.getBoundingClientRect().top + window.scrollY - margen);
+    try {
+      window.scrollTo({ top: y, behavior: REDUZ_MOTION() ? "auto" : "smooth" });
+    } catch (e) {
+      window.scrollTo(0, y);                                  // WebView viejo sin options object
+    }
+  }
+
+  function destellarDestino(el) {
+    el.classList.remove("destello-suave");
+    void el.offsetWidth;                                      // reinicia la animación (re-escaneo → re-destello)
+    el.classList.add("destello-suave");
+    window.setTimeout(() => el.classList.remove("destello-suave"), 2200);
+  }
+
+  function mostrarResultadoEnVista(vista, selectorDestino) {
+    activarVista(vista);                                      // cambia de pestaña (sube arriba animado)
+    const destino = $(selectorDestino);
+    if (!destino || destino.classList.contains("hidden")) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      desplazarSuaveHasta(destino);                           // dos frames: la vista nueva ya está pintada y medible
+      destellarDestino(destino);
+    }));
+  }
+
   function abrirConfirmarOcr(candidatos) {
     const etqTipo = { proteina: "Proteína", lacteo: "Lácteo", cereal: "Cereal", fruta: "Fruta", verdura: "Verdura", especia: "Especia" };
-    modalContent.innerHTML = `
-      <h2>🎫 ¿Esto es lo que compraste?</h2>
-      <p class="muted">Detectado en la foto del ticket; la cantidad sale de la línea cuando se pudo leer.
-          <strong>El nombre es editable</strong>; desmarca lo que no quieras. Nada entra aún en la
-          despensa: pasa a tu lista de la compra para revisarlo fila a fila.</p>
-      <div class="ocr-cabecera" aria-hidden="true">
-        <span>Alimento</span><span>Cantidad</span><span>Incluir</span>
-      </div>
-      ${candidatos.map((c, i) => `
-        <div class="ocr-item" data-i="${i}">
+
+    // Estado del asistente: la decisión de cada fila (incluir / nombre / cantidad) SOBREVIVE al
+    // paso a paso — el "Volver" del último paso repinta el anterior con lo ya dicho. La cantidad
+    // por defecto ES la muestra la fila (qty del ticket, a falta de lectura 1) — y es lo que va
+    // al reparto PREVIEW: el módulo filtra qty no numérica al guardar, así que el reparto de
+    // pasos corre sobre lo MISMO que la persona verá y confirmará en las filas.
+    const decision = candidatos.map(c => ({
+      incluir: true,
+      nombre: c.nombre,
+      qty: Number.isFinite(c.qty) && c.qty >= 1 ? c.qty : 1,
+      tipo: c.tipo || null
+    }));
+    const previo = ocr.guardarCandidatos(foods, decision.map(d => ({ nombre: d.nombre, qty: d.qty, tipo: d.tipo })), {
+      uid, ahora: Date.now(),
+      // La DUDA se decide con el MISMO casador de variantes del "🛒 Despensa?" de la lista:
+      // "¿es el mismo que uno de mi despensa?" (menu-semanal.candidatosDespensa inyectada, §3).
+      candidatosDespensa: menuSemanal && menuSemanal.candidatosDespensa ? menuSemanal.candidatosDespensa : null
+    });
+    const pasos = ocr.pasosDeConfirmacion(previo);
+    if (!pasos.length) { closeModal(); return; }               // sin nada confirmable: nada que asistir
+    let pasoActual = 0;
+
+    const nombreDePago = c => ocr.norm(c.nombre);              // la agrupación del preview manda sobre el índice
+    const filasDePaso = nombrePaso => {
+      const claves = new Set((nombrePaso === "despensa" ? previo.directos : previo.dudosos.concat(previo.nuevos)).map(x => nombreDePago(x)));
+      return candidatos.filter(c => claves.has(nombreDePago(c)));
+    };
+
+    function filaHTML(c) {
+      const o = candidatos.indexOf(c);
+      const d = decision[o];
+      let chip = "";
+      if (pasos.length > 1) {
+        if (pasos[pasoActual] === "despensa") chip = `<span class="ocr-chip">ya en tu despensa — se suma</span>`;
+        else if (previo.nuevos.some(n => nombreDePago(n) === nombreDePago(c))) chip = `<span class="ocr-chip ocr-chip-nuevo">nuevo en casa</span>`;
+        else chip = `<span class="ocr-chip ocr-chip-duda">¿lo tienes?</span>`;
+      }
+      return `
+        <div class="ocr-item" data-o="${o}">
           <div class="ocr-nombre">
-            <input type="text" id="ocr-nombre-${i}" value="${escapeHTML(c.nombre)}" aria-label="Nombre del alimento detectado (editable)">
-            <span class="ocr-tipo">${etqTipo[c.tipo] || "Otro"}</span>
+            <input type="text" id="ocr-nombre-${o}" value="${escapeHTML(d.nombre)}" aria-label="Nombre del alimento detectado (editable)">
+            <span class="ocr-tipo">${etqTipo[d.tipo] || "Otro"}</span>${chip}
             <span class="ocr-linea" title="Primera línea que ha leído el OCR (sólo contexto)">“${escapeHTML(String(c.linea || "").trim().slice(0, 60))}”${c.veces > 1 ? ` · aparece ×${c.veces}` : ""}</span>
           </div>
-          <input type="number" id="ocr-qty-${i}" min="0" step="1" value="${Number.isFinite(c.qty) && c.qty >= 1 ? c.qty : 1}" aria-label="Cantidad comprada de ${escapeHTML(c.nombre)}">
-          <input type="checkbox" class="ocr-include" checked aria-label="Incluir ${escapeHTML(c.nombre)}">
-        </div>`).join("")}
-      <div class="modal-footer">
-        <button class="btn ghost" data-close>Cancelar</button>
-        <button class="btn primary" data-ocr-guardar>Añadir lo confirmado</button>
-      </div>`;
-    abrirModal("Confirmar alimentos detectados en la foto");
-    const primero = $("#ocr-nombre-0", modalContent);
-    if (primero) primero.select();
-    $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
-    $("[data-ocr-guardar]", modalContent).addEventListener("click", () => {
-      // Validar las filas incluidas ANTES de tocar nada: una fila mala corta el guardado (mismo
-      // espíritu que el modal de compra de la lista semanal).
+          <input type="number" id="ocr-qty-${o}" min="0" step="1" value="${d.qty}" aria-label="Cantidad comprada de ${escapeHTML(d.nombre)}">
+          <input type="checkbox" class="ocr-include" ${d.incluir ? "checked" : ""} aria-label="Incluir ${escapeHTML(d.nombre)}">
+        </div>`;
+    }
+
+    function renderPaso() {
+      const pasoNombre = pasos[pasoActual];
+      const filas = filasDePaso(pasoNombre);
+      const ultimo = pasoActual === pasos.length - 1;
+      const unico = pasos.length === 1;
+      const numeracion = unico ? "" : `${pasoActual + 1} de ${pasos.length} · `;
+      const cabecera = pasoNombre === "despensa"
+        ? `<h2>🎫 ${numeracion}Estos se añaden a la despensa</h2>
+           <p class="muted">Nombres exactos de lo que ya tienes en casa: la compra <strong>suma</strong> a lo
+               que había y sus criterios de alerta quedan como estaban. La cantidad sale de la línea
+               del ticket; desmarca lo que no quieras.</p>`
+        : `<h2>🎫 ${numeracion}Revisa los que tienen duda</h2>
+           <p class="muted">${previo.nuevos.length ? "Los <strong>nuevos</strong> van a tu lista de la compra sin definir" +
+               " (importancia y mínimo se fijan fila a fila una vez ahí) " : ""}los <strong>dudosos</strong> pueden ser la misma
+               cosa con otro nombre: corrígelos aquí. Luego el asistente te lleva a la lista.</p>`;
+      modalContent.innerHTML = `
+        ${cabecera}
+        <div class="ocr-cabecera" aria-hidden="true">
+          <span>Alimento</span><span>Cantidad</span><span>Incluir</span>
+        </div>
+        ${filas.map(filaHTML).join("")}
+        <div class="modal-footer">
+          <button class="btn ghost" data-close>Cancelar</button>
+          ${pasoActual > 0 ? `<button class="btn ghost" data-ocr-volver>← Volver</button>` : ""}
+          <button class="btn primary" ${ultimo ? "data-ocr-guardar" : "data-ocr-siguiente"}>
+            ${ultimo ? "Añadir lo confirmado" : "Continuar con las dudas →"}
+          </button>
+        </div>`;
+      abrirModal(ultimo ? "Confirmar los alimentos con duda de la foto" : "Confirmar lo añadido a la despensa de la foto");
+      const primero = $(".ocr-nombre input", modalContent);
+      if (primero) primero.select();
+      $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+      const siguiente = $("[data-ocr-siguiente]", modalContent);
+      if (siguiente) siguiente.addEventListener("click", () => {
+        recogerFilas();
+        pasoActual += 1;
+        renderPaso();
+      });
+      const volver = $("[data-ocr-volver]", modalContent);
+      if (volver) volver.addEventListener("click", () => {
+        recogerFilas();
+        pasoActual -= 1;
+        renderPaso();
+      });
+      if (ultimo) $("[data-ocr-guardar]", modalContent).addEventListener("click", guardar);
+    }
+
+    function recogerFilas() {
+      $$(".ocr-item", modalContent).forEach(fila => {
+        const o = Number(fila.dataset.o);
+        const d = decision[o];
+        d.incluir = $(".ocr-include", fila).checked;
+        if (!d.incluir) return;
+        d.nombre = $("#ocr-nombre-" + o, fila).value.trim();
+        const qty = parseInt($("#ocr-qty-" + o, fila).value, 10);
+        if (Number.isFinite(qty) && qty >= 0) d.qty = qty;
+      });
+    }
+
+    function guardar() {
+      recogerFilas();
+      // Validar TODA la decisión (los dos pasos) ANTES de tocar nada: una fila mala corta el
+      // guardado (mismo espíritu que el modal de compra de la lista semanal).
       const seleccion = [];
       let mensajeError = "";
-      $$(".ocr-item", modalContent).forEach(fila => {
-        if (mensajeError || !$(".ocr-include", fila).checked) return;
-        const i = fila.dataset.i;
-        const nombre = $("#ocr-nombre-" + i, fila).value.trim();
-        const qty = parseInt($("#ocr-qty-" + i, fila).value, 10);
-        if (!nombre) { mensajeError = "Hay un alimento sin nombre: escríbele uno o desmarca su casilla."; return; }
-        if (!Number.isFinite(qty) || qty < 0) { mensajeError = `La cantidad de "${nombre}" va de 0 en adelante.`; return; }
-        seleccion.push({ nombre, qty, tipo: (candidatos[Number(i)] || {}).tipo || null });
+      decision.forEach(d => {
+        if (!d.incluir || mensajeError) return;
+        if (!d.nombre) { mensajeError = "Hay un alimento sin nombre: escríbele uno o desmarca su casilla."; return; }
+        if (!Number.isFinite(d.qty) || d.qty < 0) { mensajeError = `La cantidad de "${d.nombre}" va de 0 en adelante.`; return; }
+        seleccion.push({ nombre: d.nombre, qty: d.qty, tipo: d.tipo });
       });
-      if (mensajeError) { toast(mensajeError, "error"); return; }
+      if (mensajeError) { abrirModal("Confirmar los alimentos de la foto"); toast(mensajeError, "error"); return; }
       if (!seleccion.length) { toast("No hay alimentos marcados para guardar", "error"); return; }
       const result = ocr.guardarCandidatos(foods, seleccion, {
         uid, ahora: Date.now(),
-        // La DUDA se decide con el MISMO casador de variantes del "🛒 Despensa?" de la lista:
-        // "¿es el mismo que uno de mi despensa?" (menu-semanal.candidatosDespensa inyectada, §3).
         candidatosDespensa: menuSemanal && menuSemanal.candidatosDespensa ? menuSemanal.candidatosDespensa : null
       });
       foods = result.foods;
       save(LS.foods, foods);
       // NADA entra en la despensa por su cuenta: dudosos (fila normal) y nuevos (SIN definir:
       // atenuada, importancia y mínimo por fijar) quedan como pendientes del ticket, arriba de
-      // la lista de la compra, hasta que la persona decida. El ORDEN es el del ticket (las
-      // líneas escaneadas, de arriba a abajo) — se recorre la selección y se reparte contra el
-      // resultado del módulo.
+      // la lista de la compra, hasta que la persona decida. El ORDEN es el del ticket.
       const entradas = [];
       seleccion.forEach(s => {
-        const dud = result.dudosos.find(d => d.nombre === s.nombre);
+        const dud = result.dudosos.find(x => x.nombre === s.nombre);
         if (dud) entradas.push(dud);
         else if (result.nuevos.some(n => n.nombre === s.nombre)) entradas.push({ ...s, faltaDefinir: true });
       });
@@ -931,16 +1045,13 @@ document.addEventListener("DOMContentLoaded", () => {
       renderWeeklyAlert();
       renderShoppingList();                       // la lista refresca si estaba abierta: nuevos pendientes arriba
       closeModal();
-      if (entradas.length && result.actualizados) {
-        toast(`Despensa al día: ${result.actualizados} actualizados · ${entradas.length} de tu ticket en la lista de la compra`);
-      } else if (entradas.length) {
-        toast(`${entradas.length} alimentos del ticket van a tu lista de la compra para revisar`);
-      } else if (result.actualizados) {
-        toast(`Despensa al día: ${result.actualizados} actualizados`);
-      } else {
-        toast("Nada que guardar del ticket");
-      }
-    });
+      // SIN toast de éxito: el destino MUESTRA el resultado. Con pendientes → lista de la compra
+      // (las filas del ticket arriba, con cantidades y criterios); sólo sumas → despensa.
+      if (entradas.length) mostrarResultadoEnVista("suggest", "#shopping-list");
+      else mostrarResultadoEnVista("foods", "#food-list");
+    }
+
+    renderPaso();
   }
 
   // ===== RECETAS =====

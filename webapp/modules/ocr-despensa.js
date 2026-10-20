@@ -139,13 +139,14 @@
     });
     const salida = Array.isArray(despensa) ? despensa.map(f => ({ ...f })) : [];   // copias: los originales no se tocan
     let actualizados = 0;
-    const dudosos = [], nuevos = [];
+    const directos = [], dudosos = [], nuevos = [];
     validos.forEach(c => {
       const nombre = String(c.nombre).trim();
       const ya = salida.find(f => String(f.name || "").toLowerCase() === nombre.toLowerCase());
       if (ya) {
         ya.qty = Math.max(0, Math.round((Number(ya.qty) || 0) + c.qty));   // el ticket SUMA a lo que había; min/score intactos
         actualizados += 1;
+        directos.push({ nombre, qty: Math.max(0, Math.round(c.qty)), tipo: c.tipo || null });
       } else if (variantes && variantes(nombre, salida).length > 0) {
         // DUDOSO: "¿es el mismo que uno de la despensa?" — pendiente con su botón en la lista.
         dudosos.push({ nombre, qty: Math.max(0, Math.round(c.qty)), tipo: c.tipo || null });
@@ -154,7 +155,19 @@
         nuevos.push({ nombre, qty: Math.max(0, Math.round(c.qty)), tipo: c.tipo || null, faltaDefinir: true });
       }
     });
-    return { foods: salida, actualizados, dudosos, nuevos };
+    return { foods: salida, actualizados, directos, dudosos, nuevos };
+  }
+
+  // ─── Los PASOS de la confirmación del ticket (ver app.js): la persona revisa PRIMERO lo que ya
+  // se suma a la despensa —nombres exactos, sin duda a quién le toca la compra— y DESPUÉS lo que
+  // pide doble lectura (dudosos y nuevos). El orden es fijo: despensa → pendientes; cada paso
+  // SÓLO sale si tiene filas (un ticket con todo exacto no muestra el paso vacío de dudas).
+  function pasosDeConfirmacion(reparto) {
+    const r = reparto || {};
+    const pasos = [];
+    if (Array.isArray(r.directos) && r.directos.length) pasos.push("despensa");
+    if ((Array.isArray(r.dudosos) && r.dudosos.length) || (Array.isArray(r.nuevos) && r.nuevos.length)) pasos.push("pendientes");
+    return pasos;
   }
 
   // ─── Pendientes DEL TICKET en la lista de la compra: dudosos y nuevos entran como filas en la
@@ -226,5 +239,5 @@
     return { lista, quitado: lista.length !== (Array.isArray(pendientes) ? pendientes.length : 0) };
   }
 
-  return { esMovil, esHeic, extraerCandidatos, guardarCandidatos, añadirTicketPendientes, definirTicketPendiente, quitarTicketPendiente, norm, capitaliza };
+  return { esMovil, esHeic, extraerCandidatos, guardarCandidatos, pasosDeConfirmacion, añadirTicketPendientes, definirTicketPendiente, quitarTicketPendiente, norm, capitaliza };
 });

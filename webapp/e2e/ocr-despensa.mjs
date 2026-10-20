@@ -163,6 +163,9 @@ try {
     await page.waitForSelector("#modal.hidden", { state: "attached" });
     const abierto = await page.$eval("#modal", m => !m.classList.contains("hidden"));
     ok(!abierto, "(C) tras guardar, el modal se cierra");
+    // 2026-10-21 (asistente): SIN toast de éxito — el salto con animación lleva a la lista:
+    ok(await page.$eval("#view-suggest", v => v.classList.contains("active")),
+      "(C) sin toast: la vista Sugerencias queda activa (destino del asistente del escáner)");
 
     // CONTRATO 2026-10-20: con la despensa vacía, TODO candidato es NUEVO → nada entra solo;
     // los tres quedan como pendientes del ticket SIN DEFINIR (importancia/mínimo por decidir).
@@ -231,6 +234,10 @@ try {
   await pageT.screenshot({ path: path.join(OUT_DIR, "25-ocr-ticket-confirmar.png") });
   await pageT.click("[data-ocr-guardar]");
   await pageT.waitForSelector("#modal.hidden", { state: "attached" });
+  // 2026-10-21 (asistente): el salto a la lista pasa por sí solo (sin toast); nada exacto →
+  // el asistente tampoco sufrió paso de despensa (todo era duda/nuevo).
+  ok(await pageT.$eval("#view-suggest", v => v.classList.contains("active")),
+    "(D) sin toast: la vista Sugerencias queda activa tras confirmar el paso de dudas");
 
   const d = await pageT.evaluate(() => ({
     pend: JSON.parse(localStorage.getItem("mrcheff.compraTicket") || "[]"),

@@ -228,6 +228,13 @@ Los bugs ya resueltos que antes vivían aquí están MOVIDOS a `bugfix.md` (raí
 `#bugfix-pwa-no-refresca-cambios` (2026-10-19, caché de la PWA servía assets viejos).
 Aquí queda sólo la referencia, sin su marcha.
 
+- `2026-10-21 · @AI-agent · #epic-ocr-despensa-camara · Principio: L · Justificación:` contratos del
+  módulo del ticket ampliados de forma ADITIVA (shapes §5 intactos, nada roto): `guardarCandidatos`
+  devuelve también `directos` (filas exactas que suman, para el paso 1 del asistente de
+  confirmación) y se estrena la pública `pasosDeConfirmacion(reparto)`. Por qué: la revisión del
+  escaneo va por pasos (despensa → dudas) y la decisión del recorrido pertenece al dominio (§3),
+  no a la vista. La marcha completa vive en AGENTS.md (sección OCR).
+
 - `2026-10-18 · @AI-agent · #feature-menu-7x3 · Principio: O, D · Justificación:` cambios de contrato
   acordados con el usuario (menú semanal de 3 comidas/día + cambio individual de receta):
   1. `planner.buildWeeklyMenu` pasa de `plan[7] = { dayLabel, recipe, missing }` a

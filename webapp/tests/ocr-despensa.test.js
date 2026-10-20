@@ -182,8 +182,42 @@ describe("ocr-despensa — guardarCandidatos (contrato ticket: NADIE entra en la
 
   test("selección vacía/undefined → despensa igual, sin dudosos ni nuevos", () => {
     const despensa = [{ id: "a1", name: "Pollo", score: 4, qty: 1, min: 1, checked: false, createdAt: 1 }];
-    expect(ocrDespensa.guardarCandidatos(despensa, [], deps)).toEqual({ foods: despensa, actualizados: 0, dudosos: [], nuevos: [] });
-    expect(ocrDespensa.guardarCandidatos(despensa, undefined, deps)).toEqual({ foods: despensa, actualizados: 0, dudosos: [], nuevos: [] });
+    expect(ocrDespensa.guardarCandidatos(despensa, [], deps)).toEqual({ foods: despensa, actualizados: 0, directos: [], dudosos: [], nuevos: [] });
+    expect(ocrDespensa.guardarCandidatos(despensa, undefined, deps)).toEqual({ foods: despensa, actualizados: 0, directos: [], dudosos: [], nuevos: [] });
+  });
+
+  test("DIRECTOS: los exactos traen su fila (nombre + qty del ticket) para el paso 1 del asistente", () => {
+    const despensa = [{ id: "a1", name: "Pollo", score: 4, qty: 1, min: 1, checked: false, createdAt: 1 }];
+    const { directos, dudosos, nuevos, actualizados } = ocrDespensa.guardarCandidatos(
+      despensa,
+      [{ nombre: "Pollo", qty: 3 }, { nombre: "Cuscús", qty: 1 }],
+      deps
+    );
+    expect(actualizados).toBe(1);
+    expect(directos).toEqual([{ nombre: "Pollo", qty: 3, tipo: null }]);   // el repetidor del paso 1
+    expect(dudosos).toHaveLength(0);
+    expect(nuevos.map(n => n.nombre)).toEqual(["Cuscús"]);                 // el repetidor del paso 2
+  });
+});
+
+describe("ocr-despensa — pasosDeConfirmacion (el recorrido del asistente del ticket)", () => {
+  test("con exactos Y dudas: despensa SIEMPRE primero, pendientes después", () => {
+    expect(ocrDespensa.pasosDeConfirmacion({
+      directos: [{ nombre: "Pan", qty: 1 }], dudosos: [{ nombre: "Yogur", qty: 2 }], nuevos: []
+    })).toEqual(["despensa", "pendientes"]);
+  });
+
+  test("paso que no tiene filas NO sale (un ticket sin dudas no muestra el paso vacío)", () => {
+    expect(ocrDespensa.pasosDeConfirmacion({ directos: [{ nombre: "Pan", qty: 1 }], dudosos: [], nuevos: [] }))
+      .toEqual(["despensa"]);
+    expect(ocrDespensa.pasosDeConfirmacion({ directos: [], dudosos: [], nuevos: [{ nombre: "Leche", qty: 3 }] }))
+      .toEqual(["pendientes"]);
+  });
+
+  test("casi nada que repartir → sin pasos (la vista no abre asistente vacío)", () => {
+    expect(ocrDespensa.pasosDeConfirmacion({ directos: [], dudosos: [], nuevos: [] })).toEqual([]);
+    expect(ocrDespensa.pasosDeConfirmacion(null)).toEqual([]);
+    expect(ocrDespensa.pasosDeConfirmacion()).toEqual([]);
   });
 });
 
