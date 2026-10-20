@@ -79,7 +79,27 @@
       cta: "Siguiente",
     },
   ];
-  const PASOS_RECETAS = [];
+  const PASOS_RECETAS = [
+    {
+      id: "recetas-crear",
+      vista: "recipes", selector: "#recipe-desc", accionable: true,
+      titulo: "Crea recetas con tus palabras",
+      texto: "Describe aquí lo que has cocinado como lo contarías a un amigo y la app saca tus ingredientes y tus pasos en orden — interpretado en tu dispositivo, sin redes. Toca el campo para seguir.",
+    },
+    {
+      id: "recetas-catalogo",
+      vista: "recipes", selector: "#recipe-catalog-search", accionable: true,
+      titulo: "El catálogo te hace el trabajo",
+      texto: "200 recetas curadas de cocina española e italiana por título o por ingrediente. Y vale con escribir pocas letras: con \"gamb\" ya salen las gambas al ajillo. Toca el buscador para seguir.",
+    },
+    {
+      id: "recetas-mis-recetas",
+      vista: "recipes", selector: "#recipe-list", accionable: false,
+      titulo: "Mis recetas y su origen",
+      texto: "Lo que guardes (⭐ desde Innovación, o lo que edites) vive aquí: todas editables, con su sello de origen — española o italiana — y con el detalle de qué te falta para cocinarla.",
+      cta: "Siguiente",
+    },
+  ];
   const PASOS_INNOVACION = [];
   const PASOS_MENU = [];
   const PASOS_TEMPORADA = [];
