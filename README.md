@@ -1,7 +1,3 @@
-# inigo9777-design.github.io
-
-Versión web del readme: https://inigo9777-design.github.io/Readme.html
-
 # 🍳 Mr Cheff
 
 Tu asistente de cocina inteligente en tu bolsillo
