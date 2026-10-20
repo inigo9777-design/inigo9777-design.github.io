@@ -16,6 +16,15 @@
 //                                            pueda entrar en cooldown); "🔄 Cambiar" sigue siempre. app.js NO
 //                                            decide esto: sólo moldea el botón según lo que diga el módulo.
 //   clearMenu()                                            → { weekmenu: null } inmutable; reinicia el menú
+//   candidatosDespensa(itemName, foods)                    → variantes en la despensa que PODRÍAN ser el ítem
+//                                                            ("¿Despensa?" — feature 2026-10-19): comparten
+//                                                            algún token del matcher pero el casador SUBCONJUNTO
+//                                                            no los une solo ("Jamón serrano" ↔ "Jamón ibérico").
+//                                                            SÓLO candidatos: la última palabra la tiene el usuario.
+//   markItemBoughtComo(foods, weekmenu, itemName, foodName, compra)
+//                                                          → la compra se anota en el alimento YA EXISTENTE que
+//                                                            el usuario eligió en "¿Despensa?" (update in-situ,
+//                                                            sin alta nueva) y el ítem sale de needyFoods.
 //
 // Nota de cambio (§8): `regenerateAfterCook` (regeneración COMPLETA al cocinar) se retira — cocinar desde el
 // menú ahora compone `cookEntry` + `swapSlotRecipe` en app.js: el plato entra en cooldown y SÓLO su slot
@@ -262,6 +271,62 @@
   }
 
   // ---------------------------------------------------------------------------
+  // FEATURE 2026-10-19 «¿Despensa?» — variantes del MISMO alimento que el casador SUBCONJUNTO
+  // no une solo ("Jamón serrano" ↔ "Jamón ibérico", "Pan de pueblo" ↔ "Pan"): son dos específicos
+  // distintos y el refinamiento del matcher (2026-10-18) decidió A PROPÓSITO no automatizar ese
+  // emparejamiento. La regla aquí es INTENCIONADAMENTE simple — comparten algún token de género
+  // (≥3 letras, sin stopwords, depluralizado) — y la
+  // ÚLTIMA PALABRA la tiene el usuario: estos son candidatos a CONFIRMAR en el modal
+  // "¿Despensa?", no casamientos automáticos.
+  // * fuera SÓLO el nombre idéntico (no es duda, es él mismo). El match SUBCONJUNTO de la
+  //   despensa (p. ej. "Pan" cubre "Pan de pueblo") SÍ sale de candidato si está a qty 0: a
+  //   cantidad>0 ese match ya habría deduped la fila y no aparecería; a 0 sigue siendo DUDA a
+  //   ojos del usuario (¿el pan del pueblo es mi pan?) y merece su confirmación.
+  // * orden: más tokens comunes primero → nombre; máx 8 (una lista de posibles, no un desfile).
+  // ---------------------------------------------------------------------------
+  function tokensDe(nombre) {
+    const matcher = resolveMatcher();
+    if (matcher && typeof matcher.tokensOf === "function") return matcher.tokensOf(nombre);
+    return String(nombre == null ? "" : nombre).toLowerCase().trim().split(/\s+/).filter(Boolean);
+  }
+
+  function candidatosDespensa(itemName, foods) {
+    const tokensItem = new Set(tokensDe(itemName));
+    if (tokensItem.size === 0) return [];
+    return (Array.isArray(foods) ? foods : [])
+      .filter(f => f && f.name && String(f.name).trim() !== "")
+      .filter(f => claveNombre(f.name) !== claveNombre(itemName))       // idéntico ⇒ no es variante, es él
+      .map(f => ({ alimento: f, comunes: tokensDe(f.name).filter(t => tokensItem.has(t)).length }))
+      .filter(x => x.comunes > 0)
+      .sort((a, b) => b.comunes - a.comunes || String(a.alimento.name).localeCompare(String(b.alimento.name), "es"))
+      .slice(0, 8)
+      .map(x => x.alimento);
+  }
+
+  // ---------------------------------------------------------------------------
+  // markItemBoughtComo — destino de la confirmación del modal "¿Despensa?": el ítem itemName de
+  // la compra NO se casa exacto con foodName ya en la despensa y el USUARIO confirmó que son lo
+  // mismo (variante de calidad/tipo). La compra va al alimento apuntado IN-SITU: conserva
+  // id/nombre/createdAt/checked; qty/score se fijan con la compra y `min` sólo si se pidió
+  // (idéntica regla de markItemBought). NUNCA entra alta nueva; el ítem sale de needyFoods igual
+  // que el resto. Si el objetivo no está en la despensa o la compra es inválida → null (guard:
+  // la vista avisará SIN escribir nada).
+  // ---------------------------------------------------------------------------
+  function markItemBoughtComo(foods, weekmenu, itemName, foodName, compra) {
+    const pedido = compraNormalizada(compra);
+    if (!pedido) return null;
+    const claveObjetivo = claveNombre(foodName);
+    const base = (Array.isArray(foods) ? foods : []).filter(f => f && typeof f === "object");
+    const idx = base.findIndex(f => claveNombre(f.name) === claveObjetivo);
+    if (idx < 0) return null;
+    const cambios = pedido.min != null
+      ? { qty: pedido.qty, score: pedido.score, min: pedido.min }
+      : { qty: pedido.qty, score: pedido.score };
+    const actualizado = base.map((f, i) => i === idx ? Object.assign({}, f, cambios) : f);
+    return { foods: actualizado, weekmenu: quitarDeNeedy(weekmenu, claveNombre(itemName)), mapped: true, actualizado: true };
+  }
+
+  // ---------------------------------------------------------------------------
   // cookEntry — anota una receta como cocinada hoy en cooked (inmutable).
   //   * `cookEntryFor` e `uid` se inyectan por contexto.
   // ---------------------------------------------------------------------------
@@ -382,11 +447,13 @@
     return { cocinar: aprobado, cambiar: hayPlan };
   }
 
-  // API PÚBLICA CERRADA (§5/§8 — solo estas 7 funciones, sin fuga de helpers internos como defaultUid).
+  // API PÚBLICA CERRADA (§5/§8 — solo estas 9 funciones, sin fuga de helpers internos como defaultUid).
   return {
     shoppingListFor,
     approveMenu,
     markItemBought,
+    markItemBoughtComo,
+    candidatosDespensa,
     cookEntry,
     swapSlotRecipe,
     clearMenu,

@@ -1,9 +1,22 @@
-// webapp/sw.js — Service worker del app-shell (PWA instalable, #epic-download-web-like-app-from-browser).
-// Estrategia cache-primero con red de respaldo: al abrir la app sin conexión el shell y los datos
-// recurrentes salen del caché; lo que no esté cacheado cae a la red como siempre (sin IA externa).
-// PERO: para recibir el fetch handler el contexto debe ser SEGURO (https:// o localhost/127.0.0.1);
-// el registro en file:// no existe (ver guard en index.html) y aquí no hay nada que hacer.
-const CACHE = "mrcheff-v1";                       // +1 al tocar ficheros del shell para refrescar a los ya instalados
+// webapp/sw.js — Service worker del app-shell (PWA instalable).
+// Estrategia de ENTREGA (fix 2026-10-19 del bug "la release no llega a la PWA"): TODO va
+// NETWORK-FIRST con revalidación forzada y el caché es sólo el respaldo SIN CONEXIÓN:
+//   • fetch(req, { cache: "no-cache" }) — el navegador revalida contra el servidor
+//     (fichero sin cambios: 304 barato; con cambios: 200 con los bytes nuevos).
+//   • Sin conexión: cae al caché y la app sigue viva; en cada acierto de red el caché se
+//     repuebla, así que el respaldo nunca queda una release atrás del público.
+// Por qué el cache-primero de assets era el bug: con el sw.js byte-idéntico entre releases
+// el navegador NO re-instala el worker, el install (addAll) no se repite y el caché servía
+// los ficheros de la PRIMERA instalación para siempre — el índice llegaba fresco pero todos
+// los css/js/módulos salían viejos. Ni siquiera con "?v=N" en las URLs: el matcher del
+// caché ignoraba la query (ignoreSearch). Ahora lo nuevo SIEMPRE viene de la red cuando
+// hay conexión; el número del caché sólo ronda el shell (SHELL) y su estrategia, no la
+// frescura de cada release.
+// CACHE v4 (2026-10-19, feature sync-buzón): los 3 módulos nuevos del sync entran al shell
+// precacheado (sync-crypto/diff-merge/sync); el nombre SUBE +1 para forzar la re-instalación
+// del worker aunque el fichero byte-idéntico y el respaldo offline ya los traiga.
+// CACHE v5 (2026-10-20, tutorial interactivo): entra modules/tutorial.js al shell.
+const CACHE = "mrcheff-v5";
 
 const SHELL = [
   "./",
@@ -27,17 +40,22 @@ const SHELL = [
   "modules/menu-semanal.js",
   "modules/recipe-missing.js",
   "modules/recipe-editor.js",
+  "modules/swipe-tabs.js",
+  "modules/tutorial.js",
+  "modules/sync-crypto.js",
+  "modules/diff-merge.js",
+  "modules/sync.js",
   "icons/icon-192.png",
   "icons/icon-512.png"
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    .then(nombres => Promise.all(nombres.filter(k => k !== CACHE).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
@@ -46,14 +64,13 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;                               // sólo lectura: la app no tiene escritura en red
   if (!req.url.startsWith(self.location.origin)) return;          // fuera de scope (analytics no hay; por si acaso)
   e.respondWith(
-    caches.match(req, { ignoreSearch: true }).then(hit => hit ||
-      fetch(req).then(res => {
-        if (res.ok) {                                             // popular el caché en caliente (lo no precacheado)
-          const copia = res.clone();
-          caches.open(CACHE).then(c => c.put(req, copia));
-        }
-        return res;
-      }).catch(() => hit)
-    )
+    fetch(req, { cache: "no-cache" }).then(res => {               // siempre por red, revalidada
+      if (res.ok) {                                               // sube la copia fresca al respaldo offline
+        const copia = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copia));
+      }
+      return res;                                                 // un 404 es honesto: no lo tapa el caché viejo
+    }).catch(() => caches.match(req, { ignoreSearch: true })      // sin conexión: el respaldo del caché
+                       .then(hit => hit || Response.error()))
   );
 });

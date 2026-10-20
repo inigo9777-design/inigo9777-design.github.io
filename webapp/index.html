@@ -2,7 +2,12 @@
 <html lang="es" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Zoom del PWA bloqueado a petición explícita del producto (móvil 2026-10-18): el pinch
+         del navegador dejaba manipular la maqueta. Tradeoff WCAG 1.4.4 conocido y asumido:
+         Chromium de Android lo respeta de raíz (y un usuario con "forzar zoom" en ajustes de
+         accesibilidad lo puede reactivar); iOS se remata con el preventDefault de
+         gesturestart en app.js. El zoom del SISTEMA (tamaño de texto) sigue funcionando. -->
     <meta name="color-scheme" content="dark light">
     <title>Mr Cheff · Asistente de Cocina</title>
     <link rel="stylesheet" href="style.css">
@@ -10,19 +15,22 @@
          En Android (⋮ → Instalar aplicación) el navegador exige MANIFEST + SERVICE WORKER + https;
          en iOS el "Añadir a pantalla de inicio" usa el apple-touch-icon. Sin área data funciona igual. -->
     <link rel="manifest" href="manifest.webmanifest">
-    <meta name="theme-color" content="#17150f">
+    <meta name="theme-color" content="#1b1913">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Mr Cheff">
-    <!-- Aplicar el tema guardado ANTES de pintar para evitar el parpadeo -->
+    <!-- Aplicar el tema guardado ANTES de pintar para evitar el parpadeo (y el theme-color
+         de la franja del sistema sigue al tema desde el primer pixel: en claro no puede
+         quedarse el oscuro fijo del markup, era parte de la franja "negra" del móvil). -->
     <script>
       (function () {
+        var t = "dark";
         try {
-          var t = localStorage.getItem("mrcheff.theme");
-          document.documentElement.dataset.theme = t || "dark";
-        } catch (e) {
-          document.documentElement.dataset.theme = "dark";
-        }
+          t = localStorage.getItem("mrcheff.theme") || "dark";
+        } catch (e) {}
+        document.documentElement.dataset.theme = t;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", t === "dark" ? "#1b1913" : "#ffffff");
       })();
     </script>
 </head>
@@ -49,6 +57,12 @@
         <div class="topbar-actions">
             <button class="tab tab-side" data-view="backup" aria-label="Copia de seguridad" title="Copia de seguridad">
                 <span class="tab-icon" aria-hidden="true">🗄️</span><span class="tab-label">Copia de seguridad</span>
+            </button>
+
+            <!-- Reabrir el tutorial interactivo (feature 2026-10-20): mismo estilo de botón redondo
+                 que sus dos vecinos, y ENTRE ellos como se pidió. No es un .tab (no cambia de vista). -->
+            <button id="btn-tutorial" class="tutorial-toggle" title="Ver tutorial" aria-label="Ver tutorial">
+                <span class="tab-icon" aria-hidden="true">🎓</span>
             </button>
 
             <!-- Nuevo: botón de alternar tema -->
@@ -152,7 +166,7 @@
 
             <div class="card">
                 <h2>🔎 Buscador del catálogo</h2>
-                <p class="muted">Busca en las 200 recetas del catálogo curado por título o por ingrediente ("tortilla patatas", "mascarpone"…). Click en una para verla.</p>
+                <p class="muted">Busca en las 200 recetas del catálogo curado por título, y ya sale aunque escribas menos letras ("tortilla patatas", "croqu"…). Click en una para verla.</p>
                 <div class="toolbar">
                     <input type="text" id="recipe-catalog-search" placeholder="Escribe para buscar en el catálogo…" autocomplete="off" aria-label="Buscar en el catálogo de recetas">
                 </div>
@@ -293,6 +307,20 @@
                 </div>
                 <p id="import-note" class="muted hidden"></p>
             </div>
+
+            <div class="card" id="card-sync">
+                <h2>⇄ Sync entre dispositivos</h2>
+                <p class="muted">Sincroniza tus datos entre móvil y escritorio con un <strong>buzón cifrado</strong>:
+                    un gist de GitHub transporta el estado completo cifrado con AES-GCM (la passphrase NUNCA sale
+                    del navegador: GitHub solo ve ilegible). El token y el gist se configuran una vez por
+                    dispositivo (⚙️ Configurar) y la passphrase se recuerda solo mientras la app está abierta.</p>
+                <div class="row-form">
+                    <button id="btn-sync-config" class="btn ghost" type="button" title="Token de GitHub, gist buzón y passphrase">⚙️ Configurar</button>
+                    <button id="btn-sync" class="btn primary" type="button" disabled aria-label="Sincronizar con el otro dispositivo">🔄 Sync</button>
+                    <button id="btn-sync-vaciar" class="btn ghost" type="button" disabled title="Deja el buzón vacío (sin datos online)">🧹 Vaciar buzón</button>
+                </div>
+                <p id="sync-note" class="muted hidden"></p>
+            </div>
         </section>
 
     </main>
@@ -302,11 +330,37 @@
         <div class="modal-backdrop" data-close></div>
         <div class="modal-box" role="dialog" aria-modal="true">
             <button class="modal-close" data-close aria-label="Cerrar">&times;</button>
-            <div id="modal-content"></div>
+            <div id="modal-content" class="modal-content"></div>
         </div>
     </div>
 
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <!-- Anuncio silencioso para lectores de pantalla: el viewpager cambia de vista sin foco
+         (gesto táctil), así que el cambio se anuncia por región viva; los clicks en las
+         pestañas ya anuncian el botón activado por sí mismos. -->
+    <div id="aviso-vista" class="sr-only" role="status" aria-live="polite"></div>
+
+    <!-- ======= TUTORIAL INTERACTIVO (feature 2026-10-20) =======
+         Visita guiada por la app: velo semitransparente que deja libre el elemento del paso,
+         tarjeta con el texto y, si el paso no es actionable, el botón para seguir. Sale solo
+         la primera vez (PWA) y se reabre con el 🎓 de la cabecera. El guion y su máquina de
+         sesión viven en modules/tutorial.js (puro); aquí sólo el molde. -->
+    <div id="tutorial" class="tutorial hidden" role="dialog" aria-label="Tutorial de Mr Cheff">
+        <div class="tutorial-velo tutorial-arriba"></div>
+        <div class="tutorial-velo tutorial-izquierda"></div>
+        <div class="tutorial-velo tutorial-derecha"></div>
+        <div class="tutorial-velo tutorial-abajo"></div>
+        <div class="tutorial-foco" id="tutorial-foco"></div>
+        <div class="tutorial-tarjeta" id="tutorial-tarjeta">
+            <button id="tutorial-cerrar" class="tutorial-x" aria-label="Cerrar tutorial">&times;</button>
+            <h3 id="tutorial-titulo"></h3>
+            <p id="tutorial-texto"></p>
+            <div id="tutorial-puntos" class="tutorial-puntos" aria-hidden="true"></div>
+            <p id="tutorial-pista" class="tutorial-pista hidden">Toca el elemento señalado para seguir.</p>
+            <button id="tutorial-avanzar" class="btn primary">Siguiente</button>
+            <span id="tutorial-anuncio" class="sr-only" aria-live="polite"></span>
+        </div>
+    </div>
 
     <script src="data/data.js"></script>
     <script src="app.js"></script>
@@ -324,8 +378,14 @@
     <!-- Matcher PURe compartido ingrediente↔alimento (tokens+plural, NO subcadena cruda): lo consumen planner.js (uses/missing con qty>0),
          innovations.js (uses/haveRatio para ideas) y menu-semanal.js (dedup de la lista de compra). DEBE ir ANTES de planner.js. -->
     <script src="modules/ingredient-matching.js"></script>
-    <!-- PURe BUSCADOR del catálogo curado (feature 2026-10-18, tab RECETAS): busca por título/ingredientes
-         REUTILIZANDO tokensOf del matcher compartido — por eso DEBE ir ANTES de que app.js lo consuma
+    <!-- SYNC por buzón GitHub (plan-sync-buzon.md): cripto F2 → identidad/diff3 F4 → protocolo F3.
+         app.js sólo los enlaza con fetch/localStorage/sessionStorage en el clic de "🔄 Sync". -->
+    <script src="modules/sync-crypto.js"></script>
+    <script src="modules/diff-merge.js"></script>
+    <script src="modules/sync.js"></script>
+    <!-- PURe BUSCADOR del catálogo curado (feature 2026-10-18, tab RECETAS): decide por TÍTULO SÓLO
+         (fix 2026-10-20: los ingredientes ya no puntúan), REUTILIZANDO tokensOf del matcher compartido
+         — por eso DEBE ir ANTES de que app.js lo consuma
          (window.MRCheff.busquedaRecetas; si el tag faltara, la card del buscador queda sin resultados). -->
     <script src="modules/busqueda-recetas.js"></script>
     <!-- Nueva capa modular de "Sugerencias y menú" (planFeatureRecetasSugeridasYPlanSemana.md): lógica PURe SIN DOM,
@@ -342,6 +402,11 @@
     <!-- PURe del editor de recetas ("✏️ Editar" del modal): buildDraft / validateDraft / estaGuardada / applyEdit / patchPlan.
          Consumido por app.js al abrir/guardar el editor (tiempo de click); ver planFeature… §12 y CODING_STANDARDS.md §3. -->
     <script src="modules/recipe-editor.js"></script>
+    <script src="modules/swipe-tabs.js"></script>
+    <!-- TUTORIAL interactivo de entrada (feature 2026-10-20): guion + sesión PURe; el velo y el
+         posicionamiento son wiring de app.js. Si el tag faltara, la app funciona normal y sólo
+         no hay tutorial (botón 🎓 inerte, guard embutido en app.js). -->
+    <script src="modules/tutorial.js"></script>
 
     <noscript>Mr Cheff necesita JavaScript: toda la lógica funciona en tu navegador, sin servidor.</noscript>
     <script>
@@ -349,7 +414,27 @@
       // (doble clic al index.html) no hay service worker disponible y no se toca nada: la app
       // sigue funcionando igual de siempre abriendo el archivo directamente.
       if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
-        navigator.serviceWorker.register("sw.js");
+        // updateViaCache:"none": la revisión del sw.js SALTA la caché HTTP del navegador.
+        // GitHub Pages sirve el script con max-age=600: sin esta opción el update podía
+        // retrasarse hasta 10 minutos en cada arranque del PWA instalado (el sw.js acababa
+        // en la misma caché HTTP que el resto de ficheros).
+        navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+          const revisa = () => reg.update().catch(() => {});    // sin conexión no hay nada que revisar
+          revisa();                                             // check al entrar y al volver al primer plano
+          document.addEventListener("visibilitychange", () => { if (!document.hidden) revisa(); });
+          setInterval(revisa, 10 * 60 * 1000);                  // y periódico: no depende del cerrar/reabrir
+        }).catch(() => {});                                     // sin conexión: el caché ya da el shell (respaldo)
+        // Cuando un worker NUEVO instala y toma el mando (skipWaiting + claim) con la app YA
+        // corriendo, los fetches de ese arranque salieron con el worker viejo: recarga UNA vez
+        // por sesión para relanzar el app con la release. En la primera instalación no hay
+        // controller anterior y no se recarga nada.
+        const yaControlada = !!navigator.serviceWorker.controller;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (yaControlada && !sessionStorage.getItem("mrcheff.recargaUpdate")) {
+            sessionStorage.setItem("mrcheff.recargaUpdate", "1");
+            location.reload();
+          }
+        });
       }
     </script>
 </body>

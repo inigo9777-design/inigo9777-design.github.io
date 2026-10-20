@@ -11,6 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function applyTheme(t) {
     root.dataset.theme = t;
+    // El theme-color (franja del sistema / status bar del PWA) sigue al tema: en claro
+    // quedaba el #17150f oscuro fijado en el <head> y arriba "flotaba" un negro ajeno.
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeColorMeta) themeColorMeta.setAttribute("content", t === "dark" ? "#1b1913" : "#ffffff");
     if (themeBtn) {
       themeBtn.textContent = t === "dark" ? "🌙" : "☀️";
       themeBtn.title = t === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
@@ -34,7 +38,14 @@ document.addEventListener("DOMContentLoaded", () => {
     innov: "mrcheff.innov",
     innovDate: "mrcheff.innov.date",
     cooked: "mrcheff.cooked",
-    weekmenu: "mrcheff.weekmenu"
+    weekmenu: "mrcheff.weekmenu",
+    // Sync por buzón GitHub (plan-sync-buzon §6): config + estado del protocolo. NUNCA passphrase.
+    tutorial: "mrcheff.tutorial",
+    syncConfig: "mrcheff.sync.config",
+    syncDeviceId: "mrcheff.sync.deviceId",
+    syncBase: "mrcheff.sync.base",
+    syncPendiente: "mrcheff.sync.pendiente",
+    syncConsumida: "mrcheff.sync.consumida"
   };
 
   const load = (key, def) => {
@@ -86,25 +97,322 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ===== NAVEGACIÓN DE VISTAS =====
+  // El cambio de vista vive en UNA función: la llaman los clicks del topbar y el gesto
+  // swipe (viewpager móvil, sección siguiente) — un solo lugar decide el estado activo.
   const tabs = $$(".tab");
-  tabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      const view = tab.dataset.view;
-      tabs.forEach(t => {
-        t.classList.toggle("active", t === tab);
-        if (t === tab) t.setAttribute("aria-current", "true");
-        else t.removeAttribute("aria-current");
-      });
-      $$(".view").forEach(v => v.classList.toggle("active", v.id === `view-${view}`));
-      // Volver al tab de Recetas sin nada nuevo no debe re-pintar la lista (ineficiente y a ciegas, tal como pide el
-      //que piden los usuarios); solo lo hacemos si ha entrado una receta nueva desde fuera: entonces 'recipes' ya esta sincronizado en
-      // memoria y basta con re-pintar. Ver el origen del flag en el boton estrella de Innovacion (arriba) y la
-      // invariante final que lo limpia, dentro de renderRecipes().
-      if (view === "recipes" && recetasDirty) {
-        renderRecipes();
-      }
+  // El header sigue al contenido (el pill activo siempre a la vista): .tabs es un scroller-x
+  // interno con scrollbar invisible en móvil y, llegando por swipe a las vistas de la derecha
+  // (p. ej. "Temporada"), el activo quedaba FUERA de la ventana visible — el usuario seguía
+  // viendo "Alimentos y Recetas" en el header tras 4 swipes (bug 2026-10-19, captura 28).
+  // La decisión (centrar + fijar a [0, máximo]) vive en el módulo puro
+  // (scrollIzquierdaParaTab); aquí sólo el metro de DOM y el scroll del scroller.
+  function centrarTabActivo() {
+    const pestaña = tabs.find(t => t.classList.contains("active"));
+    if (!pestaña || pestaña.classList.contains("tab-side")) return;   // el side de backup no vive en .tabs
+    const barra = pestaña.parentElement;
+    if (!barra || barra.clientWidth <= 0) return;
+    const rBarra = barra.getBoundingClientRect();
+    const rTab = pestaña.getBoundingClientRect();
+    const dominio = window.MRCheff && window.MRCheff.swipeTabs;
+    const izquierda = dominio
+      ? dominio.scrollIzquierdaParaTab({
+          dentro: rTab.left - rBarra.left + barra.scrollLeft,
+          anchoVisible: barra.clientWidth,
+          anchoContenido: barra.scrollWidth,
+          anchoTab: rTab.width,
+        })
+      : rTab.left - rBarra.left + barra.scrollLeft - (barra.clientWidth - rTab.width) / 2;
+    if (Math.abs(barra.scrollLeft - izquierda) < 1) return;           // ya está a la vista
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    barra.scrollTo({ left: izquierda, behavior: reduce ? "auto" : "smooth" });
+  }
+  // Memoria de posición vertical POR VISTA del viewpager (petición 2026-10-20): cada tab
+  // recuerda dónde se quedó y el swipe RECUPERA esa posición sin animación; el click
+  // directo en la categoría del topbar es el gesto "empezar de cero" y sube a la parte
+  // superior CON animación — y al salir de esa vista la captura de 0 la resetea por sí
+  // sola (nada de memoria fantasma del click). La memoria (objeto puro) y el default
+  // viven en modules/swipe-tabs.js; aquí sólo el metro del DOM y el punto de captura.
+  const scrollVistas = window.MRCheff && window.MRCheff.swipeTabs.crearMemoriaScroll
+    ? window.MRCheff.swipeTabs : null;
+  const memoriaScroll = scrollVistas ? scrollVistas.crearMemoriaScroll() : {};
+
+  function activarVista(view, origen) {
+    soltarCandadoAlerta();                             // el candado vive sólo dentro de la vista de Alimentos
+    // Captura de la vista SALIENTE antes de tocar las clases: el gesto que cambia de vista
+    // (swipe en touchend / tab click) marca "cómo estaba" el scroll del documento — cuando
+    // activa otra vista cambia el alto del documento (el alto oculto desaparece del canvas).
+    const vistaSaliente = tabs.find(t => t.classList.contains("active"));
+    const idSaliente = vistaSaliente && vistaSaliente.dataset.view;
+    if (scrollVistas && idSaliente && idSaliente !== view) {
+      scrollVistas.recordarScroll(memoriaScroll, idSaliente, window.scrollY);
+    }
+    tabs.forEach(t => {
+      const es = t.dataset.view === view;
+      t.classList.toggle("active", es);
+      if (es) t.setAttribute("aria-current", "true");
+      else t.removeAttribute("aria-current");
     });
+    $$(".view").forEach(v => v.classList.toggle("active", v.id === `view-${view}`));
+    // Volver al tab de Recetas sin nada nuevo no debe re-pintar la lista (ineficiente y a ciegas, tal como pide el
+    //que piden los usuarios); solo lo hacemos si ha entrado una receta nueva desde fuera: entonces 'recipes' ya esta sincronizado en
+    // memoria y basta con re-pintar. Ver el origen del flag en el boton estrella de Innovacion (arriba) y la
+    // invariante final que lo limpia, dentro de renderRecipes().
+    if (view === "recipes" && recetasDirty) {
+      renderRecipes();
+    }
+    // Posición vertical según ORIGEN del cambio: swipe restaura la posición de la vista
+    // (instantáneo: el viewpager no "llega rodando"); click del nav (y cualquier atajo)
+    // sube arriba de forma animada. Reduce-motion: sin animación.
+    const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (origen === "swipe" && scrollVistas) {
+      const altoScrolleable = document.documentElement.scrollHeight - window.innerHeight;
+      const yGuardada = scrollVistas.scrollParaVista(memoriaScroll, view);
+      window.scrollTo(0, Math.max(0, Math.min(yGuardada, Math.max(0, altoScrolleable))));   // RESTAURA: instantáneo
+    } else {
+      try {
+        window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });                // CLICK: arriba animado
+      } catch (e) {
+        window.scrollTo(0, 0);                           // WebView viejo sin options object
+      }
+    }
+    centrarTabActivo();
+  }
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => activarVista(tab.dataset.view));
   });
+
+  // ===== TUTORIAL INTERACTIVO (feature 2026-10-20) =====
+  // Visita guiada por la app para la primera visita (PWA instalable, sin datos): velo
+  // semitransparente con un "foco" libre sobre el elemento del paso, tarjeta explicativa y,
+  // según el paso, avance tocando el elemento real (accionable) o botón Siguiente. El guion y
+  // su máquina viven en el módulo puro modules/tutorial.js; aquí sólo el metro del DOM.
+  // Sale sólo la primera vez (LS mrcheff.tutorial.visto); se reabre con el 🎓 de la cabecera
+  // (idéntico círculo a sus vecinos 🗄️/🌙 y entre ellos, petición explícita).
+  const tut = window.MRCheff && window.MRCheff.tutorial ? window.MRCheff.tutorial : null;
+  const tutorialRaiz = $("#tutorial");
+  const btnTutorial = $("#btn-tutorial");
+  let tutorialActivo = false;
+  let sesionTutorial = null;
+  let pasoEnPantalla = null;            // el paso pintado: a quién atiende el listener global de click
+  const tutorialVelos = tutorialRaiz ? {
+    arriba: $(".tutorial-arriba", tutorialRaiz),
+    izquierda: $(".tutorial-izquierda", tutorialRaiz),
+    derecha: $(".tutorial-derecha", tutorialRaiz),
+    abajo: $(".tutorial-abajo", tutorialRaiz),
+    foco: $("#tutorial-foco"),
+    tarjeta: $("#tutorial-tarjeta"),
+    titulo: $("#tutorial-titulo"),
+    texto: $("#tutorial-texto"),
+    puntos: $("#tutorial-puntos"),
+    pista: $("#tutorial-pista"),
+    avanzar: $("#tutorial-avanzar"),
+    anuncio: $("#tutorial-anuncio"),
+  } : null;
+
+  function tutorialReposicionar() {
+    if (!tutorialActivo || !tutorialVelos || !pasoEnPantalla) return;
+    const paso = pasoEnPantalla;
+    const objetivo = paso.selector ? document.querySelector(paso.selector) : null;
+    const anchoVP = window.innerWidth || document.documentElement.clientWidth;
+    const altoVP = window.innerHeight || document.documentElement.clientHeight;
+    const MARGEN = 8;                     // aire del aro alrededor del elemento señalado
+    if (!objetivo) {                      // sin objetivo: VELO COMPLETO (toda la ventana atenuada) + tarjeta centrada
+      Object.assign(tutorialVelos.arriba.style, { top: "0px", height: altoVP + "px" });   // left/right son 0 por CSS: cubre el ancho entero
+      Object.assign(tutorialVelos.izquierda.style, { width: "0px" });
+      Object.assign(tutorialVelos.derecha.style, { left: anchoVP + "px", width: "0px" });
+      Object.assign(tutorialVelos.abajo.style, { top: altoVP + "px", height: "0px" });
+      Object.assign(tutorialVelos.foco.style, { top: "0px", left: "0px", width: "0px", height: "0px" });
+      tutorialVelos.tarjeta.classList.add("tutorial-centrado");
+      return;
+    }
+    tutorialVelos.tarjeta.classList.remove("tutorial-centrado");
+    const r = objetivo.getBoundingClientRect();
+    const x0 = Math.max(0, r.left - MARGEN), y0 = Math.max(0, r.top - MARGEN);
+    const x1 = Math.min(anchoVP, r.right + MARGEN), y1 = Math.min(altoVP, r.bottom + MARGEN);
+    tutorialVelos.arriba.style.top = "0px";
+    tutorialVelos.arriba.style.height = y0 + "px";
+    tutorialVelos.abajo.style.top = y1 + "px";
+    tutorialVelos.abajo.style.height = Math.max(0, altoVP - y1) + "px";
+    tutorialVelos.izquierda.style.width = x0 + "px";
+    tutorialVelos.izquierda.style.top = y0 + "px";
+    tutorialVelos.izquierda.style.height = (y1 - y0) + "px";
+    tutorialVelos.derecha.style.left = x1 + "px";
+    tutorialVelos.derecha.style.width = Math.max(0, anchoVP - x1) + "px";
+    tutorialVelos.derecha.style.top = y0 + "px";
+    tutorialVelos.derecha.style.height = (y1 - y0) + "px";
+    Object.assign(tutorialVelos.foco.style, { top: y0 + "px", left: x0 + "px", width: (x1 - x0) + "px", height: (y1 - y0) + "px" });
+
+    // Tarjeta: debajo del foco si hay sitio; si no, encima. Clamp a los márgenes del viewport.
+    const altoTarjeta = tutorialVelos.tarjeta.offsetHeight || 150;
+    const anchoTarjeta = Math.min(tutorialVelos.tarjeta.offsetWidth || 300, 320);
+    let cardY = r.bottom + 12;
+    if (cardY + altoTarjeta > altoVP - 12) cardY = Math.max(12, r.top - 12 - altoTarjeta);
+    if (cardY + altoTarjeta > altoVP - 12) cardY = Math.max(12, altoVP - 12 - altoTarjeta);
+    let cardX = Math.max(12, Math.min(r.left + r.width / 2 - anchoTarjeta / 2, anchoVP - anchoTarjeta - 12));
+    Object.assign(tutorialVelos.tarjeta.style, { top: cardY + "px", left: cardX + "px" });
+  }
+
+  function pintarPasoTutorial() {
+    if (!tut || !tutorialVelos || !sesionTutorial) return;
+    const paso = tut.pasoActual(sesionTutorial);
+    if (!paso) { cerrarTutorial(true); return; }
+    pasoEnPantalla = paso;
+    if (paso.vista) {                                  // la vista del paso salta si toca cambiar (sin scroll-top si ya está aquí)
+      const activa = document.querySelector(".view.active");
+      if (!activa || activa.id !== "view-" + paso.vista) activarVista(paso.vista);
+    }
+    tutorialVelos.titulo.textContent = paso.titulo;
+    tutorialVelos.texto.textContent = paso.texto;
+    const objetivo = paso.selector ? document.querySelector(paso.selector) : null;
+    const accionable = !!(paso.accionable && objetivo);   // contrato del módulo (vista/selector/accionable)
+    tutorialVelos.pista.classList.toggle("hidden", !accionable);
+    const total = tut.totalPasos();
+    const esUltimo = tut.numero(sesionTutorial) >= total;
+    tutorialVelos.avanzar.classList.toggle("hidden", accionable);
+    tutorialVelos.avanzar.textContent = paso.cta || (esUltimo ? "Terminar" : "Siguiente");
+    // Puntos de progreso: uno por paso, el activo en pill de marca (dimensiones por CSS).
+    tutorialVelos.puntos.innerHTML = "";
+    for (let i = 0; i < total; i++) {
+      const punto = document.createElement("span");
+      if (i === tut.numero(sesionTutorial) - 1) punto.className = "activo";
+      tutorialVelos.puntos.appendChild(punto);
+    }
+    if (tutorialVelos.anuncio) {
+      tutorialVelos.anuncio.textContent = `Paso ${tut.numero(sesionTutorial)} de ${total}: ${paso.titulo}`;
+    }
+    // Colocar el objetivo en la ventana y medir con el layout YA hecho (el scrollIntoView puede
+    // animar: el listener de scroll reposiciona el foco durante el vuelo).
+    if (objetivo) {
+      try {
+        const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        objetivo.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+      } catch (e) {
+        try { objetivo.scrollIntoView(); }              // WebView viejo sin options object
+        catch (e2) { /* sin scrollIntoView (entorno de prueba): el paso sigue igual */ }
+      }
+    }
+    // El frame inicial del reposicionado (el listener de scroll ya cubre el vuelo del
+    // scrollIntoView animado). Fallback a setTimeout para WebViews sin requestAnimationFrame.
+    const raf = typeof window.requestAnimationFrame === "function" ? window.requestAnimationFrame : (fn) => setTimeout(fn, 16);
+    raf(tutorialReposicionar);
+  }
+
+  function abrirTutorial() {
+    if (!tut || !tutorialRaiz || !tutorialVelos) return;
+    sesionTutorial = tut.sesionNueva();
+    tutorialActivo = true;
+    tutorialRaiz.classList.remove("hidden");
+    window.addEventListener("scroll", tutorialReposicionar, { passive: true, capture: true });
+    window.addEventListener("resize", tutorialReposicionar, { passive: true });
+    document.addEventListener("keydown", tutorialTecla);
+    pintarPasoTutorial();
+  }
+
+  function tutorialTecla(e) {
+    if (e.key === "Escape") cerrarTutorial(true);
+  }
+
+  // El click que avanza es un listener GLOBAL de captura: el toque sigue su curso natural
+  // (el botón o input REAL ejecuta su función) y el tutorial sólo cuenta el paso. No se usa
+  // stopPropagation: no hay objetivos del tutorial que abran modales. Guard extra: un selector
+  // del guion mal escrito ·closest lanza SyntaxError· no puede romper el click de la app.
+  document.addEventListener("click", (e) => {
+    if (!tutorialActivo || !pasoEnPantalla || !pasoEnPantalla.accionable || !e.target.closest) return;
+    if (e.target.closest("#tutorial-tarjeta")) return;   // la tarjeta es salida, no "el objetivo del paso"
+    let objetivo = null;
+    try { objetivo = e.target.closest(pasoEnPantalla.selector); } catch (err) { return; }
+    if (!objetivo) return;
+    avanzarPasoTutorial();
+  }, true);
+
+  function avanzarPasoTutorial() {
+    if (!tut || !sesionTutorial) return;
+    tut.avanzar(sesionTutorial);
+    pintarPasoTutorial();
+  }
+
+  function cerrarTutorial(marcarVisto) {
+    if (!tutorialRaiz) return;
+    window.removeEventListener("scroll", tutorialReposicionar, { capture: true });
+    window.removeEventListener("resize", tutorialReposicionar);
+    document.removeEventListener("keydown", tutorialTecla);
+    tutorialActivo = false;
+    pasoEnPantalla = null;
+    sesionTutorial = null;
+    tutorialRaiz.classList.add("hidden");
+    if (marcarVisto) save(LS.tutorial, { visto: true });
+  }
+
+  if (tutorialVelos) {
+    $("#tutorial-cerrar", tutorialRaiz).addEventListener("click", () => cerrarTutorial(true));
+    $("#tutorial-avanzar", tutorialRaiz).addEventListener("click", avanzarPasoTutorial);
+  }
+  if (btnTutorial) btnTutorial.addEventListener("click", abrirTutorial);
+
+  // ===== GESTOS DEL NAVEGADOR (bloqueo de ZOOM en el PWA móvil) =====
+  // El viewport meta (maximum-scale=1, user-scalable=no) bloquea el pinch en Chromium.
+  // iOS ignora user-scalable=no desde iOS 10: se remata con los eventos privados
+  // gesturestart/gesturechange — preventDefault impide el pinch del standalone.
+  document.addEventListener("gesturestart", (e) => e.preventDefault());
+  document.addEventListener("gesturechange", (e) => e.preventDefault());
+
+  // ===== GESTO SWIPE ENTRE VISTAS (viewpager móvil) =====
+  // En el móvil la página entera se desplazaba horizontalmente al arrastrar el dedo.
+  // Ahora (feature 2026-10-18): deslizar de lado DENTRO del contenido cambia a la vista
+  // vecina, estilo viewpager de Android. La DECISIÓN (umbral/dirección/vecina con wrap)
+  // vive en el módulo puro modules/swipe-tabs.js (tests en tests/swipe-tabs.test.js);
+  // aquí sólo el wiring touch y las exclusiones: nada de swipes por encima de inputs,
+  // botones, enlaces, textareas o de cualquier scroller-x interno que haya en la vista.
+  // A11y: el swipe cambia de vista SIN foco — el cambio se anuncia por la región viva
+  // #aviso-vista (sr-only) para que el lector de pantalla siga al usuario (#2 task zoom/a11y).
+  const swipeApi = window.MRCheff && window.MRCheff.swipeTabs;
+  const zonaSwipe = $(".content");
+  if (swipeApi && zonaSwipe) {
+    // El carrusel del viewpager son las 5 pestañas del nav: el tab LATERAL de Copia de
+    // respaldo (backup, icono compacto del clúster derecho) NO entra — no es una parada
+    // horizontal, es un atajo lateral (desde él el swipe simplemente no cambia de vista).
+    const ORDEN_VISTAS = tabs.filter(t => !t.classList.contains("tab-side")).map(t => t.dataset.view);
+    let swipeX = 0, swipeY = 0, swipeVivo = false;
+
+    zonaSwipe.addEventListener("touchstart", (e) => {
+      swipeVivo = false;
+      if (tutorialActivo) return;                              // visita guiada: carrusel en pausa (el velo se traga los toques fuera del foco)
+      if (e.touches.length !== 1) return;                       // multi-dedo: no es un swipe
+      const objetivo = e.target;
+      if (objetivo.closest && objetivo.closest("input, textarea, select, button, a, [contenteditable='true']")) return;
+      let el = objetivo;                                        // el gesto NO se apodera de un scroller-x interno
+      while (el && el !== zonaSwipe) {
+        const st = getComputedStyle(el);
+        if (st.overflowX === "auto" || st.overflowX === "scroll") return;
+        el = el.parentElement;
+      }
+      swipeX = e.touches[0].clientX;
+      swipeY = e.touches[0].clientY;
+      swipeVivo = true;
+    }, { passive: true });
+
+    zonaSwipe.addEventListener("touchend", (e) => {
+      if (!swipeVivo) return;
+      swipeVivo = false;
+      const dir = swipeApi.dirDeGesto(
+        e.changedTouches[0].clientX - swipeX,
+        e.changedTouches[0].clientY - swipeY
+      );
+      if (!dir) return;
+      const actual = tabs.find(t => t.classList.contains("active"));
+      const destino = swipeApi.vecina(ORDEN_VISTAS, actual && actual.dataset.view, dir);
+      if (destino) {
+        activarVista(destino, "swipe");          // la captura de la vista saliente vive DENTRO de activarVista
+        // El gesto no mueve el foco: anuncio silencioso del cambio para lectores de pantalla.
+        const aviso = document.getElementById("aviso-vista");
+        if (aviso) {
+          const pestaña = tabs.find(t => t.dataset.view === destino);
+          const etiqueta = pestaña ? pestaña.textContent.replace(/^[^\p{L}\p{N}]+/u, "").trim() : destino;
+          aviso.textContent = `Vista: ${etiqueta}`;
+        }
+      }
+    }, { passive: true });
+  }
 
   // ===== ALIMENTOS =====
   const foodForm = $("#food-form");
@@ -221,24 +529,109 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ---- Rediseño 2026-10-19 de la alerta semanal: cap FÍSICO a 8 filas + candado de scroll ----
+  // buildWeeklyAlert ya recorta en el módulo (antes escondía el 9º pendiente en adelante): ahora el límite
+  // es de ALTO — con 8+ pendientes la lista se cap a 8 filas y scrollea DENTRO de sí. El candado (arriba a
+  // la derecha) congela el scroll del DOCUMENTO mientras está activo (clase `scroll-candado` SOLO en <html>:
+  // el overflow del html se propaga al viewport sin romper el sticky del topbar; en body rompería el header,
+  // ver el fix del overflow-x del 2026-10-19). Ni candado ni scroll salen con menos de 8 items.
+  // El candado es SÓLO MÓVIL: en escritorio la rueda recorre la lista sin ayuda y no hace falta
+  // congelar la página — en desktop la UI ni lo pinta (afinación de 2026-10-19 tras probarlo).
+  let candadoAlertaActivo = false;
+
+  // ¿Es la versión móvil? Corte +≤820px, el mismo que usa el header al volver a flex.
+  // `window.__mrcheffEsMovil` es inyección de TEST (igual que `__mrcheffCryptoImpl`, §6): jsdom no
+  // evalúa mediaqueries de layout, así que la suite decide movilidad por inyección.
+  function esMovil() {
+    if (typeof window.__mrcheffEsMovil === "boolean") return window.__mrcheffEsMovil;
+    try {
+      if (typeof window.matchMedia !== "function") return false;    // entorno sin layout (jsdom p. ej.)
+      return window.matchMedia("(max-width: 820px)").matches;
+    } catch { return false; }
+  }
+
+  function soltarCandadoAlerta() {
+    candadoAlertaActivo = false;
+    document.documentElement.classList.remove("scroll-candado");
+  }
+
+  // Pero al cruzar el corte móvil↔desktop (rotar tablet, estirar la ventana) ni candado rancio
+  // ni página congelada: se suelta y se repinta para que la UI viva de verdad.
+  // (entornos sin matchMedia — jsdom p. ej. —: sin listener y sin romper el arranque)
+  const mqMovil = typeof window.matchMedia === "function" ? window.matchMedia("(max-width: 820px)") : null;
+  const alCruzarMovil = () => { soltarCandadoAlerta(); renderWeeklyAlert(); };
+  if (mqMovil) {
+    if (typeof mqMovil.addEventListener === "function") mqMovil.addEventListener("change", alCruzarMovil);
+    else if (typeof mqMovil.addListener === "function") mqMovil.addListener(alCruzarMovil);   // Safari viejo
+  }
+
   function renderWeeklyAlert() {
-    // La DECISIÓN de qué entra la alerta y cómo se presenta (nivel/icono/título/orden/CAPA a 8) es lógica PURe extraída a
-    // modules/priority.js → buildWeeklyAlert. Aquí sólo PINTAMOS el HTML resultante (§2-D DIp: separar decidir del render).
+    // La DECISIÓN de qué entra la alerta y cómo se presenta (nivel/icono/título/orden — lista COMPLETA ya sin
+    // recortar) es lógica pura extraída a modules/priority.js → buildWeeklyAlert. Aquí sólo pintamos el HTML
+    // resultante y el cap físico de alto (§2-D DIP: separar decidir del render).
     const m = buildWeeklyAlert(foods);
-    if (!m.show) { weeklyAlert.className = "card alert-card hidden"; weeklyAlert.innerHTML = ""; return; }
+    if (!m.show) {
+      soltarCandadoAlerta();
+      weeklyAlert.className = "card alert-card hidden";
+      weeklyAlert.innerHTML = "";
+      return;
+    }
 
     // El color de la alerta lo marca la importancia del alimento MÁS URGENTE → ya resuelto por `m.level`/icon/título, pero el
     // per-fila todavía consulta urgencyLevel(f.score) para su propio badge, idéntico al código heredado.
     weeklyAlert.className = `card alert-card alert-${m.level}`;
+    const conScroll = m.items.length >= 8;    // a partir de 8: cap de alto + scroll interno (desktop y móvil)
+    const hayCandado = conScroll && esMovil(); // candado: SOLO móvil (en desktop ni se pinta)
     weeklyAlert.innerHTML = `
-      <h3>${m.icon} ${m.title}</h3>
-      <ul class="alert-list-${m.level}">
-        ${m.items.map(f => `
-          <li class="alert-row urg-${urgencyLevel(f.score)}">
-            <span class="alert-name"><strong>${escapeHTML(f.name)}</strong></span>
-            <span class="alert-meta">tienes <b>${f.qty ?? 0}</b> · mínimo <b>${f.min ?? 0}</b> · importancia <b>${f.score}/10</b></span>
-          </li>`).join("")}
-      </ul>`;
+      <div class="alert-cabecera">
+        <h3>${m.icon} ${m.title}</h3>
+        ${hayCandado ? `<button id="candado-alerta" class="btn ghost small" aria-pressed="false" aria-label="Candado del scroll de la página" title="Congelar el scroll de la página y recorrer esta lista con el dedo">🔓</button>` : ""}
+      </div>
+      <div class="alert-scroll">
+        <ul class="alert-list-${m.level}">
+          ${m.items.map(f => `
+            <li class="alert-row urg-${urgencyLevel(f.score)}">
+              <span class="alert-name"><strong>${escapeHTML(f.name)}</strong></span>
+              <span class="alert-meta">tienes <b>${f.qty ?? 0}</b> · mínimo <b>${f.min ?? 0}</b> · importancia <b>${f.score}/10</b></span>
+            </li>`).join("")}
+        </ul>
+      </div>`;
+
+    // SUELTA el candado antes que nada (menos de 8 items en móvil, o desktop: candado sólo móvil).
+    if (!hayCandado) soltarCandadoAlerta();
+    // Cap EXACTO a 8 filas medido del DOM — INDEPENDIENTE del candado (también en desktop): las
+    // filas varían de alto (envoltura del texto), no hay valor CSS fijo que dé siempre 8. Si el
+    // render llega con la vista OCULTA (display:none al cambiar de tab, p. ej. importar en backup)
+    // las medidas salen a 0: se queda el retén del CSS.
+    const ulAlerta = weeklyAlert.querySelector(".alert-scroll ul");
+    const fila8 = ulAlerta.children[7];
+    if (fila8) {
+      const fila1 = ulAlerta.children[0].getBoundingClientRect();
+      const fila8b = fila8.getBoundingClientRect();
+      if (fila1.height > 0 && fila8b.height > 0) {
+        weeklyAlert.querySelector(".alert-scroll").style.maxHeight = Math.ceil(fila8b.bottom - fila1.top) + "px";
+      }
+    }
+    const btnCandado = weeklyAlert.querySelector("#candado-alerta");
+    if (!btnCandado) {
+      return;                                           // sin candado (desktop o <8): nada más que engarzar
+    }
+    // El candado SOBREVIVE a los re-renders mientras la lista siga con 8+: tocar ➕/➖/✅ dentro
+    // de la lista no debe dejar la página desatada. Se suelta por botón, por cambio de vista o
+    // si la lista cae bajo 8.
+    if (candadoAlertaActivo) {
+      document.documentElement.classList.add("scroll-candado");
+      btnCandado.textContent = "🔒";
+      btnCandado.setAttribute("aria-pressed", "true");
+    }
+    btnCandado.addEventListener("click", () => {
+      candadoAlertaActivo = document.documentElement.classList.toggle("scroll-candado");
+      btnCandado.textContent = candadoAlertaActivo ? "🔒" : "🔓";
+      btnCandado.setAttribute("aria-pressed", String(candadoAlertaActivo));
+      btnCandado.title = candadoAlertaActivo
+        ? "Suelta el candado para volver a scrollear la página"
+        : "Congelar el scroll de la página y recorrer esta lista con el dedo";
+    });
   }
 
   // ===== ESCÁNER DE DESPENSA (OCR EN EL NAVEGADOR) =====
@@ -419,8 +812,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const mealLabels = { desayuno: "🌅 Desayuno", comida: "🍽️ Comida", cena: "🌙 Cena" };
 
   // ===== BUSCADOR DEL CATÁLOGO (feature 2026-10-18, card entre crear receta y Mis Recetas) =====
-  // TODA la decisión (normalizar consulta vía el matcher compartido, score por título x3 /
-  // ingrediente x1, orden estable, límite) vive en el módulo puro modules/busqueda-recetas.js;
+  // TODA la decisión (normalizar consulta vía el matcher compartido, match de TÍTULO SÓLO —
+  // exacto x3 / prefijo x2, fix 2026-10-20: los ingredientes ya no puntúan —, orden estable,
+  // límite) vive en el módulo puro modules/busqueda-recetas.js;
   // aquí sólo el molde de tarjetas (igual que las de Mis Recetas) y el click → modal de detalle.
   function renderBusquedaCatalogo() {
     const q = recipeCatalogSearch.value;
@@ -430,8 +824,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const hits = busqueda.resultados;
     recipeCatalogResults.innerHTML = "";
     recipeCatalogEmpty.classList.toggle("hidden", !(busqueda.tokens.length && hits.length === 0));
-    hits.forEach(({ receta: r, hitsTitulo, hitsIngredientes }) => {
-      const donde = hitsTitulo.length ? "en el título" : "en los ingredientes";
+    hits.forEach(hit => {
+      const r = hit.receta;
       const card = document.createElement("div");
       card.className = "recipe-card";
       card.dataset.id = r.id;
@@ -440,7 +834,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="recipe-meta">
           <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
           ${badgeOrigenHTML(r)}
-          <span class="muted" style="font-size:.8rem">${escapeHTML(donde)}</span>
+          ${badgeSyncHTML(r)}
         </div>`;
       card.setAttribute("role", "button");
       card.setAttribute("aria-label", "Ver detalles de " + r.title);
@@ -564,6 +958,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="recipe-meta">
           <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
           ${badgeOrigenHTML(r)}
+          ${badgeSyncHTML(r)}
           <span class="muted" style="font-size:.8rem">${r.ingredients.length} ingr.</span>
         </div>`;
       // Abrir detalle al hacer click en la tarjeta (el lápiz abre el EDITOR directamente: para eso está;
@@ -613,6 +1008,93 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalContent = $("#modal-content");
   const modalBox = $(".modal-box", modal);
 
+  // ---------- Consejero del botón (explicación breve desktop + táctil) ----------
+  // Desktop: se ve con ENVESAR el botón (o al llegarle el foco) y se VA al salir; móvil:
+  // LONG-PRESS de 450 ms — se lee el consejo mientras se mantiene el dedo, al SOLTAR se
+  // va y ese toque largo NO acaba accionando el botón (se consultó, no se usó). Todo
+  // delegado en #modal-content: cada botón nuevo con data-tip lo hereda sin wiring.
+  let tipChefEl = null;
+  function tipChef() {
+    if (!tipChefEl) {
+      tipChefEl = document.createElement("div");
+      tipChefEl.id = "tip-chef";
+      tipChefEl.className = "tip-chef";
+      tipChefEl.setAttribute("role", "tooltip");
+      document.body.appendChild(tipChefEl);
+    }
+    return tipChefEl;
+  }
+  function mostrarTip(btn) {
+    if (!btn || !btn.dataset || !btn.dataset.tip) return;
+    const tip = tipChef();
+    tip.textContent = btn.dataset.tip;                       // textos propios, nunca dato del usuario
+    const r = btn.getBoundingClientRect();
+    const cabeArriba = r.top > 48;                           // píldora ~36px + huelgo
+    tip.style.left = "0px";                                  // fuera de pantalla para medir sin parpadeo
+    tip.style.top = "0px";
+    tip.style.visibility = "hidden";
+    tip.classList.add("show");
+    const tr = tip.getBoundingClientRect();
+    let x = r.left + r.width / 2 - tr.width / 2;
+    x = Math.min(Math.max(8, x), Math.max(8, window.innerWidth - tr.width - 8));
+    tip.style.left = Math.round(x) + "px";
+    tip.style.top = Math.round(cabeArriba ? r.top - tr.height - 8 : r.bottom + 8) + "px";
+    tip.style.visibility = "";
+  }
+  function ocultarTip() {
+    if (tipChefEl) tipChefEl.classList.remove("show");
+  }
+
+  let suprimirTrasToqueLargo = false;
+  (function consejosDeBotones(raiz) {
+    if (!raiz || typeof raiz.addEventListener !== "function") return;
+    raiz.addEventListener("mouseover", (e) => {              // desktop: envesar
+      const b = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (b) mostrarTip(b);
+    });
+    raiz.addEventListener("mouseout", (e) => {               // desktop: quitar el ratón
+      const b = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (b) ocultarTip();
+    });
+    raiz.addEventListener("focusin", (e) => {                // teclado: el consejo llega con el foco
+      const b = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (b) mostrarTip(b);
+    });
+    raiz.addEventListener("focusout", ocultarTip);
+    let toque = null;                                        // táctil: long-press
+    raiz.addEventListener("touchstart", (e) => {
+      const b = e.target && e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (!b) return;
+      suprimirTrasToqueLargo = false;                        // contacto NUEVO: se confía en él de nuevo
+      toque = { btn: b, largo: false };
+      toque.timer = setTimeout(() => {
+        toque.largo = true;
+        mostrarTip(b);
+        if (navigator.vibrate) navigator.vibrate(10);
+      }, 450);
+    }, { passive: true });
+    const finToque = () => {
+      if (!toque) return;
+      clearTimeout(toque.timer);
+      if (toque.largo) {
+        ocultarTip();
+        suprimirTrasToqueLargo = true;                       // el click que sigue a leer NO acciona
+      }
+      toque = null;
+    };
+    raiz.addEventListener("touchend", finToque);
+    raiz.addEventListener("touchcancel", finToque);
+    // captura: se interviene ANTES de que cualquier listener del botón vea el click
+    raiz.addEventListener("click", (e) => {
+      if (!suprimirTrasToqueLargo) return;
+      suprimirTrasToqueLargo = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+    // el consejo es fijo: si algo scrollea, el botón se mueve — mejor retirarlo
+    document.addEventListener("scroll", ocultarTip, true);
+  })(modalContent);
+
   // Accesibilidad del modal: al abrir se recuerda el control que lo llamó (para devolverle el
   // foco al cerrar) y se anuncia un nombre por aria-label; al cerrar el foco vuelve a su sitio.
   // Sólo glue de vista: la decisión de qué se muestra sigue viniendo de cada aceptor.
@@ -620,6 +1102,12 @@ document.addEventListener("DOMContentLoaded", () => {
   function abrirModal(tituloAccesible) {
     const activo = document.activeElement;
     focoAntesDeModal = (activo && typeof activo.focus === "function") ? activo : null;
+    // En móvil, scrollear DENTRO del modal no debe arrastrar a la lista de debajo
+    // (scroll chaining): el modal-box lleva overscroll-behavior:contain en CSS y, además,
+    // congelamos el scroll del documento mientras el modal está abierto. La clase va al
+    // documentElement TAMBIÉN: en Android el scroller del documento es <html>, no <body>.
+    document.documentElement.classList.add("modal-abierto");
+    document.body.classList.add("modal-abierto");
     if (tituloAccesible) modalBox.setAttribute("aria-label", tituloAccesible);
     modal.classList.remove("hidden");
   }
@@ -652,9 +1140,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const enMisRecetas = recipeEditor.estaGuardada(recipes, r);
     modalContent.innerHTML = `
       <h2>${escapeHTML(r.title)}</h2>
+      <div class="receta-linea" aria-hidden="true"></div>
       <div class="recipe-meta">
         <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
         ${badgeOrigenHTML(r)}
+        ${badgeSyncHTML(r)}
         ${tagClasicoHTML(r, "Idea")}
       </div>
       ${r.from ? `<p class="muted">Base: ${escapeHTML(r.from)}</p>` : ""}
@@ -671,8 +1161,8 @@ document.addEventListener("DOMContentLoaded", () => {
       <ol>${r.method.map(m => `<li>${escapeHTML(limpiarPaso(m))}</li>`).join("")}</ol>
       <div class="modal-footer">
         <button class="btn ghost" data-close>Cerrar</button>
-        <button class="btn ghost" data-edit title="Ajusta el título, los ingredientes o los pasos a tu gusto">${enMisRecetas ? "✏️ Editar" : "✏️ Editar y guardar"}</button>
-        <button class="btn ghost" data-cook title="Anota que la has cocinado hoy: entra en cooldown de 7 días y no se volverá a sugerir">🍳 Cocinar hoy</button>
+        <button class="btn ghost" data-edit>${enMisRecetas ? "✏️ Editar" : "✏️ Editar y guardar"}</button>
+        <button class="btn ghost" data-cook data-tip="Anota que la has cocinado hoy: 7 días sin volverse a sugerir">🍳 Cocinar hoy</button>
         <button class="btn primary" data-copy>📋 Copiar</button>
       </div>`;
     abrirModal("Detalle de receta: " + r.title);
@@ -756,7 +1246,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function closeModal() {
     modal.classList.add("hidden");
+    document.documentElement.classList.remove("modal-abierto");
+    document.body.classList.remove("modal-abierto");
     if (focoAntesDeModal) { focoAntesDeModal.focus(); focoAntesDeModal = null; }
+    // El botón con consejero desaparece (además el foco salta al DOM): sin mouseout/focusout,
+    // la píldora se quedaría ahí por encima de lo que abra después (2026-10-20).
+    const tipChef = document.getElementById("tip-chef");
+    if (tipChef) tipChef.classList.remove("show");
   }
   $$("[data-close]").forEach(el => el.addEventListener("click", closeModal));
   document.addEventListener("keydown", (e) => {
@@ -898,6 +1394,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="recipe-meta">
           <span class="tag meal-${i.meal}">${mealLabels[i.meal]}</span>
           ${badgeOrigenHTML(i)}
+          ${badgeSyncHTML(i)}
           ${i.source === "curada" ? "" : `<span class="tag tag-${i.source}">${SOURCE_LABEL[i.source] || "Nueva"}</span>`}
         </div>
         ${i.uses && i.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${i.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
@@ -923,7 +1420,8 @@ document.addEventListener("DOMContentLoaded", () => {
         e.stopPropagation();
         const idea = innovations.find(x => x.id === btn.dataset.save);
         if (!idea) return;
-        recipes.push({ id: uid(), title: idea.title, meal: idea.meal, ingredients: idea.ingredients.slice(), method: idea.method.slice(), createdAt: Date.now(), ...(origenAlGuardar(idea)) });
+        // editedAt ISO (sync-buzon §1): toda ruta que CREA/EDITA una receta guarda su marca de edición estable.
+        recipes.push({ id: uid(), title: idea.title, meal: idea.meal, ingredients: idea.ingredients.slice(), method: idea.method.slice(), createdAt: Date.now(), editedAt: new Date().toISOString(), ...(origenAlGuardar(idea)) });
         save(LS.recipes, recipes);
         // No repintamos la vista "Recetas" a ciegas aqui (probablemente estamos mirando Innovacion ahora y su lista
         // iria oculta/innecesaria de pintar): solo marcamos la vista como sucia. El propio cambio de tab al volver a
@@ -977,6 +1475,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="recipe-meta">
           <span class="tag meal-${idea.meal}">${mealLabels[idea.meal] || ""}</span>
           ${badgeOrigenHTML(idea)}
+          ${badgeSyncHTML(idea)}
         ${tagClasicoHTML(idea, SOURCE_LABEL.sugerenciaHoy)}
         </div>
         ${idea.uses && idea.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${idea.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
@@ -1083,6 +1582,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <h4 class="menu-meal-title">${escapeHTML(rec.title)}</h4>
         <div class="recipe-meta">
           ${badgeOrigenHTML(rec)}
+          ${badgeSyncHTML(rec)}
           ${tagClasicoHTML(rec, SOURCE_LABEL.sugerenciaHoy)}
           <span class="muted" style="font-size:.8rem">${rec.ingredients.length} ingr.</span>
         </div>
@@ -1213,29 +1713,73 @@ document.addEventListener("DOMContentLoaded", () => {
           <li class="alert-row urg-${urg}">
             <span class="alert-name"><strong>${escapeHTML(item.name)}</strong></span>
             <span class="alert-meta">qty <b>${item.qty}</b> · mínimo <b>${item.min}</b> · importante <b>${item.score}/10</b> ${escapeHTML(cuando)}</span>
-            <button class="btn ghost small" data-buy="${escapeHTML(item.name)}" title="Marcar como comprada">✅ comprado</button>
+            <span class="alert-acciones">
+              ${(menuSemanal.candidatosDespensa(item.name, foods)).length
+                ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.name)}" title="¿Ya lo tienes en la despensa con otro nombre?">🛒 Despensa?</button>`
+                : ""}
+              <button class="btn ghost small" data-buy="${escapeHTML(item.name)}" title="Marcar como comprada">✅ comprado</button>
+            </span>
           </li>`;
         }).join("")}
       </ul>`;
     shoppingListEl.querySelectorAll("[data-buy]").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
-        // 2026-10-18: NO se cuela ya el alimento con qty 0 / score 5 — se PREGUNTA cuánto se ha
-        // comprado y con qué importancia (modal). La decisión de añadir/actualizar vive en el
-        // módulo puro menuSemanal.markItemBought(..., compra); aquí sólo el molde del diálogo.
-        const name = btn.dataset.buy;
+        abrirModalCompra(btn.dataset.buy);
+      });
+    });
+    // FEATURE 2026-10-19 "🛒 Despensa?": variantes del mismo alimento que el casador de tokens
+    // sóla une ("Jamón serrano" ↔ "Jamón ibérico", "Pan de pueblo" ↔ "Pan"). Los candidatos los
+    // decide el módulo puro (menuSemanal.candidatosDespensa) — sin ellos el botón ni sale — y la
+    // ÚLTIMA PALABRA la tiene la persona: el diálogo lista las opciones y confirma una a una.
+    shoppingListEl.querySelectorAll("[data-despensa]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const itemName = btn.dataset.despensa;
+        const candidatos = menuSemanal.candidatosDespensa(itemName, foods);
+        if (!candidatos.length) return;
+        modalContent.innerHTML = `
+        <h2>🛒 ¿Despensa?</h2>
+        <p class="muted">Posible alimento identificado en tu despensa — confirma si "<strong>${escapeHTML(itemName)}</strong>" es alguno de estos:</p>
+        <div class="despensa-elegir">
+          ${candidatos.map(c => `
+            <button class="btn ghost" data-despensa-elegir="${escapeHTML(c.name)}">${escapeHTML(c.name)} <span class="muted">· tienes ${c.qty ?? 0}</span></button>`).join("")}
+        </div>
+        <div class="modal-footer">
+          <button class="btn ghost" data-close>Cancelar (nada cambia)</button>
+        </div>`;
+        abrirModal("¿Ya está en tu despensa? " + itemName);
+        $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+        $$("[data-despensa-elegir]", modalContent).forEach(b =>
+          b.addEventListener("click", () => abrirModalCompra(itemName, b.dataset.despensaElegir)));
+      });
+    });
+
+    // 2026-10-18: NO se cuela el alimento con qty 0 / score 5 — se PREGUNTA cuánto se ha comprado
+    // y con qué importancia. La decisión de añadir/actualizar vive en el módulo puro
+    // (menuSemanal.markItemBought / markItemBoughtComo); aquí sólo el molde del diálogo.
+    // 2026-10-19: 2º parámetro `nombreDespensa` = el usuario confirmó en "🛒 Despensa?" que el
+    // ítem es una variante de ESE alimento ya guardado: la compra va a él IN-SITU, sin alta nueva,
+    // y el modal ABRIR ya carga el MÍNIMO y la IMPORTANCIA del alimento de despensa (afinación del
+    // mismo día: la despensa ya tenía su criterio de alerta — no re-preguntar de cero).
+    function abrirModalCompra(name, nombreDespensa) {
+        const objetivo = nombreDespensa ? foods.find(f => f.name === nombreDespensa) : null;
+        const minPrevio = (objetivo && Number.isFinite(objetivo.min) && objetivo.min != null) ? objetivo.min : 1;
+        const scorePrevio = (objetivo && Number.isFinite(objetivo.score) && objetivo.score != null) ? objetivo.score : 5;
         modalContent.innerHTML = `
         <h2>✅ ¿Comprado?</h2>
-        <p class="muted">"<strong>${escapeHTML(name)}</strong>" se añadirá a la despensa con estos datos:</p>
+        <p class="muted">"<strong>${escapeHTML(name)}</strong>"${nombreDespensa
+          ? ` se anota en la que ya tienes: <strong>${escapeHTML(nombreDespensa)}</strong> — misma cosa con otra variante, sin crear un alimento nuevo, con estos datos:`
+          : " se añadirá a la despensa con estos datos:"}</p>
         <div class="recipe-edit">
           <label for="compra-qty">Cantidad comprada
             <input type="number" id="compra-qty" min="1" step="1" value="1">
           </label>
           <label for="compra-min">Cantidad mínima para la alerta de reponer
-            <input type="number" id="compra-min" min="0" step="1" value="1" title="Cuando baje de aquí te avisamos">
+            <input type="number" id="compra-min" min="0" step="1" value="${escapeHTML(String(minPrevio))}" title="Cuando baje de aquí te avisamos">
           </label>
           <label for="compra-score">Importancia (1–10)
-            <input type="number" id="compra-score" min="1" max="10" step="1" value="5">
+            <input type="number" id="compra-score" min="1" max="10" step="1" value="${escapeHTML(String(scorePrevio))}">
           </label>
         </div>
         <div class="modal-footer">
@@ -1264,7 +1808,13 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
           }
           const compra = { qty, score, ...(min !== null ? { min } : {}) };
-          const result = menuSemanal.markItemBought(foods, weeklyMenu, name, uid, Date.now(), compra);
+          const result = nombreDespensa
+            ? menuSemanal.markItemBoughtComo(foods, weeklyMenu, name, nombreDespensa, compra)
+            : menuSemanal.markItemBought(foods, weeklyMenu, name, uid, Date.now(), compra);
+          if (nombreDespensa && !result) {           // guard del módulo: objetivo no hallado → NADA se escribe
+            toast("No se encontró ese alimento en la despensa", "error");
+            return;
+          }
           if (result.actualizado) {
             toast(`"${escapeHTML(name)}" actualizado en la despensa (qty ${qty})`);
           } else if (!result.alreadyExists) {
@@ -1283,8 +1833,7 @@ document.addEventListener("DOMContentLoaded", () => {
           renderShoppingList();
           closeModal();
         });
-      });
-    });
+    }
   }
 
   btnMenuGenerate.addEventListener("click", () => {
@@ -1410,7 +1959,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // sólo orquestamos: guardar (save) + re-renderizar + toast. Los dos "aliases" locales dejan intocados los call-sites existentes
   // ("buildBackup()" / "backupFilename()") delegando en el módulo — sin tocar ni una línea de esos handlers.
   const buildBackApi = window.MRCheff.backup;
-  const buildBackup  = () => buildBackApi.buildBackup({ foods, recipes, innovations, innovDay });
+  const buildBackup  = () => buildBackApi.buildBackup({ foods, recipes, innovations, innovDay, cooked: load(LS.cooked, []), weekmenu: load(LS.weekmenu, null) });
   const backupFilename = () => buildBackApi.makeFilename();   // hora REAL por defecto inyectable por el módulo (tests §6)
 
   const btnExport = $("#btn-export");
@@ -1503,7 +2052,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Wrapper de CAPA VISTA sobre la fusión PURA del módulo: sólo decide CUÁNDO/CÓMO persistir/re-renderizar + toast; TODA la lógica
   // decisoria (dedup por nombre, normalización MEAL_SET/recorte a 30, uids frescos) vive en modules/backup.js. Ver CODING_STANDARDS.md §5 / DIp:
   function commitImport(data) {
-    const plan = buildBackApi.mergeIncoming({ foods, recipes, innovations }, data, { today });
+    // (sync-buzon §1, payload v2): cooked/weekmenu participan del anexo al importar; versiones v1 sin
+    // esas claves siguen funcionando — el módulo las trata como vacías/ausentes (§ regreso comprobado).
+    const plan = buildBackApi.mergeIncoming({ foods, recipes, innovations, cooked: load(LS.cooked, []), weekmenu: load(LS.weekmenu, null) }, data, { today });
     if (!plan) { toast("Archivo no válido", "error"); return; }   // el módulo devuelve null si la entrada NO es un objeto
     foods = plan.foods;        // las referencias LOCALES se reasignan: son exactamente lo que luego pintan los renders de abajo.
     recipes = plan.recipes;
@@ -1511,6 +2062,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     save(LS.foods, foods);
     save(LS.recipes, recipes);
+    if (plan.addedCooked > 0) save(LS.cooked, plan.cooked);                      // anexo del historial cocinado (v2)
+    if (plan.weekmenu != null && !load(LS.weekmenu, null)) save(LS.weekmenu, plan.weekmenu);   // se deja constancia de la adopción del plan entrante (v2)
     if (plan.persistInnov) {   // solo si la entrada trajo innovaciones nuevas: marca "hoy" para que el auto-expiry del cierre DOMContentLoaded no las borre en la próxima carga (§5 "Alcance de expiración automática")
       innovDay = today;
       save(LS.innov, innovations);
@@ -1526,10 +2079,286 @@ document.addEventListener("DOMContentLoaded", () => {
     toast(`Importados: ${plan.addedFoods} alimento(s), ${plan.addedRecipes} receta(s)`);
   }
 
+  // ===== SYNC ENTRE DISPOSITIVOS (buzón GitHub cifrado — plan-sync-buzon §6, FASE 5) =====
+  // SÓLO CAPA VISTA (CODING_STANDARDS §5): la máquina de estados vive en modules/sync.js (F3), el
+  // diff3 en modules/diff-merge.js (F4) y la cripto en modules/sync-crypto.js (F2 — todo puro e
+  // inyectable). Aquí: botón "🔄 Sync", modal de configuración (token/gist en LS, passphrase SOLO
+  // en sessionStorage), modal resolver de conflictos (§5) y badges "⇄ conflicto"/"duplicada".
+  const syncApi = window.MRCheff.sync;
+  const syncCryptoApi = window.MRCheff.syncCrypto;
+  const diffMergeApi = window.MRCheff.diffMerge;
+  const SESS_PASS = "mrcheff.sync.pass";   // passphrase de SESIÓN: nunca localStorage (§2 del plan)
+
+  const btnSync = $("#btn-sync");
+  const btnSyncConfig = $("#btn-sync-config");
+  const btnSyncVaciar = $("#btn-sync-vaciar");
+  const syncNote = $("#sync-note");
+
+  function notaSync(texto) {
+    syncNote.textContent = texto || "";
+    syncNote.classList.toggle("hidden", !texto);
+  }
+
+  // Estado del clúster según la configuración: sin token/gist el Sync queda deshabilitado (hint §6).
+  function actualizarSyncUI() {
+    const cfg = load(LS.syncConfig, null) || {};
+    const listo = !!(cfg.token && cfg.gistId);
+    btnSync.disabled = !listo;
+    btnSyncVaciar.disabled = !listo;
+    const passSesion = !!sessionStorage.getItem(SESS_PASS);
+    if (!listo) notaSync("Sin configurar — pulsa ⚙️ Configurar para poner el token de GitHub, el gist y la passphrase.");
+    else if (!passSesion) notaSync("Buzón y token listos — falta la passphrase de esta sesión (se pedirá al pulsar Sync).");
+    else notaSync("🟢 Listo para sincronizar con el buzón configurado (passphrase en esta sesión).");
+  }
+
+  // Copia "duplicada" (elección "Conservar ambas" del resolver): badge junto a los de origen, §5.
+  function badgeSyncHTML(rec) {
+    return rec && rec.duplicada ? '<span class="tag tag-sync-duplicada" title="Copia conservada por una resolución del sync">⧉ duplicada</span>' : "";
+  }
+
+  // ---- snapshot local completo (payload v2 del §1: misma forma que merge3 consume) ----
+  function estadoLocalCompleto() {
+    return {
+      foods, recipes, innovations,
+      cooked: load(LS.cooked, []),
+      weekmenu: load(LS.weekmenu, null)
+    };
+  }
+
+  // Aplicar el estado fusionado que trae el protocolo: persistir TODO, re-asignar las variables en
+  // memoria y re-pintar (misma cronología que commitImport del import manual).
+  function aplicarEstadoSync(estado) {
+    if (!estado || typeof estado !== "object") return;
+    foods = Array.isArray(estado.foods) ? estado.foods : [];
+    recipes = Array.isArray(estado.recipes) ? estado.recipes : [];
+    innovations = Array.isArray(estado.innovations) ? estado.innovations : [];
+    save(LS.foods, foods);
+    save(LS.recipes, recipes);
+    save(LS.innov, innovations);
+    if (estado.cooked != null) save(LS.cooked, estado.cooked);
+    if (estado.weekmenu != null) {
+      weeklyMenu = estado.weekmenu;                     // la variable de Card 2 se reasigna también
+      save(LS.weekmenu, weeklyMenu);
+    }
+    renderFoods();
+    renderWeeklyAlert();
+    renderRecipes();                                    // recetasDirty no cuenta: llega contenido nuevo de verdad
+    renderInnovations();
+    if (weeklyMenu && weeklyMenu.plan) renderWeeklyMenu(weeklyMenu.plan);
+    if (weeklyMenu && weeklyMenu.approved) renderShoppingList();
+  }
+
+  // ---- ctx del protocolo: la ÚNICA unión de app.js con red/localStorage/sessionStorage/cripto ----
+  function contextoSync(passphrase) {
+    let deviceId = load(LS.syncDeviceId, null);
+    if (!deviceId) { deviceId = uid(); save(LS.syncDeviceId, deviceId); }
+    const cfg = load(LS.syncConfig, {}) || {};
+    // Inyecciones de TEST (CODING_STANDARDS §6): `mrcheff.sync.iteraciones` baja el coste de
+    // PBKDF2 en suite (viaja en el header de la envolvente, sin efecto en producción) y
+    // `window.__mrcheffCryptoImpl` aporta la WebCrypto cruda donde el global no trae .subtle (jsdom).
+    const iteracionesTest = parseInt(localStorage.getItem("mrcheff.sync.iteraciones") || "", 10);
+    const claveLS = (k) => k === "base" ? LS.syncBase : k === "pendiente" ? LS.syncPendiente : LS.syncConsumida;
+    return {
+      dispositivo: cfg.nombre || deviceId,
+      deviceId,
+      token: cfg.token, gistId: cfg.gistId, passphrase,
+      iteraciones: Number.isFinite(iteracionesTest) && iteracionesTest > 0 ? iteracionesTest : undefined,
+      uid, ahora: () => new Date().toISOString(),
+      fetcher: window.fetch.bind(window),
+      crypto: syncCryptoApi,
+      cryptoImpl: (typeof crypto !== "undefined" && crypto.subtle) ? undefined : window.__mrcheffCryptoImpl,
+      snapshotLocal: estadoLocalCompleto,
+      fusionar: (base, mio, suyo) => diffMergeApi.merge3(base, mio, suyo),
+      almacen: {
+        leer: (k) => load(claveLS(k), null),
+        escribir: (k, v) => save(claveLS(k), v),
+        guardarLocal: aplicarEstadoSync
+      }
+    };
+  }
+
+  // ---- Modal de configuración (token + gist + passphrase de sesión) ----
+  function abrirModalSyncConfig() {
+    const cfg = load(LS.syncConfig, null) || {};
+    const passSesion = sessionStorage.getItem(SESS_PASS);
+    modalContent.innerHTML = `
+      <h2>⚙️ Sync entre dispositivos</h2>
+      <p class="muted">Crea un PAT de GitHub con SOLO el scope <code>gist</code> (github.com/settings/tokens)
+        y pégalo aquí junto al ID del gist que hace de buzón. El token y el gist se guardan en ESTE
+        navegador; la passphrase se recuerda SOLO en esta sesión y debe ser la MISMA en los dos dispositivos.</p>
+      <div class="recipe-edit">
+        <label for="sync-token">Token (PAT, scope solo gist)
+          <input type="password" id="sync-token" autocomplete="off" value="${escapeHTML(cfg.token || "")}">
+        </label>
+        <label for="sync-gist">ID del gist (buzón)
+          <input type="text" id="sync-gist" autocomplete="off" placeholder="32 hex del gist" value="${escapeHTML(cfg.gistId || "")}">
+        </label>
+        <label for="sync-nombre">Nombre de este dispositivo (p. ej. «Móvil», «PC»)
+          <input type="text" id="sync-nombre" maxlength="24" placeholder="opcional" value="${escapeHTML(cfg.nombre || "")}">
+        </label>
+        <label for="sync-pass">Passphrase compartida${passSesion ? " (ya memorizada en esta sesión)" : ""}
+          <input type="password" id="sync-pass" autocomplete="new-password" placeholder="${passSesion ? "no escribir para conservarla" : "la misma en ambos dispositivos"}">
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn ghost" data-close>Cerrar</button>
+        <button class="btn primary" id="sync-guardar">Guardar configuración</button>
+      </div>`;
+    abrirModal("Configuración del sync entre dispositivos");
+    $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+    $("#sync-token", modalContent).focus();
+    $("#sync-guardar", modalContent).addEventListener("click", () => {
+      const token = $("#sync-token", modalContent).value.trim();
+      const gistId = $("#sync-gist", modalContent).value.trim();
+      const nombre = $("#sync-nombre", modalContent).value.trim();
+      const pass = $("#sync-pass", modalContent).value;
+      if (!token || !gistId) { toast("Token e ID del gist son obligatorios", "error"); return; }
+      save(LS.syncConfig, { token, gistId, nombre });
+      if (pass) sessionStorage.setItem(SESS_PASS, pass);
+      closeModal();
+      actualizarSyncUI();
+      toast("Configuración del sync guardada");
+    });
+  }
+  btnSyncConfig.addEventListener("click", abrirModalSyncConfig);
+
+  // ---- Botón Sync: un clic = una pasada de la máquina (nada de auto-sync en background, §6) ----
+  btnSync.addEventListener("click", async () => {
+    const cfg = load(LS.syncConfig, null) || {};
+    if (!cfg.token || !cfg.gistId) { abrirModalSyncConfig(); return; }
+    const pass = sessionStorage.getItem(SESS_PASS);
+    if (!pass) { abrirModalSyncConfig(); toast("Escribe la passphrase de esta sesión para sincronizar", "error"); return; }
+    btnSync.disabled = true;
+    notaSync("⏳ Sincronizando con el buzón…");
+    const ctx = contextoSync(pass);
+    const resultado = await syncApi.ejecutar(ctx);
+    btnSync.disabled = false;
+    await encaminarResultado(resultado, ctx);
+    // SIN actualizarSyncUI() aquí: pisaría el mensaje de la rama con el hint genérico —
+    // la nota de resultado manda hasta el próximo clic/config.
+  });
+
+  async function encaminarResultado(resultado, ctx) {
+    if (!resultado) {
+      notaSync("No se pudo completar el sync — tus datos locales no han cambiado.");
+      toast("El sync no se completó", "error");
+      return;
+    }
+    notaSync(resultado.mensaje || "");
+    if (resultado.rama === "conflictos") {
+      abrirModalResolver(resultado, ctx);   // §5: nada queda escrito hasta resolver
+      return;
+    }
+    toast(resultado.mensaje || "Sync completado", resultado.rama === "error" ? "error" : "success");
+  }
+
+  // "🧹 Vaciar buzón": PATCH con {"kind":"empty"} (nunca borrar el gist: el id es la config del otro).
+  btnSyncVaciar.addEventListener("click", async () => {
+    btnSyncVaciar.disabled = true;
+    notaSync("⏳ Dejando el buzón vacío…");
+    const resultado = await syncApi.crearBuzon(contextoSync(""));
+    btnSyncVaciar.disabled = false;
+    notaSync(resultado.mensaje || "");
+    toast(resultado.mensaje, resultado.rama === "error" ? "error" : "success");
+  });
+
+  // ---- Modal RESOLVER de conflictos (§5): las dos versiones lado a lado; la decisión es por
+  // RECETA (quedarse con este dispositivo / el otro / conservar ambas — la copia hereda "duplicada").
+  function textoVersion(v) {
+    if (Array.isArray(v)) return v.length ? v.join(" · ") : "(vacío)";
+    if (v === undefined || v === null || v === "") return "(sin valor)";
+    return String(v);
+  }
+
+  function abrirModalResolver(resultado, ctx) {
+    const provisional = resultado.estadoProvisional || {};
+    const suyo = (resultado.recibida && resultado.recibida.estadoSuyo) || {};
+    const grupos = new Map();
+    (resultado.conflictos || []).forEach((c) => {
+      if (!grupos.has(c.recetaId)) grupos.set(c.recetaId, []);
+      grupos.get(c.recetaId).push(c);
+    });
+    const tituloPorId = (id) => {
+      const enProv = (provisional.recipes || []).find(r => r && r.id === id);
+      const enSuyo = (suyo.recipes || []).find(r => r && r.id === id);
+      return (enProv && enProv.title) || (enSuyo && enSuyo.title) || "Receta";
+    };
+    const elecciones = new Map();   // recetaId → "local" | "remota" | "ambas"
+
+    modalContent.innerHTML = `
+      <h2>⇄ Cambios en conflicto</h2>
+      <p class="muted">${escapeHTML(resultado.mensaje || "")}</p>
+      ${(resultado.avisos || []).length
+        ? `<p class="muted">ℹ️ ${resultado.avisos.length} diferencia(s) menor(es) ya se resolvieron solas (gana la edición más nueva): revisa las recetas tras el sync.</p>`
+        : ""}
+      ${Array.from(grupos.entries()).map(([id, lista]) => `
+        <div class="resolver-receta">
+          <h4>${escapeHTML(tituloPorId(id))} <span class="tag tag-sync-conflicto">⇄ conflicto</span></h4>
+          ${lista.map((c) => `
+            <div class="resolver-campo">
+              <div class="resolver-lado"><span class="resolver-rotulo">Este dispositivo · ${escapeHTML(c.campo || "campo")}:</span> ${escapeHTML(textoVersion(c.local))}</div>
+              <div class="resolver-lado"><span class="resolver-rotulo">El otro dispositivo:</span> ${escapeHTML(textoVersion(c.remota))}</div>
+            </div>`).join("")}
+          <div class="resolver-decision">
+            <button type="button" class="btn ghost small" data-decision="local" data-receta="${escapeHTML(id)}">Quedarme con este</button>
+            <button type="button" class="btn ghost small" data-decision="remota" data-receta="${escapeHTML(id)}">Usar el del otro</button>
+            <button type="button" class="btn ghost small" data-decision="ambas" data-receta="${escapeHTML(id)}">Conservar ambas</button>
+          </div>
+        </div>`).join("")}
+      <div class="modal-footer">
+        <button class="btn ghost" data-close>Cancelar (nada se escribe)</button>
+        <button class="btn primary" id="resolver-aplicar" disabled title="Marca una decisión por cada receta">Aplicar resolución</button>
+      </div>`;
+    abrirModal("Resolver conflictos del sync");
+    $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", () => {
+      toast("Sync cancelado: tus datos no han cambiado");
+      closeModal();
+    }));
+
+    const btnAplicar = $("#resolver-aplicar", modalContent);
+    $$(".resolver-decision [data-decision]", modalContent).forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.receta;
+        elecciones.set(id, btn.dataset.decision);
+        $$(".resolver-decision [data-decision]", modalContent)
+          .filter(b => b.dataset.receta === id)
+          .forEach(b => b.classList.toggle("primary", b === btn));
+        btnAplicar.disabled = elecciones.size !== grupos.size;
+      });
+    });
+
+    btnAplicar.addEventListener("click", async () => {
+      const lista = Array.from(elecciones.entries()).map(([recetaId, decision]) => ({ recetaId, decision }));
+      const estadoResuelto = diffMergeApi.aplicarResoluciones(provisional, suyo, lista, { uid });
+      closeModal();
+      btnSync.disabled = true;
+      notaSync("⏳ Aplicando la resolución y cerrando el sync…");
+      const r2 = await syncApi.continuarTrasConflictos(ctx, estadoResuelto, resultado.recibida);
+      btnSync.disabled = false;
+      notaSync((r2 && r2.mensaje) || "");
+      if (r2) toast(r2.mensaje, r2.rama === "error" ? "error" : "success");
+    });
+  }
+
   // ===== INICIALIZACIÓN =====
+
   renderFoods();
   renderWeeklyAlert();
   renderRecipes();
   renderInnovations();
   renderSeason();
+  actualizarSyncUI();
+
+  // El tutorial sale SOLO la primera visita desde una web instalable (http/https — en file://
+  // no: localStorage es por origen y en disco no hay guía que mostrar). La sesión se marca
+  // vista al cerrarla (✕ / "Terminar" / Escape).
+  if (tut && tutorialRaiz && tutorialVelos) {
+    const vistoAntes = load(LS.tutorial, {});
+    if (!(vistoAntes && vistoAntes.visto)) {
+      const esWeb = window.__mrcheffTutorialAuto === true ||
+        ((typeof location === "object" && (location.protocol === "http:" || location.protocol === "https:")) &&
+         typeof navigator === "object" && navigator.userAgent && navigator.userAgent.indexOf("jsdom") === -1);
+      if (esWeb) setTimeout(abrirTutorial, 500);    // deja asentarse el primer layout antes de la visita
+    }
+  }
 });

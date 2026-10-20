@@ -365,3 +365,97 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   el "ya está" no tocaba nada y el ítem no se cruzaba nunca del plan). El resultado devuelve además
   el campo `actualizado` para distinguir alta/update en el toast de la UI; `compra` se sanitiza en
   el módulo (qty entera ≥1, score 1–10) para que la UI no pueda colar basura.
+- `2026-10-19 · @AI-agent · #tasks-viewpager-tab-activo-visible · Principio: O · Justificación:`
+  el viewpager API "CERRADA (2 funciones)" de `modules/swipe-tabs.js` se amplía con la 3ª función
+  pública `scrollIzquierdaParaTab(ctx) → scrollLeft`: al llegar por swipe a las vistas de la
+  derecha (p. ej. Temporada) el tab activo quedaba FUERA de la ventana visible del nav (scroller-x
+  interno invisible — 638px de contenido en 358px visibles, 0px del pill en pantalla), así que el
+  usuario veía en el header aún las primeras dos pills. La decisión (centrar + fijar a [0, máximo]
+  con métricas raras normalizadas a 0) vive en el módulo puro; `app.js` sólo mide DOM (rects +
+  scrollLeft) y hace el `scrollTo` — coordinado viewpager-header: tabs y vista se mueven EN
+  CONJUNTO, como pidió el producto. Spec extendida (5 tests nuevos) + e2e Brave (`e2e/swipe-vistas.mjs`).
+- `2026-10-19 · @AI-agent · #bugfix-pwa-no-refresca-cambios · Principio: O · Justificación:`
+  la entrega de releases dependía de un ritual manual: SUBIR +1 el nombre del caché del
+  sw.js a mano en cada deploy. No se hizo en las dos últimas releases y el sw.js iba
+  byte-idéntico (la v2 sin tocar desde `4ec8456`) ⇒ el navegador no re-instalaba el worker,
+  el `addAll` del install no se repetía y el caché servía los ASSETS de la primera
+  instalación para siempre (el índice network-first llegaba fresco, pero ningún css/js/
+  módulo: "la PWA no se actualiza" pese a ver la web y Pages al día — deploy confirmado
+  byte-a-byte con curl). Las variantes con `?v=N` tampoco valían: el matcher del caché
+  ignoraba la query (ignoreSearch). Se pasa a entrega NETWORK-FIRST con revalidación para
+  índice Y assets (`fetch(req, {cache:"no-cache"})`): el caché queda como respaldo offline,
+  repoblado en cada acierto de red; la revisión del worker SALTA la caché HTTP
+  (`updateViaCache:"none"` + `reg.update()` al entrar/al primer plano/cada 10 min por el
+  max-age=600 de Pages) y un worker nuevo que toma el mando recarga la página UNA vez por
+  sesión (controllerchange + guard en sessionStorage). El nombre del caché deja de ser la
+  llave de la frescura: +1 sólo si cambia la lista SHELL o la estrategia. Afecta SÓLO a
+  `sw.js` + su registro (sin shapes de §5 — suite 307 tests verde) y estrena guardia
+  externa `e2e/pwa-entrega.mjs` (6 checks con servidor mutable).
+- `2026-10-19 · @AI-agent · #feature-sync-buzon · Principio: O, D · Justificación:` sincronización de
+  2 dispositivos vía gesto + gist de GitHub con cifrado extremo a extremo (plan completo en
+  `webapp/e2e/plan-sync-buzon.md`, 6 fases branch+merge). Cambios de contrato y desviaciones trazadas:
+  1. **Payload backup v2** (§1 del plan): `buildBackup`/`mergeIncoming` (`modules/backup.js`) añaden
+     `version: 2` con `cooked` y `weekmenu`; el import v1 sigue funcionando sin esas claves (no rompiente,
+     probado en `tests/merge-identidad.test.js`). Recetas con `uid` PRESERVADO al importar + dedup por
+     fingerprint de ingredientes (`claveIngredientes`, réplica literal de la mecánica Jaccard-1.0 del
+     hard-exclude) — precedent §8 del feature "matching-casa", duplicado A PROPÓSITO en backup/diff-merge
+     para mantener los módulos puros independientes.
+  2. **`editedAt`**: rutas de guardado/edición (`recipe-editor.applyEdit` por deps + guardado ⭐/✏️ de
+     app.js) añaden el campo ISO cuando tocan una receta — ancla del fallback LWW del primer sync.
+  3. **`sync.ejecutar`** amplía su resultado de rama "conflictos" con `estadoProvisional` + `avisos`
+     (necesarios para reconstruir el estado final tras el modal — cruzar `continuarTrasConflictos`).
+  4. **Desviación §3 literal del plan, trazada en la cabecera de sync.js**: al publicar un ACK se limpia
+     la marca "offer pendiente" propia (`almacen.escribir("pendiente", null)`); el ACK full-snapshot
+     SUSTITUYE a la offer y el bucle converge sin vaivén de ACKs idénticos ("convergecidoYa" evita el
+     ACK que no aporta). weekmenu fusiona por **LWW `generatedOn`** y foods/cooked/innovations por
+     **unión idempotente (gana local)** — sin diff3 fino, decisión §8 propia de esta release.
+  5. **`merge3` (modules/diff-merge.js, FASE 4)** recetas por identidad id → fingerprint (gemelos LEGACY
+     con uids distintos comparten columna, gana el uid LOCAL como canónico); escalares diff3 canónico
+     con base / LWW `editedAt` sin base (aviso NO bloqueante — la perdedora NO se descarta, viaja al
+     resolver); `editedAt` es ANCLA del LWW y nunca campo en disputa (0 avisos/conflictos propios);
+     listas por listDiff3-LCS a mano (CERO dependencias) — sin base, unión literal del plan §4.
+  6. **Ubicación de specs de integración:** `tests/*.integration.test.js` (Jest real) en lugar de los
+     `e2e/*.spec.js` que el plan §7 pedía — los stubs de e2e/ son dead-code que Jest NO ejecuta
+     (`roots` de jest.config.js); los stubs se mantienen SÓLO como trazabilidad del flujo real
+     (sync-protocol.spec.js / sync-ui.spec.js) + `e2e/sync-buzon.mjs` para la verificación manual con
+     token de entorno (MCHEFF_TOKEN/MCHEFF_GIST, NUNCA hardcodeados).
+  7. **Inyecciones de test de boot.js y contextos** (§6): `bootApp({cryptoImpl})` expone
+     `window.__mrcheffCryptoImpl` (jsdom no trae `.subtle`) y re-aprovecha TextEncoder/TextDecoder de
+     Node (jsdom no los implementa — navegadores sí); `mrcheff.sync.iteraciones` en localStorage baja el
+     coste de PBKDF2 en suite (los parámetros viajan en el header de la envolvente, así que es libre).
+  8. **Caché v4 del sw.js** con los 3 módulos del sync en SHELL (§7 del plan) — la entrega ya era
+     network-first, pero el respaldo offline debe precachear los ficheros nuevos.
+  Suite al cierre: **382 tests / 27 suites verdes** (global 93.24/81.90); cobertura de los módulos
+  nuevos ≥ 91/80. Verificación de 2 dispositivos + gist real queda manual (`e2e/sync-buzon.mjs`,
+  checklists §8 del plan) — no ejecutable en CI.
+  9. **"🛒 Despensa?"** (2026-10-19): el matcher anti-falsos-positivos (2026-10-18) dejó FUERA los
+     matches por subconjunto que unían variantes del mismo alimento ("Jamón serrano" ↔ "Jamón
+     ibérico") — correcto para el aforo, pero la lista de la compra necesitaba reconocerlas. En vez
+     de heurísticas de "calidad/tipo" (meten más casos raros de los que resuelven), regla simple de
+     candidatos (`menuSemanal.candidatosDespensa`: token común del matcher, sin match total) y la
+     decisión SIEMPRE en el usuario vía modal de confirmación; `markItemBoughtComo` amplía el
+     contrato de menu-semanal a 9 funciones públicas (compra IN-SITU al alimento elegido, sin alta
+     nueva). Tests: unitarios en menu-semanal.test.js + integración en
+     despensa-candidatos.integration.test.js.
+   10. **Memoria de scroll por vista del viewpager** (2026-10-20): API pública de swipe-tabs
+      ampliada a 7 funciones (`crearMemoriaScroll`/`recordarScroll`/`scrollParaVista`, objeto
+      memoria puro sin DOM; default SIEMPRE arriba). El behavior de scroll NO es estado del
+      módulo: app.js·activarVista(view, origen) captura la vista saliente (ANTES de tocar las
+      clases: el alto del documento cambia al ocultarse la vista) y aplica swipe=restaurar
+      instantáneo (sujeto al alto scrolleable real) / click=subida animada ({top:0,
+      behavior:"smooth"}, con reduce-motion a "auto" y fallback para WebViews sin options).
+      Trazas de harnés registradas: jsdom NO implementa window.scrollTo → boot.js trae sustituto
+      propio (licencia §6: aplica el resultado final sin el flag "Not implemented"); y el
+      page.click(selector) de Playwright hace scrollIntoViewIfNeeded y MUEVE el scroll del
+      documento antes del gesto — el e2e clica con page.mouse+coords y SOLO tabs SIEMPRE
+      visibles (la 5ª pill queda fuera del scroller del header en 390px). Tests: unitarios en
+      swipe-tabs.test.js + integración en viewpager-scroll.integration.test.js + e2e real en
+      e2e/scroll-vistas.mjs.
+   11. **Match por prefijo en el buscador del catálogo** (2026-10-20, petición "menos letras,
+      como el buscador de alimentos"): `busquedaRecetas.buscar` casaba SOLO token exacto y exigía
+      reescribir la palabra entera ("croqu" no encontraba Croquetas). Ahora el token dicho casa
+      EXACTO preferente y, a falta de exacto, con cualquier token del campo que EMPIECE por él;
+      pesos título exacto 3 / título prefijo 2 / ingrediente 1 — la afinidad real sigue mandando.
+      El mínimo de 3 letras lo fija ya el matcher compartido (TOKEN_MIN_LEN): nada de ruido
+      prefijo de 1-2 letras. Firma de API SIN CAMBIO (1 función pública). Tests: unit en
+      busqueda-recetas.test.js (describe 5) + e2e Brave real en e2e/buscador-prefijos.mjs.

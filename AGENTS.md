@@ -19,10 +19,11 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
   and exercise the affected tab.
 - **Tests:** `cd webapp && npm test` (`jest`) / `npm run coverage` (`jest --coverage`). Jest IS a
   declared devDependency with installed `node_modules/`. Specs live under `webapp/tests/` — per-module specs (classify, priority, recipe-analysis, ingredient-matching, util, innovations,
-  planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas, ocr-despensa) +
+  planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas, swipe-tabs,
+  merge-identidad, sync-crypto, diff-merge) +
   integration specs (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
-  buscador-catalogo, e2e-flow-receta-a-alerta-compra) + harness scaffolding (`boot.js` / `setup.js`). As of the last
-  run on 2026-10-18 the whole suite is green (**308 tests across 22 suites**, incl. ocr-despensa) — verify with a fresh
+  buscador-catalogo, e2e-flow-receta-a-alerta-compra, sync-protocol, sync-ui) + harness scaffolding (`boot.js` / `setup.js`). As of the last
+  run on 2026-10-19 the whole suite is green (**382 tests across 27 suites**) — verify with a fresh
   run before trusting it.
 - **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
   and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`
@@ -33,7 +34,8 @@ Single-page, six-tab app loaded via `index.html`. Script order (order matters): 
 → `data.js` → `app.js` (registers the one `DOMContentLoaded` closure; module `<script>`s load after
 it but still before the DOM-ready event fires) → `modules/…` (`priority`, `classify`,
 `recipe-analysis`, catalog data, `origen-recetas`, `innovations`, `util`, `backup`,
-`ingredient-matching`, `planner`, `menu-semanal`, `recipe-missing`, `recipe-editor`). `app.js`
+`ingredient-matching`, `sync-crypto`, `diff-merge`, `sync`, `planner`, `menu-semanal`, `recipe-missing`,
+`recipe-editor`, `swipe-tabs`). `app.js`
 is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
 
 - **data.js** — static seasonal data; exposes `window.MR_CHEFF_DATA = { MESES, TEMPORADA }`. `app.js`
@@ -47,11 +49,14 @@ is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
   comentario en la línea 2 (`Apply`) invalidaba el bloque `:root` entero del modo claro — parser CSS lo engulle
   como selector; mantener el fichero sin tokens basura fuera de comentario].
 
-Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts; escáner de despensa por OCR:
-"cámara" SÓLO en móvil vía `input capture` — escritorio pide una foto — y modal de confirmación con
-nombre editable + qty/min/importancia antes de guardar, módulo `ocr-despensa.js`) · **Recetas**
+Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts) · **Recetas**
 (free-text → structured recipe; card "🔎 Buscador del catálogo" busca en el JSON del catálogo
-por título/ingrediente y abre el modal de detalle; + Mis Recetas) · **Innovación**
+SÓLO por título (fix 2026-10-20: los ingredientes ya NO puntúan — "mascarpone" ya no saca el
+Tiramisú) y abre el modal de detalle — match por PREFIJO (petición 2026-10-20,
+"menos letras"): el token escrito casa exacto preferente y si no con cualquier token del
+TÍTULO que EMPIECE por él ("gamb"→"gambas", "croqu"→"croquetas"; título exacto x3, título
+prefijo x2, así la afinidad real sigue mandando; tokens ≥3 letras vía
+TOKEN_MIN_LEN del matcher — 1-2 letras no dan ruido); + Mis Recetas) · **Innovación**
 (curated-catalog suggestions from the pantry) ·
 **Sugerencias y menú** (↻ Sugerir ahora lote rotado + plan semanal 7×3 + lista de la compra) ·
 **Temporada** (in-season fruit/veg by month) · **Copia de seguridad** (side icon tab). Every recipe
@@ -65,6 +70,134 @@ italiana" (see `modules/origen-recetas.js` below).
   It also attaches `dataset.idsItalianas` (list of the 20 Italian ids, consumed by `origen-recetas.js`) as
   a PROPERTY of the exported array — `module.exports` stays a plain array for tests/e2e. New Italian
   recipe ⇒ also add its id to `idsItalianas`.
+- **Comportamiento móvil (PWA, feature 2026-10-18):** (1) **Viewpager**: deslizar horizontal DENTRO
+  de `.content` cambia a la vista vecina (wrap entre las 5 del nav; el tab lateral de backup NO
+  entra en el carrusel) — decisión en el módulo puro `modules/swipe-tabs.js`, wiring touch +
+  exclusiones (inputs/botones/scrollers-x) en app.js, e2e `e2e/swipe-vistas.mjs` (17 checks con
+  TouchEvent sintéticos + `hasTouch`). El header sigue al swipe (fix 2026-10-19): `.tabs` es un
+  scroller-x interno con scrollbar invisible y el pill activo se RECENTRA al cambiar de vista
+  (bug: en Temporada el header mostraba aún "Alimentos y Recetas" — `scrollIzquierdaParaTab`
+  decide en el módulo puro, `centrarTabActivo` en app.js mide y scrollea; con
+  `prefers-reduced-motion` sin suavizado). **Memoria de scroll por vista** (petición 2026-10-20):
+  cada tab recuerda dónde se quedó — el swipe RESTAURA esa posición sin animación (sujeta al alto
+  scrolleable real) y el click directo en la categoría del topbar sube SIEMPRE arriba CON
+  animación (`window.scrollTo({top:0, behavior:"smooth"})`, reduce-motion → "auto", try/catch
+  para WebViews sin options object). API añadida a `modules/swipe-tabs.js` (6→7 públicas,
+  objeto memoria puro sin DOM): `crearMemoriaScroll/recordarScroll/scrollParaVista` (default 0
+  = arriba; filtra NaN/negativos/Infinity). En app.js la captura de la vista saliente vive
+  DENTRO de `activarVista(view, origen)` ANTES de tocar las clases (el alto del documento
+  cambia al ocultarse) y el call-site del swipe pasa `activarVista(destino, "swipe")`; el
+  click que sube arriba resetea por sí solo la memoria de esa vista (al salir se captura su 0).
+  Verificación: unit en `tests/swipe-tabs.test.js`, integración jsdom en
+  `tests/viewpager-scroll.integration.test.js` (stubs de scrollY/innerHeight/scrollHeight +
+  espía de scrollTo; boot.js trae sustituto de `window.scrollTo` — jsdom NO lo implementa) y
+  e2e Brave real en `e2e/scroll-vistas.mjs` (clicks con `page.mouse`+coords: el
+  `page.click(selector)` de Playwright mueve el scroll del documento con su
+  scrollIntoViewIfNeeded previo; truco del `::after` de 3000px para alto constante en todas las
+  vistas). (2) El documento NO tiene overflow-x
+  (`html overflow-x:hidden` — SOLO en html: en body convertiría al body en scroll
+  container y mataría el `position: sticky` del header topbar
+  [fix 2026-10-19: se iba con la página en desktop y móvil]; el viewport hereda el
+  overflow-x del html y el drag lateral sigue muerto) ni rebote (`html overscroll-behavior-y:contain`) ni fondo duro (`html
+  background: var(--bg)`). (3) Modal: el div `#modal-content` DEBE llevar la clase `modal-content`
+  (así vive en index.html; si se pierde, TODO el bloque editorial de la ficha en style.css —
+  secciones con filete, sangría de listas, pie de botones igualados, filete con fade
+  `.receta-linea` — deja de aplicarse: bug de 2026-10-19, la ficha se veía cruda por ese
+  descuido). Pie de la ficha: botones repartidos igual (flex 1·1·0; 2×2 en ≤420px) y el
+  consejero del botón (`data-tip` + píldora `.tip-chef`, delegado en `#modal-content`) SOLO en
+  "🍳 Cocinar hoy" (petición 2026-10-19/20: Cerrar/Editar/Copiar van sin consejo):
+  desktop hover/foco, móvil long-press de 450 ms que al soltar NO acciona el botón (su click
+  queda suprimido, y el contacto NUEVO desarma la bandera). Con `.modal-box` con
+  `overscroll-behavior:contain` + clase
+  `modal-abierto` en `<html>` Y `<body>` (en Android scrollea `<html>`; si un día la quitáis,
+  idem) congelando el scroll del documento. Blindaje de compatibilidad móvil (2026-10-20):
+  `.modal` y `.modal-backdrop` llevan offsets EXPLÍCITOS `top/right/bottom/left` (el shorthand
+  `inset` no existe en WebViews viejos y los diálogos salían pegados a la izquierda del móvil);
+  `style.css` empieza por `@charset "UTF-8";` y la viñeta de ingredientes se escribe como escape
+  ASCII `content: "\2022"` (evita el mojibake "â€¢" del carácter literal decodificado con otro
+  charset). (4) `theme-color` meta sigue al tema activo (dark
+  `#1b1913` / light `#ffffff`) desde el script de `<head>` y `applyTheme` — nunca hex sueltos
+  de más en el markup. (5) **Zoom bloqueado** en el PWA (petición de producto 2026-10-19):
+  viewport `maximum-scale=1.0, user-scalable=no` + preventDefault de
+  `gesturestart/gesturechange` (iOS lo ignora desde iOS 10); tradeoff WCAG 1.4.4 asumido —
+  el "forzar zoom" de los ajustes de Android puede reactivarlo y el zoom del sistema
+  (tamaño de texto) no se toca. (6) **Auditoría de accesibilidad móvil** repetible con
+  `node e2e/pwa-accesibilidad.mjs` (7 checks: metas de zoom, anuncio sr-only del cambio
+  de vista por swipe vía `#aviso-vista` + aria-current, objetivos táctiles ≥24px y
+  contraste de texto en las 5 vistas + modal, dark y claro): de ahí nacieron
+  `min-width/height: 24px` para checkbox/radio y `min-height: 24px` para
+  `input[type=range]`. Las transiciones se congelan para escanear (colores a mitad de
+  transición = falsos contrastes bajos). (7) **Entrega del shell (sw.js)**: TODO (índice Y
+  assets) va NETWORK-FIRST con revalidación (`fetch(req, {cache:"no-cache"})`); el caché
+  (`mrcheff-v3`) es SOLO el respaldo offline y se repuebla en cada acierto de red — SUBIR +1
+  al nombre del caché sólo si cambia la lista SHELL o la estrategia (olvidarlo ya NO congela
+  la entrega: el bug 2026-10-19 de assets cache-primero + sw.js byte-idéntico entre releases
+  servía el shell viejo para siempre, aunque el índice llegara fresco). El check del worker
+  SALTA la caché HTTP de Pages (`register("sw.js", {updateViaCache:"none"})`, Pages sirve
+  max-age=600) y se revisa al entrar, al volver al primer plano y cada 10 min; si un worker
+  NUEVO toma el mando con la app ya abierta, la página se recarga UNA vez por sesión (guard
+  `mrcheff.recargaUpdate`): la release llega sin gestos del usuario. El precache incluye
+  `modules/swipe-tabs.js`. Guardia repetible: `node e2e/pwa-entrega.mjs` (servidor mutado
+  en caliente: data.js v1→v2 se ve con un reload; offline real cerrando el servidor sigue
+  viva con la v2 — 6 checks, captura reports/ui-brave/30). El app se sirve en
+  `https://inigo9777-design.github.io/webapp/` — la raíz de la user page da 404 porque el
+  repo del Pages es este repo ENTERO y no hay index.html en la raíz (normal, no es bug).
+  (8) **Botón de caja fuerte en móvil**: círculo 38×38 SIEMPRE (idéntico al toggle del
+  tema; petición 2026-10-19) — el despliegue de la etiqueta al activar "Copia de
+  seguridad" era un artificio de hover que en táctil derramaba el clúster a una 2ª fila
+  empujando la barra de tabs (botón 207px, medidas en reports/ui-brave/29). En ≤820px la
+  etiqueta es `display: none` (el nombre accesible vive en el aria-label) y el estado
+  activo se nota por el relleno marca del círculo; en escritorio conserva el despliegue
+  por hover/foco/activo. La agarra la auditoría `e2e/pwa-accesibilidad.mjs` (check 6).
+  (9) **Tutorial interactivo de entrada** (feature 2026-10-20, epic `tutorial-interactivo`):
+  visita guiada POR DENTRO de la app para la primera vez (la app nace vacía y sin pistas): el
+  guion (16 pasos: bienvenida+cabecera, 3 por cada vista principal —Alimentos/Recetas/Sugerencias
+  y menú—, 2 para Innovación y Temporada, cierre) vive en el módulo PURO `modules/tutorial.js`
+  (PASOS por grupos + máquina de sesión; contrato `pasoValido`; pasos con `vista`/`selector`/
+  `accionable`/`titulo`/`texto`/`cta`). El wiring está en app.js (sección TUTORIAL): velo
+  semitransparente de 4 rectángulos + "foco" con aro de marca sobre el elemento del paso +
+  tarjeta explicativa; los pasos accionables avanzan TOCANDO el elemento REAL (el toque ejecuta su
+  función: focus del input, generar ideas/lote/plan…) y los informativos muestran botón.
+  Auto-abre SOLO la primera vez en contexto web instalable (http/https; `file://` no — se
+  registra en LS `mrcheff.tutorial.visto`, respetado por ✕ / Escape / "Terminar"; se reabre
+  con el botón circular 🎓 `#btn-tutorial` en `.topbar-actions` ENTRE la caja fuerte y el tema,
+  mismo círculo 38×38). El click que avanza va por listener de CAPTURA en document (el gesto
+  sigue su curso natural) y el paso nunca se atasca: target inexistente degrada a informativo.
+  Mientras la visita está abierta el swipe del viewpager queda en pausa (`tutorialActivo` en el
+  touchstart del carrusel) y el resto de la app duerme bajo los velos; el reposicionado va por
+  listeners scroll/resize (rAF-throttled). Molde en index.html (`#tutorial`, velos+`#tutorial-foco`+
+  `#tutorial-tarjeta`), estilos tokenizados en style.css (z 90: por encima del topbar, debajo del
+  modal; container `pointer-events:none` con auto en velos/tarjeta — el click DEL FOCO tiene que
+  llegar al elemento real) y `modules/tutorial.js` añadido al shell del sw (caché v5).
+  Accesibilidad: role dialog + anuncio sr-only "Paso X de N", Escape cierra y marca visto.
+  Verificación: unit `tests/tutorial.test.js` (contrato/grupos/sesión ~12), integración jsdom
+  `tests/tutorial-ui.integration.test.js` (auto-apertura, X/Escape/Terminar, reabrir, flujo
+  accionable con GUION INYECTADO en la ventana = desacoplado del contenido que crece la épica,
+  recorrido completo 16 pasos) y e2e Brave real `e2e/tutorial.mjs` (20 checks: auto-apertura,
+  segunda visita silenciosa, 🎓, recorrido completo con mouse+coords, geometría del aro,
+  swipe inmóvil; sirviendo por http://localhost:8617 con python3 porque file:// no auto-abre).
+- **Sync entre dispositivos por buzón GitHub (feature 2026-10-19; su fichero de plan fue retirado del repo, el protocolo vive documentado en módulos/comments/tests):** sincroniza los
+  datos entre 2 dispositivos (móvil PWA + escritorio) con un gist privado como buzón y cifrado extremo a
+  extremo: AES-GCM-256 con clave PBKDF2-SHA256 (600k iteraciones) derivada de una passphrase que el usuario
+  comparte; **la passphrase NUNCA se persiste** (sólo `sessionStorage` — se re-pide al reabrir), token/gist
+  viven en `mrcheff.sync.config` y GitHub solo ve ciphertext o `{"kind":"empty"}`. En la vista Copia de
+  seguridad: card "⇄ Sync entre dispositivos" con **⚙️ Configurar** (PAT scope solo gist + id del gist +
+  passphrase), **🔄 Sync** (un clic = UNA pasada de la máquina de estados; nada de auto-sync en background)
+  y **🧹 Vaciar buzón** (`{"kind":"empty"}`, JAMÁS borrar/recrear el gist — el id es la config del otro
+  dispositivo). Protocolo (módulo puro `modules/sync.js`): offer/ack/empty con snapshot COMPLETO cifrado
+  (`mrcheff-sync.json`); el merge es **diff3 3-way** contra el antecesor común (`mrcheff.sync.base`) —
+  fusión por identidad de receta (id estable FASE 1, y fingerprint de ingredientes para gemelos LEGACY con
+  uids distintos), listas por LCS escrito a mano (`modules/diff-merge.js`), `editedAt` como ancla LWW del
+  primer sync SIN base (aviso no bloqueante; la perdedora no se descarta). La MISMA zona editada distinta
+  en ambos = **conflicto DECLARADO**: modal resolver lado a lado (Quedarme con este / Usar el del otro /
+  Conservar ambas — la copia remota entra con uid nuevo + badge "⧉ duplicada" para limpieza manual) y NADA
+  queda escrito (ni local ni buzón) hasta resolver. Un fallo de red NUNCA corrompe el estado local.
+  Copias guardadas por ⭐/✏️ llevan `editedAt` y el payload backup v2 (`version: 2`) transporta
+  cooked/weekmenu; el export/import manual queda intocado (plan B, decisión fijada §3 del plan). El sync
+  automático al abrir es idea futura, NO feature. Specs de integración del wiring: `tests/sync-ui.integration.test.js`
+  (boot real + `window.fetch` sustituido; boot.js aporta la WebCrypto cruda + TextEncoder/TextDecoder que
+  jsdom no trae) y `tests/sync-protocol.integration.test.js` (2 dispositivos en memoria); e2e manual real
+  con token de entorno: `node e2e/sync-buzon.mjs` (el PAT NUNCA se hardcodea ni se da a ningún agente).
 - **Pure modules (`webapp/modules/`, all IIFE + dual-export, no DOM/localStorage — §3 CODING_STANDARDS):**
   `classify.js` · `priority.js` · `recipe-analysis.js` · `ingredient-matching.js` (token matcher,
   shared by planner/menu-semanal/innovations) · `util.js` · `innovations.js` · `planner.js` (public API:
@@ -73,14 +206,17 @@ italiana" (see `modules/origen-recetas.js` below).
   accionesMenuSlot — el 🍳 del menu sólo en plan aprobado) ·
   `recipe-editor.js` (buildDraft, validateDraft, estaGuardada, applyEdit, patchPlan) · `recipe-missing.js`
   (qué ingredientes faltan para el modal) · `backup.js` · **`busqueda-recetas.js`** (buscador del
-  catálogo: texto libre → resultado por título x3/ingrediente x1, reutiliza matching de tokens
-  del matcher compartido, orden estable y límite ctx.limite) · **`origen-recetas.js`** (etiqueta/sello de origen:
+  catálogo: texto libre → resultado por TÍTULO SÓLO, exacto x3 / prefijo x2 — fix 2026-10-20:
+  los ingredientes ya no puntúan —, reutiliza matching de tokens del matcher compartido,
+  orden estable y límite ctx.limite) · **`origen-recetas.js`** (etiqueta/sello de origen:
   esItaliana, etiquetaOrigen, claseOrigen, origenAlGuardar, etiquetaClasicaVisible — inyectable ctx
-  `{catalog, ids}` para tests) · **`ocr-despensa.js`** (escáner de despensa por OCR: esMovil,
-  extraerCandidatos de un texto OCR contra FOOD_TYPES, guardarCandidatos → alta/actualización
-  sobre copias; la cámara SÓLO en móvil, Tesseract.js en el navegador es infra de vista).
-  `app.js` keeps ONLY HTML molds (`badgeOrigenHTML`, `tagClasicoHTML`),
-  event wiring and persistence.
+  `{catalog, ids}` para tests) · **`sync-crypto.js`** (AES-GCM 256 + PBKDF2: deriveKey/encryptJson/
+  decryptJson/nuevoSalt + base64 helpers; crypto inyectable — jsdom no trae .subtle) ·
+  **`diff-merge.js`** (fusión 3-way: merge3 base/mio/suyo → {estado, conflictos, avisos} + aplicarResoluciones
+  local/remota/ambas; CERO dependencias) · **`sync.js`** (máquina del buzón: ejecutar/
+  continuarTrasConflictos/crearBuzón + MENSAJES; fetcher/cripto/almacen/fusionar inyectables).
+  `app.js` keeps ONLY HTML molds (`badgeOrigenHTML`, `tagClasicoHTML`, `badgeSyncHTML`), event wiring
+  and persistence.
 - `modules/innovations.js` `generate(count, focus, state)` keeps its **exact public signature** (the sole call-site at
   `app.js:~445` is unaffected), but internally stops assembling random ingredient combinations from `STYLES`/`TWISTS`/
   `ARCHETYPES`. Instead it scores the curated catalog deterministically and ranks the top 6 by a named-weighted formula
@@ -125,20 +261,33 @@ italiana" (see `modules/origen-recetas.js` below).
 - Lista de la compra (Card 3): dedup por el matcher de tokens (`modules/ingredient-matching.js`,
   NO lower-case exacto) contra comida real (qty>0), y semáforo dinámico por fecha de preparación
   (`onDay`/`daysUntil`/`urgency`): hoy/mañana=rojo, 2–3 días=naranja, ≥4 días (o sin fecha)=verde;
-  orden salida rojo→verde. "✅ comprado" PREGUNTA antes cuánto se ha comprado, su importancia y el
-  MÍNIMO para la alerta de reponer (modal) — no cuela el alimento con qty 0/score 5/min 0:
+  orden salida rojo→verde. "🛒 Despensa?" (2026-10-19) sale en la fila SÓLO cuando hay candidatos
+  del módulo puro (`menuSemanal.candidatosDespensa`: comparten algún token del matcher — "Jamón
+  serrano" ↔ despensa "Jamón ibérico", "Pan de pueblo" ↔ "Pan") y abre el diálogo de confirmación:
+  la persona elige la variante (o nada) y la compra va IN-SITU a ese alimento vía
+  `menuSemanal.markItemBoughtComo` (mismo id/nombre, sin alta nueva, el ítem sale de needyFoods;
+  el modal viene PRE-CARGADO con el mínimo y la importancia del alimento de despensa — afinación
+  2026-10-19: su criterio de alerta ya existía, sólo se pregunta cuánto se compró)
+  — regla simple, decisión final siempre del usuario. Los DOS botones de cada fila van
+  agrupados en `.alert-acciones` pegados al borde derecho con huelgo igual (antes en desktop
+  se descuadraban porque cada botón tiraba el suyo por su cuenta). En MÓVIL (≤820px) el grupo
+  vuelve a la alineación de siempre: "🛒 Despensa?" a la izquierda junto al texto de la fila y
+  "✅ comprado" empujado al borde derecho (petición 2026-10-20). "✅ comprado" PREGUNTA antes cuánto se ha
+  comprado, su importancia y el MÍNIMO para la alerta de reponer (modal) — no cuela el alimento
+  con qty 0/score 5/min 0:
   `markItemBought(..., compra)` añade con esos datos; si el alimento ya estaba en la despensa
   (incluso con qty 0), lo ACTUALIZA en-situ (sin `min` pedido conserva el suyo).
   (contrato ampliado, log §8 del CODING_STANDARDS.md).
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
-  red 8–10, orange 6–7, green 1–5; weekly alert caps the list at 8.
-- Escáner de despensa (OCR, #epic-ocr-despensa-camara): todo en el navegador con **Tesseract.js@5 desde
-  CDN** — carga perezosa la primera vez que se usa (unos megas; sin conexión falla con toast, la foto
-  NUNCA sale del dispositivo). Detección contra el vocabulario `classify.FOOD_TYPES` (mismatcher:
-  igualdad de token o prefijo/sufijo de ≥4 letras; token alimenta UNA sola palabra; palabras <4 letras
-  sólo igualdad — "ensalada" ≠ "sal"). El input file con `capture="environment"` abre la app de cámara
-  del sistema en móvil (sin getUserMedia, sin exigir https); en escritorio se pinta "elegir foto".
-  Ni Tesseract ni el CDN van en el app-shell del SW (cross-origin = no cacheado aquí).
+  red 8–10, orange 6–7, green 1–5; weekly alert shows the FULL list (el cap de 8 del módulo
+  se quitó el 2026-10-19: escondía del 9º pendiente en adelante) y A PARTIR DE 8 items la lista
+  se cap de alto a 8 filas y scrollea dentro; con botón candado (🔒) arriba a la derecha que
+  congela el scroll del DOCUMENTO vía `html.scroll-candado { overflow: hidden }` — SOLO en
+  MÓVIL (afinación 2026-10-19: en desktop la rueda scrollea la lista sin más y el candado ni
+  se pinta; corte ≤ 820px, inyectable en suite con `bootApp({ esMovil })` porque jsdom no
+  evalúa mediaqueries). La clase vive en
+  `<html>` (en body mataría el sticky del topbar, ver fix del overflow-x); se suelta por clic,
+  cambio de vista o al caer bajo 8 items; con menos de 8 ni candado ni cap.
 - Innovations auto-expire: on load, if `mrcheff.innov.date != today`, wipe `mrcheff.innov`; also
   capped at the most recent 30. Generated "ideas" are deterministic heuristics (UI: "Modo simulado"),
   **not an LLM** — this is where real integration would go, nothing hidden elsewhere.
