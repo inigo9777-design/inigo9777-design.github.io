@@ -22,8 +22,8 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
   planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas, swipe-tabs,
   merge-identidad, sync-crypto, diff-merge, ocr-despensa) +
   integration specs (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
-  buscador-catalogo, e2e-flow-receta-a-alerta-compra, sync-protocol, sync-ui, ocr-ticket) + harness scaffolding (`boot.js` / `setup.js`). As of the last
-  run on 2026-10-20 the whole suite is green (**508 tests across 35 suites**) — verify with a fresh
+  buscador-catalogo, e2e-flow-receta-a-alerta-compra, sync-protocol, sync-ui, ocr-ticket, ocr-foto) + harness scaffolding (`boot.js` / `setup.js`). As of the last
+  run on 2026-10-20 the whole suite is green (**520 tests across 36 suites**) — verify with a fresh
   run before trusting it.
 - **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
   and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`
@@ -214,7 +214,7 @@ italiana" (see `modules/origen-recetas.js` below).
   los ingredientes ya no puntúan —, reutiliza matching de tokens del matcher compartido,
   orden estable y límite ctx.limite) · **`origen-recetas.js`** (etiqueta/sello de origen:
   esItaliana, etiquetaOrigen, claseOrigen, origenAlGuardar, etiquetaClasicaVisible — inyectable ctx
-  `{catalog, ids}` para tests) · **`ocr-despensa.js`** (escáner del TICKET por OCR: esMovil;
+  `{catalog, ids}` para tests) · **`ocr-despensa.js`** (escáner del TICKET por OCR: esMovil, esHeic;
   extraerCandidatos — vocabulario FOOD_TYPES + CANTIDAD por línea (unidades de cuenta: x/UD/bolsa/
   brik/… y cifra inicial; los pesos del envase 400g/1L y los precios NO cuentan); guardarCandidatos
   REPARTE SIN ALTAS: nombre EXACTO en la despensa → la compra SUMA (criterios intactos); con
@@ -292,7 +292,16 @@ italiana" (see `modules/origen-recetas.js` below).
 - Escáner del TICKET (OCR, #epic-ocr-despensa-camara, propósito revisado 2026-10-20): fotografiar
   el ticket del super (o el frigorífico, misma vía) → Tesseract.js@5 por CDN (carga perezosa la
   primera vez; la foto NUNCA sale del dispositivo; el texto pasa a `procesarTextoOcr` — el gancho
-  §6 `window.__mrcheffProcesarTextoOcr` inyecta ese mismo paso en jsdom/e2e). En la confirmación
+  §6 `window.__mrcheffProcesarTextoOcr` inyecta ese mismo paso en jsdom/e2e). **Fotos HEIC/HEIF
+  del iPhone** (y tickets ".png" RENOMBRADOS que en realidad son HEIF de iPhone; Chromium no
+  decodifica HEIC): la vista los convierte a JPEG en el propio navegador con **heic2any@0.0.4** (CDN,
+  carga perezosa SÓLO si la foto lo necesita, gancho §6 `window.__mrcheffHeicConvertir`
+  para jsdom; guardia de 90 s: un CDN caído canta con su toast y no congela el modal — la
+  versión real del paquete es 0.0.4, las "0.4.x" NO existen y su 404 cancelaba el script por ORB).
+  **Reintento de giro**: los tickets se fotografían de lado — si la foto de frente no da
+  alimentos, se re-reconoce girada 90°/270° (canvas `canvasDeBitmap`, máx. 1600px por lado;
+  se corta a la primera cara con candidatos). El cancelar a mitad de escaneo se decide con el
+  ESTADO DEL MODAL (`modal.classList "hidden"`, no `isConnected` — closeModal sólo oculta). En la confirmación
   editable la CANTIDAD sale de la línea del ticket (ver módulo); **el modal ya no pide
   min/importancia** (2026-10-20, decisión del usuario: el criterio de alerta no lo sabe el ticket).
   REGLA DE ORO al guardar: NADA del ticket entra en la despensa por su cuenta — los nombres
@@ -309,9 +318,15 @@ italiana" (see `modules/origen-recetas.js` below).
   .tick-min + "Definir ✓"); hasta fijarlos NO hay botones de resolución. `definirTicketPendiente`
   (módulo puro) sella min/score, quita el fade y la fila ya se resuelve como cualquier otra; la
   definición es STICKY al re-escanear (no se pierde; sin score válido no se define nada — el view
-  valida antes). Ni Tesseract ni el CDN van en el app-shell del SW. Demo grabada de la feature:
+  valida antes). Ni Tesseract ni heic2any ni el CDN van en el app-shell del SW. Demo grabada de la feature:
   `node e2e/ocr-ticket-video.mjs` → `reports/ui-brave/video-ocr-ticket/demo-escaner-ticket.webm`
   (Playwright recordVideo; requiere `npx playwright-core install ffmpeg` una vez).
+  Verificación con FOTOS REALES: `node e2e/ocr-tickets-reales.mjs` — escanea los tickets de la
+  carpeta DESCARTABLE `reports/OCR/` (png/jpg/heic/heif; hoy: 1 PNG mal bautizado que era HEIF +
+  1 HEIC de iPhone, ambos girados 90°; si la carpeta no existe, la prueba SE SALTA sola) y
+  demuestra con material real: la foto se ABRE, las cantidades son unidades de compra (precios
+  y peso del envase fuera), y el reparto del usuario — exactos con criterio → DIRECTO a despensa
+  (jamás a la lista), dudosos y nuevos → pendientes (nuevos hasta fijar criterio). Capturas 31-32.
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
   red 8–10, orange 6–7, green 1–5; weekly alert shows the FULL list (el cap de 8 del módulo
   se quitó el 2026-10-19: escondía del 9º pendiente en adelante) y A PARTIR DE 8 items la lista

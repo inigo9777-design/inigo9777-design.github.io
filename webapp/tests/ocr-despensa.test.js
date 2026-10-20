@@ -25,6 +25,36 @@ describe("ocr-despensa — esMovil (la opción de cámara sólo en vista móvil)
   });
 });
 
+describe("ocr-despensa — esHeic (la foto del iPhone antes del OCR: HEIC/HEIF al OCR)", () => {
+  test("HEIC del iPhone por tipo MIME (con y sin mayúsculas) → true", () => {
+    expect(ocrDespensa.esHeic({ name: "IMG_4123.heic", type: "image/heic" })).toBe(true);
+    expect(ocrDespensa.esHeic({ name: "IMG_4124.HEIC", type: "image/heic" })).toBe(true);
+    expect(ocrDespensa.esHeic({ name: "IMG_4125", type: "image/heif" })).toBe(true);
+    expect(ocrDespensa.esHeic({ name: "duda.bin", type: "APPLICATION/HEIC" })).toBe(true);
+  });
+
+  test("por EXTENSIÓN aunque el tipo venga vacío (algunos file pickers se quedan sin MIME)", () => {
+    expect(ocrDespensa.esHeic({ name: "ticket.heic", type: "" })).toBe(true);
+    expect(ocrDespensa.esHeic({ name: "ticket.HEIF", type: "" })).toBe(true);
+  });
+
+  test("formatos comunes que sí decodifica el navegador → false", () => {
+    expect(ocrDespensa.esHeic({ name: "ticket.jpg", type: "image/jpeg" })).toBe(false);
+    expect(ocrDespensa.esHeic({ name: "ticket.png", type: "image/png" })).toBe(false);
+    expect(ocrDespensa.esHeic({ name: "ticket.webp", type: "image/webp" })).toBe(false);
+  });
+
+  test("el HEIC CAMUFLADO de .png NO lo ve la vía nombre/tipo: lo pilla el probe del decodificador (app.js)", () => {
+    expect(ocrDespensa.esHeic({ name: "11,00 €.png", type: "image/png" })).toBe(false);   // bytes HEIF con extensión mentirosa
+  });
+
+  test("nada / fichero vacío → false", () => {
+    expect(ocrDespensa.esHeic(null)).toBe(false);
+    expect(ocrDespensa.esHeic({})).toBe(false);
+    expect(ocrDespensa.esHeic({ name: "", type: "" })).toBe(false);
+  });
+});
+
 describe("ocr-despensa — extraerCandidatos (texto OCR → alimentos del vocabulario)", () => {
   const nombres = cands => cands.map(c => c.nombre);
 

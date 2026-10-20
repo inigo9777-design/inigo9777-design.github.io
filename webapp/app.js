@@ -674,6 +674,142 @@ document.addEventListener("DOMContentLoaded", () => {
     return tesseractPromesa;
   }
 
+  // La FOTO puede llegar en HEIC/HEIF (el formato por defecto del iPhone; y hay tickets ".png" mal
+  // etiquetados que en realidad son HEIF). Los navegadores de base Chromium no decodifican HEIC: ni
+  // el canvas, ni el motor del OCR, ni createImageBitmap la leen — síntoma: "No se ha podido escanear
+  // la foto". Salida: convertir a JPEG EN EL PROPIO NAVEGADOR (heic2any@0.0.4, libheif en wasm por
+  // CDN — última versión real del paquete, NADA que ver con "0.4.x" que no existe — misma carga
+  // perezosa que Tesseract y SÓLO si la foto lo necesita) y dar al OCR el resultado. La conversión
+  // también es local: la foto sigue sin salir del dispositivo.
+  const HEIC_CDN = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
+  const HEIC_CargaMaxima = 90000;              // un CDN caído debe FALLAR con su toast, no congelar el modal
+  let heicPromesa = null;
+
+  // El UMD del paquete puede llegar como función directa o envuelta (namespace con .default): da
+  // igual — aquí sólo importa devolver la FUNCIÓN convertidora.
+  function funcionHeic2any() {
+    const h = window.heic2any;
+    if (typeof h === "function") return h;
+    if (h && typeof h.default === "function") return h.default;
+    if (h && typeof h.heic2any === "function") return h.heic2any;
+    return null;
+  }
+
+  function cargarHeic2any() {
+    const lista = funcionHeic2any();
+    if (lista) return Promise.resolve(lista);
+    if (!heicPromesa) {
+      heicPromesa = new Promise((resolve, reject) => {
+        let listo = false;
+    const guardar = window.setTimeout(() => {              // sin este guardia, un CDN 404 colgaba la conversión para siempre (ORB no dispara onerror)
+          if (listo) return;
+          listo = true;
+          heicPromesa = null;
+          reject(new Error("El conversor de fotos HEIC no ha cargado (muy lento o sin conexión)"));
+        }, HEIC_CargaMaxima);
+        const s = document.createElement("script");
+        s.src = HEIC_CDN;
+        s.async = true;
+        s.onload = () => {
+          const fn = funcionHeic2any();
+          if (!fn) return;               // roto: cae el guardia y falla con su aviso
+          listo = true;
+          window.clearTimeout(guardar);
+          resolve(fn);
+        };
+        s.onerror = () => {
+          if (listo) return;
+          listo = true;
+          window.clearTimeout(guardar);
+          heicPromesa = null;
+          reject(new Error("El conversor de fotos HEIC no ha cargado: la primera vez necesita conexión a internet"));
+        };
+        document.head.appendChild(s);
+      });
+    }
+    return heicPromesa;
+  }
+
+  // Deja la foto lista para decodificar: si se declara HEIC (ocr.esHeic) va directa a la conversión;
+  // si es JPG/PNG/WebP/AVIF de toda la vida se queda como está — el probe con createImageBitmap es
+  // el mismo decodificador que usará el canvas después; si lo rechaza (HEIC camuflado de ".png" u
+  // otro formato raro) también pasa por la conversión.
+  function prepararFotoOcr(archivo, progreso) {
+    if (ocr.esHeic(archivo)) return convertirHeic(archivo, progreso);
+    if (typeof createImageBitmap !== "function") return Promise.resolve(archivo);  // entorno sin decodificador (jsdom): el test inyecta lo demás
+    return createImageBitmap(archivo).then(() => archivo).catch(() => convertirHeic(archivo, progreso));
+  }
+
+  function convertirHeic(archivo, progreso) {
+    if (progreso && progreso.isConnected) progreso.textContent = "Convirtiendo la foto (HEIC del iPhone → JPEG)…";
+    const conversor = window.__mrcheffHeicConvertir                    // gancho §6: jsdom/e2e sin wasm real
+      ? Promise.resolve(window.__mrcheffHeicConvertir)
+      : cargarHeic2any();
+    return conversor
+      .then(convertir => convertir({ blob: archivo, toType: "image/jpeg", quality: 0.95 }))
+      .then(res => (Array.isArray(res) ? res[0] : res));               // un HEIC puede traer varias imágenes: la 1ª
+  }
+
+  // Pinta el bitmap en un canvas listo para el OCR, girado los grados que toque. La resolución se
+  // limita a 1600px por el lado mayor (el OCR no gana con más: a 4.000px cada pasada tarda mucho en
+  // el wasm; los tickets se leen bien a esa escala).
+  function canvasDeBitmap(bitmap, grados) {
+    const ancho = bitmap.width || 0, alto = bitmap.height || 0;
+    if (!ancho || !alto) return null;
+    const gira = grados % 180 !== 0;
+    const escala = Math.min(1, 1600 / Math.max(ancho, alto));
+    const lienzo = document.createElement("canvas");
+    lienzo.width = Math.round((gira ? alto : ancho) * escala);
+    lienzo.height = Math.round((gira ? ancho : alto) * escala);
+    const ctx = lienzo.getContext("2d");
+    if (!ctx || !ctx.translate || !ctx.scale) return null;             // entorno de test sin canvas real: la vista degrada (no pinta nada)
+    ctx.translate(lienzo.width / 2, lienzo.height / 2);
+    ctx.scale(escala, escala);
+    ctx.rotate((grados % 360) * Math.PI / 180);
+    ctx.drawImage(bitmap, -ancho / 2, -alto / 2, ancho, alto);
+    return lienzo;
+  }
+
+  // Escanea la foto enterita: prepara (HEIC → JPEG si hace falta), decodifica y reconoce REINTENTANDO
+  // girada 90°/270° cuando la foto de frente no leyó nada reconocible — los tickets se fotografían
+  // con el móvil y el papel suele caer de lado, y el motor no reorienta el texto por su cuenta. Cada
+  // pasada corre en el navegador y se corta a la primera que encuentra candidatos; si ninguna lee
+  // nada, el aviso "no detectado" de procesarTextoOcr queda igual que siempre.
+  async function escanearFoto(archivo, progreso) {
+    // El usuario puede cerrar el modal EN MEDIO del escaneo (o porque canceló, o por Escape):
+    // closeModal OCULTA el modal (no vacía el DOM), así que el vida del escaneo se le al estado
+    // del modal mismo; el `progreso` suelto quedaría "conectado" aunque nadie lo vea.
+    const abierto = () => !modal.classList.contains("hidden");
+    const Tesseract = await cargarTesseract();
+    const foto = await prepararFotoOcr(archivo, progreso);
+    if (!abierto()) return;                              // canceló durante la carga/conversión
+    const bitmap = await createImageBitmap(foto);        // decodificación real: HEIC sin convertir moriría aquí (lo avisa el catch del change)
+    for (const grados of [0, 90, 270]) {
+      if (!abierto()) return;                            // el usuario ya ha cerrado el modal
+      const lienzo = canvasDeBitmap(bitmap, grados);
+      if (!lienzo) break;                                // nada se puede pintar: tiramos de la única cara posible
+      const girada = grados !== 0;
+      progreso.textContent = girada
+        ? "Reconociendo texto… (girando la foto para leerla boca arriba)"
+        : "Reconociendo texto…";
+      const { data } = await Tesseract.recognize(lienzo, "spa", {
+        logger: m => {
+          if (m && m.status === "recognizing text" && abierto()) {
+            progreso.textContent = `Reconociendo texto… ${Math.round((m.progress || 0) * 100)}%${girada ? " (foto girada)" : ""}`;
+          }
+        }
+      });
+      if (!abierto()) return;
+      const texto = (data && data.text) || "";
+      if (ocr.extraerCandidatos(texto, ocrVocabulario).length) {
+        procesarTextoOcr(texto);                         // esta cara leyó alimentos: FIN (siguiente paso de siempre)
+        return;
+      }
+      // cara sin nada reconocible: siguiente giro; agotadas las tres, el aviso clásico
+    }
+    if (abierto()) procesarTextoOcr("");
+  }
+
   // La cámara SÓLO se ofrece en vista móvil (ocr.esMovil decide contra el user agent): el input file
   // con el atributo `capture` abre la app de la cámara del sistema (Android/iOS), SIN permisos
   // getUserMedia y SIN exigir https. En escritorio, la vía es elegir una foto del frigorífico/armario
@@ -701,21 +837,8 @@ document.addEventListener("DOMContentLoaded", () => {
       abrirModal("Escáner del ticket");
       $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
       const progreso = $("#ocr-progreso", modalContent);
-      cargarTesseract().then(Tesseract => {
-        if (!progreso.isConnected) return;        // el usuario ya ha cancelado mientras cargaba
-        progreso.textContent = "Reconociendo texto…";
-        return Tesseract.recognize(archivo, "spa", {
-          logger: m => {
-            if (m && m.status === "recognizing text" && progreso.isConnected) {
-              progreso.textContent = `Reconociendo texto… ${Math.round((m.progress || 0) * 100)}%`;
-            }
-          }
-        }).then(({ data }) => {
-          if (!progreso.isConnected) return;
-          procesarTextoOcr(data && data.text);
-        });
-      }).catch(err => {
-        if (!progreso.isConnected) return;        // cerrado por el usuario: nada que contar
+      escanearFoto(archivo, progreso).catch(err => {
+        if (modal.classList.contains("hidden")) return;   // cerrado por el usuario: nada que contar
         closeModal();
         toast((err && err.message) || "No se ha podido escanear la foto", "error");
       });

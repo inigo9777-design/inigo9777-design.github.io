@@ -33,6 +33,17 @@
     return /Android|iPhone|iPod|iPad|Mobile|Windows Phone/i.test(String(userAgent || ""));
   }
 
+  // ─── ¿La foto llega en HEIC/HEIF? El formato POR DEFECTO de la cámara del iPhone (y algún ".png"
+  // mal etiquetado que en realidad es HEIF — la vista detecta ese camuflado al fallar el decodificador).
+  // Los navegadores de base Chromium no decodifican HEIC: el canvas y el motor del OCR se quedan a
+  // cero ("No se ha podido escanear la foto"). La vista convierte esos ficheros a JPEG ANTES de darlos
+  // al OCR. Chequeo PURO sobre nombre y tipo del fichero — nada de lectura ni I/O.
+  function esHeic(archivo) {
+    const nombre = String((archivo && archivo.name) || "").toLowerCase();
+    const tipo = String((archivo && archivo.type) || "").toLowerCase();
+    return tipo.includes("heic") || tipo.includes("heif") || nombre.endsWith(".heic") || nombre.endsWith(".heif");
+  }
+
   // ─── parseaCantidad: la CANTIDAD comprada que viaja en la línea del ticket. Patrones (case-insens):
   //   A) cifra + UNIDAD DE CUENTA — "2 x Leche", "3 UD Huevos", "2 bolsas Cebolla", "1 brik Leche";
   //   B) cifra al FINAL con x — "Yogur x4", "Tomates x2";
@@ -215,5 +226,5 @@
     return { lista, quitado: lista.length !== (Array.isArray(pendientes) ? pendientes.length : 0) };
   }
 
-  return { esMovil, extraerCandidatos, guardarCandidatos, añadirTicketPendientes, definirTicketPendiente, quitarTicketPendiente, norm, capitaliza };
+  return { esMovil, esHeic, extraerCandidatos, guardarCandidatos, añadirTicketPendientes, definirTicketPendiente, quitarTicketPendiente, norm, capitaliza };
 });
