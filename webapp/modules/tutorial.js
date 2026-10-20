@@ -90,7 +90,7 @@
       id: "recetas-catalogo",
       vista: "recipes", selector: "#recipe-catalog-search", accionable: true,
       titulo: "El catálogo te hace el trabajo",
-      texto: "200 recetas curadas de cocina española e italiana por título o por ingrediente. Y vale con escribir pocas letras: con \"gamb\" ya salen las gambas al ajillo. Toca el buscador para seguir.",
+      texto: "200 recetas curadas de cocina española e italiana por título, y vale con escribir pocas letras: con \"gamb\" ya salen las gambas al ajillo. Toca el buscador para seguir.",
     },
     {
       id: "recetas-mis-recetas",
