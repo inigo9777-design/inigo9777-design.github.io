@@ -8,11 +8,11 @@
 //     2. Vista Alimentos → botón "📷 Escanear el ticket con la cámara" (SÓLO aparece en móvil).
 //     3. Se abre la app de la cámara del sistema SIN pedir permisos ni https extra: fotógrafo el
 //        ticket del super (o el frigorífico: la vía es la misma), de frente y con buena luz.
-//     4. En el modal aparece la lista detectada con la CANTIDAD leída del ticket: el NOMBRE es
-//        editable y hay cantidad / mínimo para avisar / importancia (1–10) + casilla "Incluir".
-//     5. "Añadir lo confirmado": los alimentos claros entran (los exactos SUMAN su compra) y
-//        los dudosos —¿es el mismo que uno de la despensa?— quedan ARRIBA en la lista de la compra
-//        con el mismo botón "🛒 Despensa?" que cualquier fila.
+//     4. CONFIRMACIÓN EN DOS DIÁLOGOS, sin salir de Alimentos: 1º los alimentos DEL TICKET que YA
+//        están en el inventario (cantidad comprada editable — se suma); 2º la revisión con las
+//        secciones NUEVOS (nombre/cantidad/IMPORTANCIA/MÍNIMO definidos en la fila) y DUDAS
+//        ("¿es ESE alimento de tu despensa?" con desplegable de variantes).
+//     5. "Añadir a la despensa": lo confirmado entra directo en el Inventario actual.
 //   ESCRITORIO (Mac): botón "🖼️ Escanear foto del ticket" → eliges una foto del disco → mismo modal.
 //   La primera vez Tesseract.js descarga su motor/español del CDN (unos megas, una sola vez); la
 //   FOTO nunca sale del dispositivo: todo el reconocimiento corre en el navegador.
@@ -20,12 +20,12 @@
 // Lo que automatiza esta prueba:
 //   (A) Escritorio: botón cámara OCULTO, botón foto visible (la cámara sólo sale en móvil).
 //   (B) Móvil emulado (UA iPhone): botón cámara VISIBLE.
-//   (C) Flujo REAL de OCR (foto sintética de texto dibujada en canvas → PNG): modal de
-//       confirmación con ≥2 candidatos REALES detectados por Tesseract (spa), nombre editado y
-//       guardado con cantidad propia, y la despensa refrescada. Capturas 23-*, 24-*.
+//   (C) Flujo REAL de OCR (foto sintética de texto dibujada en canvas → PNG): con la despensa
+//       vacía todo es NUEVO → el 2º diálogo con la sección Nuevos; nombre/cantidad/importancia
+//       editados EN la fila y alta directa en la despensa. Capturas 23-*, 24-*.
 //   (D) FLUJO DEL TICKET con texto inyectado por la ventanilla §6 (sin depender de la conexión):
-//       cantidad por línea, claros directo a la despensa, dudoso ARRIBA de la lista con "🛒
-//       Despensa?" (misma máquina de la lista) y salida al resolver. Capturas 25-*, 26-*.
+//       cantidad por línea, NUEVOS arriba y DUDOS abajo en el diálogo de revisión — la duda se
+//       resuelve con la variante de despensa (suma en-situ) todo DENTRO de Alimentos. Captura 25-*.
 import { chromium } from "playwright-core";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
@@ -151,69 +151,47 @@ try {
     const nCand = await page.locator(".ocr-item").count();
     ok(nCand >= 2, `(C) OCR real en Brave: modal con ${nCand} candidatos detectados de la foto (≥2)`);
 
-    // Requisito del epic: el NOMBRE es editable hasta guardar → renombrar la 1ª fila y cambiar cantidad.
-    const fila1 = page.locator(".ocr-item").first();
+    // Requisito variable 2026-10-21: TODO se define EN el diálogo de revisión — renombrar la 1ª
+    // fila, cambiar su cantidad y dar su IMPORTANCIA ahí mismo (despensa vacía → todo es nuevo).
+    const secciones = await page.locator(".rev-seccion h3").allTextContents();
+    ok(secciones.join() === "Nuevos", "(C) despensa vacía → todo NUEVO: sólo la sección 'Nuevos' del 2º diálogo");
+    const fila1 = page.locator(".rev-seccion .ocr-item").first();
     const nombreOriginal = await fila1.locator("input[type='text']").inputValue();
     ok(nombreOriginal.length > 1, `(C) el nombre detectado sale editable (valor actual: "${nombreOriginal}")`);
     await fila1.locator("input[type='text']").fill("Prueba OCR renombrada");
     await fila1.locator("input[type='number']").first().fill("7");
+    await fila1.locator(".rev-num").first().fill("8");
     await page.screenshot({ path: path.join(OUT_DIR, "23-ocr-confirmar-candidatos.png") });
 
-    await page.click("[data-ocr-guardar]");
+    await page.click("[data-revision-guardar]");
     await page.waitForSelector("#modal.hidden", { state: "attached" });
-    const abierto = await page.$eval("#modal", m => !m.classList.contains("hidden"));
-    ok(!abierto, "(C) tras guardar, el modal se cierra");
-    // 2026-10-21 (asistente): SIN toast de éxito — el salto con animación lleva a la lista:
-    ok(await page.$eval("#view-suggest", v => v.classList.contains("active")),
-      "(C) sin toast: la vista Sugerencias queda activa (destino del asistente del escáner)");
+    ok(await page.$eval("#view-foods", v => v.classList.contains("active")),
+      "(C) sin toast y sin saltos: el escáner NO sale de la pestaña de Alimentos");
+    await page.waitForFunction(() => document.getElementById("food-list").classList.contains("destello-suave"), null, { timeout: 3000 });
+    ok(true, "(C) el Inventario actual destella una vez (el ojo sabe dónde acaba lo confirmado)");
 
-    // CONTRATO 2026-10-20: con la despensa vacía, TODO candidato es NUEVO → nada entra solo;
-    // los tres quedan como pendientes del ticket SIN DEFINIR (importancia/mínimo por decidir).
-    const lsPend = await page.evaluate(() => JSON.parse(localStorage.getItem("mrcheff.compraTicket") || "[]"));
-    ok(lsPend.length >= 2, `(C) la despensa se queda SIN altas automáticas — pendientes del ticket: ${lsPend.length}`);
-    const renombrado = lsPend.find(p => p.nombre === "Prueba OCR renombrada");
-    ok(!!renombrado && renombrado.qty === 7 && renombrado.faltaDefinir === true,
-      "(C) el renombrado (qty 7) espera SIN DEFINIR: su importancia y mínimo se deciden aparte");
-    ok(await page.evaluate(() => JSON.parse(localStorage.getItem("mrcheff.foods")).length) === 0,
-      "(C) despensa sin inventar alimentos nuevos por el escaneo");
-
-    // En la lista: el pendiente llega ATENUADO con aviso; definir importancia/mínimo → pasa a
-    // normal → ✅ lo lleva a la despensa (el diálogo abre ya con la cantidad del ticket).
-    await page.evaluate(() => document.querySelector('[data-view="suggest"]').click());
-    const filaPend = page.locator("li[data-fila-ticket='Prueba OCR renombrada']");
-    ok((await filaPend.first().getAttribute("class")).includes("pendiente-sin-definir"),
-      "(C) en la lista el nuevo sale ATENUADO (sin definir)");
-    ok((await filaPend.first().locator(".alert-definir-aviso").count()) === 1,
-      "(C) con su aviso visible: define importancia y mínimo");
-    await filaPend.first().locator(".tick-score").fill("8");
-    await filaPend.first().locator(".tick-min").fill("1");
-    await filaPend.first().locator("[data-tick-definir]").click();
-    const filaTrasDefinir = page.locator("li[data-fila-ticket='Prueba OCR renombrada']");
-    ok(!(await filaTrasDefinir.getAttribute("class")).includes("pendiente-sin-definir") &&
-       (await filaTrasDefinir.locator("[data-buy]").count()) === 1,
-      "(C) definido → la fila pasa a NORMAL (se va el fade) con sus botones");
-    await filaTrasDefinir.locator("[data-buy]").click();
-    const qtyC = await page.inputValue("#compra-qty");
-    ok(qtyC === "7", `(C) el diálogo de compra abre con la CANTIDAD del ticket (${qtyC})`);
-    await page.click("[data-buy-confirm]");
-    await page.waitForSelector("li[data-fila-ticket='Prueba OCR renombrada']", { state: "detached" }).catch(() => {});
-
-    // La fila definida vive en la despensa con su cantidad y su criterio: "7 / 1" + importancia 8.
-    const fila = page.locator("#food-list .food-item", { hasText: "Prueba OCR renombrada" });
-    ok(await fila.count() === 1, "(C) el candidato renombrado está GUARDADO en la despensa (nombre editable respetado)");
-    ok((await fila.first().textContent()).includes("7 / 1"), "(C) la cantidad confirmada (7) ha entrado con su mínimo");
-    const ls = await page.evaluate(() => JSON.parse(localStorage.getItem("mrcheff.foods")));
-    const fueGuardado = ls.some(f => f.name === "Prueba OCR renombrada" && f.qty === 7 && f.score === 8 && f.min >= 0);
-    ok(fueGuardado, "(C) localStorage: alta con qty=7, el mínimo de la fila e importancia DEFINIDA (8)");
-    // ¿Duplicados? Los otros candidatos reales (aún pendientes sin definir) no han pisado la despensa.
-    ok(new Set(ls.map(f => f.name.toLowerCase())).size === ls.length, "(C) la despensa no queda duplicada");
+    // CONTRATO 2026-10-21: la compra ya está hecha → TODOS los nuevos entran directo con su
+    // criterio definido EN el diálogo. La clave de pendientes del ticket NI LLEGA A ESCRIBIRSE
+    // (esa implementación se retiró: la lista de la compra queda fuera del escáner).
+    const ls = await page.evaluate(() => ({
+      foods: JSON.parse(localStorage.getItem("mrcheff.foods") || "[]"),
+      compraTicket: localStorage.getItem("mrcheff.compraTicket")
+    }));
+    ok(ls.compraTicket === null, "(C) sin pendientes del ticket en la lista de la compra (clave retirada, nunca escrita)");
+    ok(ls.foods.length >= 2 && ls.foods.length === nCand, `(C) la despensa recibe los ${ls.foods.length} nuevos del ticket AL CONFIRMAR`);
+    ok(new Set(ls.foods.map(f => f.name.toLowerCase())).size === ls.foods.length, "(C) la despensa no queda duplicada");
+    const guardado = ls.foods.find(f => f.name === "Prueba OCR renombrada");
+    ok(!!guardado && guardado.qty === 7 && guardado.score === 8 && Number.isFinite(guardado.min),
+      "(C) localStorage: alta con qty=7 e IMPORTANCIA definida en el diálogo (8) — nada lo decide la app sola");
+    const filaDespensa = page.locator("#food-list .food-item", { hasText: "Prueba OCR renombrada" });
+    ok(await filaDespensa.count() === 1, "(C) el candidato renombrado está GUARDADO en la despensa (nombre editable respetado)");
   }
 
-  // ── (D) FLUJO DEL TICKET (propósito 2026-10-20): los EXACTOS suman y los demás van ARRIBA a la
-  //    lista de la compra — DUDOSOS con el mismo "🛒 Despensa?" y NUEVOS SIN DEFINIR (fila atenuada:
-  //    importancia y mínimo se fijan editables en la propia fila; entonces ya se resuelven como
-  //    cualquier otra). El texto entra por la inyección §6 (los datos que pasaría el OCR tras leer
-  //    la foto): así la sección NO depende de la conexión; el motor REAL ya queda cubierto en (C).
+  // ── (D) FLUJO DEL TICKET (rework 2026-10-21): la revisión de exactos/nuevos/dudas sucede en
+  //    los dos DIÁLOGOS del escáner, dentro de Alimentos — nada salta a la lista de la compra
+  //    (la implementación de pendientes del ticket se retiró, `mrcheff.compraTicket` incluida).
+  //    El texto entra por la inyección §6 (los datos que pasaría el OCR tras leer la foto): la
+  //    sección NO depende de la conexión; el motor REAL ya queda cubierto en (C).
   const ctxTicket = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await ctxTicket.addInitScript(() => {
     localStorage.setItem("mrcheff.tutorial", JSON.stringify({ visto: true }));
@@ -228,75 +206,47 @@ try {
 
   await pageT.evaluate(t => window.__mrcheffProcesarTextoOcr(t),
     ["3 Leche entera 1,29 €", "2 x Yogur", "1 Pan de pueblo", "TOTAL 12,40 €. GRACIAS"].join("\n"));
-  ok(await pageT.locator(".ocr-item").count() === 3, "(D) modal del ticket: 3 candidatos reconocidos");
-  ok((await pageT.inputValue("#ocr-qty-0")) === "3", "(D) la CANTIDAD la fija la línea del ticket ('3 Leche' → 3)");
-  ok((await pageT.inputValue("#ocr-qty-1")) === "2", "(D) '2 x Yogur' → 2");
+  ok((await pageT.locator(".rev-seccion h3").allTextContents()).join() === "Nuevos,Dudas",
+    "(D) nada exacto en casa: el primer diálogo es YA la revisión con Nuevos ENCIMA de Dudas");
+  ok((await pageT.inputValue("#rev-qty-0")) === "3", "(D) la CANTIDAD la fija la línea del ticket ('3 Leche' → 3)");
+  ok((await pageT.inputValue("#rev-qty-1")) === "2", "(D) '2 x Yogur' → 2");
+  ok((await pageT.inputValue("#rev-qty-2")) === "1", "(D) '1 Pan de pueblo' → 1 (nuevo: se define en la propia fila)");
+  ok((await pageT.locator("option", { hasText: "Yogur natural" }).count()) >= 1,
+    "(D) la duda trae el desplegable con la variante de despensa disponible ('Yogur natural')");
   await pageT.screenshot({ path: path.join(OUT_DIR, "25-ocr-ticket-confirmar.png") });
-  await pageT.click("[data-ocr-guardar]");
+
+  // La persona define TODO en las filas: la nueva Leche con su IMPORTANCIA (7), Pan con los
+  // valores por defecto, y la duda del Yogur se resuelve eligiendo la variante de despensa
+  // (sus campos de alerta se apagan — la del alimento real ya existía).
+  await pageT.fill("#rev-score-0", "7");
+  await pageT.locator("#rev-variante-1").selectOption("a1");
+  ok(await pageT.$eval("#rev-score-1", el => el.disabled) && await pageT.$eval("#rev-min-1", el => el.disabled),
+    "(D) variante elegida → los campos de alerta de la fila se DESHABILITAN (no aplican)");
+  await pageT.click("[data-revision-guardar]");
   await pageT.waitForSelector("#modal.hidden", { state: "attached" });
-  // 2026-10-21 (asistente): el salto a la lista pasa por sí solo (sin toast); nada exacto →
-  // el asistente tampoco sufrió paso de despensa (todo era duda/nuevo).
-  ok(await pageT.$eval("#view-suggest", v => v.classList.contains("active")),
-    "(D) sin toast: la vista Sugerencias queda activa tras confirmar el paso de dudas");
+  await pageT.waitForFunction(() => document.getElementById("food-list").classList.contains("destello-suave"), null, { timeout: 3000 });
+  ok(await pageT.$eval("#view-foods", v => v.classList.contains("active")),
+    "(D) sin toast ni saltos: la vista Alimentos queda activa tras confirmar todo");
 
   const d = await pageT.evaluate(() => ({
-    pend: JSON.parse(localStorage.getItem("mrcheff.compraTicket") || "[]"),
+    compraTicket: localStorage.getItem("mrcheff.compraTicket"),
     foods: JSON.parse(localStorage.getItem("mrcheff.foods") || "[]")
   }));
-  ok(d.pend.map(p => p.nombre).join(",") === "Leche,Yogur,Pan", "(D) pendientes del ticket EN ORDEN DEL TICKET: Leche (nuevo), Yogur (dudoso), Pan (nuevo)");
-  ok(d.pend[0].faltaDefinir === true, "(D) el NUEVO 'Leche' queda SIN DEFINIR (qty 3 del ticket): nada de alta por su cuenta");
-  ok(!d.foods.some(f => f.name === "Yogur") && !d.foods.some(f => f.name === "Leche") && !d.foods.some(f => f.name === "Pan"),
-    "(D) la despensa no recibe NADA del ticket hasta el veredicto de la persona");
-  ok(d.foods.find(f => f.name === "Yogur natural").qty === 2 && d.foods.length === 1,
-    "(D) la despensa queda exactamente como estaba");
-
-  // La lista: el NUEVO sale ATENUADO (importancia/mínimo por fijar, editables en la fila); el
-  // DUDOSO, normal con el MISMO botón "🛒 Despensa?" de la lista.
-  await pageT.evaluate(() => document.querySelector('[data-view="suggest"]').click());
-  await pageT.waitForSelector("li[data-fila-ticket='Yogur']", { timeout: 5000 });
-  const primeraFila = await pageT.$eval("#shopping-list li.alert-row", el => el.getAttribute("data-fila-ticket"));
-  ok(primeraFila === "Leche", "(D) el pendiente del ticket es la PRIMERA fila de la lista (la línea 1 del ticket: 'Leche')");
-  const filaLeche = pageT.locator("li[data-fila-ticket='Leche']");
-  ok((await filaLeche.getAttribute("class")).includes("pendiente-sin-definir"), "(D) la fila del NUEVO sale ATENUADA (sin definir)");
-  ok(await pageT.isVisible("li[data-fila-ticket='Yogur'] [data-despensa]"), "(D) el DUDOSO lleva el MISMO botón '🛒 Despensa?' (hay variante en despensa)");
-  await pageT.screenshot({ path: path.join(OUT_DIR, "26-ocr-ticket-lista-despensa.png") });
-
-  // Fijar importancia y mínimo desde la PROPIA fila → la fila pasa a normal → ✅ la lleva a la
-  // despensa con los valores DEFINIDOS y la cantidad del ticket.
-  await filaLeche.locator(".tick-score").fill("7");
-  await filaLeche.locator(".tick-min").fill("1");
-  await filaLeche.locator("[data-tick-definir]").click();
-  ok(!(await filaLeche.getAttribute("class")).includes("pendiente-sin-definir"), "(D) definido: la fila de 'Leche' pasa a NORMAL (se va el fade)");
-  await filaLeche.locator("[data-buy]").click();
-  ok((await pageT.inputValue("#compra-qty")) === "3" && (await pageT.inputValue("#compra-score")) === "7",
-    "(D) el diálogo abre pre-cargado: qty 3 del ticket + la importancia QUE ACABA DE DEFINIR (7)");
-  await pageT.click("[data-buy-confirm]");
-  await pageT.waitForSelector("li[data-fila-ticket='Leche']", { state: "detached" }).catch(() => {});
-  const dl = await pageT.evaluate(() => JSON.parse(localStorage.getItem("mrcheff.foods") || "[]"));
-  ok(dl.some(f => f.name === "Leche" && f.qty === 3 && f.score === 7 && f.min === 1),
-    "(D) 'Leche' entra en la despensa con qty del ticket + min/importancia DEFINIDOS por la persona");
-
-  // El DUDOSO se resuelve con "🛒 Despensa?" como cualquier fila (el usuario decide la variante).
-  await pageT.click("li[data-fila-ticket='Yogur'] [data-despensa]");
-  await pageT.waitForSelector("[data-despensa-elegir='Yogur natural']");
-  await pageT.click("[data-despensa-elegir='Yogur natural']");
-  ok((await pageT.inputValue("#compra-qty")) === "2", "(D) el diálogo de compra abre con la CANTIDAD del ticket (2)");
-  await pageT.click("[data-buy-confirm]");
-  const dr = await pageT.evaluate(() => ({
-    pend: JSON.parse(localStorage.getItem("mrcheff.compraTicket") || "[]"),
-    foods: JSON.parse(localStorage.getItem("mrcheff.foods") || "[]"),
-    filaViva: !!document.querySelector("li[data-fila-ticket='Yogur']")
-  }));
-  ok(dr.pend.map(p => p.nombre).join(",") === "Pan", "(D) resuelto Leche+Yogur: sólo queda 'Pan' (sin definir) por decidir");
-  ok(!dr.filaViva, "(D) resuelto: la fila del Yogur sale de la lista de la compra");
-  ok(dr.foods.some(f => f.name === "Yogur natural" && f.qty === 2) && !dr.foods.some(f => f.name === "Yogur"),
-    "(D) la compra fue IN-SITU a 'Yogur natural' (misma cosa con otra variante), sin alimento nuevo");
+  ok(d.compraTicket === null, "(D) la lista de la compra NUNCA recibe el ticket (clave de pendientes retirada)");
+  ok(!!d.foods.find(f => f.name === "Leche" && f.qty === 3 && f.score === 7),
+    "(D) el NUEVO 'Leche' entra en la despensa con qty del ticket + su IMPORTANCIA definida en la fila (7)");
+  ok(!!d.foods.find(f => f.name === "Pan" && f.qty === 1), "(D) el NUEVO 'Pan' entra con los criterios por defecto de la fila");
+  const yo = d.foods.find(f => f.name === "Yogur natural");
+  ok(!!yo && yo.qty === 4 && yo.score === 5 && yo.min === 1,
+    "(D) la DUDA resuelta con variante SUMA a 'Yogur natural' (2 en casa + 2 del ticket) SIN tocar su alerta");
+  ok(!d.foods.some(f => f.name === "Yogur"), "(D) no se da de alta un 'Yogur' aparte: la compra va AL alimento ya en casa");
+  ok(d.foods.length === 3, "(D) la despensa acaba con las tres cosas del ticket y nada más");
   await ctxTicket.close();
 
   await ctxDesk.close();
   if (fallos) throw new Error(fallos + " comprobaciones del escáner fallidas");
-  console.log("\nESCÁNER DEL TICKET OK — cámara sólo en móvil ✔ + OCR real en navegador ✔ + ticket: exacto suma / dudoso y nuevo a pendientes (nuevo SIN definir hasta fijar criterios) ✔");
-  console.log("Capturas: reports/ui-brave/23-ocr-confirmar-candidatos.png · 24-ocr-camara-visible-movil.png · 25-ocr-ticket-confirmar.png · 26-ocr-ticket-lista-despensa.png");
+  console.log("\nESCÁNER DEL TICKET OK — cámara sólo en móvil ✔ + OCR real en navegador ✔ + la revisión en DOS DIÁLOGOS dentro de Alimentos (exactos suman / nuevos y dudas se definen en fila — nada en la lista de la compra) ✔");
+  console.log("Capturas: reports/ui-brave/23-ocr-confirmar-candidatos.png · 24-ocr-camara-visible-movil.png · 25-ocr-ticket-confirmar.png");
 } catch (e) {
   console.error("\nFALLO:", e.message);
   process.exitCode = 1;

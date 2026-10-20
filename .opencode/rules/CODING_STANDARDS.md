@@ -228,6 +228,16 @@ Los bugs ya resueltos que antes vivían aquí están MOVIDOS a `bugfix.md` (raí
 `#bugfix-pwa-no-refresca-cambios` (2026-10-19, caché de la PWA servía assets viejos).
 Aquí queda sólo la referencia, sin su marcha.
 
+- `2026-10-21 · @AI-agent · #epic-ocr-despensa-camara · Principio: O, L · Justificación:` REWORK de la
+  confirmación del escáner a petición del usuario (la compra ya está hecha: TODO se resuelve en los
+  dos diálogos, dentro de Alimentos, sin tocar la lista de la compra): se RETIRAN de `ocr-despensa.js`
+  las públicas de la máquina de pendientes del ticket (`añadirTicketPendientes`,
+  `definirTicketPendiente`, `quitarTicketPendiente`) — añadidas hace 24 h en la misma épica y sin
+  ningún consumidor fuera de ella —, el valor del 2º paso de `pasosDeConfirmacion` pasa de
+  "pendientes" a "revisar" y entra la pública `confirmarRevision` (la escritura final del 2º
+  diálogo). Los shapes §5 de los datos reproduzidos no cambian: la clave `mrcheff.compraTicket`
+  deja de leerse y escribirse en producción. La marcha completa vive en AGENTS.md (sección OCR).
+
 - `2026-10-21 · @AI-agent · #epic-ocr-despensa-camara · Principio: L · Justificación:` contratos del
   módulo del ticket ampliados de forma ADITIVA (shapes §5 intactos, nada roto): `guardarCandidatos`
   devuelve también `directos` (filas exactas que suman, para el paso 1 del asistente de

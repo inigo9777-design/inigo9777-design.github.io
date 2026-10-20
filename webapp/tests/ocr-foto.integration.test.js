@@ -98,7 +98,7 @@ describe("Escáner del ticket — la foto ante el motor (integración de vista)"
     expect(llamadas).toHaveLength(1);
     expect(llamadas[0].tagName).toBe("CANVAS");
     expect(document.querySelectorAll(".modal-content .ocr-item").length).toBeGreaterThan(0);
-    expect(document.getElementById("ocr-qty-0").value).toBe("3");
+    expect(document.getElementById("rev-qty-0").value).toBe("3");   // la fila nueva abre con la cifra del ticket
     expect(app.jsdomErrors).toHaveLength(0);
   });
 
@@ -164,7 +164,7 @@ describe("Escáner del ticket — la foto ante el motor (integración de vista)"
     expect(llamadas[1].height).toBe(llamadas[0].width);
     // por fin la confirmación con los candidatos de la cara buena
     expect(document.querySelectorAll(".modal-content .ocr-item").length).toBeGreaterThan(0);
-    expect(document.getElementById("ocr-qty-0").value).toBe("2");
+    expect(document.getElementById("rev-qty-0").value).toBe("2");   // la fila nueva abre con la cifra del ticket
     expect(app.jsdomErrors).toHaveLength(0);
   });
 

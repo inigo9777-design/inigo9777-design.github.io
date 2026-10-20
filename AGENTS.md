@@ -50,9 +50,9 @@ is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
   como selector; mantener el fichero sin tokens basura fuera de comentario].
 
 Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts; escáner del TICKET de la
-compra por OCR: "cámara" SÓLO en móvil vía `input capture` — escritorio pide una foto — y modal de
-confirmación editable con la CANTIDAD leída del ticket (sólo cantidad: el criterio de alerta se
-fija DESPUÉS en la lista — ver el bullet del escáner), módulo
+compra por OCR: "cámara" SÓLO en móvil vía `input capture` — escritorio pide una foto — y DOS
+DIALOGOS de confirmación DENTRO de la pestaña: exactos del Inventario actual con la CANTIDAD
+comprada editable + revisión con secciones Nuevos/Dudas (ver el bullet del escáner), módulo
 `ocr-despensa.js`) · **Recetas**
 (free-text → structured recipe; card "🔎 Buscador del catálogo" busca en el JSON del catálogo
 SÓLO por título (fix 2026-10-20: los ingredientes ya NO puntúan — "mascarpone" ya no saca el
@@ -217,11 +217,13 @@ italiana" (see `modules/origen-recetas.js` below).
   `{catalog, ids}` para tests) · **`ocr-despensa.js`** (escáner del TICKET por OCR: esMovil, esHeic;
   extraerCandidatos — vocabulario FOOD_TYPES + CANTIDAD por línea (unidades de cuenta: x/UD/bolsa/
   brik/… y cifra inicial; los pesos del envase 400g/1L y los precios NO cuentan); guardarCandidatos
-  REPARTE SIN ALTAS: nombre EXACTO en la despensa → la compra SUMA (criterios intactos); con
-  VARIANTES (inyección `deps.candidatosDespensa`, la misma máquina del botón "🛒 Despensa?") →
-  DUDOSO para la lista; nuevo → `nuevos` con `faltaDefinir`; añadirTicketPendientes lote en orden
-  del ticket dedup/sticky + definirTicketPendiente (min/score desde la fila) y
-  quitarTicketPendiente para las filas del ticket) · **`ocr-foto.js`** (la MÁQUINA DE LA FOTO
+  REPARTE SIN ALTAS: nombre EXACTO en la despensa → `directos` (el diálogo 1 suma su compra);
+  con VARIANTES (inyección `deps.candidatosDespensa`, la misma máquina del botón "🛒 Despensa?"
+  de la lista del plan) → `dudosos` para el diálogo de revisión; nuevo → `nuevos`; pasosDeConfirmacion
+  (["despensa","revisar"], el paso sin filas no sale) y confirmarRevision — la escritura FINAL
+  del 2º diálogo: fila con `varianteId` → SUMA en-situ (criterios intactos), sin ella → ALTA con
+  {nombre, qty, score, min} definidos EN el diálogo; nombre que ya existe → suma en vez de duplicar) ·
+  **`ocr-foto.js`** (la MÁQUINA DE LA FOTO
   del escáner, refactor desde app.js 2026-10-20: prepararFoto — HEIC declara conversión directa
   y el sondeo con el decodificador REAL manda el HEIC camuflado de ".png" al conversor —,
   geometriaDeLienzo — giro 90/270 con lados trocados, máx. 1600px por lado — y escanearCaras —
@@ -307,43 +309,37 @@ italiana" (see `modules/origen-recetas.js` below).
   **Reintento de giro**: los tickets se fotografían de lado — si la foto de frente no da
   alimentos, se re-reconoce girada 90°/270° (canvas `canvasDeBitmap`, máx. 1600px por lado;
   se corta a la primera cara con candidatos). El cancelar a mitad de escaneo se decide con el
-  ESTADO DEL MODAL (`modal.classList "hidden"`, no `isConnected` — closeModal sólo oculta). En la confirmación
-  editable la CANTIDAD sale de la línea del ticket (ver módulo); **el modal ya no pide
-  min/importancia** (2026-10-20, decisión del usuario: el criterio de alerta no lo sabe el ticket).
-  **ASISTENTE 2 PASOS** (2026-10-21, petición del usuario): tras un escaneo exitoso la revisión va
-  POR PARTES — paso 1: los CONFIRMADOS que se suman a la despensa (nombres exactos con sus
-  cantidades; chips "se suma") → confirmar; paso 2: los de DUDA (dudosos "¿lo tienes?" y nuevos
-  "nuevo en casa", nombre/cantidad corregibles) → confirmar. Al del último paso NO sale toast
-  de éxito: la app SALTA a la vista de destino con desplazamiento suave + destello (box-shadow
-  animado, `.destello-suave`): a la LISTA DE LA COMPRA (`#shopping-list`, filas del ticket arriba
-  con su cantidad y criterios) si hubo pendientes, o a la DESPENSA (`#food-list`) si todo fue
-  suma. El reparto de pasos lo decide el módulo puro (`pasosDeConfirmacion` +
-  `guardarCandidatos` devuelve también `directos`); el reparto FINAL corre contra la selección revisada
-  (renombrar en el paso 2 puede cambiar el destino de una fila y manda el último). reduce-motion
-  desactiva la animación (auto en scrollTo).
-  REGLA DE ORO al guardar: NADA del ticket entra en la despensa por su cuenta — los nombres
-  EXACTOS ya vividos SUMAN la compra en-situ (sus criterios de alerta quedan como estaban; el
-  escaneo no los pisa) y TODOS los demás van como PENDIENTES del ticket en `mrcheff.compraTicket`
-  ({ nombre, qty, tipo, escaneadoEn, faltaDefinir, min, score }), ARRIBA de la lista de la compra
-  (encima del rojo de la fecha) y EN EL ORDEN DEL TICKET (el lote no se invierte), y salen al
-  resolverse (Despensa? o ✅ comprado; el diálogo pre-llena cantidad + criterio: data-compra-qty/
-  min/score). Los DUDOSOS (¿es el mismo que uno de la despensa? → variantes vía la inyección
-  `deps.candidatosDespensa`; decide el botón "🛒 Despensa?" de la lista, mismo diálogo y
-  comportamiento) salen como fila normal; los NUEVOS salen **SIN DEFINIR** (`faltaDefinir: true`):
-  fila ATENUADA (`.pendiente-sin-definir` en `style.css`: nombre/meta al 45%, aviso italic muted)
-  con aviso + IMPORTANCIA (1–10) y MÍNIMO editables dentro de la propia fila (.tick-score /
-  .tick-min + "Definir ✓"); hasta fijarlos NO hay botones de resolución. `definirTicketPendiente`
-  (módulo puro) sella min/score, quita el fade y la fila ya se resuelve como cualquier otra; la
-  definición es STICKY al re-escanear (no se pierde; sin score válido no se define nada — el view
-  valida antes). Ni Tesseract ni heic2any ni el CDN van en el app-shell del SW. Demo grabada de la feature:
+  ESTADO DEL MODAL (`modal.classList "hidden"`, no `isConnected` — closeModal sólo oculta). En la
+  confirmación la CANTIDAD sale de la línea del ticket (ver módulo).
+  **CONFIRMACIÓN EN 2 DIALOGOS** (rework 2026-10-21, petición del usuario: la compra YA está
+  hecha — el escáner sólo mete lo comprado en el "Inventario actual", JAMÁS sale de la pestaña
+  de Alimentos y NO se mezcla con la lista de la compra; se RETIRÓ la implementación de
+  pendientes del ticket, con `mrcheff.compraTicket`, filaTicket, su "Definir ✓" en fila y el
+  prelleno data-compra-*): diálogo 1 "🎫 Ya lo tienes en el inventario" — los nombres EXACTOS
+  del ticket, nombre FIJO (es un alimento real, con "Ya tienes N en el inventario") + la CANTIDAD
+  comprada editable → al confirmar la compra SUMA en-situ vía `guardarCandidatos` y su alerta
+  queda como estaba; diálogo 2 "🎫 Añade lo nuevo y resuelve las dudas" con DOS secciones —
+  **Nuevos** (nombre/cantidad/IMPORTANCIA/MÍNIMO definidos EN la fila: `.rev-seccion` arriba,
+  alta directa al confirmar) y **Dudas** (debajo: desplegable `#rev-variante-{o}` con las
+  variantes de despensa del mismo casador `candidatosDespensa` — elegir variante = suma a ESE
+  alimento y los campos de alerta de la fila se DESHABILITAN (su alerta no se toca); la opción
+  "es nuevo: se define aquí" = alta con lo escrito en la fila). Cada diálogo compromete SU
+  confirmación (Cancelar después no deshace lo ya guardado; sin botón "Volver"). Sin toasts de
+  éxito: al cerrar el modal el Inventario destella UNA vez (`.destello-suave`, reduce-motion off,
+  scroll suave hasta `#food-list`). La escritura final es el módulo puro `confirmarRevision`
+  (alta con criterio definido, datos raros desinfectados qty≥0/score 1–10 clamp/min≥0, DUPLICADO
+  evitado: nombre que ya existe en casa → suma en vez de alta). reduce-motion desactiva la
+  animación (auto en scrollTo).
+  Ni Tesseract ni heic2any ni el CDN van en el app-shell del SW. Demo grabada de la feature:
   `node e2e/ocr-ticket-video.mjs` → `reports/ui-brave/video-ocr-ticket/demo-escaner-ticket.webm`
   (Playwright recordVideo; requiere `npx playwright-core install ffmpeg` una vez).
   Verificación con FOTOS REALES: `node e2e/ocr-tickets-reales.mjs` — escanea los tickets de la
   carpeta DESCARTABLE `reports/OCR/` (png/jpg/heic/heif; hoy: 1 PNG mal bautizado que era HEIF +
   1 HEIC de iPhone, ambos girados 90°; si la carpeta no existe, la prueba SE SALTA sola) y
   demuestra con material real: la foto se ABRE, las cantidades son unidades de compra (precios
-  y peso del envase fuera), y el reparto del usuario — exactos con criterio → DIRECTO a despensa
-  (jamás a la lista), dudosos y nuevos → pendientes (nuevos hasta fijar criterio). Capturas 31-32.
+  y peso del envase fuera), y la confirmación del usuario — exactos → SUMA a lo ya en casa,
+  dudosos y nuevos → se definen EN los dos diálogos y de alta directa en la despensa (jamás a
+  la lista de la compra). Capturas 31-32.
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
   red 8–10, orange 6–7, green 1–5; weekly alert shows the FULL list (el cap de 8 del módulo
   se quitó el 2026-10-19: escondía del 9º pendiente en adelante) y A PARTIR DE 8 items la lista
