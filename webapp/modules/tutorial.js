@@ -100,7 +100,21 @@
       cta: "Siguiente",
     },
   ];
-  const PASOS_INNOVACION = [];
+  const PASOS_INNOVACION = [
+    {
+      id: "innovacion-generador",
+      vista: "innovation", selector: "#btn-generate-innov", accionable: true,
+      titulo: "Ideas del catálogo, no combinaciones al vuelo",
+      texto: "Aquí Mr Cheff te propone platos reales ordenados por su encaje con tu despensa: el nº de ideas (4 a 20) y el sesgo (mezcla, platos nuevos o parecidos) se ajustan en esta misma fila. Toca Generar ideas y verás.",
+    },
+    {
+      id: "innovacion-lote",
+      vista: "innovation", selector: "#innovation-list", accionable: false,
+      titulo: "Un lote listo para mirar",
+      texto: "Cada tarjeta es una receta real con sus ingredientes a juego con lo que has anotado: ábrela para la ficha completa y guárdala con ⭐ si te convence — pasa a Mis recetas y ya cuenta en el plan de la semana. (Con la despensa vacía el generador te dirá antes de apuntar algo en Alimentos.)",
+      cta: "Siguiente",
+    },
+  ];
   const PASOS_MENU = [];
   const PASOS_TEMPORADA = [];
 
