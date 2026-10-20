@@ -59,6 +59,12 @@
                 <span class="tab-icon" aria-hidden="true">🗄️</span><span class="tab-label">Copia de seguridad</span>
             </button>
 
+            <!-- Reabrir el tutorial interactivo (feature 2026-10-20): mismo estilo de botón redondo
+                 que sus dos vecinos, y ENTRE ellos como se pidió. No es un .tab (no cambia de vista). -->
+            <button id="btn-tutorial" class="tutorial-toggle" title="Ver tutorial" aria-label="Ver tutorial">
+                <span class="tab-icon" aria-hidden="true">🎓</span>
+            </button>
+
             <!-- Nuevo: botón de alternar tema -->
             <button id="theme-toggle" class="theme-toggle" title="Cambiar a modo claro" aria-label="Cambiar tema">🌙</button>
         </div>
@@ -319,6 +325,28 @@
          pestañas ya anuncian el botón activado por sí mismos. -->
     <div id="aviso-vista" class="sr-only" role="status" aria-live="polite"></div>
 
+    <!-- ======= TUTORIAL INTERACTIVO (feature 2026-10-20) =======
+         Visita guiada por la app: velo semitransparente que deja libre el elemento del paso,
+         tarjeta con el texto y, si el paso no es actionable, el botón para seguir. Sale solo
+         la primera vez (PWA) y se reabre con el 🎓 de la cabecera. El guion y su máquina de
+         sesión viven en modules/tutorial.js (puro); aquí sólo el molde. -->
+    <div id="tutorial" class="tutorial hidden" role="dialog" aria-label="Tutorial de Mr Cheff">
+        <div class="tutorial-velo tutorial-arriba"></div>
+        <div class="tutorial-velo tutorial-izquierda"></div>
+        <div class="tutorial-velo tutorial-derecha"></div>
+        <div class="tutorial-velo tutorial-abajo"></div>
+        <div class="tutorial-foco" id="tutorial-foco"></div>
+        <div class="tutorial-tarjeta" id="tutorial-tarjeta">
+            <button id="tutorial-cerrar" class="tutorial-x" aria-label="Cerrar tutorial">&times;</button>
+            <h3 id="tutorial-titulo"></h3>
+            <p id="tutorial-texto"></p>
+            <div id="tutorial-puntos" class="tutorial-puntos" aria-hidden="true"></div>
+            <p id="tutorial-pista" class="tutorial-pista hidden">Toca el elemento señalado para seguir.</p>
+            <button id="tutorial-avanzar" class="btn primary">Siguiente</button>
+            <span id="tutorial-anuncio" class="sr-only" aria-live="polite"></span>
+        </div>
+    </div>
+
     <script src="data/data.js"></script>
     <script src="app.js"></script>
     <!-- Modulos de lógica pura extraídos (ver CODING_STANDARDS.md §3 / DIP). -->
@@ -358,6 +386,10 @@
          Consumido por app.js al abrir/guardar el editor (tiempo de click); ver planFeature… §12 y CODING_STANDARDS.md §3. -->
     <script src="modules/recipe-editor.js"></script>
     <script src="modules/swipe-tabs.js"></script>
+    <!-- TUTORIAL interactivo de entrada (feature 2026-10-20): guion + sesión PURe; el velo y el
+         posicionamiento son wiring de app.js. Si el tag faltara, la app funciona normal y sólo
+         no hay tutorial (botón 🎓 inerte, guard embutido en app.js). -->
+    <script src="modules/tutorial.js"></script>
 
     <noscript>Mr Cheff necesita JavaScript: toda la lógica funciona en tu navegador, sin servidor.</noscript>
     <script>

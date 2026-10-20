@@ -40,6 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cooked: "mrcheff.cooked",
     weekmenu: "mrcheff.weekmenu",
     // Sync por buzón GitHub (plan-sync-buzon §6): config + estado del protocolo. NUNCA passphrase.
+    tutorial: "mrcheff.tutorial",
     syncConfig: "mrcheff.sync.config",
     syncDeviceId: "mrcheff.sync.deviceId",
     syncBase: "mrcheff.sync.base",
@@ -180,6 +181,169 @@ document.addEventListener("DOMContentLoaded", () => {
     tab.addEventListener("click", () => activarVista(tab.dataset.view));
   });
 
+  // ===== TUTORIAL INTERACTIVO (feature 2026-10-20) =====
+  // Visita guiada por la app para la primera visita (PWA instalable, sin datos): velo
+  // semitransparente con un "foco" libre sobre el elemento del paso, tarjeta explicativa y,
+  // según el paso, avance tocando el elemento real (accionable) o botón Siguiente. El guion y
+  // su máquina viven en el módulo puro modules/tutorial.js; aquí sólo el metro del DOM.
+  // Sale sólo la primera vez (LS mrcheff.tutorial.visto); se reabre con el 🎓 de la cabecera
+  // (idéntico círculo a sus vecinos 🗄️/🌙 y entre ellos, petición explícita).
+  const tut = window.MRCheff && window.MRCheff.tutorial ? window.MRCheff.tutorial : null;
+  const tutorialRaiz = $("#tutorial");
+  const btnTutorial = $("#btn-tutorial");
+  let tutorialActivo = false;
+  let sesionTutorial = null;
+  let pasoEnPantalla = null;            // el paso pintado: a quién atiende el listener global de click
+  const tutorialVelos = tutorialRaiz ? {
+    arriba: $(".tutorial-arriba", tutorialRaiz),
+    izquierda: $(".tutorial-izquierda", tutorialRaiz),
+    derecha: $(".tutorial-derecha", tutorialRaiz),
+    abajo: $(".tutorial-abajo", tutorialRaiz),
+    foco: $("#tutorial-foco"),
+    tarjeta: $("#tutorial-tarjeta"),
+    titulo: $("#tutorial-titulo"),
+    texto: $("#tutorial-texto"),
+    puntos: $("#tutorial-puntos"),
+    pista: $("#tutorial-pista"),
+    avanzar: $("#tutorial-avanzar"),
+    anuncio: $("#tutorial-anuncio"),
+  } : null;
+
+  function tutorialReposicionar() {
+    if (!tutorialActivo || !tutorialVelos || !pasoEnPantalla) return;
+    const paso = pasoEnPantalla;
+    const objetivo = paso.selector ? document.querySelector(paso.selector) : null;
+    const anchoVP = window.innerWidth || document.documentElement.clientWidth;
+    const altoVP = window.innerHeight || document.documentElement.clientHeight;
+    const MARGEN = 8;                     // aire del aro alrededor del elemento señalado
+    if (!objetivo) {                      // sin objetivo: velo completo + tarjeta centrada
+      Object.assign(tutorialVelos.arriba.style, { top: "0px", height: "0px" });
+      Object.assign(tutorialVelos.izquierda.style, { width: "0px" });
+      Object.assign(tutorialVelos.derecha.style, { left: anchoVP + "px", width: "0px" });
+      Object.assign(tutorialVelos.abajo.style, { top: altoVP + "px", height: "0px" });
+      Object.assign(tutorialVelos.foco.style, { top: "0px", left: "0px", width: "0px", height: "0px" });
+      tutorialVelos.tarjeta.classList.add("tutorial-centrado");
+      return;
+    }
+    tutorialVelos.tarjeta.classList.remove("tutorial-centrado");
+    const r = objetivo.getBoundingClientRect();
+    const x0 = Math.max(0, r.left - MARGEN), y0 = Math.max(0, r.top - MARGEN);
+    const x1 = Math.min(anchoVP, r.right + MARGEN), y1 = Math.min(altoVP, r.bottom + MARGEN);
+    tutorialVelos.arriba.style.top = "0px";
+    tutorialVelos.arriba.style.height = y0 + "px";
+    tutorialVelos.abajo.style.top = y1 + "px";
+    tutorialVelos.abajo.style.height = Math.max(0, altoVP - y1) + "px";
+    tutorialVelos.izquierda.style.width = x0 + "px";
+    tutorialVelos.izquierda.style.top = y0 + "px";
+    tutorialVelos.izquierda.style.height = (y1 - y0) + "px";
+    tutorialVelos.derecha.style.left = x1 + "px";
+    tutorialVelos.derecha.style.width = Math.max(0, anchoVP - x1) + "px";
+    tutorialVelos.derecha.style.top = y0 + "px";
+    tutorialVelos.derecha.style.height = (y1 - y0) + "px";
+    Object.assign(tutorialVelos.foco.style, { top: y0 + "px", left: x0 + "px", width: (x1 - x0) + "px", height: (y1 - y0) + "px" });
+
+    // Tarjeta: debajo del foco si hay sitio; si no, encima. Clamp a los márgenes del viewport.
+    const altoTarjeta = tutorialVelos.tarjeta.offsetHeight || 150;
+    const anchoTarjeta = Math.min(tutorialVelos.tarjeta.offsetWidth || 300, 320);
+    let cardY = r.bottom + 12;
+    if (cardY + altoTarjeta > altoVP - 12) cardY = Math.max(12, r.top - 12 - altoTarjeta);
+    if (cardY + altoTarjeta > altoVP - 12) cardY = Math.max(12, altoVP - 12 - altoTarjeta);
+    let cardX = Math.max(12, Math.min(r.left + r.width / 2 - anchoTarjeta / 2, anchoVP - anchoTarjeta - 12));
+    Object.assign(tutorialVelos.tarjeta.style, { top: cardY + "px", left: cardX + "px" });
+  }
+
+  function pintarPasoTutorial() {
+    if (!tut || !tutorialVelos || !sesionTutorial) return;
+    const paso = tut.pasoActual(sesionTutorial);
+    if (!paso) { cerrarTutorial(true); return; }
+    pasoEnPantalla = paso;
+    if (paso.vista) activarVista(paso.vista);          // la vista del paso (click: sube arriba animado)
+    tutorialVelos.titulo.textContent = paso.titulo;
+    tutorialVelos.texto.textContent = paso.texto;
+    const objetivo = paso.selector ? document.querySelector(paso.selector) : null;
+    const accionable = !!(paso.accionable && objetivo);   // contrato del módulo (vista/selector/accionable)
+    tutorialVelos.pista.classList.toggle("hidden", !accionable);
+    const total = tut.totalPasos();
+    const esUltimo = tut.numero(sesionTutorial) >= total;
+    tutorialVelos.avanzar.classList.toggle("hidden", accionable);
+    tutorialVelos.avanzar.textContent = paso.cta || (esUltimo ? "Terminar" : "Siguiente");
+    // Puntos de progreso: uno por paso, el activo en pill de marca (dimensiones por CSS).
+    tutorialVelos.puntos.innerHTML = "";
+    for (let i = 0; i < total; i++) {
+      const punto = document.createElement("span");
+      if (i === tut.numero(sesionTutorial) - 1) punto.className = "activo";
+      tutorialVelos.puntos.appendChild(punto);
+    }
+    if (tutorialVelos.anuncio) {
+      tutorialVelos.anuncio.textContent = `Paso ${tut.numero(sesionTutorial)} de ${total}: ${paso.titulo}`;
+    }
+    // Colocar el objetivo en la ventana y medir con el layout YA hecho (el scrollIntoView puede
+    // animar: el listener de scroll reposiciona el foco durante el vuelo).
+    if (objetivo) {
+      try {
+        const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        objetivo.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+      } catch (e) {
+        try { objetivo.scrollIntoView(); }              // WebView viejo sin options object
+        catch (e2) { /* sin scrollIntoView (entorno de prueba): el paso sigue igual */ }
+      }
+    }
+    requestAnimationFrame(tutorialReposicionar);
+  }
+
+  // La posición se mide y se pinta por frame tras cada paso (el scrollIntoView puede animar;
+  // el listener de scroll ya cubre el vuelo, aquí sólo el frame inicial).
+
+  function abrirTutorial() {
+    if (!tut || !tutorialRaiz || !tutorialVelos) return;
+    sesionTutorial = tut.sesionNueva();
+    tutorialActivo = true;
+    tutorialRaiz.classList.remove("hidden");
+    window.addEventListener("scroll", tutorialReposicionar, { passive: true, capture: true });
+    window.addEventListener("resize", tutorialReposicionar, { passive: true });
+    document.addEventListener("keydown", tutorialTecla);
+    pintarPasoTutorial();
+  }
+
+  function tutorialTecla(e) {
+    if (e.key === "Escape") cerrarTutorial(true);
+  }
+
+  // El click que avanza es un listener GLOBAL de captura: el toque sigue su curso natural
+  // (el botón o input REAL ejecuta su función) y el tutorial sólo cuenta el paso. No se usa
+  // stopPropagation: no hay objetivos del tutorial que abran modales.
+  document.addEventListener("click", (e) => {
+    if (!tutorialActivo || !pasoEnPantalla || !pasoEnPantalla.accionable || !e.target.closest) return;
+    if (e.target.closest("#tutorial-tarjeta")) return;   // la tarjeta es salida, no "el objetivo del paso"
+    const objetivo = e.target.closest(pasoEnPantalla.selector);
+    if (!objetivo) return;
+    avanzarPasoTutorial();
+  }, true);
+
+  function avanzarPasoTutorial() {
+    if (!tut || !sesionTutorial) return;
+    tut.avanzar(sesionTutorial);
+    pintarPasoTutorial();
+  }
+
+  function cerrarTutorial(marcarVisto) {
+    if (!tutorialRaiz) return;
+    window.removeEventListener("scroll", tutorialReposicionar, { capture: true });
+    window.removeEventListener("resize", tutorialReposicionar);
+    document.removeEventListener("keydown", tutorialTecla);
+    tutorialActivo = false;
+    pasoEnPantalla = null;
+    sesionTutorial = null;
+    tutorialRaiz.classList.add("hidden");
+    if (marcarVisto) save(LS.tutorial, { visto: true });
+  }
+
+  if (tutorialVelos) {
+    $("#tutorial-cerrar", tutorialRaiz).addEventListener("click", () => cerrarTutorial(true));
+    $("#tutorial-avanzar", tutorialRaiz).addEventListener("click", avanzarPasoTutorial);
+  }
+  if (btnTutorial) btnTutorial.addEventListener("click", abrirTutorial);
+
   // ===== GESTOS DEL NAVEGADOR (bloqueo de ZOOM en el PWA móvil) =====
   // El viewport meta (maximum-scale=1, user-scalable=no) bloquea el pinch en Chromium.
   // iOS ignora user-scalable=no desde iOS 10: se remata con los eventos privados
@@ -207,6 +371,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     zonaSwipe.addEventListener("touchstart", (e) => {
       swipeVivo = false;
+      if (tutorialActivo) return;                              // visita guiada: carrusel en pausa (el velo se traga los toques fuera del foco)
       if (e.touches.length !== 1) return;                       // multi-dedo: no es un swipe
       const objetivo = e.target;
       if (objetivo.closest && objetivo.closest("input, textarea, select, button, a, [contenteditable='true']")) return;
@@ -2021,4 +2186,17 @@ document.addEventListener("DOMContentLoaded", () => {
   renderInnovations();
   renderSeason();
   actualizarSyncUI();
+
+  // El tutorial sale SOLO la primera visita desde una web instalable (http/https — en file://
+  // no: localStorage es por origen y en disco no hay guía que mostrar). La sesión se marca
+  // vista al cerrarla (✕ / "Terminar" / Escape).
+  if (tut && tutorialRaiz && tutorialVelos) {
+    const vistoAntes = load(LS.tutorial, {});
+    if (!(vistoAntes && vistoAntes.visto)) {
+      const esWeb = window.__mrcheffTutorialAuto === true ||
+        ((typeof location === "object" && (location.protocol === "http:" || location.protocol === "https:")) &&
+         typeof navigator === "object" && navigator.userAgent && navigator.userAgent.indexOf("jsdom") === -1);
+      if (esWeb) setTimeout(abrirTutorial, 500);    // deja asentarse el primer layout antes de la visita
+    }
+  }
 });
