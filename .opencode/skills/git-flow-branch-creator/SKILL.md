@@ -34,6 +34,23 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 ```xml
 <analysis-framework>
 	<branch-types>
+		<epic>
+			<purpose>Multi-step workstream for a BIG feature (several phases/tasks/bugfixes expected over multiple sessions). The AGENT works INSIDE the epic; shipping the epic itself is ALWAYS the end user's manual call</purpose>
+			<branch-from>develop</branch-from>
+			<merge-to>develop — ONLY BY THE END USER, MANUALLY (agents must NEVER merge or push the epic to develop; see no-agent-merge rule)</merge-to>
+			<naming>epic/descriptive-name (kebab-case)</naming>
+			<indicators>
+				<indicator>Big multi-phase feature the user plans to review/merge as ONE delivery (repo precedent: epic/ocr-despensa-camara, epic/tutorial-interactivo)</indicator>
+				<indicator>The user names an epic scope, says "on the epic", or asks for an epic branch</indicator>
+				<indicator>Several related commits expected; the user explicitly prefers reviewing the whole feature before it lands in develop</indicator>
+			</indicators>
+			<rules>
+				<rule>ACT ON the epic: commits land directly on epic/... (the composition-root of that workstream), or spawn tasks/ and bugfix/ branches FROM THE EPIC (branch-from = the epic branch, NOT develop) when the sub-work deserves its own branch</rule>
+				<rule>NEVER merge the epic into develop and NEVER push it to a remote: the END USER reviews and merges it manually. If asked to do it, STOP, explain it is a manual user step and hand over the exact commands without executing them</rule>
+				<rule>Epic branch is KEPT after any task/bugfix lands on it (it is the living workstream, never auto-deleted by the agent)</rule>
+			</rules>
+		</epic>
+
 		<feature>
 			<purpose>New features, enhancements, non-critical improvements</purpose>
 			<branch-from>develop</branch-from>
@@ -80,8 +97,8 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 
 		<bugfix>
 			<purpose>Fixes for BUGS REPORTED by the user/QA on a feature ALREADY SHIPPED (merged into develop). Not a production emergency (that is a hotfix from master)</purpose>
-			<branch-from>develop</branch-from>
-			<merge-to>develop</merge-to>
+			<branch-from>develop — OR the ACTIVE epic/ branch when the bug belongs to that epic's scope (epic first: the fix rides with the epic delivery and the end user takes it to develop in their manual merge)</branch-from>
+			<merge-to>the branch it came from (the epic or develop) with --no-ff; NEVER via the epic's own epic→develop merge, which stays a manual user action</merge-to>
 			<naming>bugfix/descriptive-name (kebab-case)</naming>
 			<indicators>
 				<indicator>Functional error reported in a feature already merged to develop: it does not work as specified</indicator>
@@ -92,8 +109,8 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 
 		<tasks>
 			<purpose>Polish, tweaks, refactors or follow-up work that belong to an ALREADY EXISTING feature branch/feature scope (not brand-new features; REPORTED functional BUGS go to bugfix/)</purpose>
-			<branch-from>develop</branch-from>
-			<merge-to>develop</merge-to>
+			<branch-from>develop — OR the ACTIVE epic/ branch when the work belongs to that epic's scope (epic first; same rule as bugfix)</branch-from>
+			<merge-to>the branch it came from (the epic or develop) with --no-ff; epic→develop stays the end user's manual action</merge-to>
 			<naming>tasks/short-description (kebab-case)</naming>
 			<indicators>
 				<indicator>UX tweak or polish inside an already-shipped feature (no functional error — bugs belong to bugfix/)</indicator>
@@ -109,6 +126,14 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 
 ```xml
 <naming-conventions>
+	<epic-branches>
+		<format>epic/descriptive-name</format>
+		<examples>
+			<example>epic/ocr-despensa-camara</example>
+			<example>epic/tutorial-interactivo</example>
+		</examples>
+	</epic-branches>
+
 	<feature-branches>
 		<format>feature/[ticket-number-]descriptive-name</format>
 		<examples>
@@ -215,18 +240,26 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 		<title>Git Flow Classification</title>
 		<description>Map the changes to appropriate Git Flow branch type</description>
 		<decision-tree>
-			<question>Are these critical fixes for production issues?</question>
-			<if-yes>Consider hotfix branch</if-yes>
+			<question>Does the change belong to the scope of an ACTIVE epic/ branch (an existing epic covering that feature)?</question>
+			<if-yes>Work on the epic: commit to epic/... directly, or create tasks/… or bugfix/… FROM the epic branch (git checkout -b tasks/name epic/name). NEVER merge the epic to develop and never push it — the END USER does that manually; say so and hand over the commands if asked</if-yes>
 			<if-no>
-				<question>Is it a reported BUG (it does not work as specified) on a feature already merged into develop — NOT a production emergency?</question>
-				<if-yes>Consider bugfix branch (bugfix/descriptive-name, deletable after merge). The user explicitly marks reported bugs with "bug"/"error" — map them here</if-yes>
+				<question>Would this be a NEW BIG multi-phase feature the user wants to review as one delivery?</question>
+				<if-yes>Consider an epic branch (epic/descriptive-name from develop)</if-yes>
 				<if-no>
-					<question>Are these release preparation changes (version bumps, final tweaks)?</question>
-					<if-yes>Consider release branch</if-yes>
+					<question>Are these critical fixes for production issues?</question>
+					<if-yes>Consider hotfix branch</if-yes>
 					<if-no>
-						<question>Is this polish/refinement/follow-up on an ALREADY EXISTING feature (no functional error)?</question>
-						<if-yes>Consider tasks branch (deletable after merge)</if-yes>
-						<if-no>Default to feature branch</if-no>
+						<question>Is it a reported BUG (it does not work as specified) on a feature already merged into develop — NOT a production emergency?</question>
+						<if-yes>Consider bugfix branch (bugfix/descriptive-name, deletable after merge). The user explicitly marks reported bugs with "bug"/"error" — map them here</if-yes>
+						<if-no>
+							<question>Are these release preparation changes (version bumps, final tweaks)?</question>
+							<if-yes>Consider release branch</if-yes>
+							<if-no>
+								<question>Is this polish/refinement/follow-up on an ALREADY EXISTING feature (no functional error)?</question>
+								<if-yes>Consider tasks branch (deletable after merge)</if-yes>
+								<if-no>Default to feature branch</if-no>
+							</if-no>
+						</if-no>
 					</if-no>
 				</if-no>
 			</if-no>
@@ -269,6 +302,11 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 		<scenario>Suggested branch name already exists</scenario>
 		<resolution>Append incremental suffix or suggest alternative name</resolution>
 	</conflicting-names>
+
+	<epic-merge-request>
+		<scenario>The user (or a session wrap-up) asks to merge the epic into develop, or to push the epic remote</scenario>
+		<resolution>NEVER execute it: the epic→develop merge (and its push) is the END USER's manual review step (suite green is their prerequisite, the review is theirs). Explain that, hand over the exact commands (git checkout develop, git merge --no-ff epic/name, user pushes), and leave the working tree untouched for their review</resolution>
+	</epic-merge-request>
 </edge-cases>
 ```
 
@@ -315,6 +353,14 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 		<branch-name>bugfix/viewpager-tab-activo-visible</branch-name>
 		<command>git checkout -b bugfix/viewpager-tab-activo-visible develop</command>
 	</example-5>
+
+	<example-6>
+		<scenario>New ticket-scanner epic with several phases (OCR integration, queue of pendientes in the shopping list, real-photo verification); later the user reports a bug inside that scope</scenario>
+		<analysis>Big multi-phase feature the end user wants to review and merge as ONE delivery — repo precedent epic/ocr-despensa-camara</analysis>
+		<branch-type>epic</branch-type>
+		<branch-name>epic/ocr-despensa-camara</branch-name>
+		<command>git checkout -b epic/ocr-despensa-camara develop   // commits land on it; sub-branches: git checkout -b tasks/detalle epic/ocr-despensa-camara</command>
+	</example-6>
 </examples>
 ```
 
@@ -324,7 +370,7 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 <validation>
 	<pre-analysis>
 		<check>Repository is in a clean state (no uncommitted changes that would conflict)</check>
-		<check>Current branch is appropriate starting point (develop for features/releases/bugfix, master/main for hotfixes)</check>
+		<check>Current branch is appropriate starting point (develop for features/releases/bugfix, master/main for hotfixes — the ACTIVE epic/... first when the work belongs to its scope)</check>
 		<check>Remote repository is up to date</check>
 	</pre-analysis>
 
@@ -333,6 +379,7 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 		<check>Branch type selection follows Git Flow principles</check>
 		<check>Branch name is semantic and follows conventions</check>
 		<check>A reported BUG maps to bugfix/ (never tasks/ for functional errors); only production emergencies map to hotfix/</check>
+		<check>An active epic wins over branching from develop: tasks/ and bugfix/ born from THE EPIC, and the epic itself is NEVER merged to develop nor pushed by the agent (end user's manual step)</check>
 		<check>Edge cases are considered and handled</check>
 	</analysis-quality>
 
@@ -378,6 +425,7 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 	</main-branches>
 
 	<supporting-branches>
+		<epic>Branch from develop for BIG multi-phase features; sub-work (tasks/, bugfix/) branches FROM it; the agent NEVER merges it to develop and NEVER pushes it — the end user reviews and merges manually (action: git checkout develop, git merge --no-ff epic/name, push)</epic>
 		<feature>Branch from develop, merge back to develop, KEEP after merge (history/reference per product decision)</feature>
 		<bugfix>Branch from develop for reported bugs on shipped features, merge back to develop with --no-ff, deletable after merge</bugfix>
 		<release>Branch from develop, merge to both develop and master</release>
@@ -387,7 +435,7 @@ description: 'Intelligent Git Flow branch creator that analyzes git status/diff 
 	<merge-strategy>
 		<flag>Always use --no-ff flag to preserve branch history</flag>
 		<tagging>Tag releases on master branch</tagging>
-		<cleanup>Delete hotfix, bugfix and tasks branches after successful merge, not feature or release branches after successful merge, if required commit yourself, use a concise a clear message of the changes, avoid adding too especific references or validation steps just the general idea, if there are merge conflicts then avoid doing the merge and inform the user</cleanup>
+		<cleanup>Delete hotfix, bugfix and tasks branches after successful merge, not feature or release branches after successful merge, if required commit yourself, use a concise a clear message of the changes, avoid adding too especific references or validation steps just the general idea, if there are merge conflicts then avoid doing the merge and inform the user. EPIC branches are NEVER merged, pushed or deleted by the agent — the end user merges epic→develop manually when the review is done</cleanup>
 	</merge-strategy>
 </gitflow-reference>
 ```
