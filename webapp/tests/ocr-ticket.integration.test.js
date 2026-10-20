@@ -1,17 +1,20 @@
 // tests/ocr-ticket.integration.test.js — CAPA INTEGRACIÓN (CODING_STANDARDS §6) para
-// #epic-ocr-despensa-camara, propósito 2026-10-20: ESCANEAR EL TICKET → alimento + CANTIDAD.
-// CONTRATO clave: NADA del ticket entra en la despensa por su cuenta —
-//   · exacto ya en la despensa → la compra SUMA en-situ (sus criterios quedan como estaban);
-//   · DUDOSO (¿es el mismo que uno de la despensa?→ variantes) → pendiente del ticket normal, arriba;
-//   · NUEVO → pendiente SIN DEFINIR (fila atenuada + aviso): la importancia (prioridad) y el mínimo
-//     se fijan EDITABLES en la propia fila; al definirlos la fila queda normal y se resuelve como
-//     cualquier otra (🛒 Despensa? / ✅ comprado, el diálogo pre-cargado con lo definido).
+// #epic-ocr-despensa-camara, REWORK 2026-10-21: la compra ya está hecha → el escáner mete lo
+// comprado EN el "Inventario actual" y NUNCA sale de la pestaña de Alimentos (se retiró la
+// implementación de pendientes del ticket en la lista de la compra, y con ella `mrcheff.compraTicket`).
+// Dos diálogos seguidos, con el reparto decidido por el módulo puro:
+//   1º) EXACTOS ya en el inventario: nombre FIJO + cantidad comprada editable → al confirmar la
+//       compra SUMA en-situ y sus criterios de alerta quedan como estaban;
+//   2º) REVISIÓN en dos secciones — Nuevos (nombre/cantidad/IMPORTANCIA/MÍNIMO definidos EN la
+//       fila, alta directa) y Dudas (desplegable "¿es ESE alimento de casa?": variante = suma y
+//       sus campos de alerta se deshabilitan; "es nuevo" = alta con lo escrito en la fila).
+// Cada diálogo compromete SU confirmación; Cancelar después no deshace lo ya guardado.
 //
 // El motor Tesseract no corre en jsdom (¿para qué?): producción delega el TEXTO leído en la misma
 // función que usa el file-picker (app.js delega data.text en procesarTextoOcr), así que los tests
 // inyectan el texto del ticket por la inyección §6 `window.__mrcheffProcesarTextoOcr` — el mismo
 // paso exacto que la producción tras el OCR real. La foto/motor quedan cubiertos por el e2e Brave
-// (e2e/ocr-despensa.mjs, Tesseract REAL contra una foto sintética; y el vídeo gui de la feature).
+// (e2e/ocr-despensa.mjs, Tesseract REAL contra una foto sintética).
 
 const { bootApp } = require("./boot");
 
@@ -36,194 +39,113 @@ function appConDespensa() {
   });
 }
 
-function lsPend(window) {
-  return JSON.parse(window.localStorage.getItem("mrcheff.compraTicket") || "[]");
-}
 function lsFoods(window) {
   return JSON.parse(window.localStorage.getItem("mrcheff.foods") || "[]");
 }
 
-describe("Escáner del ticket → despensa y pendientes (integración)", () => {
+describe("Escáner del ticket → los dos diálogos dentro de Alimentos (integración)", () => {
   it("el hook de inyección está disponible en el window de la app", () => {
     const { window } = appConDespensa();
     expect(typeof window.__mrcheffProcesarTextoOcr).toBe("function");
   });
 
-  it("ticket: exacto SUMA (criterios intactos), nuevo y dudoso van a pendientes (nada entra solo)", async () => {
+  it("diálogo 1 (exactos): nombre FIJO con 'ya tienes N en el inventario' y cantidad editable; al confirmar la suma entra y pasa a la revisión", () => {
     const { document, window } = appConDespensa();
     window.__mrcheffProcesarTextoOcr(TICKET);
 
-    // ASISTENTE 2 pasos (2026-10-20): paso 1 = lo ya exacto en la despensa (puro "Pan");
-    // paso 2 = las dudas (Yogur dudoso, Leche nuevo). La CANTIDAD del ticket va prefijada por
-    // línea en su fila del paso que toque: "3 Leche…" → 3, "2 x Yogur" → 2, "1 Pan…" → 1.
-    expect(document.querySelector(".modal-content h2").textContent).toContain("se añaden a la despensa");
+    // DIALOGO 1 — sólo el exacto ("Pan" ya está en casa, con la qty leída de su línea del ticket)
+    expect(document.querySelector(".modal-content h2").textContent).toContain("Ya lo tienes en el inventario");
     expect(document.querySelectorAll(".modal-content .ocr-item")).toHaveLength(1);
-    expect(document.getElementById("ocr-qty-2").value).toBe("1");
+    const fila = document.querySelector(".modal-content .ocr-item");
+    expect(fila.querySelector(".ocr-nombre strong").textContent).toBe("Pan");
+    expect(fila.textContent).toContain("Ya tienes 1 en el inventario");
+    expect(fila.querySelector(".exact-qty").value).toBe("1");
+    expect(document.querySelector("[data-revision-guardar]")).toBeNull();   // aún no: primero los exactos
 
-    document.querySelector("[data-ocr-siguiente]").click();
-    expect(document.querySelector(".modal-content h2").textContent).toContain("tienen duda");
-    expect(document.querySelectorAll(".modal-content .ocr-item")).toHaveLength(2);
-    expect(document.getElementById("ocr-qty-1").value).toBe("2");
-    expect(document.getElementById("ocr-qty-0").value).toBe("3");
+    // la persona corrige la cantidad comprada y confirma SU decisión...
+    fila.querySelector(".exact-qty").value = "4";
+    document.querySelector("[data-confirmar-exactos]").click();
 
-    // al confirmar el asistente SALTA a la lista de la compra (sin toast de éxito)...
-    document.querySelector("[data-ocr-guardar]").click();
-
-    // ...la vista destino es Sugerencias con el destello sobre la lista recién repartida
-    expect(document.querySelector("#view-suggest").classList.contains("active")).toBe(true);
-    await new Promise(r => setTimeout(r, 60));                 // el destello entra vía rAF (2 frames)
-    expect(document.getElementById("shopping-list").className).toContain("destello-suave");
-
-    // despensa: SOLO "Pan" cambió (exacto → suma su compra); Leche y Yogur NO (sus veredicto falta)
+    // ...la compra SUMA en el acto (criterios intactos) y se abre la revisión
     const foods = lsFoods(window);
-    expect(foods.find(f => f.name === "Pan").qty).toBe(2);     // 1 en casa + 1 comprada
-    expect(foods).toHaveLength(2);                             // ni "Leche" ni "Yogur" nuevos
-    expect(foods.find(f => f.name === "Yogur natural").min).toBe(1);  // criterios intactos
-
-    // pendientes del ticket, arriba de la lista: el nuevo LECHE queda SIN DEFINIR
-    const pend = lsPend(window);
-    expect(pend.map(p => p.nombre)).toEqual(["Leche", "Yogur"]);     // recién escaneado arriba
-    expect(pend.find(p => p.nombre === "Leche").faltaDefinir).toBe(true);   // NUEVO: sin definir
-    expect(pend.find(p => p.nombre === "Yogur").faltaDefinir).toBe(false);  // DUDOSO: fila normal
-    expect(pend.find(p => p.nombre === "Leche").qty).toBe(3);               // qty leída del ticket
-    expect(pend[0].escaneadoEn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(foods.find(f => f.name === "Pan").qty).toBe(5);                  // 1 en casa + 4 compradas
+    expect(foods.find(f => f.name === "Pan").score).toBe(3);               // el criterio, sin pisar
+    expect(foods).toHaveLength(2);                                          // Leche/Yogur NO entran aquí
+    expect(document.querySelector(".modal-content h2").textContent).toContain("Añade lo nuevo");
   });
 
-  it("el NUEVO queda como fila ATENUADA con aviso e importancia/mínimo EDITABLES; al definirlos pasa a normal", () => {
+  it("diálogo 2: secciones NUEVOS (arriba) y DUDAS (debajo) con TODO definible en fila — acaba EN la despensa, la lista de la compra NUNCA", async () => {
     const { document, window } = appConDespensa();
     window.__mrcheffProcesarTextoOcr(TICKET);
-    document.querySelector("[data-ocr-siguiente]").click();   // paso 1 (despensa) → paso 2 (dudas)
-    document.querySelector("[data-ocr-guardar]").click();
+    document.querySelector("[data-confirmar-exactos]").click();             // exactos → revisión
 
-    // sin definir: clase del fade + aviso + sus dos inputs + el botón; NO los botones de resolución aún
-    const fila = document.querySelector("li[data-fila-ticket='Leche']");
-    expect(fila).not.toBeNull();
-    expect(fila.className).toContain("pendiente-sin-definir");
-    expect(fila.textContent).toContain("IMPORTANCIA");
-    const scoreIn = fila.querySelector(".tick-score");
-    const minIn = fila.querySelector(".tick-min");
-    expect(scoreIn).not.toBeNull();
-    expect(minIn).not.toBeNull();
-    expect(scoreIn.value).toBe("5");                    // valores por defecto VISIBLES (editables)
-    expect(fila.querySelector("[data-buy]")).toBeNull(); // mientras no estén definidos, ni ✅ ni 🛒
-    expect(fila.querySelector("[data-tick-definir]")).not.toBeNull();
+    // DOS secciones, Nuevos ENCIMA de Dudas; cada fila lleva el criterio completo
+    const secciones = [...document.querySelectorAll(".rev-seccion h3")].map(h => h.textContent);
+    expect(secciones).toEqual(["Nuevos", "Dudas"]);
+    expect(document.getElementById("rev-nombre-0")).not.toBeNull();          // Leche (nueva)
+    expect(document.getElementById("rev-qty-0").value).toBe("3");           // qty leída del ticket
+    expect(document.getElementById("rev-variante-1")).not.toBeNull();        // Yogur (duda): desplegable
+    expect(document.getElementById("rev-variante-1").textContent).toContain("Yogur natural");
 
-    // la persona decide: importancia 8, mínimo 2 (la prioridad editable, como se pidió)
-    scoreIn.value = "8";
-    minIn.value = "2";
-    fila.querySelector("[data-tick-definir]").click();
+    // la persona renombra la Leche y define SU criterio ahí mismo (importancia + mínimo)...
+    document.getElementById("rev-nombre-0").value = "Leche sin";
+    document.getElementById("rev-qty-0").value = "2";
+    document.getElementById("rev-score-0").value = "8";
+    document.getElementById("rev-min-0").value = "2";
+    // ...y resuelve la duda: ES "Yogur natural" → los campos de alerta de la fila SE APAGAN
+    const sel = document.getElementById("rev-variante-1");
+    sel.value = "a1";
+    sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+    expect(document.getElementById("rev-score-1").disabled).toBe(true);
+    expect(document.getElementById("rev-min-1").disabled).toBe(true);
 
-    const pend = lsPend(window).find(p => p.nombre === "Leche");
-    expect(pend.faltaDefinir).toBe(false);
-    expect(pend.min).toBe(2);
-    expect(pend.score).toBe(8);
+    document.querySelector("[data-revision-guardar]").click();
 
-    // la fila queda NORMAL: fuera el fade/aviso, dentro los mismos botones de siempre...
-    const filaNueva = document.querySelector("li[data-fila-ticket='Leche']");
-    expect(filaNueva.className).not.toContain("pendiente-sin-definir");
-    expect(filaNueva.querySelector(".tick-score")).toBeNull();
-    const buyBtn = filaNueva.querySelector("[data-buy]");
-    expect(buyBtn).not.toBeNull();
-    // ...y el diálogo de resolución abre pre-cargado con lo DEFINIDO (qty 3 del ticket, min 2, score 8)
-    buyBtn.click();
-    expect(document.getElementById("compra-qty").value).toBe("3");
-    expect(document.getElementById("compra-min").value).toBe("2");
-    expect(document.getElementById("compra-score").value).toBe("8");
-  });
-
-  it("'✅ comprado' tras definir: alta en la despensa con los valores DEFINIDOS y la fila sale", () => {
-    const { document, window } = appConDespensa();
-    window.__mrcheffProcesarTextoOcr(TICKET);
-    document.querySelector("[data-ocr-siguiente]").click();   // paso 1 (despensa) → paso 2 (dudas)
-    document.querySelector("[data-ocr-guardar]").click();
-
-    const filaLeche = document.querySelector("li[data-fila-ticket='Leche']");
-    filaLeche.querySelector(".tick-score").value = "8";
-    filaLeche.querySelector(".tick-min").value = "2";
-    filaLeche.querySelector("[data-tick-definir]").click();
-
-    document.querySelector("li[data-fila-ticket='Leche'] [data-buy]").click();
-    document.querySelector("[data-buy-confirm]").click();
-
-    // despensa: LECHE alta con la cantidad del ticket y los criterios que la persona definió
+    // TODO acaba en la despensa — la compra ya estaba hecha y de la lista NADA
     const foods = lsFoods(window);
-    const leche = foods.find(f => f.name === "Leche");
-    expect(leche).toEqual(expect.objectContaining({ qty: 3, min: 2, score: 8 }));
-    // pendientes: Leche RESUELTA sale; Yogur (dudoso) sigue esperando su veredicto
-    expect(lsPend(window).map(p => p.nombre)).toEqual(["Yogur"]);
-    expect(document.querySelector("li[data-fila-ticket='Leche']")).toBeNull();
-  });
-
-  it("el DUDOSO usa el MISMO botón 'Despensa?' de la lista: variante, diálogo con qty del ticket, fila fuera", () => {
-    const { document, window } = appConDespensa();
-    window.__mrcheffProcesarTextoOcr(TICKET);
-    document.querySelector("[data-ocr-siguiente]").click();   // paso 1 (despensa) → paso 2 (dudas)
-    document.querySelector("[data-ocr-guardar]").click();
-
-    const fila = document.querySelector("li[data-fila-ticket='Yogur']");
-    expect(fila).not.toBeNull();
-    expect(fila.textContent).toContain("🎫 del ticket");
-    const despensaBtn = fila.querySelector("[data-despensa]");
-    expect(despensaBtn).not.toBeNull();                                  // hay variante: "Yogur natural"
-    expect(despensaBtn.dataset.compraQty).toBe("2");                    // qty escaneada, para prefill
-
-    // deslizar el flujo COMPLETO del botón "🛒 Despensa?" (mismo comportamiento de la lista):
-    despensaBtn.click();
-    const elegir = document.querySelector("[data-despensa-elegir='Yogur natural']");
-    expect(elegir).not.toBeNull();
-    elegir.click();
-    // el modal de compra ABRE con la cantidad del TICKET prefijada (mismo dato escaneado)
-    expect(document.getElementById("compra-qty").value).toBe("2");
-    document.querySelector("[data-buy-confirm]").click();
-
-    // resuelto: la compra fue IN-SITU a "Yogur natural" (sin alta nueva), el pendiente SALE
-    // (y el NUEVO "Leche" sigue esperando SU decisión — no lo toca el veredicto del Yogur)
-    const foods = lsFoods(window);
-    expect(foods.some(f => f.name === "Yogur natural" && f.qty === 2)).toBe(true);
-    expect(lsPend(window).map(p => p.nombre)).toEqual(["Leche"]);
-    expect(document.querySelector("li[data-fila-ticket='Yogur']")).toBeNull();
-    // sin plan aprobado y con pendientes sin resolver → la lista SIGUE visible: la fila de Leche manda
-    expect(document.querySelector("li[data-fila-ticket='Leche']")).not.toBeNull();
-  });
-
-  it("ticket sin alimentos reconocibles → estado vacío del modal, despensa sin tocar, sin pendientes", () => {
-    const { document, window } = appConDespensa();
-    window.__mrcheffProcesarTextoOcr("TOTAL 3,50 €\nGracias por su visita");
-    expect(document.querySelectorAll(".modal-content .ocr-item").length).toBe(0);
-    expect(document.querySelector(".modal-content h2").textContent).toContain("No he detectado");
-    expect(lsFoods(window)).toHaveLength(2);
+    expect(foods).toHaveLength(3);
+    expect(foods.find(f => f.name === "Leche sin")).toEqual(expect.objectContaining({ qty: 2, score: 8, min: 2 }));
+    const yo = foods.find(f => f.name === "Yogur natural");
+    expect(yo.qty).toBe(4);                                                  // 2 en casa + 2 del ticket (variante)
+    expect(yo.min).toBe(1); expect(yo.score).toBe(5);                        // alerta del alimento real, sin pisar
+    // aterrizaje: el escáner NUNCA cambia de pestaña y el inventario destella una vez
+    expect(document.getElementById("modal").classList.contains("hidden")).toBe(true);   // modal cerrado, sin toasts de éxito
+    expect(document.querySelector("#view-foods").classList.contains("active")).toBe(true);
+    await new Promise(r => setTimeout(r, 60));                // el destello entra vía rAF (2 frames)
+    expect(document.getElementById("food-list").className).toContain("destello-suave");
+    // la clave de pendientes del ticket JAMÁS se escribe (implementación retirada)
     expect(window.localStorage.getItem("mrcheff.compraTicket")).toBe(null);
   });
 
-  it("asistente: chips de destino por paso y el 'Volver' conserva lo ya dicho", () => {
+  it("duda resuelta como 'es nuevo' → ALTA con lo escrito en la fila (el desplegable vacío manda)", () => {
     const { document, window } = appConDespensa();
     window.__mrcheffProcesarTextoOcr(TICKET);
+    document.querySelector("[data-confirmar-exactos]").click();
+    // el desplegable por defecto es "es nuevo: se define aquí" → la alerta de la fila es EDITABLE
+    expect(document.getElementById("rev-score-1").disabled).toBe(false);
+    document.getElementById("rev-score-1").value = "7";
+    document.getElementById("rev-min-1").value = "3";
+    document.querySelector("[data-revision-guardar]").click();
 
-    // PASO 1 (sólo exactos): la fila lleva el chip de suma; la fila del paso 2 no está aún
-    expect(document.querySelector(".ocr-chip").textContent).toContain("se suma");
-    expect(document.querySelector(".ocr-chip-duda")).toBeNull();
-    document.querySelector("[data-ocr-siguiente]").click();
-
-    // PASO 2: cada fila su chip — el dudoso pregunta, el nuevo anuncia que es nuevo
-    const chips = [...document.querySelectorAll(".ocr-item .ocr-chip")].map(c => c.textContent);
-    expect(chips).toContain("¿lo tienes?");
-    expect(chips).toContain("nuevo en casa");
-
-    // corregir el nuevo (nombre + cantidad) y VOLVER: al re-entrar, lo dicho sigue ahí
-    document.getElementById("ocr-nombre-0").value = "Leche sin";
-    document.getElementById("ocr-qty-0").value = "4";
-    document.querySelector("[data-ocr-volver]").click();
-    expect(document.querySelector(".modal-content h2").textContent).toContain("se añaden a la despensa");
-    document.querySelector("[data-ocr-siguiente]").click();
-    expect(document.getElementById("ocr-nombre-0").value).toBe("Leche sin");
-    expect(document.getElementById("ocr-qty-0").value).toBe("4");
-
-    // y la corrección llega hasta el final: el pendiente se llama como la persona lo corrigió
-    document.querySelector("[data-ocr-guardar]").click();
-    expect([...document.querySelectorAll("li[data-fila-ticket]")].map(f => f.dataset.filaTicket)).toContain("Leche sin");
+    const foods = lsFoods(window);
+    expect(foods.find(f => f.name === "Yogur")).toEqual(expect.objectContaining({ qty: 2, score: 7, min: 3 }));
+    expect(foods.find(f => f.name === "Yogur natural").qty).toBe(2);         // sin variante: no suma a lo existente
+    expect(window.localStorage.getItem("mrcheff.compraTicket")).toBe(null);
   });
 
-  it("ticket con TODO exacto → un solo paso (sin dudas) y el salto final es a la DESPENSA", async () => {
+  it("Cancelar el 2º diálogo: lo confirmado en el 1º SE QUEDA (compromiso por diálogo) y la revisión no entra", () => {
+    const { document, window } = appConDespensa();
+    window.__mrcheffProcesarTextoOcr(TICKET);
+    document.querySelector("[data-confirmar-exactos]").click();
+    document.querySelector("[data-close]").click();                          // cancelar la revisión
+    const foods = lsFoods(window);
+    expect(foods.find(f => f.name === "Pan").qty).toBe(2);                   // el diálogo 1 comprometió SU suma
+    expect(foods.some(f => f.name === "Leche sin" || f.name === "Leche")).toBe(false);
+    expect(foods.some(f => f.name === "Yogur")).toBe(false);
+    expect(window.localStorage.getItem("mrcheff.compraTicket")).toBe(null);
+  });
+
+  it("ticket con TODO exacto → UN solo diálogo: confirmar y fuera, destello sobre el inventario", async () => {
     const { document, window } = bootApp({
       seed: {
         foods: [
@@ -235,27 +157,42 @@ describe("Escáner del ticket → despensa y pendientes (integración)", () => {
     });
     window.__mrcheffProcesarTextoOcr("2 Pan\n1 Yogur natural\nTOTAL 4,10 €");
 
-    // PASO ÚNICO: botón "Añadir lo confirmado" está ya en el paso 1 (no hay dudas que revisar)
-    expect(document.querySelector(".modal-content h2").textContent).toContain("se añaden a la despensa");
+    // DIÁLOGO ÚNICO (fase exactos): el botón del pie YA es el final, no hay revisión que abrir
+    expect(document.querySelector(".modal-content h2").textContent).toContain("Ya lo tienes en el inventario");
     expect(document.querySelectorAll(".modal-content .ocr-item")).toHaveLength(2);
-    expect(document.querySelector("[data-ocr-siguiente]")).toBeNull();
-    document.querySelector("[data-ocr-guardar]").click();
+    expect(document.querySelector(".rev-seccion")).toBeNull();
+    expect(document.querySelector("[data-revision-guardar]")).toBeNull();
+    document.querySelector("[data-confirmar-exactos]").click();
 
     expect(document.querySelector("#view-foods").classList.contains("active")).toBe(true);
-    await new Promise(r => setTimeout(r, 60));                 // el destello entra vía rAF (2 frames)
+    await new Promise(r => setTimeout(r, 60));
     expect(document.getElementById("food-list").className).toContain("destello-suave");
-    expect(lsFoods(window).find(f => f.name === "Pan").qty).toBe(3);   // 1 + 2 del ticket
-    expect(window.localStorage.getItem("mrcheff.compraTicket")).toBe(null);   // nada para la lista
+    const foods = lsFoods(window);
+    expect(foods.find(f => f.name === "Pan").qty).toBe(3);                   // 1 en casa + 2 compradas
+    expect(foods.find(f => f.name === "Yogur").qty).toBe(3);                 // 2 en casa + 1 comprada
+    expect(window.localStorage.getItem("mrcheff.compraTicket")).toBe(null);
   });
 
-  it("ticket SIN nada exacto → el asistente entra directo en el paso de dudas (no hay paso 1)", () => {
+  it("ticket SIN nada exacto → la revisión ES el primer diálogo (sin paso de exactos)", () => {
     const { document, window } = appConDespensa();
     window.__mrcheffProcesarTextoOcr("3 Leche entera\n2 x Yogur\nTOTAL 6,90 €");
-    expect(document.querySelector(".modal-content h2").textContent).toContain("tienen duda");
-    expect(document.querySelectorAll(".modal-content .ocr-item")).toHaveLength(2);
-    expect(document.querySelector("[data-ocr-siguiente]")).toBeNull();
-    document.querySelector("[data-ocr-guardar]").click();
-    expect(lsFoods(window)).toHaveLength(2);                   // nada sumó: todo era duda/nuevo
-    expect(lsPend(window).map(p => p.nombre)).toEqual(["Leche", "Yogur"]);
+    expect(document.querySelector(".modal-content h2").textContent).toContain("Añade lo nuevo");
+    expect([...document.querySelectorAll(".rev-seccion h3")].map(h => h.textContent)).toEqual(["Nuevos", "Dudas"]);
+    expect(document.querySelector("[data-confirmar-exactos]")).toBeNull();
+    // confirmar sin tocar nada: los valores que la fila trae (qty del ticket, criterio 5/1)
+    document.querySelector("[data-revision-guardar]").click();
+    const foods = lsFoods(window);
+    expect(foods.find(f => f.name === "Leche")).toEqual(expect.objectContaining({ qty: 3, score: 5, min: 1 }));
+    expect(foods.find(f => f.name === "Yogur")).toEqual(expect.objectContaining({ qty: 2, score: 5, min: 1 }));
+    expect(foods.find(f => f.name === "Yogur natural").qty).toBe(2);         // sin variante: nada sumó ahí
+  });
+
+  it("ticket sin alimentos reconocibles → estado vacío del modal, despensa sin tocar y nada que pendiente", () => {
+    const { document, window } = appConDespensa();
+    window.__mrcheffProcesarTextoOcr("TOTAL 3,50 €\nGracias por su visita");
+    expect(document.querySelectorAll(".modal-content .ocr-item").length).toBe(0);
+    expect(document.querySelector(".modal-content h2").textContent).toContain("No he detectado");
+    expect(lsFoods(window)).toHaveLength(2);
+    expect(window.localStorage.getItem("mrcheff.compraTicket")).toBe(null);
   });
 });

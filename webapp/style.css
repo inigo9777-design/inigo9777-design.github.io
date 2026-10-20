@@ -676,20 +676,32 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   padding: 1px 8px; border-radius: 999px;
 }
 .ocr-linea { font-size: 0.78rem; color: var(--muted); overflow-wrap: anywhere; }
-/* Chips del asistente de confirmación (2 pasos): qué destino tiene cada fila en el reparto. */
-.ocr-chip {
-  font-size: 0.72rem; color: var(--muted);
-  background: var(--card-muted-bg);
-  align-self: flex-start;
-  padding: 1px 8px; border-radius: 999px;
+/* Diálogo de revisión del escáner (Nuevos + Dudas, 2026-10-21): el nombre exacto VA FIJO en el
+   1er diálogo (ya es alimento real del inventario) y las filas del 2º llevan los CINCO campos
+   definibles (nombre/cantidad/importancia/mínimo/variante de despensa) — cabeceras alineadas
+   con las anchuras reales de los controles de la fila. */
+.rev-nombre-fijo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rev-seccion { margin: 16px 0 0; }
+.rev-seccion:first-of-type { margin-top: 0; }
+.rev-seccion h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.rev-seccion .muted { margin: 0 0 10px; font-size: 0.8rem; }
+.rev-cabecera {
+  display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;
+  margin: 0 2px 6px; font-size: 0.72rem; color: var(--muted);
 }
-.ocr-chip-duda  { color: var(--amber); background: var(--amber-soft); }
-.ocr-chip-nuevo { color: var(--brand); background: var(--brand-soft); }
+.rev-cabecera span { flex: 0 0 auto; text-align: center; }
+.rev-cabecera .rev-col-alimento { flex: 1 1 200px; min-width: 0; text-align: left; }
+.rev-cabecera .rev-w84  { width: 84px; }
+.rev-cabecera .rev-w64  { width: 64px; }
+.rev-cabecera .rev-w150 { width: 150px; }
+.rev-cabecera .rev-w62  { width: 62px; }
+.ocr-item select { flex: 0 0 auto; width: 150px; }
+.ocr-item .rev-num { width: 64px; }
 .ocr-item input[type="number"] { width: 84px; flex: 0 0 auto; }
 .ocr-item input[type="checkbox"] { width: 19px; height: 19px; cursor: pointer; flex: 0 0 auto; }
 
-/* Llegada del asistente del ticket: el destino (lista de la compra o despensa) destella una
-   vez — el ojo cae donde acabaron los alimentos SIN que haga falta un toast que lo cuente. */
+/* Llegada de la confirmación del escáner: el Inventario actual destella una vez — el ojo cae
+   donde acabaron los alimentos SIN que haga falta un toast que lo cuente. */
 @keyframes destello-suave {
   0%   { box-shadow: 0 0 0 0 var(--brand-soft); }
   35%  { box-shadow: 0 0 0 10px var(--brand-soft); }
@@ -781,24 +793,6 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
    columna para que el toque sea cómodo en móvil. */
 .despensa-elegir { display: flex; flex-direction: column; gap: 10px; margin: 14px 0 0; }
 .despensa-elegir .btn { justify-content: flex-start; text-align: left; width: 100%; }
-
-/* Pendiente del ticket SIN DEFINIR (2026-10-20, epic ocr): alimento nuevo del ticket aún sin
-   importancia ni mínimo — se ve ATENUADO (fade) mientras los valores son una decisión pendiente
-   de la persona; los controles de definición (editables, dentro de la fila) NO se atenúan. */
-.pendiente-sin-definir .alert-name,
-.pendiente-sin-definir .alert-meta { opacity: 0.45; }
-.pendiente-sin-definir .alert-definir-aviso {
-  flex: 1 1 100%;
-  font-size: 0.8rem;
-  font-style: italic;
-  color: var(--muted);
-}
-.alert-definir { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-left: auto; }
-.alert-definir label {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 0.75rem; color: var(--muted); white-space: nowrap;
-}
-.alert-definir input[type="number"] { width: 4.6rem; }
 
 /* ========== 12. RECETAS — rejilla y tarjetas ========== */
 .recipe-grid {

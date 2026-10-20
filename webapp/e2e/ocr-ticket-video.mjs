@@ -6,12 +6,12 @@
 //   1. Pestaña Alimentos: los botones de la cámara/foto del ticket.
 //   2. 🖼️ Escanear foto del ticket → foto sintética (canvas) → motor REAL "Leyendo el ticket…"
 //      (la primera vez descarga el motor del CDN: ese tramo largo queda en el vídeo tal cual).
-//   3. Modal de confirmación: candidatos + CANTIDAD leída por línea.
-//   4. Guardar: nada entra solo — pendientes del ticket ARRIBA de la lista de la compra.
-//   5. NUEVO sin definir (atenuado, aviso) → definir importancia y mínimo EN LA FILA → ✅ comprado
-//      (diálogo pre-cargado con cantidad definida) → alta en la despensa.
-//   6. DUDOSO con "🛒 Despensa?" → variante de la despensa → compra IN-SITU.
-//   7. plano final de la despensa actualizada.
+//   3. DIALOGO de revisión (2º del escáner, rework 2026-10-21): secciones NUEVOS y DUDAS con la
+//      CANTIDAD leída por línea — la IMPORTANCIA de la Leche se escribe EN la fila.
+//   4. La DUDA "Yogur" se resuelve con el desplegable de variantes (elegir "Yogur natural" apaga
+//      la alerta de la fila — la compra se suma a ese alimento) → Añadir a la despensa.
+//   5. Sugerencias queda SIN filas del ticket (la lista de la compra es sólo del plan) y
+//   6. plano final: la despensa con lo confirmado.
 import { chromium } from "playwright-core";
 import { copyFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
@@ -106,38 +106,26 @@ try {
   await page.waitForSelector(".ocr-item", { timeout: 180000 });
   await pausa(3000);                                     // beat del modal de confirmación (candidatos + cantidad)
 
-  // ── 3. Guardar: pendientes del ticket (nada entra solo) ──
-  await page.click("[data-ocr-guardar]");
-  await pausa(2500);                                     // toast + despensa quietecita
+  // ── 3. La revisión en los DOS DIALOGOS (todo dentro de Alimentos, sin lista de la compra) ──
+  // Con sólo "Yogur natural" en casa nada es exacto: el primer diálogo es YA la REVISIÓN —
+  // sección NUEVOS (Leche, Pan) con su IMPORTANCIA/MÍNIMO en fila y sección DUDAS (Yogur) con
+  // el desplegable de variantes de despensa.
+  await page.fill("#rev-score-0", "7");                    // IMPORTANCIA de la Leche nueva, EN la fila
+  await pausa(1800);                                       // beat: la fila con su criterio escrito
+  await page.locator("#rev-variante-1").selectOption("a1"); // la duda: ES "Yogur natural" (desplegable)
+  await pausa(2200);                                       // beat: la alerta de la fila se apaga (no aplica)
+  const buttonConfirmar = page.locator("[data-revision-guardar]");
+  await buttonConfirmar.waitFor({ state: "visible", timeout: 5000 });
+  await pausa(1200);
+  await buttonConfirmar.click();
+  await pausa(3000);                                       // modal fuera + el Inventario destella (sin toast)
 
-  // ── 4. La lista de la compra: nuevos SIN DEFINIR atenuados + dudoso con su botón ──
+  // ── 4. Plano: Sugerencias queda SIN filas del ticket (la lista de la compra es sólo del plan) ──
   await page.evaluate(() => document.querySelector('[data-view="suggest"]').click());
-  await page.waitForSelector("li[data-fila-ticket='Leche']");
-  await pausa(3500);                                     // plano largo de las filas (fade visible)
+  await page.waitForSelector("#view-suggest.active");
+  await pausa(2500);
 
-  // Definir el NUEVO 'Leche' EN LA FILA: importancia 7, mínimo 1 → normal → ✅ comprado
-  const filaLeche = page.locator("li[data-fila-ticket='Leche']");
-  await filaLeche.locator(".tick-score").fill("7");
-  await filaLeche.locator(".tick-min").fill("1");
-  await pausa(1500);
-  await filaLeche.locator("[data-tick-definir]").click();
-  await pausa(2000);                                     // la fila pasa a normal (se va el fade)
-  await filaLeche.locator("[data-buy]").click();
-  await page.waitForSelector("#compra-qty");
-  await pausa(2500);                                     // el diálogo pre-cargado: cantidad del ticket + criterio definido
-  await page.click("[data-buy-confirm]");
-  await pausa(2000);
-
-  // El DUDOSO 'Yogur' con el mismo botón "🛒 Despensa?" → variante → compra IN-SITU
-  await page.click("li[data-fila-ticket='Yogur'] [data-despensa]");
-  await page.waitForSelector("[data-despensa-elegir='Yogur natural']");
-  await pausa(1800);                                     // el diálogo de variantes
-  await page.click("[data-despensa-elegir='Yogur natural']");
-  await pausa(1800);                                     // el diálogo de compra (cantidad del ticket)
-  await page.click("[data-buy-confirm]");
-  await pausa(2200);                                     // fila fuera; 'Pan' (sin definir) queda a la espera
-
-  // ── 5. Plano final: la despensa con lo resuelto ──
+  // ── 5. Plano final: la despensa con lo confirmado ──
   await page.evaluate(() => document.querySelector('[data-view="foods"]').click());
   await page.waitForSelector("#view-foods.active");
   await pausa(3500);

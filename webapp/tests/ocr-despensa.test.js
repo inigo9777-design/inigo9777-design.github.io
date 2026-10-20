@@ -127,7 +127,7 @@ describe("ocr-despensa — extraerCandidatos (texto OCR → alimentos del vocabu
 describe("ocr-despensa — guardarCandidatos (contrato ticket: NADIE entra en la despensa solo)", () => {
   const deps = {};
 
-  test("nombre nuevo (sin variantes inyectadas) NO entra: sale en `nuevos` con faltaDefinir", () => {
+  test("nombre nuevo (sin variantes inyectadas) NO entra: sale en `nuevos`, su alta se define en el diálogo", () => {
     const { foods, actualizados, nuevos } = ocrDespensa.guardarCandidatos(
       [],
       [
@@ -139,8 +139,8 @@ describe("ocr-despensa — guardarCandidatos (contrato ticket: NADIE entra en la
     expect(foods).toEqual([]);                                // la despensa NO se inventa altas
     expect(actualizados).toBe(0);
     expect(nuevos).toEqual([
-      { nombre: "Leche", qty: 2, tipo: "lacteo", faltaDefinir: true },
-      { nombre: "Huevos XL", qty: 12, tipo: "proteina", faltaDefinir: true }
+      { nombre: "Leche", qty: 2, tipo: "lacteo" },
+      { nombre: "Huevos XL", qty: 12, tipo: "proteina" }
     ]);
   });
 
@@ -200,18 +200,18 @@ describe("ocr-despensa — guardarCandidatos (contrato ticket: NADIE entra en la
   });
 });
 
-describe("ocr-despensa — pasosDeConfirmacion (el recorrido del asistente del ticket)", () => {
-  test("con exactos Y dudas: despensa SIEMPRE primero, pendientes después", () => {
+describe("ocr-despensa — pasosDeConfirmacion (el recorrido de los diálogos del ticket)", () => {
+  test("con exactos Y dudas/nuevos: despensa SIEMPRE primero, la revisión después", () => {
     expect(ocrDespensa.pasosDeConfirmacion({
       directos: [{ nombre: "Pan", qty: 1 }], dudosos: [{ nombre: "Yogur", qty: 2 }], nuevos: []
-    })).toEqual(["despensa", "pendientes"]);
+    })).toEqual(["despensa", "revisar"]);
   });
 
-  test("paso que no tiene filas NO sale (un ticket sin dudas no muestra el paso vacío)", () => {
+  test("paso que no tiene filas NO sale (un ticket sin dudas no muestra el diálogo vacío)", () => {
     expect(ocrDespensa.pasosDeConfirmacion({ directos: [{ nombre: "Pan", qty: 1 }], dudosos: [], nuevos: [] }))
       .toEqual(["despensa"]);
     expect(ocrDespensa.pasosDeConfirmacion({ directos: [], dudosos: [], nuevos: [{ nombre: "Leche", qty: 3 }] }))
-      .toEqual(["pendientes"]);
+      .toEqual(["revisar"]);
   });
 
   test("casi nada que repartir → sin pasos (la vista no abre asistente vacío)", () => {
@@ -266,7 +266,7 @@ describe("ocr-despensa — reparto con la despensa: exacto suma, dudoso, nuevo s
     expect(leche.min).toBe(2); expect(leche.score).toBe(6);   // los criterios de despensa, sin pisar
   });
 
-  test("dudoso ('Yogur' vs despensa 'Yogur natural') NO entra: sale para la lista de la compra", () => {
+  test("dudoso ('Yogur' vs despensa 'Yogur natural') NO entra: sale para la revisión del diálogo", () => {
     const { foods, dudosos, nuevos } = ocrDespensa.guardarCandidatos(
       despensa, [{ nombre: "Yogur", qty: 4 }], { candidatosDespensa: variantes });
     expect(dudosos).toEqual([{ nombre: "Yogur", qty: 4, tipo: null }]);
@@ -275,12 +275,12 @@ describe("ocr-despensa — reparto con la despensa: exacto suma, dudoso, nuevo s
     expect(foods).toHaveLength(2);                                      // ni rastro de alta de "Yogur"
   });
 
-  test("nuevo sin variantes → SIEMPRE pendiente SIN DEFINIR (la importancia/mínimo los decide la persona)", () => {
+  test("nuevo sin variantes: sale en `nuevos` — su IMPORTANCIA y su MÍNIMO se definen EN el diálogo", () => {
     const { foods, nuevos, dudosos } = ocrDespensa.guardarCandidatos(
       despensa, [{ nombre: "Ajo", qty: 1 }], { candidatosDespensa: variantes });
     expect(dudosos).toEqual([]);
-    expect(nuevos).toEqual([{ nombre: "Ajo", qty: 1, tipo: null, faltaDefinir: true }]);
-    expect(foods).toHaveLength(2);                                     // la despensa NO lo recoge
+    expect(nuevos).toEqual([{ nombre: "Ajo", qty: 1, tipo: null }]);
+    expect(foods).toHaveLength(2);                                     // la despensa NO lo recoge (todavía)
   });
 
   test("SIN inyección de candidatosDespensa: lo desconocido cae en `nuevos` — nadie entra sin veredicto", () => {
@@ -288,73 +288,112 @@ describe("ocr-despensa — reparto con la despensa: exacto suma, dudoso, nuevo s
       despensa, [{ nombre: "Yogur", qty: 4 }], {});
     expect(dudosos).toEqual([]);
     expect(nuevos).toHaveLength(1);
-    expect(nuevos[0].faltaDefinir).toBe(true);
+    expect(nuevos[0].nombre).toBe("Yogur");
     expect(foods.some(f => f.name === "Yogur")).toBe(false);
   });
 });
 
-describe("ocr-despensa — pendientes del ticket en la lista de la compra", () => {
-  test("añadirTicketPendientes: los nuevos van ARRIBA, el re-escaneado dedup + sube y faltaDefinir/min/score VIAJAN", () => {
-    const a = ocrDespensa.añadirTicketPendientes([], [{ nombre: "Yogur", qty: 4 }], "2026-10-20");
-    expect(a).toEqual([{ nombre: "Yogur", qty: 4, tipo: null, escaneadoEn: "2026-10-20", faltaDefinir: false, min: null, score: null }]);
-    const b = ocrDespensa.añadirTicketPendientes(a, [{ nombre: "Leche", qty: 2, tipo: "lacteo", faltaDefinir: true }], "2026-10-21");
-    expect(b.map(p => p.nombre)).toEqual(["Leche", "Yogur"]);          // el nuevo, arriba
-    expect(b[0].faltaDefinir).toBe(true);                              // el estado SIN DEFINIR viaja con la fila
-    expect(b[1].faltaDefinir).toBe(false);
-    const c = ocrDespensa.añadirTicketPendientes(b, [{ nombre: "yogur", qty: 6 }], "2026-10-22");
-    expect(c.map(p => p.nombre)).toEqual(["yogur", "Leche"]);          // mismo alimento (normal): sube con qty nueva
-    expect(c[0].qty).toBe(6);
-    expect(c).toHaveLength(2);                                          // no se duplica
-    // re-escanear LO SIN DEFINIR conserva su pendiente-de-decisión; la decisión definida es sticky
-    const d = ocrDespensa.añadirTicketPendientes(c, [{ nombre: "leche", qty: 9 }], "2026-10-23");
-    expect(d[0].nombre).toBe("leche");
-    expect(d[0].faltaDefinir).toBe(true);                              // seguía sin definir: sigue sin definir
-    expect(d).toHaveLength(2);                                          // no se duplica
-    const e = ocrDespensa.añadirTicketPendientes(d, [{ nombre: "yogur", qty: 7 }], "2026-10-24");
-    expect(e[0].qty).toBe(7);                                          // qty del nuevo ticket
-    expect(e[0].faltaDefinir).toBe(false);                              // ...pero su estado DEFINIDO se conserva
-    expect(e[0].min).toBe(null);                                        // (yogur nunca se definió: null de antes)
+describe("ocr-despensa — confirmarRevision (el 2º diálogo escribe la revisión EN la despensa)", () => {
+  const despensa = [
+    { id: "a1", name: "Yogur natural", score: 5, qty: 2, min: 1, checked: false, createdAt: 1 },
+    { id: "a2", name: "Leche entera", score: 6, qty: 1, min: 2, checked: false, createdAt: 2 }
+  ];
+  const deps = { uid: () => "nuevo-1", ahora: 1000 };
+
+  test("NUEVA con su criterio definido en la fila → ALTA directa (la compra ya está hecha, nada va a la lista)", () => {
+    const { foods, creados, sumados } = ocrDespensa.confirmarRevision(
+      despensa,
+      [{ nombre: "Ajo", qty: 3, score: 9, min: 2 }],
+      [],
+      deps
+    );
+    expect(creados).toEqual(["Ajo"]); expect(sumados).toEqual([]);
+    expect(foods).toHaveLength(3);
+    expect(foods[2]).toEqual({ id: "nuevo-1", name: "Ajo", score: 9, qty: 3, min: 2, checked: false, createdAt: 1000 });
+    expect(foods[0].qty).toBe(2);                                       // la despensa previa, sin cambios
   });
 
-  test("lote del ticket (dudosos + nuevos juntos) entra en el ORDEN del ticket, sin invertirse", () => {
-    const lote = ocrDespensa.añadirTicketPendientes([], [
-      { nombre: "Leche", qty: 3, faltaDefinir: true },
-      { nombre: "Yogur", qty: 2 },
-      { nombre: "Pan", qty: 1, faltaDefinir: true }
-    ], "2026-10-20");
-    expect(lote.map(p => p.nombre)).toEqual(["Leche", "Yogur", "Pan"]);   // fiel a las líneas del ticket
-    expect(lote[0].faltaDefinir).toBe(true);
-    expect(lote[1].faltaDefinir).toBe(false);                              // el dudoso, normal
+  test("DUDOSA resuelta con variante (id de despensa) → SUMA en-situ: su min/importancia quedan como estaban", () => {
+    const { foods, creados, sumados } = ocrDespensa.confirmarRevision(
+      despensa,
+      [],
+      [{ nombre: "Yogur", qty: 4, score: 5, min: 1, varianteId: "a1" }],
+      deps
+    );
+    expect(sumados).toEqual(["Yogur natural"]); expect(creados).toEqual([]);
+    expect(foods).toHaveLength(2);                                      // no se da de alta nada
+    expect(foods[0].qty).toBe(6);                                       // 2 en casa + 4 compradas
+    expect(foods[0].min).toBe(1); expect(foods[0].score).toBe(5);       // la alerta del alimento real, sin pisar
   });
 
-  test("definirTicketPendiente: fija min/score, quita faltaDefinir y NO toca la fila hermana; inválido → nada", () => {
-    const lista = ocrDespensa.añadirTicketPendientes([], [
-      { nombre: "Leche", qty: 3, faltaDefinir: true },
-      { nombre: "Yogur", qty: 2 }
-    ], "2026-10-20");
-    const r = ocrDespensa.definirTicketPendiente(lista, "LECHE", { score: 8, min: 2 });
-    expect(r.definido).toBe(true);
-    expect(r.lista[0]).toEqual({ nombre: "Leche", qty: 3, tipo: null, escaneadoEn: "2026-10-20", faltaDefinir: false, min: 2, score: 8 });
-    expect(r.lista[1].nombre).toBe("Yogur");
-    expect(r.lista[1].faltaDefinir).toBe(false);
-    expect(r.lista[1].min).toBeNull();
-    // score fuera de rango → CLAMP al 1–10 (misma convención que compraNormalizada de la lista);
-    // sin score válido de verdad (no numérico) → NADA cambia
-    const mal = ocrDespensa.definirTicketPendiente(lista, "Leche", { score: 99, min: 2 });
-    expect(mal.definido).toBe(true);
-    expect(mal.lista[0].score).toBe(10);
-    expect(mal.lista[0].faltaDefinir).toBe(false);
-    const raro = ocrDespensa.definirTicketPendiente(lista, "Leche", { score: "alto" });
-    expect(raro.definido).toBe(false);
-    expect(raro.lista[0].faltaDefinir).toBe(true);
+  test("DUDOSA resuelta como nueva → ALTA con lo escrito en la fila (el desplegable vacío es 'es nuevo')", () => {
+    const { foods, creados, sumados } = ocrDespensa.confirmarRevision(
+      despensa,
+      [],
+      [{ nombre: "Yogur griego", qty: 1, score: 7, min: 3, varianteId: "" }],
+      deps
+    );
+    expect(creados).toEqual(["Yogur griego"]); expect(sumados).toEqual([]);
+    expect(foods[2].min).toBe(3); expect(foods[2].score).toBe(7);
   });
 
-  test("quitarTicketPendiente: fuera por nombre normalizado; lo demás queda; {quitado} dice si hubo", () => {
-    const lista = [{ nombre: "Yogur", qty: 4, escaneadoEn: "2026-10-20" }, { nombre: "Pan de pueblo", qty: 1, escaneadoEn: "2026-10-20" }];
-    const r = ocrDespensa.quitarTicketPendiente(lista, "YOGUR");
-    expect(r.quitado).toBe(true);
-    expect(r.lista.map(p => p.nombre)).toEqual(["Pan de pueblo"]);
-    expect(ocrDespensa.quitarTicketPendiente(lista, "Batido").quitado).toBe(false);
+  test("el NOMBRE de una fila nueva que ya existe (case-insensitive) SUMA en vez de crear un duplicado", () => {
+    const { foods, creados, sumados } = ocrDespensa.confirmarRevision(
+      despensa,
+      [{ nombre: "LECHE ENTERA", qty: 2, score: 5, min: 1 }],
+      [],
+      deps
+    );
+    expect(sumados).toEqual(["Leche entera"]); expect(creados).toEqual([]);
+    expect(foods).toHaveLength(2);                                      // ni un duplicado
+    expect(foods[1].qty).toBe(3);                                       // 1 + 2 compradas
+    expect(foods[1].min).toBe(2); expect(foods[1].score).toBe(6);       // criterio del alimento real, sin pisar
+  });
+
+  test("variante elegida que ya NO existe → la fila cae como ALTA (sin perder la compra)", () => {
+    const { foods, creados, sumados } = ocrDespensa.confirmarRevision(
+      despensa,
+      [],
+      [{ nombre: "Kéfir", qty: 2, score: 6, min: 1, varianteId: "fantasma" }],
+      deps
+    );
+    expect(creados).toEqual(["Kéfir"]); expect(sumados).toEqual([]);
+    expect(foods[2].name).toBe("Kéfir");
+  });
+
+  test("desinfecta lo que la UI pudiera colar: valores raros → qty 1 default, score clampado 1–10, min ≥ 0", () => {
+    const { foods } = ocrDespensa.confirmarRevision(
+      despensa,
+      [{ nombre: "Miel extraída", qty: "x", score: 99, min: -3 }],
+      [],
+      deps
+    );
+    const miel = foods[2];
+    expect(miel.qty).toBe(1);                 // qty no numérica → 1 (el valor por defecto del alta)
+    expect(miel.score).toBe(10);              // fuera de rango → clamp al borde
+    expect(miel.min).toBe(0);                 // negativo → 0
+    const tibia = ocrDespensa.confirmarRevision(despensa, [{ nombre: "Canela", score: "alta", qty: 2 }], [], deps);
+    expect(tibia.foods[2].score).toBe(5);     // sin score numérico → el por defecto del alta manual
+    expect(tibia.foods[2].qty).toBe(2);
+  });
+
+  test("fila sin nombre se salta (la vista valida antes; esto es el filtro final) y despensa/entrada sin mutar", () => {
+    const original = Object.freeze(despensa.map(f => Object.freeze({ ...f })));
+    const { foods, creados } = ocrDespensa.confirmarRevision(
+      original,
+      [{ nombre: "", qty: 2, score: 5, min: 1 }, { nombre: "Avellanas picadas", qty: 1, score: 3, min: 1 }],
+      [],
+      deps
+    );
+    expect(creados).toEqual(["Avellanas picadas"]);
+    expect(foods).toHaveLength(3);                                       // la vacía fuera
+    expect(original).toHaveLength(2);                                    // la despensa de entrada, intacta (§3)
+  });
+
+  test("sin nada nuevo ni dudas → despensa igual sin copias raras; arrays sueltos/null no rompen", () => {
+    expect(ocrDespensa.confirmarRevision(despensa, [], [], deps).foods).toEqual(despensa);
+    expect(ocrDespensa.confirmarRevision(despensa).creados).toEqual([]);
+    expect(ocrDespensa.confirmarRevision(despensa, null, undefined, deps).foods).toEqual(despensa);
   });
 });
 

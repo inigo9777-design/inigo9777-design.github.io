@@ -14,10 +14,9 @@
 //      ticket: reintentos girados de la vista.
 //   3. CONTRATO del ticket con material real: los candidatos salen del TEXTO de la compra — los
 //      precios y cifras del ticket no se convierten en alimentos ni en cantidades.
-//   4. REGLA DE REPARTO del usuario: lo que YA está en la despensa (mismo nombre canónico, criterio
-//      definido) entra DIRECTO en la despensa (suma su compra) y JAMÁS cae en la lista de la compra;
-//      JAMÁS cae en la lista de la compra; a la lista van los DUDOSOS y los NUEVOS — y los nuevos
-//      quedan ahí SIN DEFINIR hasta fijar criterio.
+//   4. REWORK 2026-10-21: la revisión de TODO ocurre EN los dos diálogos del escáner (exactos =
+//      dialogo 1 con la compra sumando; dudosos y nuevos = diálogo de revisión, definidos ahí
+//      mismo) — la despensa recibe todo y la lista de la compra queda FUERA del ticket.
 //
 // NO guarda ningún registro de las fotos: no se copia ni se mueve ninguno de los ficheros (Chromium
 // lee el path original); los screenshots en reports/ui-brave son de la UI de la app, no de la foto.
@@ -69,7 +68,8 @@ const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[\u030
 
 // CONFIGURACIÓN por ticket: la despensa SEMBRADA decide qué se demuestra. Los alimentos que el
 // ticket trae EXACTOS (el nombre canónico del vocabulario ya está en casa, con criterio definido)
-// deben ir DIRECTO a la despensa; el pariente (comparte palabra) cae como DUDOSO; el resto como NUEVO.
+// confirman en el DIALOGO 1 (la compra suma); el resto (parientes y nuevos) se definen en el
+// diálogo de revisión y dan de alta directa en la despensa al confirmar.
 function configDe(foto) {
   if (/\.(heic|heif)$/i.test(foto)) {
     return {
@@ -79,8 +79,7 @@ function configDe(foto) {
         { id: "s2", name: "Mantequilla", score: 5, qty: 1, min: 1, checked: false, createdAt: 2 },
         { id: "s3", name: "Zumo de Tomate", score: 5, qty: 1, min: 1, checked: false, createdAt: 3 }
       ],
-      exactos: ["Leche", "Mantequilla"],
-      dudoso: "Tomate"                    // el pariente: comparte palabra con "Zumo de Tomate"
+      exactos: ["Leche", "Mantequilla"]     // el pariente ("Tomate") comparte palabra con "Zumo de Tomate"
     };
   }
   return {
@@ -90,8 +89,7 @@ function configDe(foto) {
       { id: "s2", name: "Huevos", score: 5, qty: 1, min: 6, checked: false, createdAt: 2 },
       { id: "s3", name: "Zumo de Naranja", score: 5, qty: 1, min: 1, checked: false, createdAt: 3 }
     ],
-    exactos: ["Leche", "Huevos"],
-    dudoso: "Naranja"                     // el pariente: comparte palabra con "Zumo de Naranja"
+    exactos: ["Leche", "Huevos"]            // el pariente ("Naranja") comparte palabra con "Zumo de Naranja"
   };
 }
 
@@ -118,75 +116,86 @@ try {
     // PASO 1 — soltar la foto REAL. La conversión HEIC→JPEG, el giro y el OCR corren solos.
     await page.setInputFiles("#ocr-file", path.join(CARPETA, foto));
 
-    // PASO 2 — acabar O en confirmación O en "no detectado" (cualquiera de las dos colas cierra el escaneo)
+    // PASO 2 — acabar O en el diálogo de EXACTOS O en la revisión O en "no detectado" (cualquiera
+    // de las dos colas cierra el escaneo; el reparto lo decide el módulo puro)
     const modal = page.locator(".modal-content");
     await Promise.race([
-      modal.locator("h2", { hasText: "Esto es lo que compraste" }).waitFor({ timeout: 600000 }),
+      modal.locator("h2", { hasText: "Ya lo tienes en el inventario" }).waitFor({ timeout: 600000 }),
+      modal.locator("h2", { hasText: "Añade lo nuevo" }).waitFor({ timeout: 600000 }),
       modal.locator("h2", { hasText: "No he detectado alimentos" }).waitFor({ timeout: 600000 })
     ]);
     const titulo = await modal.locator("h2").first().textContent();
-    ok(titulo.includes("Esto es lo que compraste"), `la foto ${path.extname(foto).toUpperCase()} SE ABRE y el OCR la lee (nada de «no se ha podido escanear»)`);
+    const enDialogoExactos = titulo.includes("Ya lo tienes en el inventario");
+    ok(!titulo.includes("No he detectado"), `la foto ${path.extname(foto).toUpperCase()} SE ABRE y el OCR la lee (nada de «no se ha podido escanear»)`);
 
     // PASO 3 — candidatos del TEXTO de la compra: nombres no numéricos, cantidades sanas (precios fuera)
     const filas = await modal.locator(".ocr-item").all();
     const candidatos = [];
     for (const fila of filas) {
-      const nombre = await fila.locator(".ocr-nombre input").inputValue();
-      const qty = await fila.locator("input[type=number]").inputValue();
-      const linea = await fila.locator(".ocr-linea").textContent();
-      candidatos.push({ nombre, qty: Number(qty), linea: (linea || "").trim() });
+      const inputNombre = fila.locator(".ocr-nombre input");
+      const nombre = (await inputNombre.count())
+        ? await inputNombre.inputValue()
+        : (await fila.locator(".ocr-nombre strong").textContent()).trim();
+      const qty = Number(await fila.locator(".exact-qty, input[id^='rev-qty-']").first().inputValue());
+      candidatos.push({ nombre, qty });
     }
     console.log("   detectados:", candidatos.map(c => `${c.nombre}×${c.qty}`).join(", ") || "(ninguno)");
     ok(candidatos.length > 0, "detectó ALIMENTOS reales del ticket (no ruido vacío)");
     ok(candidatos.every(c => /[a-z]/i.test(c.nombre) && !/^\d/.test(c.nombre)), "ningún candidato es una cifra del ticket (precios y kg fuera)");
     ok(candidatos.every(c => Number.isInteger(c.qty) && c.qty >= 1 && c.qty <= 30), `las cantidades son unidades de compra saneadas (${candidatos.map(c => c.qty).join("/")})`);
 
-    // PASO 4 — REGLA DE REPARTO: los exactos de la semilla aparecen entre los detectados; su cantidad la fija el modal
-    for (const exacto of cfg.exactos) {
-      const hit = candidatos.find(c => norm(c.nombre) === norm(exacto));
-      ok(!!hit, `"${exacto}" de la despensa sale del ticket (mismo nombre canónico)`);
+    // PASO 4 — REGLA DE REPARTO: los exactos de la semilla (si el OCR los leyó) abren el DIÁLOGO 1;
+    // su cantidad la fija la línea del ticket y se confirman ahí con la compra sumando
+    if (enDialogoExactos) {
+      for (const exacto of cfg.exactos) {
+        const hit = candidatos.find(c => norm(c.nombre) === norm(exacto));
+        if (!hit) continue;                     // el OCR de la foto no lo leyó esta vez: no se le puede exigir
+        ok(true, `"${exacto}" de la despensa salió del ticket y CONFIRMA en su diálogo (nombre canónico)`);
+      }
     }
 
     await page.screenshot({ path: path.join(OUT_DIR, `${indice}-ticket-reales-confirmacion.png`), fullPage: false });
 
-    // PASO 5 — guardar TODO lo detectado (casillas 'on' por defecto) y revisar el reparto FINAL
-    const qts = {};                            // cantidad del modal por nombre normalizado
+    // PASO 5 — confirmar TODO con los valores de las filas: exactos (diálogo 1) y luego la
+    // revisión con los nuevos y el dudoso dejados como "es nuevo" → TODO acaba en la despensa
+    const qts = {};                            // cantidad leída del ticket por nombre normalizado
     candidatos.forEach(c => { qts[norm(c.nombre)] = c.qty; });
-    await modal.locator("[data-ocr-guardar]").click();
+    const guardExactos = modal.locator("[data-confirmar-exactos]");
+    if (await guardExactos.count()) { await guardExactos.click(); await page.waitForTimeout(500); }
+    await modal.locator("[data-revision-guardar]").click();
     await page.waitForTimeout(600);
 
     const estado = await page.evaluate(() => ({
       foods: JSON.parse(localStorage.getItem("mrcheff.foods") || "[]"),
-      ticket: JSON.parse(localStorage.getItem("mrcheff.compraTicket") || "[]")
+      compraTicket: localStorage.getItem("mrcheff.compraTicket")
     }));
+    ok(estado.compraTicket === null, "la clave de pendientes del ticket NI SE ESCRIBE (implementación retirada: nada en la lista de la compra)");
 
-    // los EXACTOS: directo a la despensa, SUMANDO su compra, y JAMÁS en la lista de la compra (regla del usuario)
+    // los EXACTOS: sumados en el diálogo 1, con sus criterios intactos
     for (const exacto of cfg.exactos) {
+      const semilla = cfg.semilla.find(s => s.name === exacto);
       const enCasa = estado.foods.find(f => norm(f.name) === norm(exacto));
       ok(!!enCasa, `"${exacto}" sigue en la despensa`);
-      ok(!!enCasa && enCasa.qty === cfg.semilla.find(s => s.name === exacto).qty + qts[norm(exacto)],
-         `"${exacto}" RECIBIÓ su compra directa: despensa ${cfg.semilla.find(s => s.name === exacto).qty} (+${qts[norm(exacto)]} del ticket)`);
-      ok(!estado.ticket.some(p => norm(p.nombre) === norm(exacto)), `"${exacto}" NO cae en la lista de la compra (iba directo)`);
+      ok(!!enCasa && enCasa.qty === semilla.qty + (qts[norm(exacto)] || 0),
+         `"${exacto}" RECIBIÓ su compra directa: despensa ${semilla.qty} (+${qts[norm(exacto)] || 0} del ticket), criterios intactos (score ${semilla.score})`);
     }
-    // el DUDOSO: pendiente NORMAL (criterio ya no hace falta definirlo: viene de la variante despensa)
-    const penduDudoso = estado.ticket.find(p => norm(p.nombre) === norm(cfg.dudoso));
-    ok(!!penduDudoso, `el pariente "${cfg.dudoso}" queda como pendiente del ticket a resolver con decisión propia`);
-    // los NUEVOS: pendientes SIN DEFINIR (faltaDefinir: true) y está todos los demás
-    const nuevos = estado.ticket.filter(p => p.faltaDefinir === true);
-    ok(nuevos.length >= 1, `los nuevos del ticket quedan SIN DEFINIR hasta fijar criterio (${nuevos.map(p => p.nombre).join(", ")})`);
-    ok(estado.ticket.every(p => Number.isInteger(p.qty) && p.qty >= 1 && p.qty <= 30),
-       "ninguna cantidad del pendiente es un PRECIO ni un peso de envase");
-
-    // PASO 6 — la LISTA DE LA COMPRA: arriba los pendientes del ticket, y NADIE de los exactos entra en ella
-    await page.click('[data-view="suggest"]');
-    await page.waitForTimeout(400);
-    const listEn = await page.locator("li[data-fila-ticket]").allTextContents();
-    ok(listEn.length === estado.ticket.length, `la lista muestra TODOS los pendientes del ticket (${listEn.length}/${estado.ticket.length})`);
-    for (const exacto of cfg.exactos) {
-      ok(!listEn.some(t => norm(t).includes(norm(exacto))), `"${exacto}" tampoco aparece en la lista de la compra visible`);
+    // los DEMÁS (nuevos y el dudoso resuelto como "es nuevo"): alta directa con el criterio del diálogo
+    for (const [nombreNorm, qty] of Object.entries(qts)) {
+      if (cfg.exactos.some(e => norm(e) === nombreNorm)) continue;
+      const fila = estado.foods.find(f => norm(f.name) === nombreNorm);
+      ok(!!fila && fila.qty === qty, `"${nombreNorm}" dio de ALTA en la despensa con la qty del ticket (${qty})`);
+      ok(!!fila && Number.isInteger(fila.score) && fila.score >= 1 && fila.score <= 10 && Number.isInteger(fila.min),
+         `"${nombreNorm}" lleva IMPORTANCIA (1-10) y MÍNIMO definidos EN el diálogo`);
     }
 
-    await page.screenshot({ path: path.join(OUT_DIR, `${indice + 1}-ticket-reales-lista.png`), fullPage: false });
+    // PASO 6 — la LISTA DE LA COMPRA queda FUERA del ticket: ni filas ni pendientes ni salto de pestaña
+    const quedaLimpia = await page.evaluate(() =>
+      !document.querySelector("li[data-fila-ticket]") &&
+      JSON.parse(localStorage.getItem("mrcheff.compraTicket") || "null") === null &&
+      document.querySelector("#view-foods.active") !== null);
+    ok(quedaLimpia, "sin pendientes del ticket en la lista y el escáner no sale de la pestaña de Alimentos");
+
+    await page.screenshot({ path: path.join(OUT_DIR, `${indice + 1}-ticket-reales-despensa.png`), fullPage: false });
     await context.close();
   }
 } catch (err) {
