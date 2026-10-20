@@ -148,6 +148,33 @@ italiana" (see `modules/origen-recetas.js` below).
   etiqueta es `display: none` (el nombre accesible vive en el aria-label) y el estado
   activo se nota por el relleno marca del círculo; en escritorio conserva el despliegue
   por hover/foco/activo. La agarra la auditoría `e2e/pwa-accesibilidad.mjs` (check 6).
+  (9) **Tutorial interactivo de entrada** (feature 2026-10-20, epic `tutorial-interactivo`):
+  visita guiada POR DENTRO de la app para la primera vez (la app nace vacía y sin pistas): el
+  guion (16 pasos: bienvenida+cabecera, 3 por cada vista principal —Alimentos/Recetas/Sugerencias
+  y menú—, 2 para Innovación y Temporada, cierre) vive en el módulo PURO `modules/tutorial.js`
+  (PASOS por grupos + máquina de sesión; contrato `pasoValido`; pasos con `vista`/`selector`/
+  `accionable`/`titulo`/`texto`/`cta`). El wiring está en app.js (sección TUTORIAL): velo
+  semitransparente de 4 rectángulos + "foco" con aro de marca sobre el elemento del paso +
+  tarjeta explicativa; los pasos accionables avanzan TOCANDO el elemento REAL (el toque ejecuta su
+  función: focus del input, generar ideas/lote/plan…) y los informativos muestran botón.
+  Auto-abre SOLO la primera vez en contexto web instalable (http/https; `file://` no — se
+  registra en LS `mrcheff.tutorial.visto`, respetado por ✕ / Escape / "Terminar"; se reabre
+  con el botón circular 🎓 `#btn-tutorial` en `.topbar-actions` ENTRE la caja fuerte y el tema,
+  mismo círculo 38×38). El click que avanza va por listener de CAPTURA en document (el gesto
+  sigue su curso natural) y el paso nunca se atasca: target inexistente degrada a informativo.
+  Mientras la visita está abierta el swipe del viewpager queda en pausa (`tutorialActivo` en el
+  touchstart del carrusel) y el resto de la app duerme bajo los velos; el reposicionado va por
+  listeners scroll/resize (rAF-throttled). Molde en index.html (`#tutorial`, velos+`#tutorial-foco`+
+  `#tutorial-tarjeta`), estilos tokenizados en style.css (z 90: por encima del topbar, debajo del
+  modal; container `pointer-events:none` con auto en velos/tarjeta — el click DEL FOCO tiene que
+  llegar al elemento real) y `modules/tutorial.js` añadido al shell del sw (caché v5).
+  Accesibilidad: role dialog + anuncio sr-only "Paso X de N", Escape cierra y marca visto.
+  Verificación: unit `tests/tutorial.test.js` (contrato/grupos/sesión ~12), integración jsdom
+  `tests/tutorial-ui.integration.test.js` (auto-apertura, X/Escape/Terminar, reabrir, flujo
+  accionable con GUION INYECTADO en la ventana = desacoplado del contenido que crece la épica,
+  recorrido completo 16 pasos) y e2e Brave real `e2e/tutorial.mjs` (20 checks: auto-apertura,
+  segunda visita silenciosa, 🎓, recorrido completo con mouse+coords, geometría del aro,
+  swipe inmóvil; sirviendo por http://localhost:8617 con python3 porque file:// no auto-abre).
 - **Sync entre dispositivos por buzón GitHub (feature 2026-10-19; su fichero de plan fue retirado del repo, el protocolo vive documentado en módulos/comments/tests):** sincroniza los
   datos entre 2 dispositivos (móvil PWA + escritorio) con un gist privado como buzón y cifrado extremo a
   extremo: AES-GCM-256 con clave PBKDF2-SHA256 (600k iteraciones) derivada de una passphrase que el usuario

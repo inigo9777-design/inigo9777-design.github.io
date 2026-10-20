@@ -442,3 +442,24 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
       El mínimo de 3 letras lo fija ya el matcher compartido (TOKEN_MIN_LEN): nada de ruido
       prefijo de 1-2 letras. Firma de API SIN CAMBIO (1 función pública). Tests: unit en
       busqueda-recetas.test.js (describe 5) + e2e Brave real en e2e/buscador-prefijos.mjs.
+   12. **Tutorial interactivo de entrada** (2026-10-20, epic `tutorial-interactivo`, 1 rama de
+      tarea por pantalla: core + alimentos + recetas + innovación + menú + temporada; merge
+      `--no-ff` a la épica, borrado de las ramas de tarea; el merge a develop lo hace el equipo
+      tras revisar): guion PURO en `modules/tutorial.js` (pasos en grupos + máquina de sesión;
+      `pasoValido` protege de pasos rotos; target inexistente degrada el paso a informativo =
+      NUNCA se atasca) y wiring en app.js con dos decisiones registradas: (a) el VOCABULARIO de
+      avance es bidireccional por diseño del feature — pasos ACCIONABLES avanzan tocando el
+      elemento real vía listener de CAPTURA en document (sin stopPropagation: el gesto ejecuta
+      su función de siempre: focus, generar lote, plan 7×3…) mientras los informativos usan el
+      botón; (b) el overlay comió clicks del elemento real hasta descubrir en el e2e de Brave
+      que el CONTENEDOR `.tutorial` (fixed a viewport entero) los interceptaba: regla nueva para
+      overlays full-viewport — contenedor `pointer-events:none` y remate SOLO en hijos interactivos
+      (velos `auto`, tarjeta `auto`, foco `none`). jsdom NO implementa `Element.scrollIntoView` →
+      boot.js trae stub (§6, mismo espíritu que window.scrollTo) y app.js lleva doble guard
+      try/catch para WebViews viejos sin options object. El auto-abre SOLO en contexto web
+      instalable (protocolo http/https, con UA sin "jsdom" para no dispararlo en la capa 2 — el
+      e2e lo prueba con servidor python http://localhost:8617). Tests: unit en tutorial.test.js
+      (contrato, grupos por pantalla, sesión) + integración en tutorial-ui.integration.test.js
+      (boot real, auto/X/Escape/Terminar/reabrir, guion INYECTADO en la ventana para desacoplar
+      los flujos del contenido que crece por ramas, recorrido completo de 16 pasos) + e2e Brave
+      en e2e/tutorial.mjs (20 checks). Suite al cerrar la épica: 470 tests / 33 suites.
