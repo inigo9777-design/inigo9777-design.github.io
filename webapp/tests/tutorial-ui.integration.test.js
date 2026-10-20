@@ -42,17 +42,26 @@ describe("tutorial interactivo — wiring app.js", () => {
     expect(abierto(app)).toBe(false);
   });
 
-  it("botón Siguiente recorre pasos; el ÚLTIMO (Terminar) cierra y guarda visto", async () => {
+  it("recorrido completo con guion inyectado: Siguiente → foco en cabecera → Terminar cierra y guarda", async () => {
     const app = bootApp({ tutorialAuto: true });
     await new Promise(r => setTimeout(r, 700));
+    // Guion de 3 pasos inyectado en el módulo de la ventana (el wiring lee el guion VIVO en
+    // cada paso): desacopla el test del contenido real mientras crecen las pantallas de la épica.
+    const tut = app.window.MRCheff.tutorial;
+    tut.PASOS.splice(0, tut.PASOS.length,
+      { id: "bienvenida", vista: null, selector: null, accionable: false, titulo: "Bienvenido", texto: "Prueba.", cta: "Adelante" },
+      { id: "cabecera", vista: null, selector: ".topbar-actions", accionable: false, titulo: "La cabecera", texto: "Prueba.", cta: "Empecemos" },
+      { id: "listo", vista: null, selector: null, accionable: false, titulo: "Listo", texto: "Prueba.", cta: "Terminar" }
+    );
+    expect(app.document.getElementById("tutorial-titulo").textContent).toContain("Bienvenido");   // pintó el paso 1 real antes del splice
     const avanzar = app.document.getElementById("tutorial-avanzar");
     avanzar.click();                                            // → cabecera (con foco en .topbar-actions)
     await esperarFrames();
     expect(abierto(app)).toBe(true);
-    expect(app.document.getElementById("tutorial-titulo").textContent).toContain("cabecera");
+    expect(app.document.getElementById("tutorial-titulo").textContent).toBe("La cabecera");
     expect(app.document.getElementById("tutorial-foco").style.width).not.toBe("");   // el foco se dimensionó
     expect(app.document.getElementById("tutorial-tarjeta").classList.contains("tutorial-centrado")).toBe(false);
-    expect(raiz(app).querySelectorAll("#tutorial-puntos span").length).toBeGreaterThanOrEqual(3);
+    expect(raiz(app).querySelectorAll("#tutorial-puntos span").length).toBe(3);
     expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 2");
     avanzar.click();                                            // → listo (Terminar)
     expect(avanzar.textContent).toBe("Terminar");
@@ -92,5 +101,50 @@ describe("tutorial interactivo — wiring app.js", () => {
     expect(app.document.querySelector(".topbar .tab")).toBeTruthy();
     expect(app.window.MRCheff.tutorial).toBeTruthy();
     expect(app.document.getElementById("btn-tutorial")).toBeTruthy();
+  });
+});
+
+describe("tutorial interactivo — pantalla ALIMENTOS (pasos accionables)", () => {
+  const dormir = (ms) => new Promise(r => setTimeout(r, ms));
+  const conGuionDeAlimentos = (tut) => {
+    // Guion corto con el BLOQUE REAL de Alimentos (objetos vivos del módulo): bienvenida +
+    // los 3 pasos de la vista + cierre — lo que la persona viviría en sus primeros pasos.
+    const bienvenida = tut.PASOS[0];
+    const alimentos = tut.pasosDeVista("foods");
+    const listo = tut.PASOS[tut.PASOS.length - 1];
+    tut.PASOS.splice(0, tut.PASOS.length, bienvenida, ...alimentos, listo);
+  };
+
+  it("paso accionable: pista visible y SIN botón; el click en el target AVANZA y ejecuta su función real", async () => {
+    const app = bootApp({ tutorialAuto: true });
+    await dormir(700);
+    conGuionDeAlimentos(app.window.MRCheff.tutorial);
+    app.document.getElementById("tutorial-avanzar").click();     // bienvenida → alimento #1 (#food-name, accionable)
+    await dormir(60);
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 2 de 5");
+    expect(app.document.getElementById("tutorial-pista").classList.contains("hidden")).toBe(false);
+    expect(app.document.getElementById("tutorial-avanzar").classList.contains("hidden")).toBe(true);
+    app.document.getElementById("food-name").click();            // el toque REAL + avance del paso (el foco real lo mira el e2e de Brave; jsdom no enfoca al hacer click)
+    await dormir(60);
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 3 de 5");
+  });
+
+  it("tercer paso informativo: botón Siguiente vuelve; 'Terminar' graba la visita", async () => {
+    const app = bootApp({ tutorialAuto: true });
+    await dormir(700);
+    conGuionDeAlimentos(app.window.MRCheff.tutorial);
+    const avanzar = app.document.getElementById("tutorial-avanzar");
+    avanzar.click();                                             // → alimento #1 accionable
+    app.document.getElementById("food-name").click();            // → alimento #2 accionable (#food-score)
+    app.document.getElementById("food-score").click();           // el slider también acepta su click real (su efecto visual lo mira el e2e)
+    expect(app.document.getElementById("tutorial-titulo").textContent).toContain("Inventario");
+    expect(app.document.getElementById("tutorial-pista").classList.contains("hidden")).toBe(true);
+    expect(avanzar.classList.contains("hidden")).toBe(false);
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 4 de 5");
+    avanzar.click();                                             // → listo
+    expect(avanzar.textContent).toBe("Terminar");
+    avanzar.click();                                             // cierre + visto
+    expect(app.document.getElementById("tutorial").classList.contains("hidden")).toBe(true);
+    expect(JSON.parse(app.window.localStorage.getItem("mrcheff.tutorial")).visto).toBe(true);
   });
 });

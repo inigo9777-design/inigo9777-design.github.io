@@ -257,7 +257,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const paso = tut.pasoActual(sesionTutorial);
     if (!paso) { cerrarTutorial(true); return; }
     pasoEnPantalla = paso;
-    if (paso.vista) activarVista(paso.vista);          // la vista del paso (click: sube arriba animado)
+    if (paso.vista) {                                  // la vista del paso salta si toca cambiar (sin scroll-top si ya está aquí)
+      const activa = document.querySelector(".view.active");
+      if (!activa || activa.id !== "view-" + paso.vista) activarVista(paso.vista);
+    }
     tutorialVelos.titulo.textContent = paso.titulo;
     tutorialVelos.texto.textContent = paso.texto;
     const objetivo = paso.selector ? document.querySelector(paso.selector) : null;

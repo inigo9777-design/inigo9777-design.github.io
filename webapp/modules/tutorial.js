@@ -58,7 +58,27 @@
     },
   ];
 
-  const PASOS_ALIMENTOS = [];
+  const PASOS_ALIMENTOS = [
+    {
+      id: "alimentos-anotar",
+      vista: "foods", selector: "#food-name", accionable: true,
+      titulo: "Apunta lo que tienes en casa",
+      texto: "Escribe aquí un alimento que tengas, p. ej. Huevos, y ajusta cuántos tienes, tu mínimo para ser avisado y lo importante que es. Toca el campo para seguir.",
+    },
+    {
+      id: "alimentos-importancia",
+      vista: "foods", selector: "#food-score", accionable: true,
+      titulo: "La importancia decide la urgencia",
+      texto: "Puntúa del 1 al 10 lo indispensable: rojo 8-10, naranja 6-7 y verde 5 o menos es cómo se pintarán las alertas. Toca la barra para seguir.",
+    },
+    {
+      id: "alimentos-inventario",
+      vista: "foods", selector: "#food-list", accionable: false,
+      titulo: "Inventario y alerta semanal",
+      texto: "Cada alimento vive aquí con su cantidad y su color. Cuando algo baje de su mínimo, la alerta semanal te avisa al abrir la app (y en Sugerencias y menú entra automáticamente en la lista de la compra).",
+      cta: "Siguiente",
+    },
+  ];
   const PASOS_RECETAS = [];
   const PASOS_INNOVACION = [];
   const PASOS_MENU = [];
