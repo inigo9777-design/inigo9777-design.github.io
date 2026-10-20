@@ -148,12 +148,103 @@ describe("ocr-despensa — guardarCandidatos (confirma → despensa, mismo shape
     const { foods } = ocrDespensa.guardarCandidatos(original, [{ nombre: "Pollo", qty: 3, score: 6, min: 1 }], deps);
     expect(original[0].qty).toBe(1);           // el ORIGINAL no se toca
     expect(foods[0]).not.toBe(original[0]);    // en el array nuevo hay una copia actualizada
-    expect(foods[0].qty).toBe(3);
+    expect(foods[0].qty).toBe(4);              // el ticket SUMA: tenía 1 en casa + 3 compradas
   });
 
-  test("selección vacía/undefined → despensa igual, cero añadidos", () => {
+  test("selección vacía/undefined → despensa igual, cero añadidos, sin dudosos", () => {
     const despensa = [{ id: "a1", name: "Pollo", score: 4, qty: 1, min: 1, checked: false, createdAt: 1 }];
-    expect(ocrDespensa.guardarCandidatos(despensa, [], deps)).toEqual({ foods: despensa, añadidos: 0, actualizados: 0 });
-    expect(ocrDespensa.guardarCandidatos(despensa, undefined, deps)).toEqual({ foods: despensa, añadidos: 0, actualizados: 0 });
+    expect(ocrDespensa.guardarCandidatos(despensa, [], deps)).toEqual({ foods: despensa, añadidos: 0, actualizados: 0, dudosos: [] });
+    expect(ocrDespensa.guardarCandidatos(despensa, undefined, deps)).toEqual({ foods: despensa, añadidos: 0, actualizados: 0, dudosos: [] });
   });
 });
+
+describe("ocr-despensa — cantidad del ticket (qty por línea, propósito 2026-10-20)", () => {
+  const qtys = texto => ocrDespensa.extraerCandidatos(texto, FOOD_TYPES).map(c => c.qty);
+
+  test("'2 x Leche' / 'Yogures naturales x6' / '3 Cebollas' → 2, 6, 3", () => {
+    expect(qtys("2 x Leche entera\nYogures naturales x6\n3 Cebollas")).toEqual([2, 6, 3]);
+  });
+
+  test("unidades de cuenta: UD, bolsas, brik ('2 bolsas de cebollas' → 2)", () => {
+    expect(qtys("2 bolsas de cebollas\n1 brik Leche\n4 ud Huevos")).toEqual([2, 1, 4]);
+  });
+
+  test("pesos y marcas del ENVASE no son cantidad: '400g'/'1L'/'0,89/kg' → null", () => {
+    expect(qtys("Lentejas cocidas 400g\nLeche entera 1L\nPIMIENTO ROJO 0,89/kg")).toEqual([null, null, null]);
+  });
+
+  test("precios sin unidad de cuenta no cuentan ('TOTAL 7,35 €' ni lanza ni inventa)", () => {
+    expect(qtys("TOTAL 7,35 €\nMercadona EAN 123")).toEqual([]);
+  });
+
+  test("decimales reales de compra se redondean ('1,5 kg broza'→ no; '2 x Leche' entero)", () => {
+    // el peso se ignora a propósito (mira el envase); sólo quedan las cifras de cuenta
+    expect(qtys("Leche x1,5")).toEqual([2]);   // x con decimal redondeado: 1,5 ≈ 2 (el modal permite corregir)
+  });
+});
+
+describe("ocr-despensa — reparto con la despensa: exacto suma, dudoso, alta (propósito ticket)", () => {
+  const uids = ["u1", "u2", "u3", "u4", "u5"];
+  const ahora = 987654321;
+  const deps = { uid: () => uids.shift() || "uX", ahora };
+  const despensa = [
+    { id: "a1", name: "Yogur natural", score: 5, qty: 2, min: 1, checked: false, createdAt: 1 },
+    { id: "a2", name: "Leche entera", score: 6, qty: 0, min: 1, checked: false, createdAt: 2 }
+  ];
+  // el MISMO casador del botón "🛒 Despensa?" (menu-semanal.candidatosDespensa), aquí el doble puro
+  const variantes = (nombre, foods) => {
+    const t = s => ocrDespensa.norm(s).split(/\W+/).filter(Boolean);
+    return foods.filter(f => t(f.name).some(tok => t(nombre).includes(tok)) && ocrDespensa.norm(f.name) !== ocrDespensa.norm(nombre));
+  };
+
+  test("nombre EXACTO ya en la despensa → la compra SUMA (no se pisa lo que ya había)", () => {
+    const { foods, actualizados, dudosos } = ocrDespensa.guardarCandidatos(
+      despensa, [{ nombre: "Leche entera", qty: 2, score: 8, min: 1 }], { ...deps, candidatosDespensa: variantes });
+    expect(actualizados).toBe(1); expect(dudosos).toEqual([]);
+    expect(foods.find(f => f.name === "Leche entera").qty).toBe(2);   // 0 en casa + 2 compradas
+  });
+
+  test("dudoso ('Yogur' vs despensa 'Yogur natural') NO entra: sale para la lista de la compra", () => {
+    const { foods, añadidos, dudosos } = ocrDespensa.guardarCandidatos(
+      despensa, [{ nombre: "Yogur", qty: 4, score: 5 }], { ...deps, candidatosDespensa: variantes });
+    expect(añadidos).toBe(0); expect(dudosos).toEqual([{ nombre: "Yogur", qty: 4, tipo: null }]);
+    expect(foods.find(f => f.name === "Yogur natural").qty).toBe(2);   // la despensa SIN tocar
+    expect(foods).toHaveLength(2);                                      // ni alta nueva de "Yogur"
+  });
+
+  test("sin variantes y sin despensa alike → alta directa (alimento nuevo, no es duda)", () => {
+    const { foods, añadidos, dudosos } = ocrDespensa.guardarCandidatos(
+      despensa, [{ nombre: "Ajo", qty: 1, score: 7 }], { ...deps, candidatosDespensa: variantes });
+    expect(añadidos).toBe(1); expect(dudosos).toEqual([]);
+    expect(foods[foods.length - 1]).toEqual({ id: "u1", name: "Ajo", score: 7, qty: 1, min: 1, checked: false, createdAt: ahora });
+  });
+
+  test("SIN inyección de candidatosDespensa → degradación del legado: el dudoso entraria de alta (nunca silencio)", () => {
+    const { foods, añadidos, dudosos } = ocrDespensa.guardarCandidatos(
+      despensa, [{ nombre: "Yogur", qty: 4, score: 5 }], { ...deps });
+    expect(dudosos).toEqual([]); expect(añadidos).toBe(1);
+    expect(foods.some(f => f.name === "Yogur")).toBe(true);
+  });
+});
+
+describe("ocr-despensa — pendientes del ticket en la lista de la compra", () => {
+  test("añadirTicketPendientes: los nuevos van ARRIBA y el re-escaneado dedup + sube ('Yogur' ≅ 'yogur')", () => {
+    const a = ocrDespensa.añadirTicketPendientes([], [{ nombre: "Yogur", qty: 4 }], "2026-10-20");
+    expect(a).toEqual([{ nombre: "Yogur", qty: 4, tipo: null, escaneadoEn: "2026-10-20" }]);
+    const b = ocrDespensa.añadirTicketPendientes(a, [{ nombre: "Leche", qty: 2, tipo: "lacteo" }], "2026-10-21");
+    expect(b.map(p => p.nombre)).toEqual(["Leche", "Yogur"]);          // el nuevo, arriba
+    const c = ocrDespensa.añadirTicketPendientes(b, [{ nombre: "yogur", qty: 6 }], "2026-10-22");
+    expect(c.map(p => p.nombre)).toEqual(["yogur", "Leche"]);          // mismo alimento (normal): sube con qty nueva
+    expect(c[0].qty).toBe(6);
+    expect(c).toHaveLength(2);                                          // no se duplica
+  });
+
+  test("quitarTicketPendiente: fuera por nombre normalizado; lo demás queda; {quitado} dice si hubo()", () => {
+    const lista = [{ nombre: "Yogur", qty: 4, escaneadoEn: "2026-10-20" }, { nombre: "Pan de pueblo", qty: 1, escaneadoEn: "2026-10-20" }];
+    const r = ocrDespensa.quitarTicketPendiente(lista, "YOGUR");
+    expect(r.quitado).toBe(true);
+    expect(r.lista.map(p => p.nombre)).toEqual(["Pan de pueblo"]);
+    expect(ocrDespensa.quitarTicketPendiente(lista, "Batido").quitado).toBe(false);
+  });
+});
+

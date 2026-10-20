@@ -98,19 +98,22 @@
                     <button type="submit" class="btn primary">Añadir</button>
                 </form>
 
-                <!-- Escáner de despensa (#epic-ocr-despensa-camara): mirar el frigorífico/armario con la
-                     cámara (SÓLO en móvil; en escritorio la vía es elegir una foto del disco) y confirmar
-                     con el usuario cada alimento detectado antes de guardarlo. Todo el motor corre en el
-                     navegador (Tesseract.js, carga perezosa la primera vez); sin servidor ni backend. -->
+                <!-- Escáner del TICKET de la compra (#epic-ocr-despensa-camara): fotografiar el ticket del
+                     super — o la foto del frigorífico, la vía es la misma — y añadir a la despensa lo
+                     comprado (cámara SÓLO en móvil; en escritorio se elige una foto del disco) con sus
+                     CANTIDADES. Lo claro entra y los dudosos —¿es el mismo que uno de la despensa?—
+                     quedan arriba en la lista de la compra con el botón "🛒 Despensa?". Todo el motor
+                     corre en el navegador (Tesseract.js, carga perezosa la primera vez); sin servidor
+                     ni backend; la foto nunca sale del dispositivo. -->
                 <div class="ocr-actions">
                     <button id="btn-ocr-camara" type="button" class="btn ghost hidden"
-                            title="Abre la cámara del móvil para escanear el frigorífico o armario">
-                        📷 Escanear despensa con la cámara</button>
+                            title="Abre la cámara del móvil para escanear el ticket del super">
+                        📷 Escanear el ticket con la cámara</button>
                     <button id="btn-ocr-foto" type="button" class="btn ghost hidden"
-                            title="Elige una foto del frigorífico o armario para detectar lo que hay">
-                        🖼️ Escanear foto de la despensa</button>
+                            title="Elige una foto del ticket (o del frigorífico) para detectar lo comprado">
+                        🖼️ Escanear foto del ticket</button>
                     <input id="ocr-file" type="file" accept="image/*" capture="environment" class="hidden"
-                           aria-label="Foto del frigorífico o armario" tabindex="-1" aria-hidden="true">
+                           aria-label="Foto del ticket de la compra" tabindex="-1" aria-hidden="true">
                 </div>
             </div>
 

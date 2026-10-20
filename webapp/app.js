@@ -45,7 +45,11 @@ document.addEventListener("DOMContentLoaded", () => {
     syncDeviceId: "mrcheff.sync.deviceId",
     syncBase: "mrcheff.sync.base",
     syncPendiente: "mrcheff.sync.pendiente",
-    syncConsumida: "mrcheff.sync.consumida"
+    syncConsumida: "mrcheff.sync.consumida",
+    // Pendientes DEL TICKET escaneado (#epic-ocr-despensa-camara): los alimentos dudosos —¿es el mismo
+    // que uno de la despensa?— descansan aquí hasta que la persona los resuelva en la lista de la
+    // compra con el botón "🛒 Despensa?" (nada entra en la despensa de golpe por su cuenta).
+    compraTicket: "mrcheff.compraTicket"
   };
 
   const load = (key, def) => {
@@ -634,12 +638,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // ===== ESCÁNER DE DESPENSA (OCR EN EL NAVEGADOR) =====
-  // #epic-ocr-despensa-camara: mirar el frigorífico/armario con la cámara y detectar lo que hay
-  // sin teclearlo todo. La DECISIÓN vive en el módulo puro modules/ocr-despensa.js (esMovil /
-  // extraerCandidatos / guardarCandidatos; spec tests/ocr-despensa.test.js); aquí sólo la INFRA de
-  // vista: activar la cámara SÓLO en móvil, cargar Tesseract.js la primera vez que se usa y el molde
-  // del modal de confirmación. El OCR corre ENTERO en el navegador: la foto nunca sale del terminal.
+  // ===== ESCÁNER DEL TICKET DE LA COMPRA (OCR EN EL NAVEGADOR) =====
+  // #epic-ocr-despensa-camara: fotografiar el TICKET del super (o la foto del frigorífico, misma
+  // vía) y que Mr Cheff reconozca lo comprado con sus CANTIDADES. La DECISIÓN vive en el módulo
+  // puro modules/ocr-despensa.js (esMovil / extraerCandidatos+qty / guardarCandidatos que separa
+  // dudosos / pendientes del ticket; spec tests/ocr-despensa.test.js); aquí sólo la INFRA de
+  // vista: activar la cámara SÓLO en móvil, cargar Tesseract.js la primera vez que se usa y el
+  // molde del modal de confirmación. El OCR corre ENTERO en el navegador: la foto nunca sale del terminal.
   const ocr = window.MRCheff.ocrDespensa;
   const ocrVocabulario = (window.MRCheff.classify && window.MRCheff.classify.FOOD_TYPES) || {};
   const ocrBtnCamara = $("#btn-ocr-camara");
@@ -693,7 +698,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <h2>📷 Reconociendo alimentos…</h2>
         <p class="muted" id="ocr-progreso">Cargando el motor de OCR (la primera vez descarga unos megas; la foto no sale de tu navegador)…</p>
         <div class="modal-footer"><button class="btn ghost" data-close>Cancelar</button></div>`;
-      abrirModal("Escáner de la despensa");
+      abrirModal("Escáner del ticket");
       $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
       const progreso = $("#ocr-progreso", modalContent);
       cargarTesseract().then(Tesseract => {
@@ -707,17 +712,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }).then(({ data }) => {
           if (!progreso.isConnected) return;
-          const candidatos = ocr.extraerCandidatos(data && data.text, ocrVocabulario);
-          if (!candidatos.length) {
-            modalContent.innerHTML = `
-              <h2>📷 No he detectado alimentos</h2>
-              <p class="muted">Prueba con una foto más cercana y con buena luz, de frente a la estantería
-                  (frigorífico, despensa, armario). Las etiquetas con letra pequeña engañan al OCR.</p>
-              <div class="modal-footer"><button class="btn ghost" data-close>Cerrar</button></div>`;
-            $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
-            return;
-          }
-          abrirConfirmarOcr(candidatos);
+          procesarTextoOcr(data && data.text);
         });
       }).catch(err => {
         if (!progreso.isConnected) return;        // cerrado por el usuario: nada que contar
@@ -727,15 +722,36 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Del texto que el OCR ha leído se ocupa la MISMA función en producción y en pruebas: el motor
+  // Tesseract es lo único que depende de la foto, así que `window.__mrcheffProcesarTextoOcr` queda
+  // solo como inyección de test (§6, patrón __mrcheffEsMovil/__mrcheffCryptoImpl) — jsdom y Playwright
+  // ejercitan el flujo del ticket sin cámara ni CDN.
+  function procesarTextoOcr(texto) {
+    const candidatos = ocr.extraerCandidatos(texto, ocrVocabulario);
+    if (!candidatos.length) {
+      modalContent.innerHTML = `
+        <h2>📷 No he detectado alimentos</h2>
+        <p class="muted">Prueba con una foto más cercana, de frente y con buena luz al papel (ticket
+            del super). Las etiquetas con letra pequeña engañan al OCR.</p>
+        <div class="modal-footer"><button class="btn ghost" data-close>Cerrar</button></div>`;
+      $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+      return;
+    }
+    abrirConfirmarOcr(candidatos);
+  }
+  window.__mrcheffProcesarTextoOcr = procesarTextoOcr;
+
   // Modal de confirmación: cada candidato llega con nombre EDITABLE (el del OCR es sólo un punto de
-  // partida) y pide cantidad, mínimo e importancia — los tres valores del formulario manual. La
-  // fusión final con la despensa la hace el módulo puro (ocr.guardarCandidatos); aquí el molde.
+  // partida) y la cantidad leída del ticket ya prefijada (a falta de lectura, 1); pide también
+  // mínimo e importancia — los tres valores del formulario manual. La repartición final (exacto →
+  // suma, con variantes → pendiente del ticket, nuevo → alta) la hace el módulo puro; aquí el molde.
   function abrirConfirmarOcr(candidatos) {
     const etqTipo = { proteina: "Proteína", lacteo: "Lácteo", cereal: "Cereal", fruta: "Fruta", verdura: "Verdura", especia: "Especia" };
     modalContent.innerHTML = `
-      <h2>📷 ¿Esto es lo que hay?</h2>
-      <p class="muted">Detectado automáticamente en la foto. <strong>El nombre es editable</strong>; ajusta
-          cantidad (lo que hay en casa), mínimo para avisar e importancia, y desmarca lo que no quieras guardar.</p>
+      <h2>🎫 ¿Esto es lo que compraste?</h2>
+      <p class="muted">Detectado en la foto del ticket; la cantidad sale de la línea cuando se pudo leer.
+          <strong>El nombre es editable</strong>; ajusta cantidad (lo que entra en casa), mínimo
+          para avisar e importancia, y desmarca lo que no quieras guardar.</p>
       <div class="ocr-cabecera" aria-hidden="true">
         <span>Alimento</span><span>Cantidad</span><span>Mínimo</span><span>Importancia</span><span>Incluir</span>
       </div>
@@ -746,14 +762,14 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="ocr-tipo">${etqTipo[c.tipo] || "Otro"}</span>
             <span class="ocr-linea" title="Primera línea que ha leído el OCR (sólo contexto)">“${escapeHTML(String(c.linea || "").trim().slice(0, 60))}”${c.veces > 1 ? ` · aparece ×${c.veces}` : ""}</span>
           </div>
-          <input type="number" id="ocr-qty-${i}" min="0" step="1" value="1" aria-label="Cantidad en casa de ${escapeHTML(c.nombre)}">
+          <input type="number" id="ocr-qty-${i}" min="0" step="1" value="${Number.isFinite(c.qty) && c.qty >= 1 ? c.qty : 1}" aria-label="Cantidad comprada de ${escapeHTML(c.nombre)}">
           <input type="number" id="ocr-min-${i}" min="0" step="1" value="1" aria-label="Mínimo para avisar de ${escapeHTML(c.nombre)}">
           <input type="number" id="ocr-score-${i}" min="1" max="10" step="1" value="5" aria-label="Importancia de ${escapeHTML(c.nombre)}">
           <input type="checkbox" class="ocr-include" checked aria-label="Incluir ${escapeHTML(c.nombre)} en la despensa">
         </div>`).join("")}
       <div class="modal-footer">
         <button class="btn ghost" data-close>Cancelar</button>
-        <button class="btn primary" data-ocr-guardar>Guardar en la despensa</button>
+        <button class="btn primary" data-ocr-guardar>Añadir lo confirmado</button>
       </div>`;
     abrirModal("Confirmar alimentos detectados en la foto");
     const primero = $("#ocr-nombre-0", modalContent);
@@ -775,19 +791,33 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!Number.isFinite(qty) || qty < 0) { mensajeError = `La cantidad de "${nombre}" va de 0 en adelante.`; return; }
         if (!Number.isFinite(min) || min < 0) { mensajeError = `El mínimo de "${nombre}" va de 0 en adelante.`; return; }
         if (!Number.isFinite(score) || score < 1 || score > 10) { mensajeError = `La importancia de "${nombre}" va de 1 a 10.`; return; }
-        seleccion.push({ nombre, qty, min, score });
+        seleccion.push({ nombre, qty, min, score, tipo: (candidatos[Number(i)] || {}).tipo || null });
       });
       if (mensajeError) { toast(mensajeError, "error"); return; }
       if (!seleccion.length) { toast("No hay alimentos marcados para guardar", "error"); return; }
-      const result = ocr.guardarCandidatos(foods, seleccion, { uid, ahora: Date.now() });
+      const result = ocr.guardarCandidatos(foods, seleccion, {
+        uid, ahora: Date.now(),
+        // La DUDA se decide con el MISMO casador de variantes del "🛒 Despensa?" de la lista:
+        // "¿es el mismo que uno de mi despensa?" (menu-semanal.candidatosDespensa inyectada, §3).
+        candidatosDespensa: menuSemanal && menuSemanal.candidatosDespensa ? menuSemanal.candidatosDespensa : null
+      });
       foods = result.foods;
       save(LS.foods, foods);
+      // Los dudosos NO entran en la despensa: quedan como pendientes del ticket (arriba de la lista
+      // de la compra) hasta que la persona confirme con "🛒 Despensa?" o "✅ comprado".
+      if (result.dudosos.length) {
+        save(LS.compraTicket, ocr.añadirTicketPendientes(load(LS.compraTicket, []), result.dudosos, today));
+      }
       renderFoods();
       renderWeeklyAlert();
+      renderShoppingList();                       // la lista refresca si estaba abierta: nuevos pendientes arriba
       closeModal();
+      const cola = result.dudosos.length
+        ? ` · ${result.dudosos.length} a revisar en la lista de la compra`
+        : "";
       toast(result.actualizados
-        ? `Despensa al día: ${result.añadidos} añadidos y ${result.actualizados} actualizados`
-        : `Despensa al día: ${result.añadidos} alimentos añadidos`);
+        ? `Despensa al día: ${result.añadidos} añadidos y ${result.actualizados} actualizados${cola}`
+        : `Despensa al día: ${result.añadidos} alimentos añadidos${cola}`);
     });
   }
 
@@ -1689,6 +1719,51 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch { return String(iso); }
   }
 
+  // Cantidad comprada prefijada en filas pendientes DEL TICKET (data-compra-qty): el escaneo ya
+  // leyó "cuántas unidades" — el diálogo de resolución abre con esa cifra (1 sin lectura).
+  const qtyDeTicket = (btn) => {
+    const v = parseInt(btn && btn.dataset && btn.dataset.compraQty, 10);
+    return Number.isFinite(v) && v >= 1 ? v : undefined;
+  };
+
+  // Fila clásica de la lista de la compra (needyFoods del plan aprobado, con semáforo por fecha).
+  function filaCompra(item) {
+    const urg = item.urgency || "green";
+    const cuando = item.onDay != null && item.daysUntil != null
+      ? `· se usa el ${formatoFechaCorta(item.onDay)} (${item.daysUntil === 0 ? "hoy" : item.daysUntil === 1 ? "mañana" : `en ${item.daysUntil} días`})`
+      : "";
+    return `
+      <li class="alert-row urg-${urg}">
+        <span class="alert-name"><strong>${escapeHTML(item.name)}</strong></span>
+        <span class="alert-meta">qty <b>${item.qty}</b> · mínimo <b>${item.min}</b> · importante <b>${item.score}/10</b> ${escapeHTML(cuando)}</span>
+        <span class="alert-acciones">
+          ${(menuSemanal.candidatosDespensa(item.name, foods)).length
+            ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.name)}" title="¿Ya lo tienes en la despensa con otro nombre?">🛒 Despensa?</button>`
+            : ""}
+          <button class="btn ghost small" data-buy="${escapeHTML(item.name)}" title="Marcar como comprada">✅ comprado</button>
+        </span>
+      </li>`;
+  }
+
+  // Fila PENDIENTE DEL TICKET (filas únicas arriba del resto): compra ya hecha que pide veredicto
+  // de la persona — ¿era un alimento que ya estaba? MISMO par de botones y MISMO comportamiento
+  // que cualquier fila de la lista ("🛒 Despensa?" cuando hay variantes: sólo entonces sale).
+  function filaTicket(item) {
+    const qty = Number.isFinite(item.qty) && item.qty >= 1 ? Math.round(item.qty) : 1;
+    const cuando = item.escaneadoEn ? `· escaneado el ${formatoFechaCorta(String(item.escaneadoEn))}` : "";
+    return `
+      <li class="alert-row urg-rojo" data-fila-ticket="${escapeHTML(item.nombre)}">
+        <span class="alert-name"><strong>${escapeHTML(item.nombre)}</strong></span>
+        <span class="alert-meta">🎫 del ticket · qty <b>${qty}</b> ${cuando}</span>
+        <span class="alert-acciones">
+          ${(menuSemanal.candidatosDespensa(item.nombre, foods)).length
+            ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.nombre)}" data-compra-qty="${qty}" title="¿Ya lo tienes en la despensa con otro nombre?">🛒 Despensa?</button>`
+            : ""}
+          <button class="btn ghost small" data-buy="${escapeHTML(item.nombre)}" data-compra-qty="${qty}" title="Marcar como comprada">✅ comprado</button>
+        </span>
+      </li>`;
+  }
+
   function renderShoppingList() {
     shoppingListEl.innerHTML = "";
     const needy = weeklyMenu && weeklyMenu.approved ? weeklyMenu.needyFoods : [];
@@ -1696,7 +1771,11 @@ document.addEventListener("DOMContentLoaded", () => {
       ? { plan: weeklyMenu.plan, generatedOn: weeklyMenu.generatedOn || String(today), today }
       : null;
     const list = menuSemanal.shoppingListFor(needy, foods, ctx);
-    if (!list.length) {
+    // Pendientes DEL TICKET (#epic-ocr-despensa-camara): compras escaneadas a las que falta el
+    // veredicto de la persona — ¿estaba ya en la despensa? Vivan ARRIBA del resto (encima del
+    // rojo de la fecha, son lo más urgente porque ya están compradas) y salen al resolverse.
+    const pendientes = load(LS.compraTicket, []);
+    if (!list.length && !pendientes.length) {
       shoppingListEl.classList.add("hidden");
       return;
     }
@@ -1704,28 +1783,13 @@ document.addEventListener("DOMContentLoaded", () => {
     shoppingListEl.innerHTML = `
       <h3>🛒 Lista de la compra</h3>
       <ul class="alert-list-green">
-        ${list.map(item => {
-          const urg = item.urgency || "green";
-          const cuando = item.onDay != null && item.daysUntil != null
-            ? `· se usa el ${formatoFechaCorta(item.onDay)} (${item.daysUntil === 0 ? "hoy" : item.daysUntil === 1 ? "mañana" : `en ${item.daysUntil} días`})`
-            : "";
-          return `
-          <li class="alert-row urg-${urg}">
-            <span class="alert-name"><strong>${escapeHTML(item.name)}</strong></span>
-            <span class="alert-meta">qty <b>${item.qty}</b> · mínimo <b>${item.min}</b> · importante <b>${item.score}/10</b> ${escapeHTML(cuando)}</span>
-            <span class="alert-acciones">
-              ${(menuSemanal.candidatosDespensa(item.name, foods)).length
-                ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.name)}" title="¿Ya lo tienes en la despensa con otro nombre?">🛒 Despensa?</button>`
-                : ""}
-              <button class="btn ghost small" data-buy="${escapeHTML(item.name)}" title="Marcar como comprada">✅ comprado</button>
-            </span>
-          </li>`;
-        }).join("")}
+        ${pendientes.map(item => filaTicket(item)).join("")}
+        ${list.map(filaCompra).join("")}
       </ul>`;
     shoppingListEl.querySelectorAll("[data-buy]").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
-        abrirModalCompra(btn.dataset.buy);
+        abrirModalCompra(btn.dataset.buy, undefined, qtyDeTicket(btn));
       });
     });
     // FEATURE 2026-10-19 "🛒 Despensa?": variantes del mismo alimento que el casador de tokens
@@ -1736,6 +1800,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         const itemName = btn.dataset.despensa;
+        const prefill = qtyDeTicket(btn);
         const candidatos = menuSemanal.candidatosDespensa(itemName, foods);
         if (!candidatos.length) return;
         modalContent.innerHTML = `
@@ -1751,7 +1816,7 @@ document.addEventListener("DOMContentLoaded", () => {
         abrirModal("¿Ya está en tu despensa? " + itemName);
         $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
         $$("[data-despensa-elegir]", modalContent).forEach(b =>
-          b.addEventListener("click", () => abrirModalCompra(itemName, b.dataset.despensaElegir)));
+          b.addEventListener("click", () => abrirModalCompra(itemName, b.dataset.despensaElegir, prefill)));
       });
     });
 
@@ -1762,8 +1827,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // ítem es una variante de ESE alimento ya guardado: la compra va a él IN-SITU, sin alta nueva,
     // y el modal ABRIR ya carga el MÍNIMO y la IMPORTANCIA del alimento de despensa (afinación del
     // mismo día: la despensa ya tenía su criterio de alerta — no re-preguntar de cero).
-    function abrirModalCompra(name, nombreDespensa) {
+    function abrirModalCompra(name, nombreDespensa, qtyPrefill) {
         const objetivo = nombreDespensa ? foods.find(f => f.name === nombreDespensa) : null;
+        const prefill = Number.isFinite(qtyPrefill) && qtyPrefill >= 1 ? Math.round(qtyPrefill) : 1;
         const minPrevio = (objetivo && Number.isFinite(objetivo.min) && objetivo.min != null) ? objetivo.min : 1;
         const scorePrevio = (objetivo && Number.isFinite(objetivo.score) && objetivo.score != null) ? objetivo.score : 5;
         modalContent.innerHTML = `
@@ -1773,7 +1839,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : " se añadirá a la despensa con estos datos:"}</p>
         <div class="recipe-edit">
           <label for="compra-qty">Cantidad comprada
-            <input type="number" id="compra-qty" min="1" step="1" value="1">
+            <input type="number" id="compra-qty" min="1" step="1" value="${prefill}">
           </label>
           <label for="compra-min">Cantidad mínima para la alerta de reponer
             <input type="number" id="compra-min" min="0" step="1" value="${escapeHTML(String(minPrevio))}" title="Cuando baje de aquí te avisamos">
@@ -1828,6 +1894,10 @@ document.addEventListener("DOMContentLoaded", () => {
           weeklyMenu = result.weekmenu;
           save(LS.foods, foods);
           save(LS.weekmenu, weeklyMenu);
+          // Si la fila venía del TICKET (epic ocr), al resolverse sale de pendientes — sea por
+          // "🛒 Despensa?" (variante confirmada) o por "✅ comprado" (alta/actualización directa).
+          const pendTicket = ocr.quitarTicketPendiente(load(LS.compraTicket, []), name);
+          if (pendTicket.quitado) save(LS.compraTicket, pendTicket.lista);
           renderFoods();
           renderWeeklyAlert();
           renderShoppingList();

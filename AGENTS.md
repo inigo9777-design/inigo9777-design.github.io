@@ -49,7 +49,10 @@ is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
   comentario en la línea 2 (`Apply`) invalidaba el bloque `:root` entero del modo claro — parser CSS lo engulle
   como selector; mantener el fichero sin tokens basura fuera de comentario].
 
-Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts) · **Recetas**
+Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts; escáner del TICKET de la
+compra por OCR: "cámara" SÓLO en móvil vía `input capture` — escritorio pide una foto — y modal de
+confirmación editable con la CANTIDAD leída del ticket + min/importancia antes de guardar, módulo
+`ocr-despensa.js`) · **Recetas**
 (free-text → structured recipe; card "🔎 Buscador del catálogo" busca en el JSON del catálogo
 SÓLO por título (fix 2026-10-20: los ingredientes ya NO puntúan — "mascarpone" ya no saca el
 Tiramisú) y abre el modal de detalle — match por PREFIJO (petición 2026-10-20,
@@ -210,7 +213,13 @@ italiana" (see `modules/origen-recetas.js` below).
   los ingredientes ya no puntúan —, reutiliza matching de tokens del matcher compartido,
   orden estable y límite ctx.limite) · **`origen-recetas.js`** (etiqueta/sello de origen:
   esItaliana, etiquetaOrigen, claseOrigen, origenAlGuardar, etiquetaClasicaVisible — inyectable ctx
-  `{catalog, ids}` para tests) · **`sync-crypto.js`** (AES-GCM 256 + PBKDF2: deriveKey/encryptJson/
+  `{catalog, ids}` para tests) · **`ocr-despensa.js`** (escáner del TICKET por OCR: esMovil;
+  extraerCandidatos — vocabulario FOOD_TYPES + CANTIDAD por línea (unidades de cuenta: x/UD/bolsa/
+  brik/… y cifra inicial; los pesos del envase 400g/1L y los precios NO cuentan); guardarCandidatos
+  reparte: nombre EXACTO en la despensa → la compra SUMA; con VARIANTES (inyección
+  `deps.candidatosDespensa`, la misma máquina del botón "🛒 Despensa?") → DUDOSO que NO entra y
+  sale para la lista; nuevo → alta; añadirTicketPendientes/quitarTicketPendiente para las filas
+  del ticket) · **`sync-crypto.js`** (AES-GCM 256 + PBKDF2: deriveKey/encryptJson/
   decryptJson/nuevoSalt + base64 helpers; crypto inyectable — jsdom no trae .subtle) ·
   **`diff-merge.js`** (fusión 3-way: merge3 base/mio/suyo → {estado, conflictos, avisos} + aplicarResoluciones
   local/remota/ambas; CERO dependencias) · **`sync.js`** (máquina del buzón: ejecutar/
@@ -278,6 +287,16 @@ italiana" (see `modules/origen-recetas.js` below).
   `markItemBought(..., compra)` añade con esos datos; si el alimento ya estaba en la despensa
   (incluso con qty 0), lo ACTUALIZA en-situ (sin `min` pedido conserva el suyo).
   (contrato ampliado, log §8 del CODING_STANDARDS.md).
+- Escáner del TICKET (OCR, #epic-ocr-despensa-camara, propósito revisado 2026-10-20): fotografiar
+  el ticket del super (o el frigorífico, misma vía) → Tesseract.js@5 por CDN (carga perezosa la
+  primera vez; la foto NUNCA sale del dispositivo; el texto pasa a `procesarTextoOcr` — el gancho
+  §6 `window.__mrcheffProcesarTextoOcr` inyecta ese mismo paso en jsdom/e2e). En la confirmación
+  editable la CANTIDAD sale de la línea del ticket (ver módulo); al guardar: los exactos SUMAN su
+  compra, los alimentos nuevos entran directo y los DUDOSOS —decide el botón "🛒 Despensa?" de la
+  lista de la compra, mismo diálogo y comportamiento— van como PENDIENTES del ticket en
+  `mrcheff.compraTicket` ({ nombre, qty, tipo, escaneadoEn }), ARRIBA de la lista (encima del rojo
+  de la fecha), y salen al resolverse (Despensa? o ✅ comprado; la CANTIDAD escaneada
+  pre-llena el diálogo: data-compra-qty). Ni Tesseract ni el CDN van en el app-shell del SW.
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
   red 8–10, orange 6–7, green 1–5; weekly alert shows the FULL list (el cap de 8 del módulo
   se quitó el 2026-10-19: escondía del 9º pendiente en adelante) y A PARTIR DE 8 items la lista

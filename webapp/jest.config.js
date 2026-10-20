@@ -25,7 +25,8 @@ module.exports = {
     "<rootDir>/modules/sync-crypto.js",
     "<rootDir>/modules/sync.js",
     "<rootDir>/modules/diff-merge.js",
-    "<rootDir>/modules/tutorial.js"
+    "<rootDir>/modules/tutorial.js",
+    "<rootDir>/modules/ocr-despensa.js"
   ],
   coverageThreshold: {
     global: { statements: 70, branches: 65, functions: 70, lines: 70 }
