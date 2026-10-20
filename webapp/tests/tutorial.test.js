@@ -121,3 +121,24 @@ describe("tutorial — bloque RECETAS (épica tutorial-interactivo)", () => {
     expect(p3.accionable).toBe(false);
   });
 });
+
+describe("tutorial — bloque INNOVACIÓN (épica tutorial-interactivo)", () => {
+  it("la vista innovation trae 2 pasos consecutivos y tras los de Recetas", () => {
+    const porVista = tut.pasosDeVista("innovation");
+    expect(porVista.length).toBe(2);
+    expect(porVista.every(p => p.vista === "innovation")).toBe(true);
+    const ids = tut.PASOS.map(p => p.id);
+    expect(ids.indexOf("innovacion-generador")).toBe(ids.indexOf("recetas-mis-recetas") + 1);   // sigue a Recetas
+    expect(ids.slice(ids.indexOf("innovacion-generador"), ids.indexOf("innovacion-generador") + 2).join(","))
+      .toBe("innovacion-generador,innovacion-lote");
+  });
+
+  it("contrato: el generador es accionable; el lote es informativo", () => {
+    const [p1, p2] = tut.pasosDeVista("innovation");
+    expect(p1.selector).toBe("#btn-generate-innov");
+    expect(p1.accionable).toBe(true);
+    expect(p2.selector).toBe("#innovation-list");
+    expect(p2.accionable).toBe(false);
+    expect(p2.cta).toBe("Siguiente");
+  });
+});

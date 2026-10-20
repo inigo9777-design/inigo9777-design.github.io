@@ -181,3 +181,49 @@ describe("tutorial interactivo — pantalla RECETAS (dos accionables + mis recet
     expect(JSON.parse(app.window.localStorage.getItem("mrcheff.tutorial")).visto).toBe(true);
   });
 });
+
+describe("tutorial interactivo — pantalla INNOVACIÓN (generar ideas de verdad)", () => {
+  const dormir = (ms) => new Promise(r => setTimeout(r, ms));
+
+  it("con despensa sembrada: el click real del generador produce el lote y el paso avanza", async () => {
+    const app = bootApp({
+      tutorialAuto: true,
+      seed: { foods: [{ id: "f1", name: "Huevos", score: 8, qty: 6, min: 2, checked: false }] },
+    });
+    await dormir(700);
+    const tut = app.window.MRCheff.tutorial;
+    const bienvenida = tut.PASOS[0];
+    const innovacion = tut.pasosDeVista("innovation");
+    const listo = tut.PASOS[tut.PASOS.length - 1];
+    tut.PASOS.splice(0, tut.PASOS.length, bienvenida, ...innovacion, listo);
+    const avanzar = app.document.getElementById("tutorial-avanzar");
+    avanzar.click();                                             // bienvenida → innovación#1 (SALTA a la vista)
+    await dormir(60);
+    expect(app.document.getElementById("view-innovation").classList.contains("active")).toBe(true);
+    app.document.getElementById("btn-generate-innov").click();   // el botón REAL genera (lote del catálogo)
+    await dormir(60);
+    expect(app.document.getElementById("innovation-list").children.length).toBeGreaterThan(0);  // lote real en pantalla
+    expect(app.document.getElementById("tutorial-titulo").textContent).toContain("Un lote");
+    avanzar.click();                                             // → listo
+    expect(avanzar.textContent).toBe("Terminar");
+    avanzar.click();                                             // cierre + visto
+    expect(JSON.parse(app.window.localStorage.getItem("mrcheff.tutorial")).visto).toBe(true);
+  });
+
+  it("con la despensa vacía el generador avisa (toque honesto) y el tutorial sigue igual", async () => {
+    const app = bootApp({ tutorialAuto: true });                 // primera visita REAL: sin nada
+    await dormir(700);
+    const tut = app.window.MRCheff.tutorial;
+    const bienvenida = tut.PASOS[0];
+    const innovacion = tut.pasosDeVista("innovation");
+    const listo = tut.PASOS[tut.PASOS.length - 1];
+    tut.PASOS.splice(0, tut.PASOS.length, bienvenida, ...innovacion, listo);
+    const avanzar = app.document.getElementById("tutorial-avanzar");
+    avanzar.click();
+    await dormir(60);
+    app.document.getElementById("btn-generate-innov").click();   // genera con despensa vacía → toast
+    await dormir(60);
+    expect(app.document.getElementById("toast").textContent).toContain("Añade alimentos");
+    expect(app.document.getElementById("tutorial-titulo").textContent).toContain("Un lote");   // avanzó sin atascarse
+  });
+});
