@@ -764,6 +764,24 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .despensa-elegir { display: flex; flex-direction: column; gap: 10px; margin: 14px 0 0; }
 .despensa-elegir .btn { justify-content: flex-start; text-align: left; width: 100%; }
 
+/* Pendiente del ticket SIN DEFINIR (2026-10-20, epic ocr): alimento nuevo del ticket aún sin
+   importancia ni mínimo — se ve ATENUADO (fade) mientras los valores son una decisión pendiente
+   de la persona; los controles de definición (editables, dentro de la fila) NO se atenúan. */
+.pendiente-sin-definir .alert-name,
+.pendiente-sin-definir .alert-meta { opacity: 0.45; }
+.pendiente-sin-definir .alert-definir-aviso {
+  flex: 1 1 100%;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--muted);
+}
+.alert-definir { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-left: auto; }
+.alert-definir label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.75rem; color: var(--muted); white-space: nowrap;
+}
+.alert-definir input[type="number"] { width: 4.6rem; }
+
 /* ========== 12. RECETAS — rejilla y tarjetas ========== */
 .recipe-grid {
   display: grid;

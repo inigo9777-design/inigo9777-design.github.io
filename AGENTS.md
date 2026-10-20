@@ -20,10 +20,10 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
 - **Tests:** `cd webapp && npm test` (`jest`) / `npm run coverage` (`jest --coverage`). Jest IS a
   declared devDependency with installed `node_modules/`. Specs live under `webapp/tests/` — per-module specs (classify, priority, recipe-analysis, ingredient-matching, util, innovations,
   planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas, swipe-tabs,
-  merge-identidad, sync-crypto, diff-merge) +
+  merge-identidad, sync-crypto, diff-merge, ocr-despensa) +
   integration specs (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
-  buscador-catalogo, e2e-flow-receta-a-alerta-compra, sync-protocol, sync-ui) + harness scaffolding (`boot.js` / `setup.js`). As of the last
-  run on 2026-10-19 the whole suite is green (**382 tests across 27 suites**) — verify with a fresh
+  buscador-catalogo, e2e-flow-receta-a-alerta-compra, sync-protocol, sync-ui, ocr-ticket) + harness scaffolding (`boot.js` / `setup.js`). As of the last
+  run on 2026-10-20 the whole suite is green (**508 tests across 35 suites**) — verify with a fresh
   run before trusting it.
 - **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
   and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`
@@ -51,7 +51,8 @@ is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
 
 Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts; escáner del TICKET de la
 compra por OCR: "cámara" SÓLO en móvil vía `input capture` — escritorio pide una foto — y modal de
-confirmación editable con la CANTIDAD leída del ticket + min/importancia antes de guardar, módulo
+confirmación editable con la CANTIDAD leída del ticket (sólo cantidad: el criterio de alerta se
+fija DESPUÉS en la lista — ver el bullet del escáner), módulo
 `ocr-despensa.js`) · **Recetas**
 (free-text → structured recipe; card "🔎 Buscador del catálogo" busca en el JSON del catálogo
 SÓLO por título (fix 2026-10-20: los ingredientes ya NO puntúan — "mascarpone" ya no saca el
@@ -216,10 +217,11 @@ italiana" (see `modules/origen-recetas.js` below).
   `{catalog, ids}` para tests) · **`ocr-despensa.js`** (escáner del TICKET por OCR: esMovil;
   extraerCandidatos — vocabulario FOOD_TYPES + CANTIDAD por línea (unidades de cuenta: x/UD/bolsa/
   brik/… y cifra inicial; los pesos del envase 400g/1L y los precios NO cuentan); guardarCandidatos
-  reparte: nombre EXACTO en la despensa → la compra SUMA; con VARIANTES (inyección
-  `deps.candidatosDespensa`, la misma máquina del botón "🛒 Despensa?") → DUDOSO que NO entra y
-  sale para la lista; nuevo → alta; añadirTicketPendientes/quitarTicketPendiente para las filas
-  del ticket) · **`sync-crypto.js`** (AES-GCM 256 + PBKDF2: deriveKey/encryptJson/
+  REPARTE SIN ALTAS: nombre EXACTO en la despensa → la compra SUMA (criterios intactos); con
+  VARIANTES (inyección `deps.candidatosDespensa`, la misma máquina del botón "🛒 Despensa?") →
+  DUDOSO para la lista; nuevo → `nuevos` con `faltaDefinir`; añadirTicketPendientes lote en orden
+  del ticket dedup/sticky + definirTicketPendiente (min/score desde la fila) y
+  quitarTicketPendiente para las filas del ticket) · **`sync-crypto.js`** (AES-GCM 256 + PBKDF2: deriveKey/encryptJson/
   decryptJson/nuevoSalt + base64 helpers; crypto inyectable — jsdom no trae .subtle) ·
   **`diff-merge.js`** (fusión 3-way: merge3 base/mio/suyo → {estado, conflictos, avisos} + aplicarResoluciones
   local/remota/ambas; CERO dependencias) · **`sync.js`** (máquina del buzón: ejecutar/
@@ -291,12 +293,25 @@ italiana" (see `modules/origen-recetas.js` below).
   el ticket del super (o el frigorífico, misma vía) → Tesseract.js@5 por CDN (carga perezosa la
   primera vez; la foto NUNCA sale del dispositivo; el texto pasa a `procesarTextoOcr` — el gancho
   §6 `window.__mrcheffProcesarTextoOcr` inyecta ese mismo paso en jsdom/e2e). En la confirmación
-  editable la CANTIDAD sale de la línea del ticket (ver módulo); al guardar: los exactos SUMAN su
-  compra, los alimentos nuevos entran directo y los DUDOSOS —decide el botón "🛒 Despensa?" de la
-  lista de la compra, mismo diálogo y comportamiento— van como PENDIENTES del ticket en
-  `mrcheff.compraTicket` ({ nombre, qty, tipo, escaneadoEn }), ARRIBA de la lista (encima del rojo
-  de la fecha), y salen al resolverse (Despensa? o ✅ comprado; la CANTIDAD escaneada
-  pre-llena el diálogo: data-compra-qty). Ni Tesseract ni el CDN van en el app-shell del SW.
+  editable la CANTIDAD sale de la línea del ticket (ver módulo); **el modal ya no pide
+  min/importancia** (2026-10-20, decisión del usuario: el criterio de alerta no lo sabe el ticket).
+  REGLA DE ORO al guardar: NADA del ticket entra en la despensa por su cuenta — los nombres
+  EXACTOS ya vividos SUMAN la compra en-situ (sus criterios de alerta quedan como estaban; el
+  escaneo no los pisa) y TODOS los demás van como PENDIENTES del ticket en `mrcheff.compraTicket`
+  ({ nombre, qty, tipo, escaneadoEn, faltaDefinir, min, score }), ARRIBA de la lista de la compra
+  (encima del rojo de la fecha) y EN EL ORDEN DEL TICKET (el lote no se invierte), y salen al
+  resolverse (Despensa? o ✅ comprado; el diálogo pre-llena cantidad + criterio: data-compra-qty/
+  min/score). Los DUDOSOS (¿es el mismo que uno de la despensa? → variantes vía la inyección
+  `deps.candidatosDespensa`; decide el botón "🛒 Despensa?" de la lista, mismo diálogo y
+  comportamiento) salen como fila normal; los NUEVOS salen **SIN DEFINIR** (`faltaDefinir: true`):
+  fila ATENUADA (`.pendiente-sin-definir` en `style.css`: nombre/meta al 45%, aviso italic muted)
+  con aviso + IMPORTANCIA (1–10) y MÍNIMO editables dentro de la propia fila (.tick-score /
+  .tick-min + "Definir ✓"); hasta fijarlos NO hay botones de resolución. `definirTicketPendiente`
+  (módulo puro) sella min/score, quita el fade y la fila ya se resuelve como cualquier otra; la
+  definición es STICKY al re-escanear (no se pierde; sin score válido no se define nada — el view
+  valida antes). Ni Tesseract ni el CDN van en el app-shell del SW. Demo grabada de la feature:
+  `node e2e/ocr-ticket-video.mjs` → `reports/ui-brave/video-ocr-ticket/demo-escaner-ticket.webm`
+  (Playwright recordVideo; requiere `npx playwright-core install ffmpeg` una vez).
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
   red 8–10, orange 6–7, green 1–5; weekly alert shows the FULL list (el cap de 8 del módulo
   se quitó el 2026-10-19: escondía del 9º pendiente en adelante) y A PARTIR DE 8 items la lista

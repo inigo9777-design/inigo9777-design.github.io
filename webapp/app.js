@@ -741,19 +741,20 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   window.__mrcheffProcesarTextoOcr = procesarTextoOcr;
 
-  // Modal de confirmación: cada candidato llega con nombre EDITABLE (el del OCR es sólo un punto de
-  // partida) y la cantidad leída del ticket ya prefijada (a falta de lectura, 1); pide también
-  // mínimo e importancia — los tres valores del formulario manual. La repartición final (exacto →
-  // suma, con variantes → pendiente del ticket, nuevo → alta) la hace el módulo puro; aquí el molde.
+  // Modal de confirmación: cada candidato llega con nombre EDITABLE (el del OCR es sólo un punto
+  // de partida) y la cantidad leída del ticket ya prefijada (a falta de lectura, 1). Aquí NO se
+  // piden mínimo ni importancia: son decisiones de criterio, no datos del ticket — se definen
+  // DESPUÉS fila a fila en la lista de la compra (las nuevas atenuadas hasta fijarlas). La
+  // repartición final (exacto → suma, dudoso / nuevo → pendiente) la hace el módulo puro.
   function abrirConfirmarOcr(candidatos) {
     const etqTipo = { proteina: "Proteína", lacteo: "Lácteo", cereal: "Cereal", fruta: "Fruta", verdura: "Verdura", especia: "Especia" };
     modalContent.innerHTML = `
       <h2>🎫 ¿Esto es lo que compraste?</h2>
       <p class="muted">Detectado en la foto del ticket; la cantidad sale de la línea cuando se pudo leer.
-          <strong>El nombre es editable</strong>; ajusta cantidad (lo que entra en casa), mínimo
-          para avisar e importancia, y desmarca lo que no quieras guardar.</p>
+          <strong>El nombre es editable</strong>; desmarca lo que no quieras. Nada entra aún en la
+          despensa: pasa a tu lista de la compra para revisarlo fila a fila.</p>
       <div class="ocr-cabecera" aria-hidden="true">
-        <span>Alimento</span><span>Cantidad</span><span>Mínimo</span><span>Importancia</span><span>Incluir</span>
+        <span>Alimento</span><span>Cantidad</span><span>Incluir</span>
       </div>
       ${candidatos.map((c, i) => `
         <div class="ocr-item" data-i="${i}">
@@ -763,9 +764,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="ocr-linea" title="Primera línea que ha leído el OCR (sólo contexto)">“${escapeHTML(String(c.linea || "").trim().slice(0, 60))}”${c.veces > 1 ? ` · aparece ×${c.veces}` : ""}</span>
           </div>
           <input type="number" id="ocr-qty-${i}" min="0" step="1" value="${Number.isFinite(c.qty) && c.qty >= 1 ? c.qty : 1}" aria-label="Cantidad comprada de ${escapeHTML(c.nombre)}">
-          <input type="number" id="ocr-min-${i}" min="0" step="1" value="1" aria-label="Mínimo para avisar de ${escapeHTML(c.nombre)}">
-          <input type="number" id="ocr-score-${i}" min="1" max="10" step="1" value="5" aria-label="Importancia de ${escapeHTML(c.nombre)}">
-          <input type="checkbox" class="ocr-include" checked aria-label="Incluir ${escapeHTML(c.nombre)} en la despensa">
+          <input type="checkbox" class="ocr-include" checked aria-label="Incluir ${escapeHTML(c.nombre)}">
         </div>`).join("")}
       <div class="modal-footer">
         <button class="btn ghost" data-close>Cancelar</button>
@@ -785,13 +784,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const i = fila.dataset.i;
         const nombre = $("#ocr-nombre-" + i, fila).value.trim();
         const qty = parseInt($("#ocr-qty-" + i, fila).value, 10);
-        const min = parseInt($("#ocr-min-" + i, fila).value, 10);
-        const score = parseInt($("#ocr-score-" + i, fila).value, 10);
         if (!nombre) { mensajeError = "Hay un alimento sin nombre: escríbele uno o desmarca su casilla."; return; }
         if (!Number.isFinite(qty) || qty < 0) { mensajeError = `La cantidad de "${nombre}" va de 0 en adelante.`; return; }
-        if (!Number.isFinite(min) || min < 0) { mensajeError = `El mínimo de "${nombre}" va de 0 en adelante.`; return; }
-        if (!Number.isFinite(score) || score < 1 || score > 10) { mensajeError = `La importancia de "${nombre}" va de 1 a 10.`; return; }
-        seleccion.push({ nombre, qty, min, score, tipo: (candidatos[Number(i)] || {}).tipo || null });
+        seleccion.push({ nombre, qty, tipo: (candidatos[Number(i)] || {}).tipo || null });
       });
       if (mensajeError) { toast(mensajeError, "error"); return; }
       if (!seleccion.length) { toast("No hay alimentos marcados para guardar", "error"); return; }
@@ -803,21 +798,33 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       foods = result.foods;
       save(LS.foods, foods);
-      // Los dudosos NO entran en la despensa: quedan como pendientes del ticket (arriba de la lista
-      // de la compra) hasta que la persona confirme con "🛒 Despensa?" o "✅ comprado".
-      if (result.dudosos.length) {
-        save(LS.compraTicket, ocr.añadirTicketPendientes(load(LS.compraTicket, []), result.dudosos, today));
+      // NADA entra en la despensa por su cuenta: dudosos (fila normal) y nuevos (SIN definir:
+      // atenuada, importancia y mínimo por fijar) quedan como pendientes del ticket, arriba de
+      // la lista de la compra, hasta que la persona decida. El ORDEN es el del ticket (las
+      // líneas escaneadas, de arriba a abajo) — se recorre la selección y se reparte contra el
+      // resultado del módulo.
+      const entradas = [];
+      seleccion.forEach(s => {
+        const dud = result.dudosos.find(d => d.nombre === s.nombre);
+        if (dud) entradas.push(dud);
+        else if (result.nuevos.some(n => n.nombre === s.nombre)) entradas.push({ ...s, faltaDefinir: true });
+      });
+      if (entradas.length) {
+        save(LS.compraTicket, ocr.añadirTicketPendientes(load(LS.compraTicket, []), entradas, today));
       }
       renderFoods();
       renderWeeklyAlert();
       renderShoppingList();                       // la lista refresca si estaba abierta: nuevos pendientes arriba
       closeModal();
-      const cola = result.dudosos.length
-        ? ` · ${result.dudosos.length} a revisar en la lista de la compra`
-        : "";
-      toast(result.actualizados
-        ? `Despensa al día: ${result.añadidos} añadidos y ${result.actualizados} actualizados${cola}`
-        : `Despensa al día: ${result.añadidos} alimentos añadidos${cola}`);
+      if (entradas.length && result.actualizados) {
+        toast(`Despensa al día: ${result.actualizados} actualizados · ${entradas.length} de tu ticket en la lista de la compra`);
+      } else if (entradas.length) {
+        toast(`${entradas.length} alimentos del ticket van a tu lista de la compra para revisar`);
+      } else if (result.actualizados) {
+        toast(`Despensa al día: ${result.actualizados} actualizados`);
+      } else {
+        toast("Nada que guardar del ticket");
+      }
     });
   }
 
@@ -1719,11 +1726,19 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch { return String(iso); }
   }
 
-  // Cantidad comprada prefijada en filas pendientes DEL TICKET (data-compra-qty): el escaneo ya
-  // leyó "cuántas unidades" — el diálogo de resolución abre con esa cifra (1 sin lectura).
-  const qtyDeTicket = (btn) => {
-    const v = parseInt(btn && btn.dataset && btn.dataset.compraQty, 10);
-    return Number.isFinite(v) && v >= 1 ? v : undefined;
+  // Prefijo de las filas pendientes DEL TICKET en sus botones de resolución (data-compra-*): el
+  // escaneo ya leyó la CANTIDAD, y la fila definida lleva su IMPORTANCIA y su MÍNIMO — el diálogo
+  // de resolución abre con esas tres cifras (1/5 sin ellas, como siempre).
+  const compraDeBoton = (btn) => {
+    const d = (btn && btn.dataset) || {};
+    const cifra = v => {
+      const n = parseInt(v, 10);
+      return Number.isFinite(n) && n >= 0 ? n : undefined;
+    };
+    const qty = cifra(d.compraQty);
+    const min = cifra(d.compraMin);
+    const score = cifra(d.compraScore);
+    return (qty != null || min != null || score != null) ? { qty, min, score } : undefined;
   };
 
   // Fila clásica de la lista de la compra (needyFoods del plan aprobado, con semáforo por fecha).
@@ -1745,21 +1760,43 @@ document.addEventListener("DOMContentLoaded", () => {
       </li>`;
   }
 
-  // Fila PENDIENTE DEL TICKET (filas únicas arriba del resto): compra ya hecha que pide veredicto
-  // de la persona — ¿era un alimento que ya estaba? MISMO par de botones y MISMO comportamiento
-  // que cualquier fila de la lista ("🛒 Despensa?" cuando hay variantes: sólo entonces sale).
+  // Fila PENDIENTE DEL TICKET (arriba de la lista): compra escaneada que espera su veredicto.
+  //  · SIN DEFINIR (alimento nuevo del ticket): fila ATENUADA con aviso —la importancia (prioridad)
+  //    y el mínimo son una decisión que la app no inventa—; se fijan AQUÍ MISMO, editables, y al
+  //    fijarlos la fila queda normal. Hasta entonces sin botones de resolución.
+  //  · DEFINIDO (o dudoso con variantes): el MISMO par de botones y MISMO comportamiento que
+  //    cualquier fila de la lista; el diálogo de resolución abre pre-cargado con lo que la fila
+  //    sabe (qty del ticket + min/importancia definidos).
   function filaTicket(item) {
     const qty = Number.isFinite(item.qty) && item.qty >= 1 ? Math.round(item.qty) : 1;
     const cuando = item.escaneadoEn ? `· escaneado el ${formatoFechaCorta(String(item.escaneadoEn))}` : "";
+    if (item.faltaDefinir) {
+      return `
+      <li class="alert-row urg-rojo pendiente-sin-definir" data-fila-ticket="${escapeHTML(item.nombre)}">
+        <span class="alert-name"><strong>${escapeHTML(item.nombre)}</strong></span>
+        <span class="alert-meta">🎫 del ticket · qty <b>${qty}</b> ${cuando}</span>
+        <span class="alert-definir-aviso">Alimento nuevo: define su IMPORTANCIA (prioridad) y su MÍNIMO para avisarte — sin eso no entra en la despensa</span>
+        <span class="alert-definir">
+          <label>Importancia
+            <input type="number" min="1" max="10" step="1" value="5" class="tick-score" aria-label="Importancia (prioridad) de ${escapeHTML(item.nombre)}, del 1 al 10">
+          </label>
+          <label>Mínimo
+            <input type="number" min="0" step="1" value="1" class="tick-min" aria-label="Mínimo para avisar de ${escapeHTML(item.nombre)}">
+          </label>
+          <button class="btn ghost small" data-tick-definir="${escapeHTML(item.nombre)}" title="Fija importancia y mínimo: la fila pasa a estar activa">Definir ✓</button>
+        </span>
+      </li>`;
+    }
+    const datosFila = ` data-compra-qty="${qty}"${item.min != null ? ` data-compra-min="${item.min}"` : ""}${item.score != null ? ` data-compra-score="${item.score}"` : ""}`;
     return `
       <li class="alert-row urg-rojo" data-fila-ticket="${escapeHTML(item.nombre)}">
         <span class="alert-name"><strong>${escapeHTML(item.nombre)}</strong></span>
-        <span class="alert-meta">🎫 del ticket · qty <b>${qty}</b> ${cuando}</span>
+        <span class="alert-meta">🎫 del ticket · qty <b>${qty}</b> · mínimo <b>${item.min != null ? item.min : "?"}</b> · importante <b>${item.score != null ? item.score + "/10" : "?"}</b> ${cuando}</span>
         <span class="alert-acciones">
           ${(menuSemanal.candidatosDespensa(item.nombre, foods)).length
-            ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.nombre)}" data-compra-qty="${qty}" title="¿Ya lo tienes en la despensa con otro nombre?">🛒 Despensa?</button>`
+            ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.nombre)}"${datosFila} title="¿Ya lo tienes en la despensa con otro nombre?">🛒 Despensa?</button>`
             : ""}
-          <button class="btn ghost small" data-buy="${escapeHTML(item.nombre)}" data-compra-qty="${qty}" title="Marcar como comprada">✅ comprado</button>
+          <button class="btn ghost small" data-buy="${escapeHTML(item.nombre)}"${datosFila} title="Marcar como comprada">✅ comprado</button>
         </span>
       </li>`;
   }
@@ -1772,8 +1809,10 @@ document.addEventListener("DOMContentLoaded", () => {
       : null;
     const list = menuSemanal.shoppingListFor(needy, foods, ctx);
     // Pendientes DEL TICKET (#epic-ocr-despensa-camara): compras escaneadas a las que falta el
-    // veredicto de la persona — ¿estaba ya en la despensa? Vivan ARRIBA del resto (encima del
-    // rojo de la fecha, son lo más urgente porque ya están compradas) y salen al resolverse.
+    // veredicto de la persona — dudosos (¿era un alimento de la despensa?) y NUEVOS SIN DEFINIR
+    // (atenuados hasta fijar importancia y mínimo, editables en la propia fila). Viven ARRIBA del
+    // resto (encima del rojo de la fecha, son lo más urgente porque ya están compradas) y salen
+    // al resolverse.
     const pendientes = load(LS.compraTicket, []);
     if (!list.length && !pendientes.length) {
       shoppingListEl.classList.add("hidden");
@@ -1789,7 +1828,25 @@ document.addEventListener("DOMContentLoaded", () => {
     shoppingListEl.querySelectorAll("[data-buy]").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
-        abrirModalCompra(btn.dataset.buy, undefined, qtyDeTicket(btn));
+        abrirModalCompra(btn.dataset.buy, undefined, compraDeBoton(btn));
+      });
+    });
+    // PENDIENTES SIN DEFINIR: fijar IMPORTANCIA y MÍNIMO aquí mismo (ambos editables) quita el
+    // fade y el aviso de la fila — queda un pendiente normal, listo para resolverse.
+    shoppingListEl.querySelectorAll("[data-tick-definir]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const nombre = btn.dataset.tickDefinir;
+        const fila = btn.closest("li");
+        const score = parseInt(fila.querySelector(".tick-score").value, 10);
+        const min = parseInt(fila.querySelector(".tick-min").value, 10);
+        if (!Number.isFinite(score) || score < 1 || score > 10) { toast("La importancia va de 1 a 10", "error"); return; }
+        if (!Number.isFinite(min) || min < 0) { toast("El mínimo va de 0 en adelante", "error"); return; }
+        const def = ocr.definirTicketPendiente(load(LS.compraTicket, []), nombre, { score, min });
+        if (!def.definido) { toast("Ese pendiente ya no está en la lista", "error"); renderShoppingList(); return; }
+        save(LS.compraTicket, def.lista);
+        renderShoppingList();
+        toast(`"${escapeHTML(nombre)}" definido: importancia ${score}, mínimo ${min} — ya puedes marcarlo comprado`);
       });
     });
     // FEATURE 2026-10-19 "🛒 Despensa?": variantes del mismo alimento que el casador de tokens
@@ -1800,7 +1857,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         const itemName = btn.dataset.despensa;
-        const prefill = qtyDeTicket(btn);
+        const prefill = compraDeBoton(btn);
         const candidatos = menuSemanal.candidatosDespensa(itemName, foods);
         if (!candidatos.length) return;
         modalContent.innerHTML = `
@@ -1827,11 +1884,19 @@ document.addEventListener("DOMContentLoaded", () => {
     // ítem es una variante de ESE alimento ya guardado: la compra va a él IN-SITU, sin alta nueva,
     // y el modal ABRIR ya carga el MÍNIMO y la IMPORTANCIA del alimento de despensa (afinación del
     // mismo día: la despensa ya tenía su criterio de alerta — no re-preguntar de cero).
-    function abrirModalCompra(name, nombreDespensa, qtyPrefill) {
+    // 2026-10-20 (epic ocr): 3er parámetro = datos que la FILA DEL TICKET ya sabía (qty escaneada
+    // + min/importancia DEFINIDOS en la fila): mandan sobre los valores por defecto (1/5); sin
+    // fila de ticket, el flujo queda exactamente como estaba.
+    function abrirModalCompra(name, nombreDespensa, datosFila) {
         const objetivo = nombreDespensa ? foods.find(f => f.name === nombreDespensa) : null;
-        const prefill = Number.isFinite(qtyPrefill) && qtyPrefill >= 1 ? Math.round(qtyPrefill) : 1;
-        const minPrevio = (objetivo && Number.isFinite(objetivo.min) && objetivo.min != null) ? objetivo.min : 1;
-        const scorePrevio = (objetivo && Number.isFinite(objetivo.score) && objetivo.score != null) ? objetivo.score : 5;
+        const nro = v => (v != null && Number.isFinite(v) ? Math.round(v) : null);
+        const prefillQty = (datosFila && nro(datosFila.qty) >= 1) ? nro(datosFila.qty) : 1;
+        const prefillMin = nro(datosFila && datosFila.min);
+        const prefillScore = nro(datosFila && datosFila.score);
+        const minPrevio = prefillMin != null ? prefillMin
+          : (objetivo && Number.isFinite(objetivo.min) && objetivo.min != null) ? objetivo.min : 1;
+        const scorePrevio = prefillScore != null ? prefillScore
+          : (objetivo && Number.isFinite(objetivo.score) && objetivo.score != null) ? objetivo.score : 5;
         modalContent.innerHTML = `
         <h2>✅ ¿Comprado?</h2>
         <p class="muted">"<strong>${escapeHTML(name)}</strong>"${nombreDespensa
@@ -1839,7 +1904,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : " se añadirá a la despensa con estos datos:"}</p>
         <div class="recipe-edit">
           <label for="compra-qty">Cantidad comprada
-            <input type="number" id="compra-qty" min="1" step="1" value="${prefill}">
+            <input type="number" id="compra-qty" min="1" step="1" value="${prefillQty}">
           </label>
           <label for="compra-min">Cantidad mínima para la alerta de reponer
             <input type="number" id="compra-min" min="0" step="1" value="${escapeHTML(String(minPrevio))}" title="Cuando baje de aquí te avisamos">

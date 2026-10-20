@@ -2,9 +2,14 @@
 // Toda la DECISIÓN del flujo vive aquí, puro y testeado (§3 CODING_STANDARDS): detectar alimentos de un
 // texto OCR contra el vocabulario FOOD_TYPES, sacar la CANTIDAD comprada de cada línea del ticket, decidir
 // si el dispositivo es móvil (la cámara sólo se muestra en móvil) y fusionar lo confirmado con la despensa
-// existente — separando lo CLARO (entra ya) de los DUDOSOS (¿es el mismo que uno de la despensa? → no
-// entran: quedan como pendientes del ticket en la LISTA DE LA COMPRA, arriba con "🛒 Despensa?").
-// La imagen (el "cómo se saca la foto") y el motor Tesseract.js son infra de vista → app.js.
+// existente. LA REGLA DE ORO (petición 2026-10-20): NADA del ticket entra en la despensa por su cuenta —
+//   · nombre EXACTO ya en la despensa → la compra SUMA en-situ (lo que ya está, se le apila lo comprado);
+//   · DUDOSOS (¿es el mismo que uno de la despensa? → variantes por tokens) → pendientes del ticket;
+//   · NUEVOS (nada parecido en casa) → pendientes del ticket SIN DEFINIR (fade + aviso) hasta que la
+//     persona fije IMPORTANCIA y MÍNIMO — editables desde la propia fila — con definirTicketPendiente;
+//     entonces la fila queda normal, lista para resolverse con 🛒 Despensa? o ✅ comprado.
+// Los pendientes viven en la LISTA DE LA COMPRA, arriba de todo. La imagen (el "cómo se saca la
+// foto") y el motor Tesseract.js son infra de vista → app.js.
 (function (root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;   // Jest / Node: require() directo.
@@ -96,81 +101,112 @@
     return conIdx.map(({ idx, ...resto }) => resto);   // el idx es accesorio: sale fuera del contrato
   }
 
-  // ─── Fusión con la despensa: lo que el usuario CONFIRMA (nombre editable incluido) se reparte:
+  // ─── Fusión con la despensa: lo que el usuario CONFIRMA (nombre editable incluido) se reparte en
+  // tres salidas — y NINGUNA alta se hace sola (la despensa no se inventa alimentos):
   //   · nombre YA en la despensa (comparación case-insensitive exacta, como el formulario manual) →
   //     se AÑADE la compra sobre UNA COPIA en-situ: qty = la que había + la comprada (el ticket
-  //     dice lo que ENTRA en casa, no la pisca); score se fija con lo confirmado; `min` sólo si
-  //     el usuario ha puesto uno;
+  //     dice lo que ENTRA en casa, no la pisa). Su min/importancia se QUEDAN COMO ESTÁN: ya eran
+  //     decisiones de la persona sobre ese alimento, el escaneo no las toca;
   //   · nombre con VARIANTES en la despensa (los mismos que el botón "🛒 Despensa?" de la lista: se
   //     inyectan vía deps.candidatosDespensa, la misma máquina del módulo menu-semanal) → DUDOSO:
-  //     no entra en la despensa de golpe. Sale en `dudosos` para que la vista lo ponga como
-  //     pendiente del ticket EN LA LISTA DE LA COMPRA, arriba, con ese mismo botón y su
-  //     comportamiento (la ÚLTIMA PALABRA la tiene la persona, no el OCR);
-  //   · nombre nuevo sin variantes → alta con { id, name, score, qty, min, checked:false, createdAt }
-  //     (mismo shape que el formulario manual de la sección ALIMENTOS de app.js).
-  // Devuelve { foods, añadidos, actualizados, dudosos } — array NUEVO con objetos NUEVOS: ni el
+  //     sale en `dudosos` como pendiente del ticket (fila normal, con su botón);
+  //   · nombre nuevo sin variantes → NUEVO: sale en `nuevos` con faltaDefinir:true como pendiente
+  //     SIN DEFINIR (fila atenuada + aviso) — la importancia (prioridad) y el mínimo se deciden
+  //     DESPUÉS, editables desde la propia fila, y sólo entonces queda lista para la despensa.
+  // El modal de confirmación ya no pide min/importancia: la cantidad es lo único que sabe el
+  // ticket; los criterios de alerta se fijan donde corresponden (la lista de la compra).
+  // Devuelve { foods, actualizados, dudosos, nuevos } — array NUEVO con objetos NUEVOS: ni el
   // array ni los alimentos de entrada del llamador se tocan (§3 pureza; la app reasigna foods).
-  // Sin deps.candidatosDespensa la duda no se puede decidir: se cae al comportamiento antiguo
-  // (alta directa) — la degradación del legado, nunca silencio confuso.
+  // Sin deps.candidatosDespensa la duda no se puede distinguir del nuevo: todo lo desconocido cae
+  // en `nuevos` (pendiente sin definir) — nadie entra en la despensa sin su veredicto.
   function guardarCandidatos(despensa, seleccion, deps) {
-    const uidGen = (deps && deps.uid) || (() => Math.random().toString(36).slice(2, 12));
-    const ahora = (deps && deps.ahora) || Date.now();
     const variantes = (deps && typeof deps.candidatosDespensa === "function") ? deps.candidatosDespensa : null;
     const validos = (Array.isArray(seleccion) ? seleccion : []).filter(c => {
       if (!String(c && c.nombre || "").trim()) return false;         // renombrado a "" → fuera
       if (!Number.isFinite(c.qty) || c.qty < 0) return false;        // la vista valida antes; esto es el último filtro
-      if (!Number.isFinite(c.score) || c.score < 1 || c.score > 10) return false;
-      if (c.min != null && (!Number.isFinite(c.min) || c.min < 0)) return false;
       return true;
     });
     const salida = Array.isArray(despensa) ? despensa.map(f => ({ ...f })) : [];   // copias: los originales no se tocan
-    let añadidos = 0, actualizados = 0;
-    const dudosos = [];
+    let actualizados = 0;
+    const dudosos = [], nuevos = [];
     validos.forEach(c => {
       const nombre = String(c.nombre).trim();
       const ya = salida.find(f => String(f.name || "").toLowerCase() === nombre.toLowerCase());
       if (ya) {
-        ya.qty = Math.max(0, Math.round((Number(ya.qty) || 0) + c.qty));   // el ticket SUMA a lo que había
-        ya.score = Math.round(c.score);
-        if (c.min != null) ya.min = Math.max(0, Math.round(c.min));
+        ya.qty = Math.max(0, Math.round((Number(ya.qty) || 0) + c.qty));   // el ticket SUMA a lo que había; min/score intactos
         actualizados += 1;
       } else if (variantes && variantes(nombre, salida).length > 0) {
-        // DUDOSO: "¿es el mismo que uno de la despensa?" — lo lleva la lista de la compra a decidir.
+        // DUDOSO: "¿es el mismo que uno de la despensa?" — pendiente con su botón en la lista.
         dudosos.push({ nombre, qty: Math.max(0, Math.round(c.qty)), tipo: c.tipo || null });
       } else {
-        salida.push({
-          id: uidGen(),
-          name: nombre,
-          score: Math.round(c.score),
-          qty: Math.max(0, Math.round(c.qty)),
-          min: c.min != null ? Math.max(0, Math.round(c.min)) : 1,
-          checked: false,
-          createdAt: ahora
-        });
-        añadidos += 1;
+        // NUEVO: no entra todavía — falta la decisión de importancia y mínimo (ver header).
+        nuevos.push({ nombre, qty: Math.max(0, Math.round(c.qty)), tipo: c.tipo || null, faltaDefinir: true });
       }
     });
-    return { foods: salida, añadidos, actualizados, dudosos };
+    return { foods: salida, actualizados, dudosos, nuevos };
   }
 
-  // ─── Pendientes DEL TICKET en la lista de la compra: los dudosos entran como fila en la parte
-  // SUPERIOR (nuevo escaneado arriba) con { nombre, qty, tipo, escaneadoEn } y salen en cuanto se
-  // resuelven (🛒 Despensa? o ✅ comprado, decidido igual que cualquier fila de la lista). Dedup por
-  // nombre normalizado: re-escanear lo mismo lo ACTUALIZA y lo sube, no lo duplica.
+  // ─── Pendientes DEL TICKET en la lista de la compra: dudosos y nuevos entran como filas en la
+  // parte SUPERIOR —en el ORDEN DEL TICKET, el lote no se invierte— con { nombre, qty, tipo,
+  // escaneadoEn, faltaDefinir, min, score } y salen en cuanto se resuelven (🛒 Despensa? o
+  // ✅ comprado, decidido igual que cualquier fila de la lista). Dedup por nombre normalizado:
+  // re-escanear lo mismo lo ACTUALIZA (qty nueva) y lo re-promueve arriba, no lo duplica. Los
+  // estados "sin definir" (faltaDefinir) y la pareja min/score viajan CON la fila.
   function añadirTicketPendientes(pendientes, entrantes, ahora) {
     const marca = ahora != null ? ahora : Date.now();
-    let lista = (Array.isArray(pendientes) ? pendientes : [])
+    const lista = (Array.isArray(pendientes) ? pendientes : [])
       .filter(p => p && String(p.nombre || "").trim())
-      .map(p => ({ nombre: String(p.nombre).trim(), qty: Number.isFinite(p.qty) ? Math.max(0, Math.round(p.qty)) : 1,
-        tipo: p.tipo || null, escaneadoEn: p.escaneadoEn != null ? p.escaneadoEn : marca }));
+      .map(p => ({
+        nombre: String(p.nombre).trim(),
+        qty: Number.isFinite(p.qty) ? Math.max(0, Math.round(p.qty)) : 1,
+        tipo: p.tipo || null,
+        escaneadoEn: p.escaneadoEn != null ? p.escaneadoEn : marca,
+        faltaDefinir: p.faltaDefinir === true,
+        min: p.min != null && Number.isFinite(p.min) ? Math.max(0, Math.round(p.min)) : null,
+        score: p.score != null && Number.isFinite(p.score) ? Math.min(10, Math.max(1, Math.round(p.score))) : null
+      }));
+    const entrada = [];
     (Array.isArray(entrantes) ? entrantes : []).forEach(nuevo => {
       const nombre = String((nuevo && nuevo.nombre) || "").trim();
       if (!nombre) return;
-      const qty = Number.isFinite(nuevo && nuevo.qty) ? Math.max(0, Math.round(nuevo.qty)) : 1;
-      lista = lista.filter(p => norm(p.nombre) !== norm(nombre));    // re-escaneado → una sola fila (la de arriba)
-      lista.unshift({ nombre, qty, tipo: (nuevo && nuevo.tipo) || null, escaneadoEn: marca });
+      const previa = lista.find(p => norm(p.nombre) === norm(nombre));
+      entrada.push({
+        nombre,
+        qty: Number.isFinite(nuevo && nuevo.qty) ? Math.max(0, Math.round(nuevo.qty)) : 1,
+        tipo: (nuevo && nuevo.tipo) || null,
+        escaneadoEn: marca,
+        // la DECISIÓN de la persona es sticky: faltaDefinir y su pareja min/score ya definidos
+        // sobreviven al re-escaneo (sólo la qty nueva del ticket y la posición se refrescan)
+        faltaDefinir: previa ? previa.faltaDefinir : !!(nuevo && nuevo.faltaDefinir),
+        min: previa ? previa.min
+          : (nuevo && nuevo.min != null && Number.isFinite(nuevo.min)) ? Math.max(0, Math.round(nuevo.min)) : null,
+        score: previa ? previa.score
+          : (nuevo && nuevo.score != null && Number.isFinite(nuevo.score)) ? Math.min(10, Math.max(1, Math.round(nuevo.score))) : null
+      });
     });
-    return lista;
+    // Los del ticket ARRIBA, EN EL ORDEN DEL TICKET (lote sin invertir); fuera los deduplicados.
+    const claves = new Set(entrada.map(e => norm(e.nombre)));
+    const resto = lista.filter(p => !claves.has(norm(p.nombre)));
+    return [...entrada, ...resto];
+  }
+
+  // ─── Definir un pendiente: la persona fija IMPORTANCIA (prioridad, 1–10) y MÍNIMO desde la propia
+  // fila (ver filaTicket en app.js); con ello la fila pierde el estado "sin definir" —se va el fade
+  // y el aviso— y queda como pendiente normal, lista para resolverse con 🛒 Despensa? o ✅ comprado
+  // (ese diálogo abrirá ya pre-cargado con estos valores). Min ausente → 1 (el mínimo clásico del
+  // alta manual); score es OBLIGATORIO válido — si no, nada cambia (definido:false).
+  function definirTicketPendiente(pendientes, nombre, definicion) {
+    const score = definicion && Number.isFinite(definicion.score) ? Math.min(10, Math.max(1, Math.round(definicion.score))) : null;
+    const min = definicion && Number.isFinite(definicion.min) ? Math.max(0, Math.round(definicion.min)) : 1;
+    const copia = (Array.isArray(pendientes) ? pendientes : []).map(p => ({ ...(p || {}) }));
+    if (score == null) return { lista: copia, definido: false };
+    const clave = norm(nombre);
+    let encontrado = false;
+    const lista = copia.map(p => {
+      if (norm(p.nombre) === clave) { encontrado = true; return { ...p, faltaDefinir: false, min, score }; }
+      return p;
+    });
+    return { lista, definido: encontrado };
   }
 
   function quitarTicketPendiente(pendientes, nombre) {
@@ -179,5 +215,5 @@
     return { lista, quitado: lista.length !== (Array.isArray(pendientes) ? pendientes.length : 0) };
   }
 
-  return { esMovil, extraerCandidatos, guardarCandidatos, añadirTicketPendientes, quitarTicketPendiente, norm, capitaliza };
+  return { esMovil, extraerCandidatos, guardarCandidatos, añadirTicketPendientes, definirTicketPendiente, quitarTicketPendiente, norm, capitaliza };
 });

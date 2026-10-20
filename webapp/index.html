@@ -99,12 +99,13 @@
                 </form>
 
                 <!-- Escáner del TICKET de la compra (#epic-ocr-despensa-camara): fotografiar el ticket del
-                     super — o la foto del frigorífico, la vía es la misma — y añadir a la despensa lo
-                     comprado (cámara SÓLO en móvil; en escritorio se elige una foto del disco) con sus
-                     CANTIDADES. Lo claro entra y los dudosos —¿es el mismo que uno de la despensa?—
-                     quedan arriba en la lista de la compra con el botón "🛒 Despensa?". Todo el motor
-                     corre en el navegador (Tesseract.js, carga perezosa la primera vez); sin servidor
-                     ni backend; la foto nunca sale del dispositivo. -->
+                     super — o la foto del frigorífico, la vía es la misma — y llevar lo comprado a la
+                     despensa (cámara SÓLO en móvil; en escritorio se elige una foto del disco) con sus
+                     CANTIDADES. NADA entra solo: los exactos ya vividos SUMAN su compra y los demás
+                     quedan ARRIBA en la lista de la compra — dudosos con el botón "🛒 Despensa?" y
+                     nuevos ATENUADOS hasta fijar su importancia y mínimo (editables en la fila).
+                     Todo el motor corre en el navegador (Tesseract.js, carga perezosa la primera
+                     vez); sin servidor ni backend; la foto nunca sale del dispositivo. -->
                 <div class="ocr-actions">
                     <button id="btn-ocr-camara" type="button" class="btn ghost hidden"
                             title="Abre la cámara del móvil para escanear el ticket del super">
