@@ -77,3 +77,25 @@ describe("tutorial — máquina de sesión", () => {
     for (const p of tut.pasosDeVista(null)) expect(p.vista).toBeNull();
   });
 });
+
+describe("tutorial — bloque ALIMENTOS (épica tutorial-interactivo)", () => {
+  it("la vista foods trae 3 pasos consecutivos dentro del guion", () => {
+    const porVista = tut.pasosDeVista("foods");
+    expect(porVista.length).toBe(3);
+    expect(porVista.every(p => p.vista === "foods")).toBe(true);
+    const ids = tut.PASOS.map(p => p.id);
+    const inicio = ids.indexOf("alimentos-anotar");
+    expect(inicio).toBeGreaterThan(0);                            // tras la intro
+    expect(ids.slice(inicio, inicio + 3).join(",")).toBe("alimentos-anotar,alimentos-importancia,alimentos-inventario");
+  });
+
+  it("los accionables apuntan a elementos que existen SIN datos, y el último es informativo", () => {
+    const [p1, p2, p3] = tut.pasosDeVista("foods");
+    expect(p1.selector).toBe("#food-name");
+    expect(p1.accionable).toBe(true);
+    expect(p2.selector).toBe("#food-score");
+    expect(p2.accionable).toBe(true);
+    expect(p3.accionable).toBe(false);
+    expect(p3.cta).toBe("Siguiente");
+  });
+});
