@@ -655,8 +655,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const mealLabels = { desayuno: "🌅 Desayuno", comida: "🍽️ Comida", cena: "🌙 Cena" };
 
   // ===== BUSCADOR DEL CATÁLOGO (feature 2026-10-18, card entre crear receta y Mis Recetas) =====
-  // TODA la decisión (normalizar consulta vía el matcher compartido, score por título x3 /
-  // ingrediente x1, orden estable, límite) vive en el módulo puro modules/busqueda-recetas.js;
+  // TODA la decisión (normalizar consulta vía el matcher compartido, match de TÍTULO SÓLO —
+  // exacto x3 / prefijo x2, fix 2026-10-20: los ingredientes ya no puntúan —, orden estable,
+  // límite) vive en el módulo puro modules/busqueda-recetas.js;
   // aquí sólo el molde de tarjetas (igual que las de Mis Recetas) y el click → modal de detalle.
   function renderBusquedaCatalogo() {
     const q = recipeCatalogSearch.value;
@@ -666,8 +667,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const hits = busqueda.resultados;
     recipeCatalogResults.innerHTML = "";
     recipeCatalogEmpty.classList.toggle("hidden", !(busqueda.tokens.length && hits.length === 0));
-    hits.forEach(({ receta: r, hitsTitulo, hitsIngredientes }) => {
-      const donde = hitsTitulo.length ? "en el título" : "en los ingredientes";
+    hits.forEach(hit => {
+      const r = hit.receta;
       const card = document.createElement("div");
       card.className = "recipe-card";
       card.dataset.id = r.id;
@@ -677,7 +678,6 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
           ${badgeOrigenHTML(r)}
           ${badgeSyncHTML(r)}
-          <span class="muted" style="font-size:.8rem">${escapeHTML(donde)}</span>
         </div>`;
       card.setAttribute("role", "button");
       card.setAttribute("aria-label", "Ver detalles de " + r.title);
