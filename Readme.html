@@ -175,7 +175,7 @@
             <ul>
                 <li>Etiqueta cada receta como <span class="tag">Desayuno</span>, <span class="tag">Comida</span> o <span class="tag">Cena</span>, revisa el modal antes de guardarla y <strong>✏️ Edita</strong> cualquier receta guardada (título, ingredientes, pasos) cuando cambie tu costumbre.</li>
                 <li>Se almacenan de forma permanente para consultarlas en el futuro.</li>
-                <li><strong>🔎 Buscador del catálogo</strong>: además, hay un catálogo curado de <strong>200 platos españoles e italianos</strong> — busca por <span class="tag">título</span> o por <span class="tag">ingrediente</span> y abre el detalle en el modal con un click.</li>
+                <li><strong>🔎 Buscador del catálogo</strong>: además, hay un catálogo curado de <strong>200 platos españoles e italianos</strong> — busca por <span class="tag">título</span> o por <span class="tag">ingrediente</span> y abre el detalle en el modal con un click. Con <strong>match por prefijo</strong> basta con las primeras letras: «croqu», «gamb» o «tortill» ya sacan Croquetas, Gambas al ajillo o Tortilla, sin escribir la palabra completa.</li>
                 <li><strong>Badge de origen</strong>: toda receta que se vea en la app (catálogo, plan, modal) lleva su sello <span class="tag">Receta española</span> / <span class="tag">Receta italiana</span>. Si guardas una copia (⭐ o ✏️), el origen se <strong>sella en el momento del guardado</strong> y no cambia si luego renombras.</li>
             </ul>
         </section>
@@ -186,8 +186,10 @@
             <ul>
                 <li><strong>Aprobar el plan</strong> fija cada receta a su día: cada cocinada entra en un <span class="tag">cooldown de 7 días</span> para no repetir platos a las pocas horas; además, las recetas guardadas en <span class="tag">Mis Recetas</span> quedan fuera de los huecos hasta que las borres.</li>
                 <li>Por cada hueco del plan: <strong>🍳 Cocinar</strong> anota la cocción y cambia ese slot (sin regenerar el plan entero) o <strong>🔄 Cambiar</strong> recorre el ranking sin oscilar.</li>
+                <li>El botón <strong>🍳 Cocinar hoy</strong> del detalle de la receta es el único que lleva <strong>consejo del chef</strong>: en móvil manténlo pulsado un momento y suéltalo sin cocinar, o pásale el ratón en escritorio, y aparecerá una <strong>píldora de consejo</strong> con pistas antes de poner los fogones.</li>
                 <li>La <strong>lista de la compra</strong> se dedup por ingredientes y lleva <strong>semáforo por fecha de preparación</strong>: <span class="tag">rojo</span> hoy/mañana, <span class="tag">naranja</span> 2–3 días, <span class="tag">verde</span> 4+ — orden × urgencia.</li>
                 <li>Al marcar <strong>✅ comprado</strong>, pregunta cuánto has comprado, su importancia y el mínimo para la alerta: nada se cuela sin datos; si el alimento ya estaba, se actualiza con lo nuevo.</li>
+                <li>Y si un ingrediente de la lista ya lo tienes en casa con <strong>otro nombre</strong> («Jamón serrano» frente a «Jamón ibérico»), aparece el botón <strong>🛒 Despensa?</strong>: eliges la variante (o nada) y la compra se anota <strong>en ese alimento de tu despensa</strong>, sin crear uno nuevo.</li>
             </ul>
         </section>
 
@@ -219,6 +221,7 @@
             <ul>
                 <li><strong>Escritorio</strong> (Brave / Chrome / Edge): ⋮ → <span class="tag">Guardar y compartir</span> → <strong>Instalar página como aplicación…</strong></li>
                 <li><strong>iPhone</strong>: Safari → Compartir → <strong>Añadir a pantalla de inicio</strong>.</li>
+                <li><strong>En móvil</strong>, desliza a los lados para cambiar de pestaña: cada vista <strong>recuerda dónde te quedaste</strong> al volver; pulsar la categoría del menú superior, en cambio, te sube arriba con una animación suave.</li>
                 <li>Una vez instalada, abre a pantalla completa con icono y nombre propios, y funciona <strong>sin internet</strong> (el app-shell y tus datos están en el dispositivo; la importación/exportación de copias te permite mover el estado entre ellos).</li>
             </ul>
             <div class="note">
@@ -234,6 +237,7 @@
                 <li>Guárdalo en la carpeta <span class="tag">dataBackup/</span> (opcional; el navegador lo descarga a Descargas).</li>
                 <li>Para llevarlo a otro lugar, abre la app en ese navegador o dispositivo y pulsa <strong>⬆️ Importar</strong> eligiendo el archivo.</li>
                 <li>Al importar, los alimentos se suman <strong>sin duplicar</strong> por nombre y las recetas se añaden: no se borra nada de lo que ya había.</li>
+                <li><strong>Sincronización directa entre dispositivos</strong>: en la misma pestaña, la tarjeta <span class="tag">⇄ Sync entre dispositivos</span> une tu móvil PWA y tu escritorio usando un <strong>gist privado de GitHub</strong> como buzón. Todo viaja <strong>cifrado de extremo a extremo</strong> con tu passphrase, que <strong>nunca se guarda</strong> — solo vive en la sesión y se vuelve a pedir al reabrir la app. Un clic en <strong>🔄 Sync</strong> hace una única pasada (nada automático en segundo plano) y si ambos dispositivos editaron lo mismo, un modal <strong>lado a lado</strong> te deja elegir qué conservar.</li>
             </ul>
             <div class="note">
                 La app es una página web estática: no puede escribir por sí sola en la carpeta <span class="tag">dataBackup/</span>; el navegador descarga el archivo y moverlo ahí es opcional.
