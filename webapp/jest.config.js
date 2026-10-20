@@ -24,7 +24,8 @@ module.exports = {
     "<rootDir>/modules/swipe-tabs.js",
     "<rootDir>/modules/sync-crypto.js",
     "<rootDir>/modules/sync.js",
-    "<rootDir>/modules/diff-merge.js"
+    "<rootDir>/modules/diff-merge.js",
+    "<rootDir>/modules/tutorial.js"
   ],
   coverageThreshold: {
     global: { statements: 70, branches: 65, functions: 70, lines: 70 }
