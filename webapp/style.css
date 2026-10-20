@@ -1293,6 +1293,7 @@ html.scroll-candado { overflow: hidden; }
   bottom: 0;
   left: 0;                                /* offsets explícitos: el shorthand inset no existe en WebViews viejos */
   z-index: 90;
+  pointer-events: none;                   /* el CONTENEDOR no intercepta: sólo velo y tarjeta rematan el toque */
 }
 .tutorial-velo {
   position: fixed;
@@ -1301,6 +1302,7 @@ html.scroll-candado { overflow: hidden; }
   bottom: 0;
   left: 0;
   background: var(--overlay);
+  pointer-events: auto;                   /* fuera del foco el toque NO atraviesa (app dormida) */
   transition: top 0.25s, left 0.25s, right 0.25s, bottom 0.25s;
 }
 /* Los cuatro velos se recolocan por JS (fixed, viewport coords, sin reflow del documento). El foco queda
@@ -1328,6 +1330,7 @@ html.scroll-candado { overflow: hidden; }
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: var(--shadow-2);
+  pointer-events: auto;                   /* la tarjeta sí remata el toque (botones y texto) */
   transition: top 0.25s, left 0.25s;
 }
 /* Paso SIN foco (bienvenida / cierre): tarjeta centrada, sin señal a la vista. */

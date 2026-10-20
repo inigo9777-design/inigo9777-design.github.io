@@ -216,8 +216,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const anchoVP = window.innerWidth || document.documentElement.clientWidth;
     const altoVP = window.innerHeight || document.documentElement.clientHeight;
     const MARGEN = 8;                     // aire del aro alrededor del elemento señalado
-    if (!objetivo) {                      // sin objetivo: velo completo + tarjeta centrada
-      Object.assign(tutorialVelos.arriba.style, { top: "0px", height: "0px" });
+    if (!objetivo) {                      // sin objetivo: VELO COMPLETO (toda la ventana atenuada) + tarjeta centrada
+      Object.assign(tutorialVelos.arriba.style, { top: "0px", height: altoVP + "px" });   // left/right son 0 por CSS: cubre el ancho entero
       Object.assign(tutorialVelos.izquierda.style, { width: "0px" });
       Object.assign(tutorialVelos.derecha.style, { left: anchoVP + "px", width: "0px" });
       Object.assign(tutorialVelos.abajo.style, { top: altoVP + "px", height: "0px" });

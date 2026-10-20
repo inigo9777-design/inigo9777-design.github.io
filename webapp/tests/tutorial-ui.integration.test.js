@@ -28,6 +28,8 @@ describe("tutorial interactivo — wiring app.js", () => {
     expect(app.document.getElementById("tutorial-pista").classList.contains("hidden")).toBe(true);
     expect(app.document.getElementById("tutorial-tarjeta").classList.contains("tutorial-centrado")).toBe(true);
     expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 1");
+    // velo COMPLETO en pasos sin foco: el "arriba" cubre todo el alto de la ventana
+    expect(app.document.querySelector(".tutorial-arriba").style.height).toBe(String(app.window.innerHeight) + "px");
   });
 
   it("visita CON el visto guardado: NO se abre solo (el cierre del usuario se respeta)", async () => {
