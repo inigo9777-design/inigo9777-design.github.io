@@ -136,7 +136,21 @@
       cta: "Siguiente",
     },
   ];
-  const PASOS_TEMPORADA = [];
+  const PASOS_TEMPORADA = [
+    {
+      id: "temporada-mes",
+      vista: "seasonal", selector: "#season-month", accionable: true,
+      titulo: "Cada mes tiene lo suyo",
+      texto: "El selector viene en el mes actual, pero puedes husmear en cualquiera: así planeas compras finas antes de que acabe la temporada. Toca el selector para seguir.",
+    },
+    {
+      id: "temporada-grid",
+      vista: "seasonal", selector: "#season-grid", accionable: false,
+      titulo: "Buena fruta, buena verdura",
+      texto: "Lo que ves aquí está en su mejor momento: la clave para que el gazpacho, la ensalada o el arroz de hoy salgan como tocan. También puedes buscar por nombre con la otra caja.",
+      cta: "Siguiente",
+    },
+  ];
 
   const PASOS = [].concat(
     PASOS_INTRO,

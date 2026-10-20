@@ -270,3 +270,57 @@ describe("tutorial interactivo — pantalla SUGERENCIAS Y MENÚ (plan real de la
     expect(JSON.parse(app.window.localStorage.getItem("mrcheff.tutorial")).visto).toBe(true);
   });
 });
+
+describe("tutorial interactivo — pantalla TEMPORADA (cierre del tour por 5 vistas)", () => {
+  const dormir = (ms) => new Promise(r => setTimeout(r, ms));
+
+  it("RECORRIDO COMPLETO del guion real: 5 pantallas, salta de vista en vista y termina", async () => {
+    const app = bootApp({ tutorialAuto: true });
+    await dormir(700);
+    const avanzar = app.document.getElementById("tutorial-avanzar");
+    // El guion real ya está completo: bienvenida → cabecera → Alimentos×3 → Recetas×3 →
+    // Innovación×2 → Menú×3 → Temporada×2 → listo (Terminar) = 16 pasos.
+    expect(app.window.MRCheff.tutorial.totalPasos()).toBe(16);
+    // bienvenida: tarjeta centrada sin foco (estado del molde por defecto)
+    expect(app.document.getElementById("tutorial-tarjeta").classList.contains("tutorial-centrado")).toBe(true);
+    // Cabecera
+    avanzar.click();                                             // bienvenida → cabecera
+    await dormir(70);
+    avanzar.click();                                             // cabecera → Alimentos#1 (Empecemos)
+    await dormir(70);
+    // Alimentos: los dos accionables avanzan por su target
+    app.document.getElementById("food-name").click();
+    app.document.getElementById("food-score").click();
+    avanzar.click();                                             // inventario (informativo)
+    await dormir(70);
+    // Recetas×3 (2 accionables): al entrar en el primer paso ya cambió la vista
+    app.document.getElementById("recipe-desc").click();
+    await dormir(70);
+    expect(app.document.getElementById("view-recipes").classList.contains("active")).toBe(true);
+    app.document.getElementById("recipe-catalog-search").click();
+    avanzar.click();                                             // mis recetas
+    await dormir(70);
+    // Innovación×2: generador accionable (con la despensa vacía avisa por toast, pero el paso avanza igual)
+    app.document.getElementById("btn-generate-innov").click();
+    await dormir(70);
+    expect(app.document.getElementById("view-innovation").classList.contains("active")).toBe(true);
+    avanzar.click();                                             // lote
+    await dormir(70);
+    // Menú×3: sugerir + menú accionables
+    app.document.getElementById("btn-suggest-generate").click();
+    await dormir(70);
+    expect(app.document.getElementById("view-suggest").classList.contains("active")).toBe(true);
+    app.document.getElementById("btn-menu-generate").click();
+    avanzar.click();                                             // aprobar (informativo)
+    await dormir(70);
+    // Temporada: último salto de vista
+    app.document.getElementById("season-month").click();
+    expect(app.document.getElementById("view-seasonal").classList.contains("active")).toBe(true);
+    avanzar.click();                                             // cuadrícula informativa
+    avanzar.click();                                             // → listo (Terminar)
+    expect(avanzar.textContent).toBe("Terminar");
+    avanzar.click();                                             // cierre + visto
+    expect(app.document.getElementById("tutorial").classList.contains("hidden")).toBe(true);
+    expect(JSON.parse(app.window.localStorage.getItem("mrcheff.tutorial")).visto).toBe(true);
+  });
+});
