@@ -15,7 +15,8 @@
 // CACHE v4 (2026-10-19, feature sync-buzón): los 3 módulos nuevos del sync entran al shell
 // precacheado (sync-crypto/diff-merge/sync); el nombre SUBE +1 para forzar la re-instalación
 // del worker aunque el fichero byte-idéntico y el respaldo offline ya los traiga.
-const CACHE = "mrcheff-v4";
+// CACHE v5 (2026-10-20, tutorial interactivo): entra modules/tutorial.js al shell.
+const CACHE = "mrcheff-v5";
 
 const SHELL = [
   "./",
@@ -40,6 +41,7 @@ const SHELL = [
   "modules/recipe-missing.js",
   "modules/recipe-editor.js",
   "modules/swipe-tabs.js",
+  "modules/tutorial.js",
   "modules/sync-crypto.js",
   "modules/diff-merge.js",
   "modules/sync.js",

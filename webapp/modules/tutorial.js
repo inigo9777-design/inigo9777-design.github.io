@@ -1,0 +1,130 @@
+// modules/tutorial.js — Lógica PURA del tutorial interactivo de entrada (feature 2026-10-20,
+// petición del usuario: "al entrar te sale toda la app sin datos y no sabes por dónde empezar").
+// Sin DOM, sin localStorage (CODING_STANDARDS.md §3, option A): aquí viven los PASOS (el guion
+// de la visita guiada), la máquina de sesión (avanzar/saltar/terminar) y las reglas de validez;
+// el velo semitransparente, el foco luminoso sobre el elemento y el posicionamiento son DOM y
+// viven en app.js, que es el composition-root.
+//
+// Cómo funciona el guion: cada PASO dice (1) qué vista abrir (vista; null = tarjeta centrada
+// sin foco), (2) a qué elemento señalar (selector CSS; null = sin foco), (3) qué decir
+// (titulo + texto) y (4) si el elemento es ACTIONABLE (la persona toca el elemento real y así
+// avanza) o no (aparece el botón "Siguiente"). Si el selector no existe en el DOM del día, el
+// paso degrada a informativo: nunca se atasca el tutorial.
+//
+// API PÚBLICA CERRADA (sin fugas de helpers internos):
+//   PASOS             — guion completo (grupos concatenados: intro, cada vista, cierre)
+//   pasosDeVista(vista) — pasos que abren esa vista (para tests y orden por grupos)
+//   sesionNueva() / pasoActual(sesion) / numero(sesion) / totalPasos()
+//   avanzar(sesion)   — muta la sesión al paso siguiente (al pasarse, sesion.hecho = true)
+//   pasoValido(paso)  — contrato de un paso (vista/titulo/texto consistentes)
+
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api; // Jest / Node
+  root.MRCheff = root.MRCheff || {};
+  root.MRCheff.tutorial = api;                                            // Navegador
+})(typeof self !== "undefined" ? self : this, function () {
+
+  // ===== GRUPOS DE PASOS =====
+  // Cada grupo vive en su tarea (task/tutorial-screen-*) y se concatena aquí en orden de visita:
+  // INTRO (esta rama) → Alimentos → Recetas → Innovación → Sugerencias/menú → Temporada → OUTRO.
+
+  const PASOS_INTRO = [
+    {
+      id: "bienvenida",
+      vista: null, selector: null, accionable: false,
+      titulo: "Bienvenido a Mr Cheff",
+      texto: "Esto es tu despensa, tus recetas y tu plan de semana en un mismo sitio — y ahora mismo está vacía, como una cocina nueva. Te enseño lo esencial en un minuto; si quieres salir en cualquier momento, usa la ✕.",
+      cta: "Adelante",
+    },
+    {
+      id: "cabecera",
+      vista: null, selector: ".topbar-actions", accionable: false,
+      titulo: "La cabecera",
+      texto: "A la derecha viven tres botones redondos: el 🎓 reabre este tutorial cuando te haga falta, la 🗄️ copia de seguridad y el 🌙 modo claro u oscuro. Las pestañas del centro cambian de vista (en móvil también deslizando a los lados).",
+      cta: "Empecemos",
+    },
+  ];
+
+  // (Kernels de pasos por vista: se escriben sus grupos propios en task/tutorial-screen-*.)
+
+  const PASOS_OUTRO = [
+    {
+      id: "listo",
+      vista: null, selector: null, accionable: false,
+      titulo: "Ya sabes moverte por la cocina",
+      texto: "Anota lo que tengas en Alimentos y el resto de la app trabaja con ello: ideas del catálogo, plan de la semana y lista de la compra. Si algún día quieres repasar esto, toca el 🎓 de la cabecera.",
+      cta: "Terminar",
+    },
+  ];
+
+  const PASOS_ALIMENTOS = [];
+  const PASOS_RECETAS = [];
+  const PASOS_INNOVACION = [];
+  const PASOS_MENU = [];
+  const PASOS_TEMPORADA = [];
+
+  const PASOS = [].concat(
+    PASOS_INTRO,
+    PASOS_ALIMENTOS,
+    PASOS_RECETAS,
+    PASOS_INNOVACION,
+    PASOS_MENU,
+    PASOS_TEMPORADA,
+    PASOS_OUTRO
+  );
+
+  // ===== MÁQUINA DE SESIÓN =====
+
+  function pasoValido(p) {
+    return !!p
+      && typeof p.titulo === "string" && p.titulo.trim() !== ""
+      && typeof p.texto === "string" && p.texto.trim() !== ""
+      && (p.vista === null || typeof p.vista === "string")
+      && (p.selector === null || typeof p.selector === "string")
+      && (!p.accionable || (typeof p.selector === "string" && p.selector !== ""));
+  }
+
+  // El guion del día: sólo los pasos con contrato sano (protege frente a un paso mal escrito).
+  function pasosSanos() {
+    return PASOS.filter(pasoValido);
+  }
+
+  function sesionNueva() {
+    return Object.create(null);
+  }
+
+  function pasoActual(sesion) {
+    const pasos = pasosSanos();
+    if (!sesion || typeof sesion !== "object") return null;
+    const i = Number(sesion.i) || 0;
+    return pasos[i] || null;
+  }
+
+  function numero(sesion) {
+    const pasos = pasosSanos();
+    if (!sesion || typeof sesion !== "object") return 0;
+    return Math.min((Number(sesion.i) || 0) + 1, pasos.length);
+  }
+
+  function totalPasos() {
+    return pasosSanos().length;
+  }
+
+  // Avanza la sesión (muta, como recordarScroll): al pasar del último paso marca sesion.hecho.
+  function avanzar(sesion) {
+    const pasos = pasosSanos();
+    if (!sesion || typeof sesion !== "object") return sesion;
+    sesion.i = Math.min(((Number(sesion.i)) || 0) + 1, pasos.length);
+    if (sesion.i >= pasos.length) sesion.hecho = true;
+    return sesion;
+  }
+
+  function pasosDeVista(vista) {
+    return pasosSanos().filter(p => p.vista === vista);
+  }
+
+  return {
+    PASOS, pasosDeVista, sesionNueva, pasoActual, numero, totalPasos, avanzar, pasoValido,
+  };
+});

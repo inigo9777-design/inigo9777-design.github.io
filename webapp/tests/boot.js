@@ -62,6 +62,14 @@ function bootApp(opts = {}) {
     window.scrollY = Number(y) || 0;
   };
 
+  // Element.scrollIntoView de TEST: jsdom tampoco lo implementa (el tutorial del viewpager y
+  // los pasos de la visita guiada lo llaman) — sustituto MÍNIMO que sólo acepta la llamada sin
+  // tocar scroll (jsdom no tiene layout que desplazar; el foco del tutorial se apoya en los
+  // listeners de scroll/resize, y las specs no cuentan errores en consola de esto).
+  if (!window.HTMLElement.prototype.scrollIntoView) {
+    window.HTMLElement.prototype.scrollIntoView = function scrollIntoViewDeTest() {};
+  }
+
   // Semear localStorage ANTES de disparar DOMContentLoaded: los closures de app.js leen foods/recipes/innov/cooked
   // al inicializarse, así que el estado precargado debe estar ya en localStorage (ver seedState más abajo).
   if (opts.seed) seedState(opts.seed, window);
@@ -75,6 +83,10 @@ function bootApp(opts = {}) {
   // decide la movilidad por inyección igual que hace con la WebCrypto. En producción el navegador
   // real trae matchMedia y este valor NO existe (app.js consulta (max-width: 820px)).
   if (opts.esMovil != null) window.__mrcheffEsMovil = !!opts.esMovil;
+
+  // Auto-apertura del tutorial (inyección §6): jsdom está en "about:" (ni http(s) ni file,),
+  // así que el criterio real de app.js NO saldría disparado aquí — el test decide.
+  if (opts.tutorialAuto) window.__mrcheffTutorialAuto = true;
 
   // jsdom NO implementa TextEncoder/TextDecoder (todos los navegadores reales los traen): la
   // cripto del sync (UTF-8 de passphrase/JSON, §2 del plan) los necesita. Se reaprovechan los
@@ -113,6 +125,11 @@ function seedState(seed, window) {
   if (seed.innovDate != null)      ls.setItem("mrcheff.innov.date", String(seed.innovDate));
   if (Array.isArray(seed.cooked))  ls.setItem("mrcheff.cooked", JSON.stringify(seed.cooked));
   if (seed.weekmenu != null)       ls.setItem("mrcheff.weekmenu", JSON.stringify(seed.weekmenu));   // plan APROBADO persistido → permite probar el re-render al recargar
+  // Claves de features nuevas no cubiertas arriba (p. ej. "mrcheff.tutorial"): se escriben tal
+  // cual si el path especializado no las tocó. Mínimamente tolerante: sólo claves del namespace.
+  Object.keys(seed).forEach(k => {
+    if (k.startsWith("mrcheff.") && ls.getItem(k) === null) ls.setItem(k, JSON.stringify(seed[k]));
+  });
 }
 
 // Run a script string inside the given jsdom window, sharing its globals.
