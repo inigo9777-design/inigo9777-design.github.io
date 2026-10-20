@@ -151,7 +151,7 @@
 
             <div class="card">
                 <h2>🔎 Buscador del catálogo</h2>
-                <p class="muted">Busca en las 200 recetas del catálogo curado por título o por ingrediente ("tortilla patatas", "mascarpone"…). Click en una para verla.</p>
+                <p class="muted">Busca en las 200 recetas del catálogo curado por título, y ya sale aunque escribas menos letras ("tortilla patatas", "croqu"…). Click en una para verla.</p>
                 <div class="toolbar">
                     <input type="text" id="recipe-catalog-search" placeholder="Escribe para buscar en el catálogo…" autocomplete="off" aria-label="Buscar en el catálogo de recetas">
                 </div>
@@ -367,8 +367,9 @@
     <script src="modules/sync-crypto.js"></script>
     <script src="modules/diff-merge.js"></script>
     <script src="modules/sync.js"></script>
-    <!-- PURe BUSCADOR del catálogo curado (feature 2026-10-18, tab RECETAS): busca por título/ingredientes
-         REUTILIZANDO tokensOf del matcher compartido — por eso DEBE ir ANTES de que app.js lo consuma
+    <!-- PURe BUSCADOR del catálogo curado (feature 2026-10-18, tab RECETAS): decide por TÍTULO SÓLO
+         (fix 2026-10-20: los ingredientes ya no puntúan), REUTILIZANDO tokensOf del matcher compartido
+         — por eso DEBE ir ANTES de que app.js lo consuma
          (window.MRCheff.busquedaRecetas; si el tag faltara, la card del buscador queda sin resultados). -->
     <script src="modules/busqueda-recetas.js"></script>
     <!-- Nueva capa modular de "Sugerencias y menú" (planFeatureRecetasSugeridasYPlanSemana.md): lógica PURe SIN DOM,

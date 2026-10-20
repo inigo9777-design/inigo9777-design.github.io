@@ -51,24 +51,25 @@ describe("(2) Búsqueda por TÍTULO (normalización compartida: acentos/plural)"
     expect(res.resultados.some(r => r.receta.title === "Tiramisú casero")).toBe(true);
   });
 
-  it("el TÍTULO pesa x3: 'queso' ranquea antes las recetas con queso EN EL TÍTULO", () => {
+  it("'queso' sólo devuelve recetas con queso EN EL TÍTULO (todo hit es de título)", () => {
     const res = buscar("queso", catalogo);
     expect(res.resultados.length).toBeGreaterThan(1);
-    const primerasPorTitulo = res.resultados.slice(0, 2).filter(r => r.hitsTitulo.length > 0).length;
-    expect(primerasPorTitulo).toBe(2);   // las 2 primeras tienen hit de título (3 pts) por encima de las de sólo-ingrediente
+    res.resultados.forEach(r => expect(r.hitsTitulo.length).toBeGreaterThan(0));
   });
 });
 
-describe("(3) Búsqueda por INGREDIENTE (el token no está en el título)", () => {
-  it("'mascarpone' encuentra Tiramisú casero vía ingredientes (motivo = hit de ingrediente)", () => {
+describe("(3) SÓLO TÍTULO — lo que sólo está en los ingredientes ya NO puntúa (fix 2026-10-20)", () => {
+  it("'mascarpone' (ingrediente del Tiramisú, nunca del título) NO devuelve resultados", () => {
     const res = buscar("mascarpone", catalogo);
-    const hit = res.resultados.find(r => r.receta.title === "Tiramisú casero");
-    expect(hit).toBeDefined();
-    expect(hit.hitsIngredientes).toContain("mascarpone");
-    expect(hit.hitsTitulo).toHaveLength(0);
+    expect(res.resultados).toEqual([]);
   });
 
-  it("multi-token AND-implícito: 'tortilla patatas' puntúa MÁS la tortilla completa (6) que las de patatas solas (3)", () => {
+  it("el resultado sólo trae receta/score/hitsTitulo (contrato título-only, sin campo de ingrediente)", () => {
+    const res = buscar("tortilla", catalogo);
+    res.resultados.forEach(r => expect(Object.keys(r)).toEqual(["receta", "score", "hitsTitulo"]));
+  });
+
+  it("multi-token 'tortilla patatas' puntúa más la tortilla completa (6) que las de patatas solas (3)", () => {
     const res = buscar("tortilla patatas", catalogo);
     expect(res.resultados[0].score).toBe(6);
     expect(res.resultados[0].receta.title).toBe("Tortilla de patatas española");
@@ -84,7 +85,7 @@ describe("(5) MATCH por PREFIJO (petición 2026-10-20: menos letras, como el bus
     expect(res.resultados[0].hitsTitulo).toContain("gamb");     // hit de TÍTULO (prefijo del título manda)
   });
 
-  it("'croqu' encuentra las croquetas por título (y por ingrediente si ahí está el token)", () => {
+  it("'croqu' encuentra las croquetas por título (el match es TÍTULO-only)", () => {
     const res = buscar("croqu", catalogo);
     expect(res.resultados.some(r => r.receta.title === "Croquetas de boletus")).toBe(true);
   });
@@ -96,12 +97,9 @@ describe("(5) MATCH por PREFIJO (petición 2026-10-20: menos letras, como el bus
     expect(exacto.resultados[0].score).toBe(3);     // título exacto = PESO_TITULO (la afinidad real manda)
   });
 
-  it("los hits prefijo se agregan en LOS del campo donde casan (título vs ingrediente según dónde esté)", () => {
+  it("todo resultado prefijo lleva su hit etiquetado EN EL TÍTULO (ya no hay campo de ingrediente)", () => {
     const res = buscar("gamb", catalogo);
-    res.resultados.forEach(r => {
-      const primero = r.hitsTitulo.length || r.hitsIngredientes.length;
-      expect(primero).toBeGreaterThan(0);           // todo resultado prefijo lleva su hit etiquetado
-    });
+    res.resultados.forEach(r => expect(r.hitsTitulo.length).toBeGreaterThan(0));
   });
 
   it("1-2 letras NO crean ruido prefijo (el matcher filtra tokens < 3 letras ya de por sí)", () => {

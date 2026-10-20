@@ -11,10 +11,14 @@
 // EMPIECE por él ("croqu" → "croquetas", "gamb" → "gambas") — el exacto puntúa más alto que el
 // prefijo dentro del mismo campo para que la afinidad real siga mandando en el ranking.
 //
+// SÓLO TÍTULO (fix 2026-10-20, petición): los INGREDIENTES de la receta ya NO puntúan — el buscador
+// es de recetas, no de alimentos; una palabra que sólo existe como ingrediente ("mascarpone" en el
+// Tiramisú) NO saca la receta. El match es contra el TÍTULO, que es cómo la persona nombra el plato.
+//
 // API PÚBLICA CERRADA (1 función, sin fugas de helpers internos):
 //   buscar(texto, catalogo, ctx?) → { query, tokens, resultados }
-//     resultados = [{ receta, score, hitsTitulo: string[], hitsIngredientes: string[] }]
-//     ordenados por score DESC (título exacto x3 / título prefijo x2; ingrediente 1 en ambos),
+//     resultados = [{ receta, score, hitsTitulo: string[] }]
+//     ordenados por score DESC (título exacto x3; título prefijo x2),
 //     empate estable por orden del catálogo; ctx.limite (default 8) recorta el ranking.
 //     Consulta sin tokens válidos → resultados [].
 //
@@ -38,20 +42,18 @@
   }
 
   const LIMITE_DEFECTO = 8;
-  const PESO_TITULO = 3;          // el título es la señal más fuerte ("tortilla" en el título ≻ en un ingrediente)
+  const PESO_TITULO = 3;          // título EXACTO: el token está tal cual en el título
   const PESO_TITULO_PREFIJO = 2;  // PREFIJO: "gamb" casa "gambas" en el título — menos letras, match ANTES
-  const PESO_INGREDIENTE = 1;
-  const PESO_INGREDIENTE_PREFIJO = 1;
 
-  // Puntos que da el campo `conjunto` para el token escrito `t`: EXACTO gana siempre; si no,
-  // cualquier token `u` del campo que EMPIECE por `t` da el hit de prefijo (PETICIÓN 2026-10-20
-  // "menos letras, como el buscador de alimentos": la persona quiere resultados con "croqu",
-  // no reescribir "croquetas"). Los tokens ya van filtrados a ≥3 letras por el matcher
-  // compartido (TOKEN_MIN_LEN), así que el prefijo jamás es ruido de 1-2 letras. 0 = no hay hit.
-  function puntosEn(conjunto, t, pesoExacto, pesoPrefijo) {
-    if (conjunto.has(t)) return pesoExacto;
-    for (const u of conjunto) {
-      if (u.startsWith(t)) return pesoPrefijo;
+  // Puntos que da el TÍTULO para el token escrito `t`: EXACTO gana siempre; si no, cualquier token
+  // del título que EMPIECE por `t` da el hit de prefijo (PETICIÓN 2026-10-20 "menos letras, como el
+  // buscador de alimentos": la persona quiere resultados con "croqu", no reescribir "croquetas").
+  // Los tokens ya van filtrados a ≥3 letras por el matcher compartido (TOKEN_MIN_LEN), así que el
+  // prefijo jamás es ruido de 1-2 letras. 0 = no hay hit.
+  function puntosTitulo(setTitulo, t) {
+    if (setTitulo.has(t)) return PESO_TITULO;
+    for (const u of setTitulo) {
+      if (u.startsWith(t)) return PESO_TITULO_PREFIJO;
     }
     return 0;
   }
@@ -66,16 +68,6 @@
     return new Set(tokensDe(nombre));
   }
 
-  // Tokens de TODOS los ingredientes de UNA receta en un solo set (consultas de 1 token bastan:
-  // "gambas" debe casar con la receta que pide "Gambas peladas" aunque el token no esté en el título).
-  function tokensIngredientes(receta) {
-    const out = new Set();
-    (Array.isArray(receta && receta.ingredients) ? receta.ingredients : []).forEach(i => {
-      tokensDe(i).forEach(t => out.add(t));
-    });
-    return out;
-  }
-
   function buscar(texto, catalogo, ctx) {
     const limite = (ctx && Number.isFinite(ctx.limite) && ctx.limite >= 1) ? Math.round(ctx.limite) : LIMITE_DEFECTO;
     const lista = Array.isArray(catalogo) ? catalogo.filter(r => r && typeof r === "object") : [];
@@ -88,17 +80,13 @@
     const resultados = [];
     lista.forEach((receta, orden) => {
       const titulo = setDe(receta.title);
-      const ingredientes = tokensIngredientes(receta);
       let score = 0;
       const hitsTitulo = [];
-      const hitsIngredientes = [];
       tokens.forEach(t => {
-        const puntosTitulo = puntosEn(titulo, t, PESO_TITULO, PESO_TITULO_PREFIJO);
-        const puntosIngrediente = puntosEn(ingredientes, t, PESO_INGREDIENTE, PESO_INGREDIENTE_PREFIJO);
-        if (puntosTitulo) { score += puntosTitulo; hitsTitulo.push(t); }
-        else if (puntosIngrediente) { score += puntosIngrediente; hitsIngredientes.push(t); }
+        const puntos = puntosTitulo(titulo, t);
+        if (puntos) { score += puntos; hitsTitulo.push(t); }
       });
-      if (score > 0) resultados.push({ receta, score, hitsTitulo, hitsIngredientes, orden });
+      if (score > 0) resultados.push({ receta, score, hitsTitulo, orden });
     });
 
     resultados.sort((a, b) =>
@@ -113,8 +101,7 @@
       resultados: resultados.slice(0, limite).map(r => ({
         receta: r.receta,
         score: r.score,
-        hitsTitulo: r.hitsTitulo,
-        hitsIngredientes: r.hitsIngredientes
+        hitsTitulo: r.hitsTitulo
       }))
     };
   }

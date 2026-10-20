@@ -51,10 +51,11 @@ is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
 
 Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts) · **Recetas**
 (free-text → structured recipe; card "🔎 Buscador del catálogo" busca en el JSON del catálogo
-por título/ingrediente y abre el modal de detalle — match por PREFIJO (petición 2026-10-20,
+SÓLO por título (fix 2026-10-20: los ingredientes ya NO puntúan — "mascarpone" ya no saca el
+Tiramisú) y abre el modal de detalle — match por PREFIJO (petición 2026-10-20,
 "menos letras"): el token escrito casa exacto preferente y si no con cualquier token del
-catálogo que EMPIECE por él ("gamb"→"gambas", "croqu"→"croquetas"; título exacto x3, título
-prefijo x2, ingrediente 1, así la afinidad real sigue mandando; tokens ≥3 letras vía
+TÍTULO que EMPIECE por él ("gamb"→"gambas", "croqu"→"croquetas"; título exacto x3, título
+prefijo x2, así la afinidad real sigue mandando; tokens ≥3 letras vía
 TOKEN_MIN_LEN del matcher — 1-2 letras no dan ruido); + Mis Recetas) · **Innovación**
 (curated-catalog suggestions from the pantry) ·
 **Sugerencias y menú** (↻ Sugerir ahora lote rotado + plan semanal 7×3 + lista de la compra) ·
@@ -205,8 +206,9 @@ italiana" (see `modules/origen-recetas.js` below).
   accionesMenuSlot — el 🍳 del menu sólo en plan aprobado) ·
   `recipe-editor.js` (buildDraft, validateDraft, estaGuardada, applyEdit, patchPlan) · `recipe-missing.js`
   (qué ingredientes faltan para el modal) · `backup.js` · **`busqueda-recetas.js`** (buscador del
-  catálogo: texto libre → resultado por título x3/ingrediente x1, reutiliza matching de tokens
-  del matcher compartido, orden estable y límite ctx.limite) · **`origen-recetas.js`** (etiqueta/sello de origen:
+  catálogo: texto libre → resultado por TÍTULO SÓLO, exacto x3 / prefijo x2 — fix 2026-10-20:
+  los ingredientes ya no puntúan —, reutiliza matching de tokens del matcher compartido,
+  orden estable y límite ctx.limite) · **`origen-recetas.js`** (etiqueta/sello de origen:
   esItaliana, etiquetaOrigen, claseOrigen, origenAlGuardar, etiquetaClasicaVisible — inyectable ctx
   `{catalog, ids}` para tests) · **`sync-crypto.js`** (AES-GCM 256 + PBKDF2: deriveKey/encryptJson/
   decryptJson/nuevoSalt + base64 helpers; crypto inyectable — jsdom no trae .subtle) ·

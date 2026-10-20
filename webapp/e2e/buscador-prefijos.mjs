@@ -1,8 +1,9 @@
 // e2e/buscador-prefijos.mjs — MATCH por PREFIJO del buscador del catálogo con Brave REAL.
 // Ejecutar: node e2e/buscador-prefijos.mjs   (feature petición 2026-10-20 "menos letras")
 //  1) "croqu" (5 letras) ya muestra Croquetas — antes requería la palabra completa.
-//  2) "gamb" muestra Gambas al ajillo (y resto de recetas con gambas).
+//  2) "gamb" muestra Gambas al ajillo — match por TÍTULO.
 //  3) escribir la palabra COMPLETA sigue mandando: el exacto ranquea antes que el prefijo.
+//  4) SÓLO TÍTULO (fix 2026-10-20): "mascarpone" (sólo ingrediente del Tiramisú) NO saca resultados.
 import { chromium } from "playwright-core";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -40,6 +41,11 @@ try {
   await page.waitForTimeout(120);
   const exactos = await titulos();
   ok(exactos[0].includes("Tortilla"), `(3) exacto manda: 1ª con "tortilla" completa es "${exactos[0]}"`);
+  // (4) SÓLO TÍTULO: lo que sólo está en los ingredientes ya no cuenta
+  await page.fill("#recipe-catalog-search", "");
+  await page.type("#recipe-catalog-search", "mascarpone");
+  await page.waitForTimeout(120);
+  ok((await titulos()).length === 0, `(4) sólo título: "mascarpone" (sólo ingrediente del Tiramisú) NO saca resultados`);
   await page.screenshot({ path: path.join(OUT, "67-buscador-prefijos.png") });
   await browser.close();
 } catch (e) {
