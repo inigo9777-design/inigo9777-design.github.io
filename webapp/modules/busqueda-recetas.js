@@ -3,15 +3,20 @@
 // option A: decisión en módulo puro testable, app.js queda como composition-root). Sin DOM,
 // sin localStorage: la UI (app.js) sólo pinta los resultados y abre el modal de detalle.
 //
-// Busca en el catálogo curado (webapp/data/recetas-espanolas-data.js, 200 recetas) por TEXTO LIBRE:
+// Busca en el catálogo curado (webapp/data/recetas-espanolas-data.js, 200+ recetas) por TEXTO LIBRE:
 // la consulta normalizada y troceada REUTILIZA el matcher compartido (modules/ingredient-matching.js:
 // tokensOf con acentos fuera, stopwords y deplural) para no reinventar la normalización en un 5º sitio.
+// MATCH por PREFIJO (petición 2026-10-20 "menos letras, como el buscador de alimentos"): el token
+// escrito casa EXACTO preferentemente y, a falta de exacto, con cualquier token del catálogo que
+// EMPIECE por él ("croqu" → "croquetas", "gamb" → "gambas") — el exacto puntúa más alto que el
+// prefijo dentro del mismo campo para que la afinidad real siga mandando en el ranking.
 //
 // API PÚBLICA CERRADA (1 función, sin fugas de helpers internos):
 //   buscar(texto, catalogo, ctx?) → { query, tokens, resultados }
 //     resultados = [{ receta, score, hitsTitulo: string[], hitsIngredientes: string[] }]
-//     ordenados por score DESC (título vale x3, ingrediente x1), empate estable por orden del catálogo;
-//     ctx.limite (default 8) recorta el ranking. Consulta sin tokens válidos → resultados [].
+//     ordenados por score DESC (título exacto x3 / título prefijo x2; ingrediente 1 en ambos),
+//     empate estable por orden del catálogo; ctx.limite (default 8) recorta el ranking.
+//     Consulta sin tokens válidos → resultados [].
 //
 // Nota §5 Liskov: el shape de cada receta es el del catálogo (5 campos) — se DEVUELVE LA MISMA
 // referencia, nunca una copia envuelta con campos nuevos ajenos al dominio.
@@ -34,7 +39,22 @@
 
   const LIMITE_DEFECTO = 8;
   const PESO_TITULO = 3;          // el título es la señal más fuerte ("tortilla" en el título ≻ en un ingrediente)
+  const PESO_TITULO_PREFIJO = 2;  // PREFIJO: "gamb" casa "gambas" en el título — menos letras, match ANTES
   const PESO_INGREDIENTE = 1;
+  const PESO_INGREDIENTE_PREFIJO = 1;
+
+  // Puntos que da el campo `conjunto` para el token escrito `t`: EXACTO gana siempre; si no,
+  // cualquier token `u` del campo que EMPIECE por `t` da el hit de prefijo (PETICIÓN 2026-10-20
+  // "menos letras, como el buscador de alimentos": la persona quiere resultados con "croqu",
+  // no reescribir "croquetas"). Los tokens ya van filtrados a ≥3 letras por el matcher
+  // compartido (TOKEN_MIN_LEN), así que el prefijo jamás es ruido de 1-2 letras. 0 = no hay hit.
+  function puntosEn(conjunto, t, pesoExacto, pesoPrefijo) {
+    if (conjunto.has(t)) return pesoExacto;
+    for (const u of conjunto) {
+      if (u.startsWith(t)) return pesoPrefijo;
+    }
+    return 0;
+  }
 
   function tokensDe(texto) {
     const m = matcherCompartido();
@@ -73,8 +93,10 @@
       const hitsTitulo = [];
       const hitsIngredientes = [];
       tokens.forEach(t => {
-        if (titulo.has(t)) { score += PESO_TITULO; hitsTitulo.push(t); }
-        else if (ingredientes.has(t)) { score += PESO_INGREDIENTE; hitsIngredientes.push(t); }
+        const puntosTitulo = puntosEn(titulo, t, PESO_TITULO, PESO_TITULO_PREFIJO);
+        const puntosIngrediente = puntosEn(ingredientes, t, PESO_INGREDIENTE, PESO_INGREDIENTE_PREFIJO);
+        if (puntosTitulo) { score += puntosTitulo; hitsTitulo.push(t); }
+        else if (puntosIngrediente) { score += puntosIngrediente; hitsIngredientes.push(t); }
       });
       if (score > 0) resultados.push({ receta, score, hitsTitulo, hitsIngredientes, orden });
     });

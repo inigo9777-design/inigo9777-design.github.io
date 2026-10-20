@@ -434,3 +434,11 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
       visibles (la 5ª pill queda fuera del scroller del header en 390px). Tests: unitarios en
       swipe-tabs.test.js + integración en viewpager-scroll.integration.test.js + e2e real en
       e2e/scroll-vistas.mjs.
+   11. **Match por prefijo en el buscador del catálogo** (2026-10-20, petición "menos letras,
+      como el buscador de alimentos"): `busquedaRecetas.buscar` casaba SOLO token exacto y exigía
+      reescribir la palabra entera ("croqu" no encontraba Croquetas). Ahora el token dicho casa
+      EXACTO preferente y, a falta de exacto, con cualquier token del campo que EMPIECE por él;
+      pesos título exacto 3 / título prefijo 2 / ingrediente 1 — la afinidad real sigue mandando.
+      El mínimo de 3 letras lo fija ya el matcher compartido (TOKEN_MIN_LEN): nada de ruido
+      prefijo de 1-2 letras. Firma de API SIN CAMBIO (1 función pública). Tests: unit en
+      busqueda-recetas.test.js (describe 5) + e2e Brave real en e2e/buscador-prefijos.mjs.

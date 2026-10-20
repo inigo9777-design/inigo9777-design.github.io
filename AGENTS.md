@@ -51,7 +51,11 @@ is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
 
 Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts) · **Recetas**
 (free-text → structured recipe; card "🔎 Buscador del catálogo" busca en el JSON del catálogo
-por título/ingrediente y abre el modal de detalle; + Mis Recetas) · **Innovación**
+por título/ingrediente y abre el modal de detalle — match por PREFIJO (petición 2026-10-20,
+"menos letras"): el token escrito casa exacto preferente y si no con cualquier token del
+catálogo que EMPIECE por él ("gamb"→"gambas", "croqu"→"croquetas"; título exacto x3, título
+prefijo x2, ingrediente 1, así la afinidad real sigue mandando; tokens ≥3 letras vía
+TOKEN_MIN_LEN del matcher — 1-2 letras no dan ruido); + Mis Recetas) · **Innovación**
 (curated-catalog suggestions from the pantry) ·
 **Sugerencias y menú** (↻ Sugerir ahora lote rotado + plan semanal 7×3 + lista de la compra) ·
 **Temporada** (in-season fruit/veg by month) · **Copia de seguridad** (side icon tab). Every recipe
