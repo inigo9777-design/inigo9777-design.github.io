@@ -99,3 +99,25 @@ describe("tutorial — bloque ALIMENTOS (épica tutorial-interactivo)", () => {
     expect(p3.cta).toBe("Siguiente");
   });
 });
+
+describe("tutorial — bloque RECETAS (épica tutorial-interactivo)", () => {
+  it("la vista recipes trae 3 pasos consecutivos y tras los de Alimentos", () => {
+    const porVista = tut.pasosDeVista("recipes");
+    expect(porVista.length).toBe(3);
+    expect(porVista.every(p => p.vista === "recipes")).toBe(true);
+    const ids = tut.PASOS.map(p => p.id);
+    expect(ids.indexOf("recetas-crear")).toBe(ids.indexOf("alimentos-inventario") + 1);   // sigue al de Alimentos
+    expect(ids.slice(ids.indexOf("recetas-crear"), ids.indexOf("recetas-crear") + 3).join(","))
+      .toBe("recetas-crear,recetas-catalogo,recetas-mis-recetas");
+  });
+
+  it("contrato de objetivos: creación y buscador accionables, Mis Recetas informativo", () => {
+    const [p1, p2, p3] = tut.pasosDeVista("recipes");
+    expect(p1.selector).toBe("#recipe-desc");
+    expect(p1.accionable).toBe(true);
+    expect(p2.selector).toBe("#recipe-catalog-search");
+    expect(p2.accionable).toBe(true);
+    expect(p3.selector).toBe("#recipe-list");
+    expect(p3.accionable).toBe(false);
+  });
+});

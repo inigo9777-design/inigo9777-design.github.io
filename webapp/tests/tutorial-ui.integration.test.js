@@ -148,3 +148,36 @@ describe("tutorial interactivo — pantalla ALIMENTOS (pasos accionables)", () =
     expect(JSON.parse(app.window.localStorage.getItem("mrcheff.tutorial")).visto).toBe(true);
   });
 });
+
+describe("tutorial interactivo — pantalla RECETAS (dos accionables + mis recetas)", () => {
+  const dormir = (ms) => new Promise(r => setTimeout(r, ms));
+  const saltarARecetas = (tut) => {
+    // bienvenida + [bloque recipes real] + cierre: patrón de guion corto, siempre presente en la épica
+    const bienvenida = tut.PASOS[0];
+    const recetas = tut.pasosDeVista("recipes");
+    const listo = tut.PASOS[tut.PASOS.length - 1];
+    tut.PASOS.splice(0, tut.PASOS.length, bienvenida, ...recetas, listo);
+    return recetas.length;
+  };
+
+  it("cambiar de vista al entrar en un paso y avanzar por sus dos targets accionables", async () => {
+    const app = bootApp({ tutorialAuto: true });
+    await dormir(700);
+    const nRecetas = saltarARecetas(app.window.MRCheff.tutorial);
+    expect(nRecetas).toBe(3);
+    const avanzar = app.document.getElementById("tutorial-avanzar");
+    avanzar.click();                                             // bienvenida → receta#1 (#recipe-desc): SALTA a recipes
+    await dormir(60);
+    expect(app.document.getElementById("view-recipes").classList.contains("active")).toBe(true);
+    expect(app.document.getElementById("view-foods").classList.contains("active")).toBe(false);
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 2 de 5");
+    app.document.getElementById("recipe-desc").click();          // → #2 buscador
+    app.document.getElementById("recipe-catalog-search").click(); // → #3 mis recetas (informativo)
+    expect(app.document.getElementById("tutorial-titulo").textContent).toContain("Mis recetas");
+    expect(avanzar.textContent).toBe("Siguiente");
+    avanzar.click();                                             // → listo
+    expect(avanzar.textContent).toBe("Terminar");
+    avanzar.click();
+    expect(JSON.parse(app.window.localStorage.getItem("mrcheff.tutorial")).visto).toBe(true);
+  });
+});
