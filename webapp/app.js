@@ -291,11 +291,11 @@ document.addEventListener("DOMContentLoaded", () => {
         catch (e2) { /* sin scrollIntoView (entorno de prueba): el paso sigue igual */ }
       }
     }
-    requestAnimationFrame(tutorialReposicionar);
+    // El frame inicial del reposicionado (el listener de scroll ya cubre el vuelo del
+    // scrollIntoView animado). Fallback a setTimeout para WebViews sin requestAnimationFrame.
+    const raf = typeof window.requestAnimationFrame === "function" ? window.requestAnimationFrame : (fn) => setTimeout(fn, 16);
+    raf(tutorialReposicionar);
   }
-
-  // La posición se mide y se pinta por frame tras cada paso (el scrollIntoView puede animar;
-  // el listener de scroll ya cubre el vuelo, aquí sólo el frame inicial).
 
   function abrirTutorial() {
     if (!tut || !tutorialRaiz || !tutorialVelos) return;
@@ -314,11 +314,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // El click que avanza es un listener GLOBAL de captura: el toque sigue su curso natural
   // (el botón o input REAL ejecuta su función) y el tutorial sólo cuenta el paso. No se usa
-  // stopPropagation: no hay objetivos del tutorial que abran modales.
+  // stopPropagation: no hay objetivos del tutorial que abran modales. Guard extra: un selector
+  // del guion mal escrito ·closest lanza SyntaxError· no puede romper el click de la app.
   document.addEventListener("click", (e) => {
     if (!tutorialActivo || !pasoEnPantalla || !pasoEnPantalla.accionable || !e.target.closest) return;
     if (e.target.closest("#tutorial-tarjeta")) return;   // la tarjeta es salida, no "el objetivo del paso"
-    const objetivo = e.target.closest(pasoEnPantalla.selector);
+    let objetivo = null;
+    try { objetivo = e.target.closest(pasoEnPantalla.selector); } catch (err) { return; }
     if (!objetivo) return;
     avanzarPasoTutorial();
   }, true);
