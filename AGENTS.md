@@ -1,6 +1,6 @@
 # AGENTS.md — Mr Cheff
 
-Compact guide for AI agents, now the single canonical in-repo reference (its former sibling, the stale `CLAUDE.md`, was folded into it and removed). For product vision read `Readme.html`; team coding/testing standards live in `CODING_STANDARDS.md`, referenced below. When docs and code disagree, **trust this file + the code**.
+Compact guide for AI agents, now the single canonical in-repo reference (its former sibling, the stale `CLAUDE.md`, was folded into it and removed). For product vision read `Readme.html`; team coding/testing standards live in `.opencode/rules/CODING_STANDARDS.md` (referenced below) and resolved BUGS are recorded in `bugfix.md`. When docs and code disagree, **trust this file + the code**.
 
 ## What this actually is
 - A kitchen-assistant prototype. `Readme.html` badges it "Kotlin Multiplatform · Android · iOS",
@@ -364,8 +364,9 @@ italiana" (see `modules/origen-recetas.js` below).
   their accents. Mind this when adding foods or seasonal items.
 
 ## Other instruction / config sources worth knowing
-- **`CODING_STANDARDS.md`** (repo root, canonical) — the team's coding/testing standards going forward: SOLID, per-feature modular architecture mandate
+- **`CODING_STANDARDS.md`** (`/.opencode/rules/CODING_STANDARDS.md`, canonical) — the team's coding/testing standards going forward: SOLID, per-feature modular architecture mandate
   (`modules/domain|infra|views`; `app.js` stays the legacy composition-root), and mandatory unit testing. **Follow it.**
+  RULE of what goes where (2026-10-20): feature descriptions go HERE (AGENTS.md), resolved BUGS go to `bugfix.md` (repo root) — neither goes into CODING_STANDARDS.md, which holds only living rules + brief §8 exception notes.
   Per PR: new logic ships a co-located `tests/*.test.js` spec (jsdom harness exists in `webapp/jest.config.js` +
   `tests/boot.js`/`setup.js`, and per-module specs already exist under `webapp/tests/` — see the "Tests" bullet above for current
   suite status); integration tests are required when a change crosses modules or touches
