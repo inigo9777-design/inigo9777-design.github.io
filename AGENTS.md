@@ -20,10 +20,10 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
 - **Tests:** `cd webapp && npm test` (`jest`) / `npm run coverage` (`jest --coverage`). Jest IS a
   declared devDependency with installed `node_modules/`. Specs live under `webapp/tests/` — per-module specs (classify, priority, recipe-analysis, ingredient-matching, util, innovations,
   planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas, swipe-tabs,
-  merge-identidad, sync-crypto, diff-merge, ocr-despensa) +
+  merge-identidad, sync-crypto, diff-merge, ocr-despensa, ocr-foto) +
   integration specs (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
   buscador-catalogo, e2e-flow-receta-a-alerta-compra, sync-protocol, sync-ui, ocr-ticket, ocr-foto) + harness scaffolding (`boot.js` / `setup.js`). As of the last
-  run on 2026-10-20 the whole suite is green (**520 tests across 36 suites**) — verify with a fresh
+  run on 2026-10-20 the whole suite is green (**539 tests across 37 suites**) — verify with a fresh
   run before trusting it.
 - **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
   and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`
@@ -221,7 +221,13 @@ italiana" (see `modules/origen-recetas.js` below).
   VARIANTES (inyección `deps.candidatosDespensa`, la misma máquina del botón "🛒 Despensa?") →
   DUDOSO para la lista; nuevo → `nuevos` con `faltaDefinir`; añadirTicketPendientes lote en orden
   del ticket dedup/sticky + definirTicketPendiente (min/score desde la fila) y
-  quitarTicketPendiente para las filas del ticket) · **`sync-crypto.js`** (AES-GCM 256 + PBKDF2: deriveKey/encryptJson/
+  quitarTicketPendiente para las filas del ticket) · **`ocr-foto.js`** (la MÁQUINA DE LA FOTO
+  del escáner, refactor desde app.js 2026-10-20: prepararFoto — HEIC declara conversión directa
+  y el sondeo con el decodificador REAL manda el HEIC camuflado de ".png" al conversor —,
+  geometriaDeLienzo — giro 90/270 con lados trocados, máx. 1600px por lado — y escanearCaras —
+  ciclo de frente → 90° → 270° hasta la primera cara con candidatos, texto null = cancelado;
+  la I/O va inyectada por ctx: esHeic / decodificar / convertir / abierta / lienzoDe /
+  reconocer / hayAlimentos; specs tests/ocr-foto.test.js) · **`sync-crypto.js`** (AES-GCM 256 + PBKDF2: deriveKey/encryptJson/
   decryptJson/nuevoSalt + base64 helpers; crypto inyectable — jsdom no trae .subtle) ·
   **`diff-merge.js`** (fusión 3-way: merge3 base/mio/suyo → {estado, conflictos, avisos} + aplicarResoluciones
   local/remota/ambas; CERO dependencias) · **`sync.js`** (máquina del buzón: ejecutar/
