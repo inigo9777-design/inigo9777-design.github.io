@@ -164,3 +164,24 @@ describe("tutorial — bloque SUGERENCIAS Y MENÚ (épica tutorial-interactivo)"
     expect(p3.accionable).toBe(false);
   });
 });
+
+describe("tutorial — bloque TEMPORADA (épica tutorial-interactivo)", () => {
+  it("la vista seasonal trae 2 pasos consecutivos y cierra el guion antes del cierre", () => {
+    const porVista = tut.pasosDeVista("seasonal");
+    expect(porVista.length).toBe(2);
+    expect(porVista.every(p => p.vista === "seasonal")).toBe(true);
+    const ids = tut.PASOS.map(p => p.id);
+    expect(ids.indexOf("temporada-mes")).toBe(ids.indexOf("menu-aprobar") + 1);   // última pantalla del tour
+    expect(ids.slice(ids.indexOf("temporada-mes"), ids.indexOf("temporada-mes") + 2).join(","))
+      .toBe("temporada-mes,temporada-grid");
+  });
+
+  it("contrato: selector de mes accionable; la cuadrícula informativa", () => {
+    const [p1, p2] = tut.pasosDeVista("seasonal");
+    expect(p1.selector).toBe("#season-month");
+    expect(p1.accionable).toBe(true);
+    expect(p2.selector).toBe("#season-grid");
+    expect(p2.accionable).toBe(false);
+    expect(p2.cta).toBe("Siguiente");
+  });
+});
