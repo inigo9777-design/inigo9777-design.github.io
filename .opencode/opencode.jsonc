@@ -1,7 +1,19 @@
 {
   "$schema": "https://opencode.ai/config.json", //TODO FIX
   // Use this model by default.
-  "model": "ollama/qwen3.8:27b-mlx-fast",
+  "model": "ollama/qwen3.8:27b-mlx-code-50k",
+  "providers": {
+    "ollama": {
+      "models": {
+        "qwen3.8:27b-mlx-code-50k": {
+          "limit": {
+            "context": 64000,
+            "output": 32000
+          }
+        }
+      }
+    }
+  },
   //TODO change for the one of playwright to do the UI tests etc
   "mcp": {
     "servers": {
