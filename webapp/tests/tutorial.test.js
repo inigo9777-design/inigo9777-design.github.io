@@ -142,3 +142,25 @@ describe("tutorial — bloque INNOVACIÓN (épica tutorial-interactivo)", () => 
     expect(p2.cta).toBe("Siguiente");
   });
 });
+
+describe("tutorial — bloque SUGERENCIAS Y MENÚ (épica tutorial-interactivo)", () => {
+  it("la vista suggest trae 3 pasos consecutivos y tras los de Innovación", () => {
+    const porVista = tut.pasosDeVista("suggest");
+    expect(porVista.length).toBe(3);
+    expect(porVista.every(p => p.vista === "suggest")).toBe(true);
+    const ids = tut.PASOS.map(p => p.id);
+    expect(ids.indexOf("menu-hoy")).toBe(ids.indexOf("innovacion-lote") + 1);   // sigue a Innovación
+    expect(ids.slice(ids.indexOf("menu-hoy"), ids.indexOf("menu-hoy") + 3).join(","))
+      .toBe("menu-hoy,menu-semana,menu-aprobar");
+  });
+
+  it("contrato: sugerir y menú accionables; aprobar es informativo (botón deshabilitado al llegar)", () => {
+    const [p1, p2, p3] = tut.pasosDeVista("suggest");
+    expect(p1.selector).toBe("#btn-suggest-generate");
+    expect(p1.accionable).toBe(true);
+    expect(p2.selector).toBe("#btn-menu-generate");
+    expect(p2.accionable).toBe(true);
+    expect(p3.selector).toBe("#btn-menu-approve");
+    expect(p3.accionable).toBe(false);
+  });
+});
