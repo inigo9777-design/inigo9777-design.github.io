@@ -180,6 +180,23 @@ italiana" (see `modules/origen-recetas.js` below).
   recorrido completo 16 pasos) y e2e Brave real `e2e/tutorial.mjs` (20 checks: auto-apertura,
   segunda visita silenciosa, 🎓, recorrido completo con mouse+coords, geometría del aro,
   swipe inmóvil; sirviendo por http://localhost:8617 con python3 porque file:// no auto-abre).
+  (10) **Botón flotante "subir al principio"** (feature 2026-10-21, petición del usuario): con
+  listas verticales muy largas, al bajar MÁS de una pantallita (`window.innerHeight` de umbral)
+  aparece con fade+escala abajo a la derecha el círculo con flecha (`.fab-subir-encima` 46×46,
+  z 60: sobre el contenido, bajo el tutorial y el modal); un toque devuelve AL PRINCIPIO de la
+  pestaña ACTUAL con animación (`behavior:"smooth"`; reduce-motion → "auto"; fallback
+  try/catch para WebView sin options object — línea por línea la mecánica del click del
+  topbar) y se vuelve a OCULTAR al quedar arriba (y ≤ umbral, comparación estricta). Va en
+  TODAS las pestañas (una sola pieza: sigue el scroll del DOCUMENTO, no por vista; el click
+  del nav ya sube y el swipe restaura memoria — el FAB ni toca la memoria-scroll: al salir de
+  la vista la captura del 0 la resetea sola, invariante 2026-10-20). Regla y salto en módulo
+  puro `modules/scroll-arriba.js` (`debeMostrarseBoton/subirEncima/movimientoReducido`, win
+  inyectable); app.js sólo listener scroll/resize rAF-throttled (passive) + clase `visible`;
+  el botón nace `opacity:0` + `pointer-events:none` (el `.hidden` display:none rompería el
+  fade). Precacheado en el shell (caché v6). Verificación: unit `tests/scroll-arriba.test.js`,
+  integración jsdom `tests/boton-subir-encima.integration.test.js` y e2e Brave
+  `e2e/boton-subir-encima.mjs` (9 checks + captura 36; rueda de móvil con `page.mouse.wheel`,
+  generando el plan 7×3 en Sugerencias para que esa pestaña tenga lista larga real).
 - **Sync entre dispositivos por buzón GitHub (feature 2026-10-19; su fichero de plan fue retirado del repo, el protocolo vive documentado en módulos/comments/tests):** sincroniza los
   datos entre 2 dispositivos (móvil PWA + escritorio) con un gist privado como buzón y cifrado extremo a
   extremo: AES-GCM-256 con clave PBKDF2-SHA256 (600k iteraciones) derivada de una passphrase que el usuario
