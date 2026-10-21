@@ -66,18 +66,27 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   lista SHELL o la estrategia. **Alcance:** sólo `sw.js` + su registro (sin shapes de §5).
   Verificación: guardia externa `e2e/pwa-entrega.mjs` (6 checks con servidor mutable).
 
-- `2026-10-21 · @AI-agent · #epic-ocr-despensa-camara · Síntoma (bug reportado por el usuario
-  probando el diálogo 2 del escáner):` las columnas del diálogo de revisión (Nuevos y Dudas)
-  salían DESCUADRADAS — la cabecera etiquetaba en sitios donde no había campo, y los campos
-  quedaban apelotonados a la derecha/bajo el nombre. **Causa:** la cabecera (flex, gap 8px)
-  y las filas (flex, gap 10px) calzaban distinto: anchuras no correspondidas, el checkbox
-  (19px) contra una columna de 62px y el aplanado lateral descompensado. **Arreglo:** cada
-  sección comparte una RETÍCULA (`grid`) por cabecera y filas `.rev-cab-nueva/.rev-fila-nueva`
-  y `.rev-cab-duda/.rev-fila-duda` con la MISMA plantilla de columnas y calzado — la etiqueta
-  cae siempre sobre el campo que nombra; en ≤640px el bloque del alimento pasa a línea completa
-  y los campos se reparten debajo con la misma plantilla estrecha. **Verificación:** guardia
-  geométrica en `e2e/ocr-despensa.mjs` (D): el centro de cada etiqueta sobre el centro de su
-  campo (±6px, Brave real).
+- `2026-10-21 · @AI-agent · #epic-ocr-despensa-camara · Síntoma (reportado DOS veces por el
+  usuario probando el diálogo 2 del escáner):` las columnas de la revisión (Nuevos y Dudas)
+  salían DESCUADRADAS — primera foto: la cabecera etiquetaba donde no había campo y los campos
+  quedaban apelotonados a la derecha (cabecera flex gap 8 vs filas flex gap 10, anchuras no
+  correspondidas); segunda foto, ya con la retícula compartida: el NOMBRE quedaba arriba y
+  cantidad/importancia/mínimo/incluir «colgados» a media altura. **Causa (2ª):** en la fila la
+  celda del nombre era una pila de TRES alturas (input + chip + línea del ticket) y los campos
+  centraban verticalmente contra la pila entera (`align-items: center` sobre el propio grid) —
+  sus centros caían al punto medio de la pila, NO a la línea del input. **Arreglo (final):**
+  la fila es una retícula de DOS líneas — línea 1: el input del nombre y TODOS los campos en
+  su misma línea horizontal (áreas explícitas; el molde reparte las clases
+  `.rev-campo-nombre/qty/score/min/include/variante` y chip + línea del ticket viven en
+  `.rev-sub`); línea 2: chip + línea, SOLO bajo la columna del alimento (en Dudas la columna 2
+  del desplegable aparta los campos una posición; los estilos de `.ocr-tipo`/`.ocr-linea` son
+  standalone, sin depender del envoltorio `.ocr-nombre` que queda sólo para el diálogo 1).
+  Cabecera forzada a UNA línea (`> span { grid-row: 1 }`); en ≤640px las áreas se reordenan
+  (alimento línea completa y campos debajo — en Dudas el desplegable también). **Verificación:**
+  guardia geométrica en `e2e/ocr-despensa.mjs` (D): centro de cada etiqueta sobre su campo
+  (±6px) Y centro VERTICAL del input del nombre ≈ el de cada campo — misma línea (±6px, Brave
+  real; captura 25). Integración jsdom verde (550): el estado y los valores no cambian con el
+  molde.
 - `2026-10-21 · @AI-agent · #epic-ocr-despensa-camara · Síntoma (bug reportado por el usuario):`
   en Dudas, al resolver con un alimento REAL de la despensa, la fila seguía pintando los 5/1 de
   una alta — información falsa (la compra iba bien al alimento real, pero la pantalla decía
