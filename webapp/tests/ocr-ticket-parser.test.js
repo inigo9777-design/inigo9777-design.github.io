@@ -183,7 +183,21 @@ describe("ALDI real: auxiliares emparejadas y lotes de 500 g", () => {
   test("las líneas '4x …' dan la CANTIDAD del pack al producto siguiente", () => {
     expect(r.items.find(i => nombre(i).includes("ECO HUEVOS")).qty).toBe(4);
     expect(r.items.find(i => nombre(i).includes("PATATAS FRITAS AC OLI")).qty).toBe(2);
-    expect(r.items.find(i => nombre(i).includes("MINI CHAPATA CRISTAL")).qty).toBe(1); // "2 XADO? €" basura: qty 1
+    // "2 XADO? €" (mangle de "2x 1,5?" — el OCR comió el precio del pack): la cifra y la x BASTAN
+    // (PACK_FLOJO, sólo ALDI) → va a MINI CHAPATA, el producto que la precede en el ticket
+    expect(r.items.find(i => nombre(i).includes("MINI CHAPATA CRISTAL")).qty).toBe(2);
+  });
+
+  test("PACK_FLOJO exige letra X y respeta la basura larga: '4 x EXTRA' NO es auxiliar de nadie", () => {
+    const rf = parsearTicket([
+      "ALDI",
+      "4 x EXTRA VIRGEN 6,20",     // nombre real de producto con X: precio legible → es un producto
+      "SPECIAL ACEITE 6,20",       // la línea de arriba NO le deja qty fantasma
+      "2 XADO? €"                  // sí es pack flojo: se apunta para el producto de abajo
+    ].join("\n"));
+    expect(rf.origen).toBe("aldi");
+    const aceite = rf.items.find(i => nombre(i).includes("SPECIAL ACEITE"));
+    expect(aceite.qty).toBe(1);    // el "4 x EXTRA…" murió CON su auxiliar (no viaja)
   });
   test("el resto de productos ALDI salen aunque su IVA-code mangle el precio", () => {
     for (const esperado of [
@@ -200,8 +214,10 @@ describe("ALDI real: auxiliares emparejadas y lotes de 500 g", () => {
     expect(r.descartadas.some(d => d.motivo === "cantidad del pack (apuntada)")).toBe(true);
   });
   test("sólo los productos llegan a la lista de ítems (cuenta saneada)", () => {
-    // 21 productos REALES del corpus + el eco anulado; el descuento ni el pie cuentan
-    expect(r.items).toHaveLength(20);
+    // 21 productos REALES del corpus (contado a mano; el LOMO ADOBADO a granel es compra real
+    // aunque su precio el OCR lo muerda — se rescata con el peso) + el eco anulado; el descuento
+    // ni el pie cuentan
+    expect(r.items).toHaveLength(21);
   });
 });
 

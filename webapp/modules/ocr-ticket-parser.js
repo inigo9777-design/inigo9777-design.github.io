@@ -48,6 +48,10 @@
     return m ? parseFloat(m[1].replace(",", ".")) : null;
   };
   const CANTIDAD_AUX = /^(\d{1,3})\s*[xXx]{1,3}\s*(\d+(?:[.,]\d+)?)?\s*(?:€|e)?\s*$/;
+  // VERSIÓN FLOJA para ALDI (calibrada con el corpus, "2 XADO? €" = mangle de "2x 1,5?"): la cifra
+  // y la x sobreviven aunque el precio venga comido. Residuo corto (≤9) EN MAYÚSCULAS o sin letras
+  // ("ADO", "€") — una línea con palabra larga tipo "4 x EXTRA" no es auxiliar y muere como producto.
+  const PACK_FLOJO = /^(\d{1,3})\s*[x×X]\s*[\p{Lu}\W]{1,9}$/u;
   // Cifra numerica decimal del ticket: "9,51" "6.72" "3,5" (1-2 decimales), también pegada al €/e.
   const PRECIO_STD = /(\d+(?:[.,]\d{1,2}))\b/g;
   // Precio DEGRADADO por el OCR ("375eZ" de "3,75", "41€" de "4,10 €"): 2-3 dígitos sin separador
@@ -73,9 +77,12 @@
   // caen los ruidos de una letra ("a UU", "y", "ñ", "E") y quedan "BEBIDA AVELLANAS" o "MC TAPADA".
   function nombreDePrefijo(prefijo) {
     const limpio = String(prefijo || "").replace(/^[\s:;,.|—\-–]+/, "");
-    const tokens = tokensDe(limpio)
+    let tokens = tokensDe(limpio)
       .map(t => t.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, ""))     // la coma pegada del OCR fuera
       .filter(t => /[A-ZÁÉÍÓÚÑÜ]{2,}|[a-záéíóúñü]{2,}/i.test(t) && tieneLetras(t));
+    // BASURA DE CABEZA: el OCR mete residuos de 1-2 letras delante del nombre ("BE LOBICHA…",
+    // "y RA…"); mientras queden ≥2 tokens reales detrás, se botan — nunca el único recuerdo.
+    while (tokens.length >= 2 && tokens[0].replace(/[^\p{L}]/gu, "").length <= 2) tokens = tokens.slice(1);
     return tokens.join(" ").trim();
   }
 
@@ -164,6 +171,19 @@
           return;
         }
       }
+      // ALDI con el símbolo de pack meado por el OCR: la cifra y la x BASTAN para apuntar la
+      // cantidad del producto que viene debajo ("2 XADO? €" — el corpus la lee así de "2x 1,5?").
+      if (origen === "aldi") {
+        const mFlojo = linea.match(PACK_FLOJO);
+        if (mFlojo) {
+          const qty = parseInt(mFlojo[1], 10);
+          if (qty >= 1 && qty <= 99) {
+            aux = { ...(aux || {}), qtyLinea: qty };
+            descartadas.push({ linea, motivo: "cantidad del pack (apuntada, mangle suelto)" });
+            return;
+          }
+        }
+      }
       const talon = precioDeTalon(linea);
       if (talon && talon.degradado) {
         // Precio degradado: exige además el código de IVA/símbolo pegado — "375eZ" pasa, "230" (talla
@@ -174,15 +194,26 @@
         }
       }
       const qtyInicialDeLinea = qtyInicial(linea);
-      // MERCADONA sobrevive sin precio si la línea nace de la columna de cantidad; ALDI/générico
+      // MERCADONA sobrevive sin precio si la línea nace de la columna de cantidad; ALDI/generico
       // exigen precio (su formato lo contiene SIEMPRE — el eco de cifras no mienta productos).
       // Único rescate sin precio fuera de Mercadona: una línea MAYÚSCULA de producto cuyo dinero
       // el OCR se comió entero ("ECO PATATA MALLA 2KG KO" — ≥3 tokens y ≥2 en mayúsculas), nunca
-      // lines cortas tipo "EX IDA" (2 tokens) ni texto en minúsculas de una nevera fotografiada.
-      const rescateAlfa = !talon && !qtyInicialDeLinea && !aux && origen !== "mercadona" &&
+      // líneas cortas tipo "EX IDA" (2 tokens) ni texto en minúsculas de una nevera fotografiada.
+      // SÍ se rescata con la línea de PESO pendiente: el granel de ALDI ("PIMIENTO DULCE ITALIAN
+      // 077201€") lleva SU precio mangleado, pero el peso de arriba es SU cantidad (no viaja).
+      // En MERCADONA NUNCA rescata: la columna de cantidad sostiene sus líneas y el rescate de
+      // mayúsculas es demasiado generoso con la cabecera FIJA en 100% mayúsculas ("CL ALBERT
+      // EINSTEIN, 13" — dirección de tienda que el OCR de la cabecera lee como producto).
+      const rescateAlfa = !talon && !(regla.sinPrecioConQty && qtyInicialDeLinea && tieneLetrasReal(linea)) &&
+        origen !== "mercadona" &&
         (() => {
-          const mayus = tokensDe(linea).filter(t => /^[A-ZÁÉÍÓÚÑÜ]{2,}$/.test(t.replace(/[^\p{L}]/gu, "")));
-          return mayus.length >= 2 && tokensDe(linea).filter(t => /[A-ZÁÉÍÓÚÑÜ]{2,}/.test(t)).length >= 3;
+          const limpios = tokensDe(linea);
+          // la cabecera ESPEJO de ALDI (el papel casi volteado se lee invertido) trae tokens con
+          // el dígito ENTRE letras ("oj9EjUOO", "ElJUO9"→"ElJUO"): un nombre del ticket NO — las
+          // cifras de producto van SUELTAS al final ("FINA, 230", "MALLA 2KG") o pegadas (“1H.”).
+          if (limpios.some(t => /\p{L}\d+\p{L}/u.test(t))) return false;
+          const mayus = limpios.filter(t => /^[A-ZÁÉÍÓÚÑÜ]{2,}$/.test(t.replace(/[^\p{L}]/gu, "")));
+          return mayus.length >= 2 && limpios.filter(t => /[A-ZÁÉÍÓÚÑÜ]{2,}/.test(t)).length >= 3;
         })();
       if (!talon && !(regla.sinPrecioConQty && qtyInicialDeLinea && tieneLetrasReal(linea)) && !rescateAlfa) {
         aux = null;                        // la auxiliar pendiente era de ESTE producto fallido: no viaja
@@ -217,23 +248,24 @@
         precio: talon ? talon.precio : null,
         precioUnit: talon ? talon.unit : null,
         pesoKg,
+        linea: linea,                       // cruda: clave del eco EXACTA ("LoMO…"≠"LOMO…" — 2 compras reales)
         origen
       });
       aux = null;                          // consumida: la siguiente auxiliar arranca limpia
     });
 
-    // Echos del OCR (la misma línea impresa dos veces): nos quedamos con la PRIORERA — sumar
-    // cantidades multiplicaría una compra que sólo se hizo una vez.
-    const vistas = new Map();
+    // Echos del OCR (la MISMA línea impresa dos veces por el motor): nos quedamos con la PRIMERA —
+    // sumar cantidades multiplicaría una compra de una vez. La clave es la LÍNEA CRUDA exacta:
+    // "1 LoMO CEBO IBÉRICO 6,21" y "1 LOMO CEBO IBÉRICO 6,21" (corpus Mercadona) son DOS compras
+    // reales del mismo producto; sólo el duplicado byte a byte es eco.
+    const vistas = new Set();
     const sinEcho = [];
     items.forEach(item => {
-      const clave = norm(item.nombre) + "|" + item.qty + "|" + (item.precio ?? "");
-      if (vistas.has(clave)) { descartadas.push({ linea: item.nombre, motivo: "echo del OCR (duplicado)" }); return; }
-      vistas.set(clave, true);
+      if (vistas.has(item.linea)) { descartadas.push({ linea: item.linea, motivo: "echo del OCR (duplicado)" }); return; }
+      vistas.add(item.linea);
       sinEcho.push(item);
     });
-
-    return { origen, items: sinEcho, descartadas };
+    return { origen, items: sinEcho.map(({ linea, ...resto }) => resto), descartadas };
   }
 
   function tieneLetrasReal(s) {

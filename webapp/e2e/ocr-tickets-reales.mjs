@@ -65,13 +65,17 @@ const ok = (cond, msg) => {
   if (!cond) fallos++;
 };
 const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+const tokensDe2 = s => norm(s).split(/[^a-z0-9]+/).filter(t => t.length >= 2);   // el casador del matcher compartido va por tokens
 
-// CONFIGURACIÓN por ticket: la despensa SEMBRADA decide qué se demuestra. Los alimentos que el
-// ticket trae EXACTOS (el nombre canónico del vocabulario ya está en casa, con criterio definido)
-// confirman en el DIALOGO 1 (la compra suma); el resto (parientes y nuevos) se definen en el
-// diálogo de revisión y dan de alta directa en la despensa al confirmar.
+// CONFIGURACIÓN por ticket (era PARSER-FIRST, 2026-10-22): los nombres que llegan son los
+// literales del TICKET ("2 LECHE FRESCA" ≈ "Leche Freic Frau frein") — la semilla decide qué
+// puede DUDAR con ellos (el casador de tokens del "🛒 Despensa?" de la lista) o TODO va a la
+// revisión como nuevo. Sembramos los alimentos que el corpus sabía que comparten palabra para
+// ejercitar la DUDA; el resto, alta directa desde la revisión.
 function configDe(foto) {
-  if (/\.(heic|heif)$/i.test(foto)) {
+  // por NOMBRE del fichero (los dos tickets del corpus son .HEIC del iPhone; la extensión no
+  // distingue): IMG_0162 = Mercadona, el resto (el "11,00 € 2)" del corpus) = ALDI
+  if (norm(foto).includes("img_0162")) {
     return {
       nombre: "HEIC del iPhone (Mercadona)",
       semilla: [
@@ -79,7 +83,7 @@ function configDe(foto) {
         { id: "s2", name: "Mantequilla", score: 5, qty: 1, min: 1, checked: false, createdAt: 2 },
         { id: "s3", name: "Zumo de Tomate", score: 5, qty: 1, min: 1, checked: false, createdAt: 3 }
       ],
-      exactos: ["Leche", "Mantequilla"]     // el pariente ("Tomate") comparte palabra con "Zumo de Tomate"
+      parientes: ["Leche", "Mantequilla", "Zumo de Tomate"]  // la compra del ticket los roza: DUDA
     };
   }
   return {
@@ -89,7 +93,7 @@ function configDe(foto) {
       { id: "s2", name: "Huevos", score: 5, qty: 1, min: 6, checked: false, createdAt: 2 },
       { id: "s3", name: "Zumo de Naranja", score: 5, qty: 1, min: 1, checked: false, createdAt: 3 }
     ],
-    exactos: ["Leche", "Huevos"]            // el pariente ("Naranja") comparte palabra con "Zumo de Naranja"
+    parientes: ["Leche", "Huevos", "Zumo de Naranja"]
   };
 }
 
@@ -128,14 +132,17 @@ try {
     const enDialogoExactos = titulo.includes("Ya lo tienes en el inventario");
     ok(!titulo.includes("No he detectado"), `la foto ${path.extname(foto).toUpperCase()} SE ABRE y el OCR la lee (nada de «no se ha podido escanear»)`);
 
-    // PASO 3 — candidatos del TEXTO de la compra: nombres no numéricos, cantidades sanas (precios fuera)
+    // PASO 3 — candidatos del TEXTO de la compra (era PARSER-FIRST): el nombre vive en el INPUT
+    // de la fila de revisión (.rev-campo-nombre) o fijado como <strong> en el diálogo de exactos
     const filas = await modal.locator(".ocr-item").all();
     const candidatos = [];
     for (const fila of filas) {
-      const inputNombre = fila.locator(".ocr-nombre input");
-      const nombre = (await inputNombre.count())
-        ? await inputNombre.inputValue()
-        : (await fila.locator(".ocr-nombre strong").textContent()).trim();
+      const deRevision = fila.locator(".rev-campo-nombre");
+      const deDialogo = fila.locator(".ocr-nombre input");
+      let nombre;
+      if (await deRevision.count()) nombre = (await deRevision.inputValue()).trim();
+      else if (await deDialogo.count()) nombre = (await deDialogo.inputValue()).trim();
+      else nombre = (await fila.locator(".ocr-nombre strong").textContent()).trim();
       const qty = Number(await fila.locator(".exact-qty, input[id^='rev-qty-']").first().inputValue());
       candidatos.push({ nombre, qty });
     }
@@ -144,13 +151,21 @@ try {
     ok(candidatos.every(c => /[a-z]/i.test(c.nombre) && !/^\d/.test(c.nombre)), "ningún candidato es una cifra del ticket (precios y kg fuera)");
     ok(candidatos.every(c => Number.isInteger(c.qty) && c.qty >= 1 && c.qty <= 30), `las cantidades son unidades de compra saneadas (${candidatos.map(c => c.qty).join("/")})`);
 
-    // PASO 4 — REGLA DE REPARTO: los exactos de la semilla (si el OCR los leyó) abren el DIÁLOGO 1;
-    // su cantidad la fija la línea del ticket y se confirman ahí con la compra sumando
+    // PASO 4 — REGLA DE REPARTO (era PARSER-FIRST): si el OCR leyó un nombre EXTO exacto de la
+    // semilla abre el DIÁLOGO 1; los parientes de la despensa aparecen como DUDA en la revisión
     if (enDialogoExactos) {
-      for (const exacto of cfg.exactos) {
+      for (const exacto of cfg.parientes) {
         const hit = candidatos.find(c => norm(c.nombre) === norm(exacto));
         if (!hit) continue;                     // el OCR de la foto no lo leyó esta vez: no se le puede exigir
         ok(true, `"${exacto}" de la despensa salió del ticket y CONFIRMA en su diálogo (nombre canónico)`);
+      }
+    } else {
+      for (const pariente of cfg.parientes) {
+        const hit = candidatos.find(c => {
+          const a = tokensDe2(norm(c.nombre)), b = tokensDe2(norm(pariente));
+          return a.some(t => b.includes(t));
+        });
+        ok(!!hit, `"${pariente}" de la despensa salió como DUDA del ticket (palabra compartida con "${hit ? hit.nombre : "-"}")`);
       }
     }
 
@@ -159,7 +174,9 @@ try {
     // PASO 5 — confirmar TODO con los valores de las filas: exactos (diálogo 1) y luego la
     // revisión con los nuevos y el dudoso dejados como "es nuevo" → TODO acaba en la despensa
     const qts = {};                            // cantidad leída del ticket por nombre normalizado
-    candidatos.forEach(c => { qts[norm(c.nombre)] = c.qty; });
+    // los MISMO NOMBRE repetido del ticket (2 compras reales del producto) SUMAN: la alta del
+    // diálogo los recoge como UN alimento con la compra total (regla anti-duplicado del módulo)
+    candidatos.forEach(c => { qts[norm(c.nombre)] = (qts[norm(c.nombre)] || 0) + c.qty; });
     const guardExactos = modal.locator("[data-confirmar-exactos]");
     if (await guardExactos.count()) { await guardExactos.click(); await page.waitForTimeout(500); }
     await modal.locator("[data-revision-guardar]").click();
@@ -171,17 +188,19 @@ try {
     }));
     ok(estado.compraTicket === null, "la clave de pendientes del ticket NI SE ESCRIBE (implementación retirada: nada en la lista de la compra)");
 
-    // los EXACTOS: sumados en el diálogo 1, con sus criterios intactos
-    for (const exacto of cfg.exactos) {
-      const semilla = cfg.semilla.find(s => s.name === exacto);
-      const enCasa = estado.foods.find(f => norm(f.name) === norm(exacto));
-      ok(!!enCasa, `"${exacto}" sigue en la despensa`);
-      ok(!!enCasa && enCasa.qty === semilla.qty + (qts[norm(exacto)] || 0),
-         `"${exacto}" RECIBIÓ su compra directa: despensa ${semilla.qty} (+${qts[norm(exacto)] || 0} del ticket), criterios intactos (score ${semilla.score})`);
+    // los EXACTOS (sólo si abrieron el diálogo 1): sumados ahí, con sus criterios intactos
+    if (enDialogoExactos) {
+      for (const exacto of cfg.parientes) {
+        const semilla = cfg.semilla.find(s => s.name === exacto);
+        const enCasa = estado.foods.find(f => norm(f.name) === norm(exacto));
+        if (!enCasa || !qts[norm(exacto)]) continue;      // el OCR no lo leyó exacto esta vez
+        ok(enCasa.qty === semilla.qty + qts[norm(exacto)],
+           `"${exacto}" RECIBIÓ su compra directa: despensa ${semilla.qty} (+${qts[norm(exacto)]} del ticket), criterios intactos (score ${semilla.score})`);
+      }
     }
-    // los DEMÁS (nuevos y el dudoso resuelto como "es nuevo"): alta directa con el criterio del diálogo
+    // los DEMÁS (nuevos y las dudas dejadas como "es nuevo"): alta directa con el criterio del diálogo
     for (const [nombreNorm, qty] of Object.entries(qts)) {
-      if (cfg.exactos.some(e => norm(e) === nombreNorm)) continue;
+      if (cfg.parientes.some(e => norm(e) === nombreNorm)) continue;
       const fila = estado.foods.find(f => norm(f.name) === nombreNorm);
       ok(!!fila && fila.qty === qty, `"${nombreNorm}" dio de ALTA en la despensa con la qty del ticket (${qty})`);
       ok(!!fila && Number.isInteger(fila.score) && fila.score >= 1 && fila.score <= 10 && Number.isInteger(fila.min),

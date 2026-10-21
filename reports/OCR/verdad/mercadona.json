@@ -1,0 +1,28 @@
+{
+  "cadena": "Mercadona",
+  "archivo": "IMG_0162.HEIC",
+  "nota": "Verdad del corpus real (reports/OCR, descartable). Los dos 'LOMO CEBO IBÉRICO' y los dos 'CEBO TAPAS' son 2 compras reales cada uno (precios/filas distintas en el ticket físico).",
+  "items": [
+    { "nombre": "BEBIDA AVELLANAS", "qty": 2 },
+    { "nombre": "BEBIDA COCO", "qty": 4 },
+    { "nombre": "SALMON NATURAL", "qty": 1 },
+    { "nombre": "ATUN CLARO NATURAL", "qty": 1 },
+    { "nombre": "LOMO CEBO IBÉRICO", "qty": 1 },
+    { "nombre": "LOMO CEBO IBÉRICO", "qty": 1 },
+    { "nombre": "CEBO TAPAS", "qty": 1 },
+    { "nombre": "CEBO TAPAS", "qty": 1 },
+    { "nombre": "PICADA DE VACUNO", "qty": 1 },
+    { "nombre": "CORDERO AL ROMERO", "qty": 1 },
+    { "nombre": "LECHE FRESCA", "qty": 2 },
+    { "nombre": "JAMÓN EXTRAF", "qty": 1 },
+    { "nombre": "TOMATE FRITO S/AZUCA", "qty": 1 },
+    { "nombre": "MANTEQUILLA PASESIN", "qty": 2 },
+    { "nombre": "FUET ESPETEC EXTRA", "qty": 1 },
+    { "nombre": "BOQUERONES ALINADOS", "qty": 1 },
+    { "nombre": "CARRILLERA", "qty": 1 },
+    { "nombre": "PIMIENTO CHORICERO", "qty": 1 },
+    { "nombre": "PAÑUELO", "qty": 3 },
+    { "nombre": "PAN_H BI", "qty": 1 },
+    { "nombre": "HIGIENICO DOBLE ROLL", "qty": 1 }
+  ]
+}
