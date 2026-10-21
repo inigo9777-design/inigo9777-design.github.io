@@ -278,9 +278,18 @@ italiana" (see `modules/origen-recetas.js` below).
   (`origenRecetas.etiquetaClasicaVisible` decide; tokens con texto distinto como
   "Sugerencia de hoy" se conservan).
 - Lista de la compra (Card 3): dedup por el matcher de tokens (`modules/ingredient-matching.js`,
-  NO lower-case exacto) contra comida real (qty>0), y semáforo dinámico por fecha de preparación
+  NO lower-case exacto) y semáforo dinámico por fecha de preparación
   (`onDay`/`daysUntil`/`urgency`): hoy/mañana=rojo, 2–3 días=naranja, ≥4 días (o sin fecha)=verde;
-  orden salida rojo→verde. "🛒 Despensa?" (2026-10-19) sale en la fila SÓLO cuando hay candidatos
+  orden salida rojo→verde. **Cobertura dinámica (feature 2026-10-21, la persona viene del ticket
+  y YA compró):** un needy sólo sale de la lista cuando queda CUBIERTO — hay alimento en casa
+  que case por tokens con qty > SU mínimo (`shoppingListFor`, regla del usuario: "más unidades
+  que el mínimo necesario"); con min 0/undefined basta qty>0. Tener "algo" YA no tapa la fila
+  (2 de un min 3 sigue en cola), y la Card se REPINTA tras CUALQUIER suceso de despensa
+  (`renderShoppingListTrasDespensa` en app.js: las dos confirmaciones del escáner OCR, alta
+  manual del formulario, ➕➖/🗑 del inventario e import de backup — el ✅ comprado y el sync
+  ya la repintaban). El filtrado es EN VIVO y needyFoods PERSISTE intacto: si el ítem se
+  vuelve a gastar, la fila reaparece; sólo el ✅ comprado retira el pendiente para siempre
+  (decisión explicita del usuario). "🛒 Despensa?" (2026-10-19) sale en la fila SÓLO cuando hay candidatos
   del módulo puro (`menuSemanal.candidatosDespensa`: comparten algún token del matcher — "Jamón
   serrano" ↔ despensa "Jamón ibérico", "Pan de pueblo" ↔ "Pan") y abre el diálogo de confirmación:
   la persona elige la variante (o nada) y la compra va IN-SITU a ese alimento vía

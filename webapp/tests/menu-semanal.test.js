@@ -111,6 +111,27 @@ describe("modules/menu-semanal.js", () => {
       expect(out.map(f => f.name)).toEqual(["Pan"]);   // el pan está (qty 0 = sin stock) → SÍ hay que comprar
     });
 
+    // (petición 2026-10-21: la lista es DINÁMICA contra el Inventario actual — la persona viene del
+    // ticket y ya compró; el ítem sólo sale cuando el alimento casa (matcher) y pasa de SU mínimo)
+    it("cubre NO es «tener algo»: la fila sigue hasta qty > MIN del alimento en casa", () => {
+      const needy = [{ name: "Yogur" }];
+      // tenía 2 de un min 3: nada comprado — la fila SIGUE (también con min alto sigue la fila)
+      expect(shoppingListFor(needy, [{ name: "Yogur natural", qty: 2, min: 3 }])).toHaveLength(1);
+      // comprado al igual del mínimo (3 = 3): aún sin «más unidades que el mínimo» → SIGUE
+      expect(shoppingListFor(needy, [{ name: "Yogur natural", qty: 3, min: 3 }])).toHaveLength(1);
+      // compra completa (4 > 3): SALE de la lista
+      expect(shoppingListFor(needy, [{ name: "Yogur natural", qty: 4, min: 3 }])).toEqual([]);
+      // criterio de alerta inexistente (min 0/legacy): basta stock: comportamiento anterior
+      expect(shoppingListFor(needy, [{ name: "Yogur natural", qty: 1 }])).toEqual([]);
+      // a cero no cubre ni sin min
+      expect(shoppingListFor(needy, [{ name: "Yogur natural", qty: 0 }])).toHaveLength(1);
+    });
+
+    it("la cobertura prueba con VARIANTES del matcher: «Pan de pueblo» sale si «Pan» pasa de su mínimo", () => {
+      expect(shoppingListFor([{ name: "Pan de pueblo" }], [{ name: "Pan", qty: 4, min: 2 }])).toEqual([]);
+      expect(shoppingListFor([{ name: "Pan de pueblo" }], [{ name: "Pan", qty: 2, min: 2 }])).toHaveLength(1);
+    });
+
     it("dedup intra-lote por tokens: plurales/caso distintos de un mismo ítem → una sola fila", () => {
       const needy = [{ name: "Merluza" }, { name: "merluza" }, { name: "MERLUZA" }, { name: "Plátano" }, { name: "Plátanos" }];
       const out = shoppingListFor(needy, []);

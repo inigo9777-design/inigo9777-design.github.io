@@ -198,11 +198,25 @@ try {
     localStorage.setItem("mrcheff.foods", JSON.stringify([
       { id: "a1", name: "Yogur natural", score: 7, qty: 2, min: 3, checked: false, createdAt: 1 }
     ]));
+    // (E) lista de la compra DINÁMICA (2026-10-21): plan "aprobado" con DOS pendientes — el
+    // «Yogur» lo cubrirá el ticket (2+2=4 > su min 3) y «Semillas de calabaza» NO se compró
+    // (en la tienda no estaba: la fila queda mientras el mínimo siga sin compensarse).
+    localStorage.setItem("mrcheff.weekmenu", JSON.stringify({
+      approved: true, generatedOn: "2026-10-01", includeUnavailable: false,
+      plan: Array.from({ length: 7 }, () => ({ dayLabel: "Lunes", meals: [] })),
+      needyFoods: [{ name: "Yogur" }, { name: "Semillas de calabaza" }]
+    }));
   });
   const pageT = await ctxTicket.newPage();
   pageT.on("pageerror", e => console.log("[pageerror ticket]", String(e).slice(0, 300)));
   await pageT.goto(APP);
   await pageT.waitForSelector("#view-foods.active");
+
+  // (E) ESTADO DE ARRANQUE: la Card 3 ya lista los pendientes del plan Y RESPETA la despensa —
+  // el «Yogur» sigue porque 2 ≤ su min 3 (tener algo en casa no lo tapa).
+  const filas = () => pageT.$$eval("#shopping-list li.alert-row .alert-name strong", els => els.map(e => e.textContent));
+  ok(JSON.stringify(await filas()) === JSON.stringify(["Yogur", "Semillas de calabaza"]),
+    "(E) al arrancar: la lista muestra los DOS pendientes — «Yogur» sigue en fila (2 de su min 3, nada comprado)");
 
   await pageT.evaluate(t => window.__mrcheffProcesarTextoOcr(t),
     ["3 Leche entera 1,29 €", "2 x Yogur", "1 Pan de pueblo", "TOTAL 12,40 €. GRACIAS"].join("\n"));
@@ -274,6 +288,19 @@ try {
     "(D) la DUDA resuelta con variante SUMA a 'Yogur natural' (2 en casa + 2 del ticket) y su alerta queda 7/3, sin pisar");
   ok(!d.foods.some(f => f.name === "Yogur"), "(D) no se da de alta un 'Yogur' aparte: la compra va AL alimento ya en casa");
   ok(d.foods.length === 3, "(D) la despensa acaba con las tres cosas del ticket y nada más");
+
+  // ── (E) LA LISTA DE LA COMPRA SE ACTUALIZA DINÁMICAMENTE (petición 2026-10-21): el ticket
+  //    alimentó la despensa por las dos confirmaciones OCR y la Card 3 lee el Inventario
+  //    actual — el comprado SALE (qty > su min) y el ítem que no estaba en la tienda SIGUE.
+  await pageT.click('.topbar .tab[data-view="suggest"]');
+  ok(JSON.stringify(await filas()) === JSON.stringify(["Semillas de calabaza"]),
+    "(E) tras el ticket: «Yogur» SALE de la lista (en casa 4 > su min 3, ya está) y «Semillas de calabaza» SIGUE (no se encontró en la tienda)");
+  ok(!(await pageT.$eval("#shopping-list", el => el.classList.contains("hidden"))),
+    "(E) la Card 3 sigue visible: QUEDA un pendiente real — la lista no se vacía de golpe");
+  await pageT.waitForTimeout(400);                        // el pill del topbar hace fade — capturamos a pill posado
+  await pageT.$eval("#shopping-list", el => el.scrollIntoView({ block: "start" }));   // Card 3 a la vista: la captura documenta
+  await pageT.waitForTimeout(250);
+  await pageT.screenshot({ path: path.join(OUT_DIR, "34-lista-compra-dinamica.png") });
   await ctxTicket.close();
 
   await ctxDesk.close();

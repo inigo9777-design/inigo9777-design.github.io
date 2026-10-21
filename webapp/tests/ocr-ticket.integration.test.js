@@ -230,3 +230,47 @@ describe("Escáner del ticket → los dos diálogos dentro de Alimentos (integra
     expect(window.localStorage.getItem("mrcheff.compraTicket")).toBe(null);
   });
 });
+
+// FEATURE 2026-10-21 (lista de la compra DINÁMICA): las dos confirmaciones del escáner (exactos
+// y revisión) tocan el Inventario → la Card 3 se repinta al instante. El despensa sembrado tiene
+// el plan aprobado con UN needy por cada salida posible: «Pan» y «Yogur» acabarán cubiertos por
+// lo comprado (qty > su min) y «Semillas de calabaza» SIGUE — en la tienda no la había.
+describe("Escáner → la lista de la compra DINÁMICA se repinta en cada confirmación (integración)", () => {
+  const conPlanAprobado = () => bootApp({
+    seed: {
+      foods: [
+        { id: "a1", name: "Yogur natural", score: 7, qty: 2, min: 3, checked: false, createdAt: 1 },
+        { id: "a2", name: "Pan", score: 3, qty: 1, min: 1, checked: false, createdAt: 2 }
+      ],
+      recipes: [], innov: [], cooked: [],
+      weekmenu: {
+        approved: true, generatedOn: "2026-10-21", includeUnavailable: false,
+        plan: Array.from({ length: 7 }, () => ({ dayLabel: "Lunes", meals: [] })),
+        needyFoods: [{ name: "Pan" }, { name: "Yogur" }, { name: "Semillas de calabaza" }]
+      }
+    }
+  });
+
+  const filas = document =>
+    [...document.querySelectorAll("#shopping-list li.alert-row .alert-name strong")].map(e => e.textContent);
+
+  it("antes de confirmar: las 3 filas pendientes; tras los EXACTOS «Pan» sale (2 > su min 1); tras la REVISIÓN «Yogur» sale (4 > min 3) y «Semillas» sigue sin comprarla", async () => {
+    const { document, window } = conPlanAprobado();
+    window.__mrcheffProcesarTextoOcr(TICKET);
+    expect(filas(document)).toEqual(["Pan", "Yogur", "Semillas de calabaza"]);   // aún sin comprar
+
+    document.querySelector("[data-confirmar-exactos]").click();             // diálogo 1: Pan +1 (qty 1 → 2)
+    expect(filas(document)).toEqual(["Yogur", "Semillas de calabaza"]);     // Pan: 2 > su min 1 → SALE ya
+
+    const sel = document.getElementById("rev-variante-1");
+    sel.value = "a1";                                                        // la duda del Yogur → su variante
+    sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+    document.querySelector("[data-revision-guardar]").click();               // diálogo 2: Yogur +2 (2 → 4)
+    expect(filas(document)).toEqual(["Semillas de calabaza"]);               // Yogur: 4 > 3; Semillas: la tienda no la tenía
+
+    // needyFoods PERSISTE íntegro: el borrado es de la Card (en vivo), no del plan — si el ítem
+    // se vuelve a gastar, la fila reaparece (sólo el ✅ comprado lo retira pa siempre).
+    const seman = JSON.parse(window.localStorage.getItem("mrcheff.weekmenu"));
+    expect(seman.needyFoods.map(f => f.name)).toEqual(["Pan", "Yogur", "Semillas de calabaza"]);
+  });
+});
