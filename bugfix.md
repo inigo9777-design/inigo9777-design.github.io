@@ -113,3 +113,24 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   ya con los valores de .menu-day; header estirado, `width` ≈ tarjeta − paddings) + suite jsdom
   completa verde (586) + e2e del plegado 12/12 + auditoría a11y móvil OK; capturas
   74-75-76 (escritorio oscuro/claro + móvil).
+- `2026-10-21 · @AI-agent · task sugerir-ahora-lote · Síntoma:` el botón "↻ Sugerir ahora"
+  (Card 1 de Sugerencias y menú) "ya no saca recetas": la lista quedaba vacía para siempre y
+  ni rotaba. **Causa (repro con el backup real del usuario, 29 alimentos / 23 recetas / 111
+  entradas en `mrcheff.cooked`):** el cooldown de 7 días vive en el pool común
+  (`buildCandidatePool`) y con un aforo relativamente pequeño SÓLO 5 recetas del catálogo+Mis
+  Recetas salían cocinables — y las 5 estaban cocinadas dentro de la ventana (aprobar el plan
+  ancla hasta 21 entradas y cocinar día a día suma más) ⇒ ranking estricto = 0 tarjetas, sin
+  rotación posible. Además, con despensas finas (4 desayunos + 1 comida) el RELLENO del lote
+  (`planner.loteRotado`) re-escaneaba siempre desde el nº1 del ranking ⇒ el lote era el mismo
+  set en cada click aunque los cursores avanzaran. **Arreglo (dos piezas):** (1) RODILLO DEL
+  COOLDOWN en app.js: si el ranking estricto trae menos de 4, se completa con el pool SIN
+  filtro de cooked (dedupe por título; las ya cocinadas quedan al final) — la Card devuelve
+  SIEMPRE hasta 4 recetas "cocinables hoy con lo de casa", primero las no cocinadas. (2) En
+  `loteRotado` el relleno escanea el ranking CIRCULAR desde la ventana que rota con el click
+  (arranque `(clicks*max) % ideas.length`, cada índice como máximo una vez) ⇒ el set excluido
+  cambia en cada click. **Verificación:** integration jsdom nuevo en
+  `tests/suggest-rotation.integration.test.js` (todo lo cocinable cocinado → lote de 3-4 de los
+  3 tipos y rota) + unit nuevo en `tests/planner.test.js` (5 candidatos finos: ningún click
+  consecutivo repite set) + repro e2e con el estado real del backup (4 tarjetas, click a
+  click cambia el excluido) + suite completa verde (588/588) + e2e plegado 12/12 + a11y OK;
+  captura 81.

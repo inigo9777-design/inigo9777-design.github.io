@@ -423,9 +423,15 @@
       }
       cursores[m] += 1;
     });
-    // Relleno hasta max con lo mejor del ranking global aún no elegido:
-    for (const r of ideas) {
-      if (lote.length >= max) break;
+    // Relleno hasta max escanneando el ranking CIRCULAR desde la VENTANA que ROTA con el click
+    // (arranque = (clicks * max) % ideas.length — cada click el relleno avanza una parrilla entera:
+    // el scan da la vuelta y pasa de largo; cada índice a lo sumo UNA vez). Antes el relleno volvía
+    // SIEMPRE al nº1 del ranking y, con poquísimos cocinables (4 desayunos + 1 comida, el caso real
+    // del bug de 2026-10-21), el lote resultaba el MISMO set en cada click. Con la ventana rotada el
+    // conjunto exclusado cambia en cada pulsación aunque los cursores por tipo ya no den más de sí.
+    const arranque = (clicks * max) % ideas.length;
+    for (let paso = 0; paso < ideas.length && lote.length < max; paso++) {
+      const r = ideas[(arranque + paso) % ideas.length];
       if (!lote.some(b => b === r)) lote.push(r);
     }
     // Presentación coherente con "ordenadas por aprovechamiento": el lote hereda el orden del ranking global.
