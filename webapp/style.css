@@ -1009,7 +1009,8 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   list-style: none;
 }
 .menu-day-header {
-  align-self: stretch;             /* el título traviesa la tarjeta: nada de centrarse */
+  align-self: center;              /* centrado en la tarjeta, como está en la foto de referencia */
+  width: max-content;              /* su filete inferior abraza SOLO al título — no a la tarjeta */
   font-family: Georgia, serif;
   font-weight: 600;
   font-size: 1.12rem;
@@ -1017,7 +1018,8 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 2px 6px 4px 14px;       /* la barra abre en 26px: alineada con la 1ª píldora (12+14) */
+  padding: 2px 18px 10px;
+  border-bottom: 1px solid var(--border);   /* filete corto bajo el título del día */
 }
 /* El día abre con una señal de marca: jerarquía instantánea al escanear la semana */
 .menu-day-header::before {
@@ -1037,12 +1039,15 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
    plato | acciones (píldora y acciones de ancho propio).
    align-self:stretch es EXPLÍCITO: ninguna fila puede quedar más estrecha que su tarjeta
    (comportamiento anómalo visto en el review).
-   align-items:start: la PÍLDORA y el cuerpo arrancan ARRIBA — el punto de arranque del
-   contenido no depende del alto de cada fila (con center, el título de una fila de 3 líneas
-   y el de otra de 5 nacían a alturas distintas: la semilla del desalineado vertical). */
+   La 1ª columna es FIJA (116px): auto la ajustaba al ancho de CADA píldora (Desayuno 99px
+   ≠ Comida 85px ≠ Cena 64px) y los títulos partían en un vertical distinto por fila — la
+   foto de referencia del usuario exige UNA línea de arrancada compartida.
+   align-items:start: el cuerpo arranca ARRIBA en TODAS las filas (con center, el título de
+   una fila de 3 líneas y el de otra de 5 nacían a alturas distintas); la PÍLDORA se centra
+   con align-self:center (su propio align-self, como en la foto de referencia). */
 #menu-plan-list .menu-meal-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: 116px minmax(0, 1fr) auto;
   width: 100%;
   align-self: stretch;
   align-items: start;
@@ -1069,7 +1074,8 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 /* El estado del generador respira respecto a los botones que lo provocan */
 #menu-status { margin-top: 10px; }
 
-/* Píldora de franja horaria: tinta contenida, el par bg/fg ya definido por tema */
+/* Píldora de franja horaria: tinta contenida, el par bg/fg ya definido por tema; se CENTRA
+   en la fila (align-self sobre el start general) y abraza su contenido sin herir a 116px */
 .menu-meal-tag {
   font-size: 0.78rem;
   font-weight: 600;
@@ -1079,7 +1085,8 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   border-radius: var(--radius-s);
   background: var(--tag-fuente-bg);
   color: var(--tag-fuente-fg);
-  justify-self: start;             /* en columna 1fr (≤480px) la píldora no se estira: jamón */
+  align-self: center;              /* centrada en la fila, como en la foto de referencia */
+  justify-self: start;             /* la pastilla tintada abraza su contenido, no llena la columna */
 }
 .menu-meal-row[data-meal="desayuno"] .menu-meal-tag { background: var(--tag-protagonista-bg); color: var(--tag-protagonista-fg); }
 .menu-meal-row[data-meal="comida"]   .menu-meal-tag { background: var(--tag-libre-bg);         color: var(--info); }
