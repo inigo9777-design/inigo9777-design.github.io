@@ -1,6 +1,6 @@
 # AGENTS.md — Mr Cheff
 
-Compact guide for AI agents, now the single canonical in-repo reference (its former sibling, the stale `CLAUDE.md`, was folded into it and removed). For product vision read `Readme.html`; team coding/testing standards live in `CODING_STANDARDS.md`, referenced below. When docs and code disagree, **trust this file + the code**.
+Compact guide for AI agents, now the single canonical in-repo reference (its former sibling, the stale `CLAUDE.md`, was folded into it and removed). For product vision read `Readme.html`; team coding/testing standards live in `.opencode/rules/CODING_STANDARDS.md` (referenced below) and resolved BUGS are recorded in `bugfix.md`. When docs and code disagree, **trust this file + the code**.
 
 ## What this actually is
 - A kitchen-assistant prototype. `Readme.html` badges it "Kotlin Multiplatform · Android · iOS",
@@ -20,10 +20,10 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
 - **Tests:** `cd webapp && npm test` (`jest`) / `npm run coverage` (`jest --coverage`). Jest IS a
   declared devDependency with installed `node_modules/`. Specs live under `webapp/tests/` — per-module specs (classify, priority, recipe-analysis, ingredient-matching, util, innovations,
   planner, menu-semanal, recipe-editor, recipe-missing, backup, origen-recetas, busqueda-recetas, swipe-tabs,
-  merge-identidad, sync-crypto, diff-merge) +
+  merge-identidad, sync-crypto, diff-merge, ocr-despensa, ocr-foto) +
   integration specs (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
-  buscador-catalogo, e2e-flow-receta-a-alerta-compra, sync-protocol, sync-ui) + harness scaffolding (`boot.js` / `setup.js`). As of the last
-  run on 2026-10-19 the whole suite is green (**382 tests across 27 suites**) — verify with a fresh
+  buscador-catalogo, e2e-flow-receta-a-alerta-compra, sync-protocol, sync-ui, ocr-ticket, ocr-foto) + harness scaffolding (`boot.js` / `setup.js`). As of the last
+  run on 2026-10-20 the whole suite is green (**539 tests across 37 suites**) — verify with a fresh
   run before trusting it.
 - **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
   and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`
@@ -49,15 +49,25 @@ is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
   comentario en la línea 2 (`Apply`) invalidaba el bloque `:root` entero del modo claro — parser CSS lo engulle
   como selector; mantener el fichero sin tokens basura fuera de comentario].
 
-Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts) · **Recetas**
+Views (5 main tabs + 1 side tab): **Alimentos** (pantry/restock alerts; escáner del TICKET de la
+compra por OCR: "cámara" SÓLO en móvil vía `input capture` — escritorio pide una foto — y DOS
+DIALOGOS de confirmación DENTRO de la pestaña: exactos del Inventario actual con la CANTIDAD
+comprada editable + revisión con secciones Nuevos/Dudas (ver el bullet del escáner), módulo
+`ocr-despensa.js`) · **Recetas**
 (free-text → structured recipe; card "🔎 Buscador del catálogo" busca en el JSON del catálogo
-por título/ingrediente y abre el modal de detalle — match por PREFIJO (petición 2026-10-20,
+SÓLO por título (fix 2026-10-20: los ingredientes ya NO puntúan — "mascarpone" ya no saca el
+Tiramisú) y abre el modal de detalle — match por PREFIJO (petición 2026-10-20,
 "menos letras"): el token escrito casa exacto preferente y si no con cualquier token del
-catálogo que EMPIECE por él ("gamb"→"gambas", "croqu"→"croquetas"; título exacto x3, título
-prefijo x2, ingrediente 1, así la afinidad real sigue mandando; tokens ≥3 letras vía
+TÍTULO que EMPIECE por él ("gamb"→"gambas", "croqu"→"croquetas"; título exacto x3, título
+prefijo x2, así la afinidad real sigue mandando; tokens ≥3 letras vía
 TOKEN_MIN_LEN del matcher — 1-2 letras no dan ruido); + Mis Recetas) · **Innovación**
 (curated-catalog suggestions from the pantry) ·
-**Sugerencias y menú** (↻ Sugerir ahora lote rotado + plan semanal 7×3 + lista de la compra) ·
+**Sugerencias y menú** (↻ Sugerir ahora lote rotado — fix 2026-10-21: el cooldown NO puede dejar
+la Card a cero, si lo cocinable está entero cocinado en la semana se rellena con el pool SIN
+filtro de cooked [rodillo del cooldown, raíz del bug "ya no saca recetas"] — + plan semanal 7×3
+con las filas SIN la etiqueta "Sugerencia de hoy" [petición 2026-10-21: en la semana cada hueco
+ya es una sugerencia, sólo se suprime ese token vía `tagMenuSlotHTML` y la bandera
+`ocultarEtiquetaSugerencia` en el modal; Card 1 la conserva] + lista de la compra) ·
 **Temporada** (in-season fruit/veg by month) · **Copia de seguridad** (side icon tab). Every recipe
 viewed anywhere (cards, plan slots, modal) shows an ORIGIN badge — "Receta española"/"Receta
 italiana" (see `modules/origen-recetas.js` below).
@@ -102,7 +112,12 @@ italiana" (see `modules/origen-recetas.js` below).
   (así vive en index.html; si se pierde, TODO el bloque editorial de la ficha en style.css —
   secciones con filete, sangría de listas, pie de botones igualados, filete con fade
   `.receta-linea` — deja de aplicarse: bug de 2026-10-19, la ficha se veía cruda por ese
-  descuido). Pie de la ficha: botones repartidos igual (flex 1·1·0; 2×2 en ≤420px) y el
+  descuido). **Jerarquía de filetes de la ficha (petición 2026-10-21):** el verde bajo el TÍTULO
+  (`.receta-linea`) manda como estilo y los filetes de sección (`h4::before`, mismo fade
+  `90deg transparent → color 20/80 → transparent` con opacity .7) van en MARRÓN con token propio
+  `--filete-marron` (#8a5f34 claro / #b3885c oscuro — color nuevo ⇒ token en ambos temas); el
+  `.modal-box` scrollea SIN barra visible (`scrollbar-width:none` + `::-webkit-scrollbar
+  display:none`) — cubre ficha y editor, mismo contenedor, el scroll queda intacto. Pie de la ficha: botones repartidos igual (flex 1·1·0; 2×2 en ≤420px) y el
   consejero del botón (`data-tip` + píldora `.tip-chef`, delegado en `#modal-content`) SOLO en
   "🍳 Cocinar hoy" (petición 2026-10-19/20: Cerrar/Editar/Copiar van sin consejo):
   desktop hover/foco, móvil long-press de 450 ms que al soltar NO acciona el botón (su click
@@ -155,8 +170,21 @@ italiana" (see `modules/origen-recetas.js` below).
   (PASOS por grupos + máquina de sesión; contrato `pasoValido`; pasos con `vista`/`selector`/
   `accionable`/`titulo`/`texto`/`cta`). El wiring está en app.js (sección TUTORIAL): velo
   semitransparente de 4 rectángulos + "foco" con aro de marca sobre el elemento del paso +
-  tarjeta explicativa; los pasos accionables avanzan TOCANDO el elemento REAL (el toque ejecuta su
-  función: focus del input, generar ideas/lote/plan…) y los informativos muestran botón.
+  tarjeta explicativa; los pasos accionables avanzan TOCANDO el elemento REAL (el toque ejecuta
+  su función: generar ideas/lote/plan…) y los informativos muestran botón. **Silencio de campos
+  (petición 2026-10-21):** en los accionables que apuntan a un form-control (input/textarea/
+  select: `#food-name`, `#recipe-desc`, `#recipe-catalog-search`, `#season-month`, `#food-score`)
+  el wiring hace `preventDefault` en `pointerdown`/`mousedown` de su diana — se cancela el
+  FOCUS y con él el teclado del PWA instalable que descuadraba el paso siguiente y el picker
+  nativo que dejaba la lista de meses abierta encima — pero el CLICK sigue vivo, así el paso
+  avanza igual; al reabrir con 🎓 se hace blur del foco activo (iOS nota: su picker puede
+  abrirse al soltar — la plataforma de la feature es el PWA Android/Brave). **Tarjeta sobre
+  objetivos ALTOS (petición 2026-10-21):** "Mis recetas" y "Buena fruta, buena verdura" llevan
+  `tarjeta: "arriba"` en el guion (pasoValido valida el campo: sólo "arriba") — el scroll ya no
+  centra el elemento, su ARRANQUE se asienta al 60% de la ventana (window.scrollTo) y la tarjeta
+  flota ENCIMA del aro sin tocarlo: arriba asoma la cabecera atenuada por el velo, en medio el
+  diálogo y debajo la lista/cuadrícula viva y enfocada — en vez de taparla (e2e mide las tres
+  zonas con capturas 72-73).
   Auto-abre SOLO la primera vez en contexto web instalable (http/https; `file://` no — se
   registra en LS `mrcheff.tutorial.visto`, respetado por ✕ / Escape / "Terminar"; se reabre
   con el botón circular 🎓 `#btn-tutorial` en `.topbar-actions` ENTRE la caja fuerte y el tema,
@@ -169,12 +197,31 @@ italiana" (see `modules/origen-recetas.js` below).
   modal; container `pointer-events:none` con auto en velos/tarjeta — el click DEL FOCO tiene que
   llegar al elemento real) y `modules/tutorial.js` añadido al shell del sw (caché v5).
   Accesibilidad: role dialog + anuncio sr-only "Paso X de N", Escape cierra y marca visto.
-  Verificación: unit `tests/tutorial.test.js` (contrato/grupos/sesión ~12), integración jsdom
+  Verificación: unit `tests/tutorial.test.js` (contrato/grupos/sesión ~13), integración jsdom
   `tests/tutorial-ui.integration.test.js` (auto-apertura, X/Escape/Terminar, reabrir, flujo
   accionable con GUION INYECTADO en la ventana = desacoplado del contenido que crece la épica,
-  recorrido completo 16 pasos) y e2e Brave real `e2e/tutorial.mjs` (20 checks: auto-apertura,
-  segunda visita silenciosa, 🎓, recorrido completo con mouse+coords, geometría del aro,
-  swipe inmóvil; sirviendo por http://localhost:8617 con python3 porque file:// no auto-abre).
+  silencio de campos y del select, recorrido completo 16 pasos) y e2e Brave real
+  `e2e/tutorial.mjs` (28 checks: auto-apertura, segunda visita silenciosa, 🎓, recorrido
+  completo con mouse+coords, campos silenciados sin focus, geometría del aro y de la tarjeta
+  sobre los objetivos altos, swipe inmóvil; sirviendo por http://localhost:8617 con python3
+  porque file:// no auto-abre).
+  (10) **Botón flotante "subir al principio"** (feature 2026-10-21, petición del usuario): con
+  listas verticales muy largas, al bajar MÁS de una pantallita (`window.innerHeight` de umbral)
+  aparece con fade+escala abajo a la derecha el círculo con flecha (`.fab-subir-encima` 46×46,
+  z 60: sobre el contenido, bajo el tutorial y el modal); un toque devuelve AL PRINCIPIO de la
+  pestaña ACTUAL con animación (`behavior:"smooth"`; reduce-motion → "auto"; fallback
+  try/catch para WebView sin options object — línea por línea la mecánica del click del
+  topbar) y se vuelve a OCULTAR al quedar arriba (y ≤ umbral, comparación estricta). Va en
+  TODAS las pestañas (una sola pieza: sigue el scroll del DOCUMENTO, no por vista; el click
+  del nav ya sube y el swipe restaura memoria — el FAB ni toca la memoria-scroll: al salir de
+  la vista la captura del 0 la resetea sola, invariante 2026-10-20). Regla y salto en módulo
+  puro `modules/scroll-arriba.js` (`debeMostrarseBoton/subirEncima/movimientoReducido`, win
+  inyectable); app.js sólo listener scroll/resize rAF-throttled (passive) + clase `visible`;
+  el botón nace `opacity:0` + `pointer-events:none` (el `.hidden` display:none rompería el
+  fade). Precacheado en el shell (caché v6). Verificación: unit `tests/scroll-arriba.test.js`,
+  integración jsdom `tests/boton-subir-encima.integration.test.js` y e2e Brave
+  `e2e/boton-subir-encima.mjs` (9 checks + captura 36; rueda de móvil con `page.mouse.wheel`,
+  generando el plan 7×3 en Sugerencias para que esa pestaña tenga lista larga real).
 - **Sync entre dispositivos por buzón GitHub (feature 2026-10-19; su fichero de plan fue retirado del repo, el protocolo vive documentado en módulos/comments/tests):** sincroniza los
   datos entre 2 dispositivos (móvil PWA + escritorio) con un gist privado como buzón y cifrado extremo a
   extremo: AES-GCM-256 con clave PBKDF2-SHA256 (600k iteraciones) derivada de una passphrase que el usuario
@@ -200,15 +247,34 @@ italiana" (see `modules/origen-recetas.js` below).
 - **Pure modules (`webapp/modules/`, all IIFE + dual-export, no DOM/localStorage — §3 CODING_STANDARDS):**
   `classify.js` · `priority.js` · `recipe-analysis.js` · `ingredient-matching.js` (token matcher,
   shared by planner/menu-semanal/innovations) · `util.js` · `innovations.js` · `planner.js` (public API:
-  buildCandidatePool, matchDetails, suggestToday, buildWeeklyMenu, pickRecipeForSlot, loteRotado…) ·
+  buildCandidatePool, matchDetails, suggestToday, buildWeeklyMenu, pickRecipeForSlot, loteRotado —
+  el relleno del lote es una VENTANA CIRCULAR que rota con el click (`(clicks*max) % len`; fix
+  2026-10-21: volvía siempre al nº1 del ranking y con despensas finas el lote no cambiaba)…) ·
   `menu-semanal.js` (shoppingListFor, approveMenu, markItemBought, cookEntry, swapSlotRecipe, clearMenu,
-  accionesMenuSlot — el 🍳 del menu sólo en plan aprobado) ·
+  accionesMenuSlot — el 🍳 del menu sólo en plan aprobado, platosDelPlan y alternarColapso — plegar/
+  desplegar la semana APROBADA, petición 2026-10-21) ·
   `recipe-editor.js` (buildDraft, validateDraft, estaGuardada, applyEdit, patchPlan) · `recipe-missing.js`
   (qué ingredientes faltan para el modal) · `backup.js` · **`busqueda-recetas.js`** (buscador del
-  catálogo: texto libre → resultado por título x3/ingrediente x1, reutiliza matching de tokens
-  del matcher compartido, orden estable y límite ctx.limite) · **`origen-recetas.js`** (etiqueta/sello de origen:
+  catálogo: texto libre → resultado por TÍTULO SÓLO, exacto x3 / prefijo x2 — fix 2026-10-20:
+  los ingredientes ya no puntúan —, reutiliza matching de tokens del matcher compartido,
+  orden estable y límite ctx.limite) · **`origen-recetas.js`** (etiqueta/sello de origen:
   esItaliana, etiquetaOrigen, claseOrigen, origenAlGuardar, etiquetaClasicaVisible — inyectable ctx
-  `{catalog, ids}` para tests) · **`sync-crypto.js`** (AES-GCM 256 + PBKDF2: deriveKey/encryptJson/
+  `{catalog, ids}` para tests) · **`ocr-despensa.js`** (escáner del TICKET por OCR: esMovil, esHeic;
+  extraerCandidatos — vocabulario FOOD_TYPES + CANTIDAD por línea (unidades de cuenta: x/UD/bolsa/
+  brik/… y cifra inicial; los pesos del envase 400g/1L y los precios NO cuentan); guardarCandidatos
+  REPARTE SIN ALTAS: nombre EXACTO en la despensa → `directos` (el diálogo 1 suma su compra);
+  con VARIANTES (inyección `deps.candidatosDespensa`, la misma máquina del botón "🛒 Despensa?"
+  de la lista del plan) → `dudosos` para el diálogo de revisión; nuevo → `nuevos`; pasosDeConfirmacion
+  (["despensa","revisar"], el paso sin filas no sale) y confirmarRevision — la escritura FINAL
+  del 2º diálogo: fila con `varianteId` → SUMA en-situ (criterios intactos), sin ella → ALTA con
+  {nombre, qty, score, min} definidos EN el diálogo; nombre que ya existe → suma en vez de duplicar) ·
+  **`ocr-foto.js`** (la MÁQUINA DE LA FOTO
+  del escáner, refactor desde app.js 2026-10-20: prepararFoto — HEIC declara conversión directa
+  y el sondeo con el decodificador REAL manda el HEIC camuflado de ".png" al conversor —,
+  geometriaDeLienzo — giro 90/270 con lados trocados, máx. 1600px por lado — y escanearCaras —
+  ciclo de frente → 90° → 270° hasta la primera cara con candidatos, texto null = cancelado;
+  la I/O va inyectada por ctx: esHeic / decodificar / convertir / abierta / lienzoDe /
+  reconocer / hayAlimentos; specs tests/ocr-foto.test.js) · **`sync-crypto.js`** (AES-GCM 256 + PBKDF2: deriveKey/encryptJson/
   decryptJson/nuevoSalt + base64 helpers; crypto inyectable — jsdom no trae .subtle) ·
   **`diff-merge.js`** (fusión 3-way: merge3 base/mio/suyo → {estado, conflictos, avisos} + aplicarResoluciones
   local/remota/ambas; CERO dependencias) · **`sync.js`** (máquina del buzón: ejecutar/
@@ -238,12 +304,40 @@ italiana" (see `modules/origen-recetas.js` below).
     FECHA de su día planificado (próxima ocurrencia de ese weekday desde HOY, HOY incluido como día 0); con el
     menú 7×3 hay una entrada por RECETA del plan (hasta 21) y las de un mismo día comparten fecha ancla.
     "🍳 Cocinar" desde el menú = `cookEntry` (hoy) + `swapSlotRecipe` del propio hueco (no regenera el plan entero).
-  - `mrcheff.weekmenu`: `{ approved, includeUnavailable, generatedOn, plan[7], needyFoods[] }` — ancla = HOY real
+  - `mrcheff.weekmenu`: `{ approved, includeUnavailable, generatedOn, plan[7], needyFoods[], colapsado? }` — ancla = HOY real
     al aprobar, no el día visual marcado. Desde la feature 2026-10-18 el plan es **7 días × 3 comidas**:
     `plan[7] = { dayLabel, meals[3] = { meal: "desayuno"|"comida"|"cena", recipe|null, missing } }` y
     `needyFoods` = unión dedup de los ausentes de los 21 slots. `swapSlotRecipe` (módulo `menu-semanal.js`)
     puede añadir por slot el campo opcional `triedKeys: string[]` (fingerprints ya probados, para que el
-    botón "🔄 Cambiar" recorra el ranking sin oscilar). `pickRecipeForSlot` es la 6ª función pública de
+    botón "🔄 Cambiar" recorra el ranking sin oscilar). **Plegado de la semana (feature 2026-10-21,
+    petición del usuario):** el plan APROBADO se PLEGA vía la barra "📅 Tu semana — N platos" + "▾ Plegar"
+    (sólo aparece aprobado — `pintaBarraPlan` en app.js es el punto ÚNICO de la barra y del plegado de la
+    lista; el PREVIEW no se pliega y un plan limpio/nuevo nace expandido) y SIEMPRE vuelve a desplegarse
+    ("▸ Desplegar"); el estado opcional `colapsado` viaja en el shape persistido (como `triedKeys`, nota
+    §8) y la regla vive en `alternarColapso` — Card 3 (lista de la compra) queda visible plegada o no.
+    **Diseño de la semana (2026-10-21):** cada día es una tarjeta `.menu-day` del mismo pie que `.card`
+    (radio-l) con columnas suaves (`--card-soft`, radius-m) DENTRO del acolchado — sin filas a sangre, sin
+    tabiques de 1px y sin el filete lateral: la franja horaria (desayuno=ámbar, comida=azul, cena=violeta)
+    vive en la PÍLDORA `.menu-meal-tag` con los pares bg/fg de tags (`--tag-protagonista/_fg`, `--tag-libre-bg`
+    + `--info`, `--tag-variacion/_fg`), tokens de ambos temas. ⚠️ El `<ul id="menu-plan-list">` nace con la
+    clase `alert-card` en el markup → la regla genérica `.alert-card li` (0,1,1) APLASTABA a `.menu-day`
+    (0,1,0): centraba el título y achicaba el radio; la familia del plan lleva prefijo `#menu-plan-list`
+    (1,1,0) para ganar y el override `#menu-plan-list.alert-card` neutraliza el tinte del contenedor.
+    **Alineación y rostro de los botones (2026-10-21, 2ª pasada):** `align-items:start` en la fila — el
+    cuerpo arranca ARRIBA en todas las filas (con `center` el título nacía a otra altura según el nº de
+    líneas) — la PÍLDORA se CENTRA en la fila con `align-self:center` y los botones del plan ya no salen
+    al estilo por defecto del navegador (radio 0): llevan la voz de `.recipe-card` — `--hover-wash` +
+    filete + `border-radius: var(--radius-s)` (6px, el MISMO redondeo de las píldoras).
+    **3ª pasada (2026-10-21, foto de referencia del usuario):** columna de la píldora FIJA (116px —
+    con `auto`, cada fila medía su propia píldora, 99/85/64px, y los títulos partían en un vertical
+    distinto fila a fila; 116px restaura la LíNEA DE ARRANCADA compartida, sonda: titX=142 en todas las
+    filas, desviación 0) y el TÍTULO DEL DÍA vuelve a CENTRARSE con su filete corto (`align-self:center`
+    + `width:max-content` + border-bottom: era el accidente visual de `.alert-card li` que el usuario
+    quería conservar — ahora es deliberado). **Filete del día en VERDE (petición 2026-10-21):** ese
+    filete corto pasa del borde sólido `--border` al fade del título de la ficha pero en verde de
+    marca (`.menu-day-header::after`, `var(--brand)`, opacity .7) — misma anatomía que la ficha de
+    receta, color aparte para los días del plan (allí las secciones van en marrón).
+    `pickRecipeForSlot` es la 6ª función pública de
     `planner.js` (contrato ampliado, log §8 del CODING_STANDARDS.md). Las recetas guardadas son EDITABLES
     desde el modal de detalle (✏️ Editar): edición in-situ si ya está en `mrcheff.recipes` o copia nueva
     si es un plato del catálogo o del plan — los huecos del plan que incrustan la receta editada se refrescan
@@ -257,9 +351,18 @@ italiana" (see `modules/origen-recetas.js` below).
   (`origenRecetas.etiquetaClasicaVisible` decide; tokens con texto distinto como
   "Sugerencia de hoy" se conservan).
 - Lista de la compra (Card 3): dedup por el matcher de tokens (`modules/ingredient-matching.js`,
-  NO lower-case exacto) contra comida real (qty>0), y semáforo dinámico por fecha de preparación
+  NO lower-case exacto) y semáforo dinámico por fecha de preparación
   (`onDay`/`daysUntil`/`urgency`): hoy/mañana=rojo, 2–3 días=naranja, ≥4 días (o sin fecha)=verde;
-  orden salida rojo→verde. "🛒 Despensa?" (2026-10-19) sale en la fila SÓLO cuando hay candidatos
+  orden salida rojo→verde. **Cobertura dinámica (feature 2026-10-21, la persona viene del ticket
+  y YA compró):** un needy sólo sale de la lista cuando queda CUBIERTO — hay alimento en casa
+  que case por tokens con qty > SU mínimo (`shoppingListFor`, regla del usuario: "más unidades
+  que el mínimo necesario"); con min 0/undefined basta qty>0. Tener "algo" YA no tapa la fila
+  (2 de un min 3 sigue en cola), y la Card se REPINTA tras CUALQUIER suceso de despensa
+  (`renderShoppingListTrasDespensa` en app.js: las dos confirmaciones del escáner OCR, alta
+  manual del formulario, ➕➖/🗑 del inventario e import de backup — el ✅ comprado y el sync
+  ya la repintaban). El filtrado es EN VIVO y needyFoods PERSISTE intacto: si el ítem se
+  vuelve a gastar, la fila reaparece; sólo el ✅ comprado retira el pendiente para siempre
+  (decisión explicita del usuario). "🛒 Despensa?" (2026-10-19) sale en la fila SÓLO cuando hay candidatos
   del módulo puro (`menuSemanal.candidatosDespensa`: comparten algún token del matcher — "Jamón
   serrano" ↔ despensa "Jamón ibérico", "Pan de pueblo" ↔ "Pan") y abre el diálogo de confirmación:
   la persona elige la variante (o nada) y la compra va IN-SITU a ese alimento vía
@@ -276,6 +379,62 @@ italiana" (see `modules/origen-recetas.js` below).
   `markItemBought(..., compra)` añade con esos datos; si el alimento ya estaba en la despensa
   (incluso con qty 0), lo ACTUALIZA en-situ (sin `min` pedido conserva el suyo).
   (contrato ampliado, log §8 del CODING_STANDARDS.md).
+- Escáner del TICKET (OCR, #epic-ocr-despensa-camara, propósito revisado 2026-10-20): fotografiar
+  el ticket del super (o el frigorífico, misma vía) → Tesseract.js@5 por CDN (carga perezosa la
+  primera vez; la foto NUNCA sale del dispositivo; el texto pasa a `procesarTextoOcr` — el gancho
+  §6 `window.__mrcheffProcesarTextoOcr` inyecta ese mismo paso en jsdom/e2e). **Fotos HEIC/HEIF
+  del iPhone** (y tickets ".png" RENOMBRADOS que en realidad son HEIF de iPhone; Chromium no
+  decodifica HEIC): la vista los convierte a JPEG en el propio navegador con **heic2any@0.0.4** (CDN,
+  carga perezosa SÓLO si la foto lo necesita, gancho §6 `window.__mrcheffHeicConvertir`
+  para jsdom; guardia de 90 s: un CDN caído canta con su toast y no congela el modal — la
+  versión real del paquete es 0.0.4, las "0.4.x" NO existen y su 404 cancelaba el script por ORB).
+  **Reintento de giro**: los tickets se fotografían de lado — si la foto de frente no da
+  alimentos, se re-reconoce girada 90°/270° (canvas `canvasDeBitmap`, máx. 1600px por lado;
+  se corta a la primera cara con candidatos). El cancelar a mitad de escaneo se decide con el
+  ESTADO DEL MODAL (`modal.classList "hidden"`, no `isConnected` — closeModal sólo oculta). En la
+  confirmación la CANTIDAD sale de la línea del ticket (ver módulo).
+  **CONFIRMACIÓN EN 2 DIALOGOS** (rework 2026-10-21, petición del usuario: la compra YA está
+  hecha — el escáner sólo mete lo comprado en el "Inventario actual", JAMÁS sale de la pestaña
+  de Alimentos y NO se mezcla con la lista de la compra; se RETIRÓ la implementación de
+  pendientes del ticket, con `mrcheff.compraTicket`, filaTicket, su "Definir ✓" en fila y el
+  prelleno data-compra-*): diálogo 1 "🎫 Ya lo tienes en el inventario" — los nombres EXACTOS
+  del ticket, nombre FIJO (es un alimento real, con "Ya tienes N en el inventario") + la CANTIDAD
+  comprada editable → al confirmar la compra SUMA en-situ vía `guardarCandidatos` y su alerta
+  queda como estaba; diálogo 2 "🎫 Añade lo nuevo y resuelve las dudas" con DOS secciones —
+  **Nuevos** (nombre/cantidad/IMPORTANCIA/MÍNIMO definidos EN la fila: `.rev-seccion` arriba,
+  alta directa al confirmar) y **Dudas** (debajo: desplegable `#rev-variante-{o}` con las
+  variantes de despensa del mismo casador `candidatosDespensa` — elegir variante = suma a ESE
+  alimento y la fila pasa a mostrar YA LA ALERTA REAL de ese alimento (su IMPORTANCIA/MÍNIMO)
+  deshabilitada: por defecto los campos de la fila salen con la alta (5/1) editables, y al
+  resolverla la pantalla dice lo MISMO que el inventario (fix 2026-10-21: antes pintaba 5/1 de
+  mentira); al volver a "es nuevo" se restauran lo que la persona hubiera escrito. La opción
+  "es nuevo: se define aquí" = alta con lo escrito en la fila). Cada diálogo compromete SU
+  confirmación (Cancelar después no deshace lo ya guardado; sin botón "Volver"). Sin toasts de
+  éxito: al cerrar el modal el Inventario destella UNA vez (`.destello-suave`, reduce-motion off,
+  scroll suave hasta `#food-list`). Las secciones de la revisión comparten con sus filas una
+  RETÍCULA CSS (`.rev-cab-nueva/.rev-fila-nueva` y `.rev-cab-duda/.rev-fila-duda`: misma
+  plantilla de columnas y calzado — etiqueta siempre encima del campo que nombra; cabecera
+  forzada a UNA línea con `> span { grid-row: 1 }`). Cada fila es una retícula de DOS líneas,
+  fix 2026-10-21 del descuelgue: la 1ª es la del NOMBRE — el input y TODOS los campos
+  (desplegable/cantidad/importancia/mínimo/incluir, clases `.rev-campo-nombre/qty/score/min/
+  include/variante`) comparten su misma línea horizontal — y la 2ª lleva la etiqueta de tipo +
+  la línea del ticket (`.rev-sub`) SOLO bajo la columna del alimento (en Dudas la columna 2 del
+  desplegable aparta los campos una posición). En ≤640px las áreas se reordenan: alimento
+  línea completa, campos debajo y el sub al final (en Dudas el desplegable también línea
+  completa). La escritura final es el módulo puro `confirmarRevision`
+  (alta con criterio definido, datos raros desinfectados qty≥0/score 1–10 clamp/min≥0, DUPLICADO
+  evitado: nombre que ya existe en casa → suma en vez de alta). reduce-motion desactiva la
+  animación (auto en scrollTo).
+  Ni Tesseract ni heic2any ni el CDN van en el app-shell del SW. Demo grabada de la feature:
+  `node e2e/ocr-ticket-video.mjs` → `reports/ui-brave/video-ocr-ticket/demo-escaner-ticket.webm`
+  (Playwright recordVideo; requiere `npx playwright-core install ffmpeg` una vez).
+  Verificación con FOTOS REALES: `node e2e/ocr-tickets-reales.mjs` — escanea los tickets de la
+  carpeta DESCARTABLE `reports/OCR/` (png/jpg/heic/heif; hoy: 1 PNG mal bautizado que era HEIF +
+  1 HEIC de iPhone, ambos girados 90°; si la carpeta no existe, la prueba SE SALTA sola) y
+  demuestra con material real: la foto se ABRE, las cantidades son unidades de compra (precios
+  y peso del envase fuera), y la confirmación del usuario — exactos → SUMA a lo ya en casa,
+  dudosos y nuevos → se definen EN los dos diálogos y de alta directa en la despensa (jamás a
+  la lista de la compra). Capturas 31-32.
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
   red 8–10, orange 6–7, green 1–5; weekly alert shows the FULL list (el cap de 8 del módulo
   se quitó el 2026-10-19: escondía del 9º pendiente en adelante) y A PARTIR DE 8 items la lista
@@ -307,8 +466,9 @@ italiana" (see `modules/origen-recetas.js` below).
   their accents. Mind this when adding foods or seasonal items.
 
 ## Other instruction / config sources worth knowing
-- **`CODING_STANDARDS.md`** (repo root, canonical) — the team's coding/testing standards going forward: SOLID, per-feature modular architecture mandate
+- **`CODING_STANDARDS.md`** (`/.opencode/rules/CODING_STANDARDS.md`, canonical) — the team's coding/testing standards going forward: SOLID, per-feature modular architecture mandate
   (`modules/domain|infra|views`; `app.js` stays the legacy composition-root), and mandatory unit testing. **Follow it.**
+  RULE of what goes where (2026-10-20): feature descriptions go HERE (AGENTS.md), resolved BUGS go to `bugfix.md` (repo root) — neither goes into CODING_STANDARDS.md, which holds only living rules + brief §8 exception notes.
   Per PR: new logic ships a co-located `tests/*.test.js` spec (jsdom harness exists in `webapp/jest.config.js` +
   `tests/boot.js`/`setup.js`, and per-module specs already exist under `webapp/tests/` — see the "Tests" bullet above for current
   suite status); integration tests are required when a change crosses modules or touches

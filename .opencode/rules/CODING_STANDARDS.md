@@ -8,6 +8,12 @@ tiene siempre prioridad si alguna versión está desactualizada.
 Aplica **solo a `webapp/`** del MVP de Mr Cheff. No aplica a `Scripts-Utilities/`, ni a ningún
 proyecto KMP/Android/iOS (no existe — ver AGENTS.md).
 
+> **Qué va — y qué NO va — en este archivo.** Aquí viven SÓLO los estándares: reglas vivas de
+> código y testing. **NO se añaden aquí descripciones de features nuevas** ni narrativas de
+> **bugs resueltos** — ni de ahora en adelante ni como archivo histórico: la documentación de
+> features vive en `AGENTS.md` y los bugs resueltos se registran en `bugfix.md` (raíz del repo).
+> §8 se reserva a excepciones puntuales a principios, breves (qué principio se rompió y por qué).
+
 ---
 
 ## 1. Principios base ("what we care about, in priority order")
@@ -210,14 +216,35 @@ Antes de dar un change como terminable:
 
 ## 8. Log de excepciones (decisiones que violan un principio)
 
-_Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY-MM-DD · @autor · #tarea · Principio: <S/O/L/I/D> · Justificación: …`. _
+_Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY-MM-DD · @autor · #tarea · Principio: <S/O/L/I/D> · Justificación: …`.
+**REGLA (2026-10-20):** la entrada es BREVE — el principio violado y el porqué; la MARCHA del
+cambio (qué hace la feature, qué bug es, cómo se prueba) NO va aquí: features → `AGENTS.md`,
+bugs resueltos → `bugfix.md`.
 
-- `2026-10-18 · @AI-agent · #bugfix-matching · Principio: O, D · Justificación:` el matcher bidireccional
-  por subcadena-cruda (`includes()`) de `planner.js` e `innovations.js` daba falsos positivos graves
-  (ingrediente "Sal" encajaba dentro del alimento "Salchichón ibérico"). Se extrae el módulo puro
-  compartido `modules/ingredient-matching.js` (tokens+deplural, sin prefijos sueltos) y ambos módulos
-  lo consumen: se CIERRA la duplicación de matcher que existía entre ambos (deuda §3 previa) en lugar
-  de corregir dos copias idénticas.
+Los bugs ya resueltos que antes vivían aquí están MOVIDOS a `bugfix.md` (raíz del repo):
+`#bugfix-matching` (2026-10-18, falsos positivos por subcadena-cruda),
+`#feature-matching-casa` (2026-10-18, token NÚCLEO ⇒ match reportado por el usuario),
+`#tasks-analisis-texto-recetas` (2026-10-18, contenido perdido del texto libre) y
+`#bugfix-pwa-no-refresca-cambios` (2026-10-19, caché de la PWA servía assets viejos).
+Aquí queda sólo la referencia, sin su marcha.
+
+- `2026-10-21 · @AI-agent · #epic-ocr-despensa-camara · Principio: O, L · Justificación:` REWORK de la
+  confirmación del escáner a petición del usuario (la compra ya está hecha: TODO se resuelve en los
+  dos diálogos, dentro de Alimentos, sin tocar la lista de la compra): se RETIRAN de `ocr-despensa.js`
+  las públicas de la máquina de pendientes del ticket (`añadirTicketPendientes`,
+  `definirTicketPendiente`, `quitarTicketPendiente`) — añadidas hace 24 h en la misma épica y sin
+  ningún consumidor fuera de ella —, el valor del 2º paso de `pasosDeConfirmacion` pasa de
+  "pendientes" a "revisar" y entra la pública `confirmarRevision` (la escritura final del 2º
+  diálogo). Los shapes §5 de los datos reproduzidos no cambian: la clave `mrcheff.compraTicket`
+  deja de leerse y escribirse en producción. La marcha completa vive en AGENTS.md (sección OCR).
+
+- `2026-10-21 · @AI-agent · #epic-ocr-despensa-camara · Principio: L · Justificación:` contratos del
+  módulo del ticket ampliados de forma ADITIVA (shapes §5 intactos, nada roto): `guardarCandidatos`
+  devuelve también `directos` (filas exactas que suman, para el paso 1 del asistente de
+  confirmación) y se estrena la pública `pasosDeConfirmacion(reparto)`. Por qué: la revisión del
+  escaneo va por pasos (despensa → dudas) y la decisión del recorrido pertenece al dominio (§3),
+  no a la vista. La marcha completa vive en AGENTS.md (sección OCR).
+
 - `2026-10-18 · @AI-agent · #feature-menu-7x3 · Principio: O, D · Justificación:` cambios de contrato
   acordados con el usuario (menú semanal de 3 comidas/día + cambio individual de receta):
   1. `planner.buildWeeklyMenu` pasa de `plan[7] = { dayLabel, recipe, missing }` a
@@ -275,18 +302,23 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   se oculta cuando duplica literalmente la etiqueta de origen (los demás tags, como
   "Sugerencia de hoy", se conservan). Copias guardadas ANTES de este cambio no tienen sello: para
   ellas sigue rigiendo la deducción por id/título (o corrección manual).
-- `2026-10-18 · @AI-agent · #feature-matching-casa · Principio: O, D · Justificación:` se REFuerza la
-  decisión del matcher tomada en `#bugfix-matching` (subconjunto de tokens) retirando su regla (2)
-  "comparten el token NÚCLEO ⇒ match": el propio core-token volvía a fabricar falsos positivos de
-  la misma familia que arrancó el módulo — con "Lomo ibérico" en la despensa, planner/innovations/
-  recipe-missing consideraban que ya tenías "Lomos de bacalao", "Lomo de atún", "Lomo cerdo entero",
-  "Lomos de merluza"… (bug reportado por el usuario: el alimento aparecía como disponible para
-  recetas que no lo piden). El conector queda SÓLO en subconjunto bidireccional: el género genérico
-  cubre al específico ("Vino" ↔ "Vino blanco", "Tomate" ↔ "Tomates triturados", "Queso" ↔
-  "Queso rallado" siguen ok) pero dos ESPECÍFICOS distintos ya no se casan por el primer token
-  ("Queso azul" ≠ "Queso rallado"; "Lomo de cerdo" ≠ "Lomo salado"). Cambio semántico asumido:
-  la despensa es más honesta y las sugerencias pueden exigir el ingrediente específico en la
-  lista de la compra; tests de matching actualizados a ambos lados + suite completa verde.
+- `2026-10-18 · @AI-agent · #epic-ocr-despensa-camara · Principio: O/ISP · Justificación:`
+  la despensa se rellena ESCANEANDO el frigorífico/armario en vez de teclear: foto en el navegador →
+  OCR (Tesseract.js@5 desde CDN, carga PEREZOSA — cero coste mientras no se use; la foto no sale del
+  dispositivo) → detección de alimentos contra el vocabulario compartido `classify.FOOD_TYPES` → modal
+  de confirmación donde el NOMBRE es editable y se pide cantidad / mínimo para la alerta / importancia
+  / "incluir" — el mismo triple del formulario manual. La decisión vive en el módulo puro NUEVO
+  `modules/ocr-despensa.js` (`esMovil`, `extraerCandidatos`, `guardarCandidatos`; spec co-localizada
+  `tests/ocr-despensa.test.js` con el vocabulario REAL de classify), `app.js` aporta sólo la infra de
+  vista (activar cámara / cargar motor / moldes). Políticas deliberadas: (a) la CÁMARA sólo se oferta
+  en móvil (input file con `capture="environment"` → app de cámara del sistema, SIN permisos
+  getUserMedia y SIN exigir https; en escritorio, vía "elegir foto", el flujo es idéntico); (b) el
+  matcher perdona ruido del OCR pero no inventa nada fuera del vocabulario — igualdad de token o
+  prefijo/sufijo con palabras ≥4 letras, palabras <4 sólo igualdad ("ensalada" NO es "sal"), un token
+  del texto alimenta UNA palabra (la más larga) y una palabra declara UN candidato (`veces`); (c)
+  `guardarCandidatos` actualiza COPIAS: array y objetos nuevos — la despensa del llamador no se muta
+  (§3), alta/actualización case-insensitive como el formulario manual. Tesseract NO entra en
+  el app-shell del SW (cross-origin), ni nuevas dependencias de npm (CDN en runtime).
 - `2026-10-18 · @AI-agent · #epic-download-web-like-app-from-browser · Principio: O · Justificación:`
   la webapp se hace INSTALABLE como app (PWA) sin cambiar ningún framework ni añadir build: NO se pasa
   a React — una web estática es el caso ideal y sólo faltaba el embalaje. Se añaden ficheros nuevos
@@ -299,25 +331,6 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   navegador no lo oferta (por eso los e2e documentan las 2 vías de prueba real: GitHub Pages/Netlify
   Drop, o localhost en el Mac). Verificado con Brave real servido en 127.0.0.1: SW activado, cache
   completo (13 módulos), recarga offline viva (`e2e/pwa-instalable.mjs`, 9 checks); suite 291/291 intacta.
-- `2026-10-18 · @AI-agent · #tasks-analisis-texto-recetas · Principio: O · Justificación:` el análisis
-  del texto libre de "Crear receta" (módulo puro `recipe-analysis.js`, sin red) perdía contenido que el
-  usuario escribió a mano: (1) toda palabra inicial en MAYÚSCULA se cortaba en el tokenizador ("Tortilla"
-  → "ortilla") — el split es `[^a-z0-9]+` y strip no minúscula: ahora se minúscula ANTES; (2) nombres sin
-  diccionario ("harina", "chirla", "wakame"…) desaparecían salvo inventario: nuevo FALLBACK DE CANTIDADES
-  que captura el nombre de fragmentos con cifra/medida ("200 gramos de harina", "un puñado de chirlas")
-  con filtros anti-basura (no arranca por verbo, no es cláusula temporal, sin palabras de tiempo/recipiente);
-  (3) el patrón DID NOT MAYUSCIZE: compuestos con "de" interno ya se conservan ("Pementón dulce" — y
-  el diccionario se amplía con básicos: patata, agua, harina, vino, perejil, pescado blanco, frutos secos…);
-  (4) imperativos irregulares ("Bate", "Fríe", "Cuece", "Vierte"…) no reconocidos por la raíz de 4 letras
-  se añaden como tokens EXACTOS; (5) el recorte por COMAS + anclaje de frases SIN verbo: colas temporales
-  ("a fuego medio durante 3 minutos") van al paso ANTERIOR y las introductorias ("Cuando la cebolla esté
-  dorada") al SIGUIENTE — antes se descartaban ambas; y los compuestos subsumen al simple capturado en la
-  MISMA pieza ("Pimentón dulce" sustituye "Pimentón", en su sitio — el 1º pone título), mientras que en
-  piezas distinas son 2 alimentos ("tomate" + "tomate triturado"). Contrato público intacto
-  (`analyzeRecipe(texto, {meal, pantry}) → {title, ingredients, method, possible}`); tope de pasos 10 → 16;
-  trampas documentadas: los patrones de cifra/medida/ruido comparan en GRAFÍA STRIP ("puñado"→"punado",
-  "sartén"→"sarten") porque NFD deshace la Ñ; se evita dict con participios ambiguos ("dorada"). Spec
-  ampliada (19 tests) + suite verde 291/291 + e2e Brave real (`e2e/analisis-texto.mjs`).
 - `2026-10-18 · @AI-agent · #feature-front-end-a11y · Principio: O · Justificación:` la accesibilidad
   de la webapp se eleva sin rediseñar la identidad ("La cocina tranquila"): la barra de vistas DEJA el
   patrón `role="tablist/tab"` incompleto (sin tabpanels ni gestión de flechas, tal como estaba era un
@@ -357,23 +370,6 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
   con métricas raras normalizadas a 0) vive en el módulo puro; `app.js` sólo mide DOM (rects +
   scrollLeft) y hace el `scrollTo` — coordinado viewpager-header: tabs y vista se mueven EN
   CONJUNTO, como pidió el producto. Spec extendida (5 tests nuevos) + e2e Brave (`e2e/swipe-vistas.mjs`).
-- `2026-10-19 · @AI-agent · #bugfix-pwa-no-refresca-cambios · Principio: O · Justificación:`
-  la entrega de releases dependía de un ritual manual: SUBIR +1 el nombre del caché del
-  sw.js a mano en cada deploy. No se hizo en las dos últimas releases y el sw.js iba
-  byte-idéntico (la v2 sin tocar desde `4ec8456`) ⇒ el navegador no re-instalaba el worker,
-  el `addAll` del install no se repetía y el caché servía los ASSETS de la primera
-  instalación para siempre (el índice network-first llegaba fresco, pero ningún css/js/
-  módulo: "la PWA no se actualiza" pese a ver la web y Pages al día — deploy confirmado
-  byte-a-byte con curl). Las variantes con `?v=N` tampoco valían: el matcher del caché
-  ignoraba la query (ignoreSearch). Se pasa a entrega NETWORK-FIRST con revalidación para
-  índice Y assets (`fetch(req, {cache:"no-cache"})`): el caché queda como respaldo offline,
-  repoblado en cada acierto de red; la revisión del worker SALTA la caché HTTP
-  (`updateViaCache:"none"` + `reg.update()` al entrar/al primer plano/cada 10 min por el
-  max-age=600 de Pages) y un worker nuevo que toma el mando recarga la página UNA vez por
-  sesión (controllerchange + guard en sessionStorage). El nombre del caché deja de ser la
-  llave de la frescura: +1 sólo si cambia la lista SHELL o la estrategia. Afecta SÓLO a
-  `sw.js` + su registro (sin shapes de §5 — suite 307 tests verde) y estrena guardia
-  externa `e2e/pwa-entrega.mjs` (6 checks con servidor mutable).
 - `2026-10-19 · @AI-agent · #feature-sync-buzon · Principio: O, D · Justificación:` sincronización de
   2 dispositivos vía gesto + gist de GitHub con cifrado extremo a extremo (plan completo en
   `webapp/e2e/plan-sync-buzon.md`, 6 fases branch+merge). Cambios de contrato y desviaciones trazadas:
@@ -442,3 +438,22 @@ _Aquí se anota cualquier "Por qué rompimos X en este caso", con formato_ `YYYY
       El mínimo de 3 letras lo fija ya el matcher compartido (TOKEN_MIN_LEN): nada de ruido
       prefijo de 1-2 letras. Firma de API SIN CAMBIO (1 función pública). Tests: unit en
       busqueda-recetas.test.js (describe 5) + e2e Brave real en e2e/buscador-prefijos.mjs.
+
+---
+
+## 9. Campaña de refactor `app.js` → módulos (estado, 2026-10-21)
+
+Petición del usuario: revisar TODO `webapp/app.js` y llevar la lógica que quede inline a sus módulos,
+con tests. El barrido completo (2 745 líneas) confirma que las DECISIONES ya viven en `modules/`
+(desde el gran refactor); lo que queda inline es molde HTML, wiring de eventos e infra de vista —
+que permanecen en `app.js` por diseño (§2-D, composition-root). Estado por olas:
+
+- **Completado (wave 1, `epic/menu-colapsable-modulos`):** `formatoFechaCorta` → `util.js`;
+  `valoresPreviosDeCompra` + `validarCompraForm` → `menu-semanal.js`; `conciliarLote` +
+  `resumenPorFuente` → `innovations.js`; `platosDelPlan` + `alternarColapso` (feature del plan
+  plegable) → `menu-semanal.js`. Todo con specs co-locales y suite verde.
+- **Pendiente (wave 2, no empezada):** recolección de filas de los DIÁLOGOS del escáner → helpers
+  puros de `ocr-despensa.js` (el scraper DOM se queda, el reparto/comprobación se sube);
+  alta manual de despensa (dedup exacto + inc/del) → módulo propio `modules/despensa.js` si crece;
+  chips del preview de receta (dedup de ingredientes del textarea) → `recipe-analysis.js` o
+  `recipe-editor.js`.

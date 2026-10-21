@@ -46,6 +46,8 @@ document.addEventListener("DOMContentLoaded", () => {
     syncBase: "mrcheff.sync.base",
     syncPendiente: "mrcheff.sync.pendiente",
     syncConsumida: "mrcheff.sync.consumida"
+    // (2026-10-21) Fuera `mrcheff.compraTicket`: el escáner del ticket ya no deja pendientes en la
+    // lista de la compra — su revisión ocurre en los diálogos del propio escáner, en Alimentos.
   };
 
   const load = (key, def) => {
@@ -76,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ===== HELPERS =====
   // uid() y escapeHTML() viven en modules/util.js, lógica PURa (sin DOM ni localStorage) anti-XSS e id-generación; ver
   // CODING_STANDARDS.md §3 option A / DIP y el patrón idéntico de priority.classify.recipeAnalysis.innovations bajo window.MRCheff.*.
-  const { escapeHTML, uid, limpiarPaso } = window.MRCheff.util;
+  const { escapeHTML, uid, limpiarPaso, formatoFechaCorta } = window.MRCheff.util;
   const recipeEditor = window.MRCheff.recipeEditor;   // módulo puro del editor de recetas (modules/recipe-editor.js)
 
   // $/$$ son helpers DE VISTA (manipulan el DOM) → NO lógica de decisión: quedan en este closure como antes.
@@ -243,10 +245,19 @@ document.addEventListener("DOMContentLoaded", () => {
     Object.assign(tutorialVelos.foco.style, { top: y0 + "px", left: x0 + "px", width: (x1 - x0) + "px", height: (y1 - y0) + "px" });
 
     // Tarjeta: debajo del foco si hay sitio; si no, encima. Clamp a los márgenes del viewport.
+    // Excepción (petición 2026-10-21): los objetivos ALTOS del guion ("Mis recetas" y la
+    // cuadrícula de Temporada llevan tarjeta: "arriba" en modules/tutorial.js) mandan el
+    // CONTENIDO — la tarjeta flota ENCIMA del aro sin tocarlo (borde inferior a 12 px del aro)
+    // y el arranque del elemento se ve vivo debajo de ella; la cabecera de la app asoma
+    // atenuada por el velo por encima. En ventanas diminutas, el clamp degrade al tope.
     const altoTarjeta = tutorialVelos.tarjeta.offsetHeight || 150;
     const anchoTarjeta = Math.min(tutorialVelos.tarjeta.offsetWidth || 300, 320);
     let cardY = r.bottom + 12;
-    if (cardY + altoTarjeta > altoVP - 12) cardY = Math.max(12, r.top - 12 - altoTarjeta);
+    if (paso.tarjeta === "arriba") {
+      cardY = Math.max(12, y0 - altoTarjeta - 12);
+    } else if (cardY + altoTarjeta > altoVP - 12) {
+      cardY = Math.max(12, r.top - 12 - altoTarjeta);
+    }
     if (cardY + altoTarjeta > altoVP - 12) cardY = Math.max(12, altoVP - 12 - altoTarjeta);
     let cardX = Math.max(12, Math.min(r.left + r.width / 2 - anchoTarjeta / 2, anchoVP - anchoTarjeta - 12));
     Object.assign(tutorialVelos.tarjeta.style, { top: cardY + "px", left: cardX + "px" });
@@ -281,14 +292,34 @@ document.addEventListener("DOMContentLoaded", () => {
       tutorialVelos.anuncio.textContent = `Paso ${tut.numero(sesionTutorial)} de ${total}: ${paso.titulo}`;
     }
     // Colocar el objetivo en la ventana y medir con el layout YA hecho (el scrollIntoView puede
-    // animar: el listener de scroll reposiciona el foco durante el vuelo).
+    // animar: el listener de scroll reposiciona el foco durante el vuelo). Excepción
+    // (petición 2026-10-21) para los objetivos ALTOS con tarjeta: "arriba" — "center" los
+    // clava cubriendo la ventana y la tarjeta tapaba su contenido; ahora el ARRANQUE del
+    // elemento se asienta al ~60% de la ventana: la tarjeta flota entre la cabecera y el aro,
+    // y el contenido del paso se ve vivo debajo (el scroll por JS, window.scrollTo, porque
+    // scrollIntoView no enseña "dónde debe quedar el tope").
     if (objetivo) {
-      try {
-        const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        objetivo.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
-      } catch (e) {
-        try { objetivo.scrollIntoView(); }              // WebView viejo sin options object
-        catch (e2) { /* sin scrollIntoView (entorno de prueba): el paso sigue igual */ }
+      const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (paso.tarjeta === "arriba") {
+        const altoVP = window.innerHeight || document.documentElement.clientHeight;
+        const arranqueDeseado = Math.round(altoVP * 0.6);
+        const ahora = objetivo.getBoundingClientRect().top;
+        const delta = Math.round(ahora - arranqueDeseado);
+        if (Math.abs(delta) > 1) {
+          try {
+            window.scrollTo({ top: Math.max(0, (window.scrollY || 0) + delta), behavior: reduce ? "auto" : "smooth" });
+          } catch (eSin) {
+            try { window.scrollTo(Math.max(0, (window.scrollY || 0) + delta), 0); }  // WebView viejo sin options object
+            catch (e2) { /* sin scrollTo (entorno de prueba): el paso sigue igual */ }
+          }
+        }
+      } else {
+        try {
+          objetivo.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+        } catch (e) {
+          try { objetivo.scrollIntoView(); }              // WebView viejo sin options object
+          catch (e2) { /* sin scrollIntoView (entorno de prueba): el paso sigue igual */ }
+        }
       }
     }
     // El frame inicial del reposicionado (el listener de scroll ya cubre el vuelo del
@@ -299,6 +330,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function abrirTutorial() {
     if (!tut || !tutorialRaiz || !tutorialVelos) return;
+    // Limpiar el foco de la app (petición 2026-10-21): si la visita se reabre con el 🎓 con
+    // un campo activo y el teclado del PWA en pantalla, el keyboard descuadraría los velos.
+    if (document.activeElement && typeof document.activeElement.blur === "function") document.activeElement.blur();
     sesionTutorial = tut.sesionNueva();
     tutorialActivo = true;
     tutorialRaiz.classList.remove("hidden");
@@ -324,6 +358,25 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!objetivo) return;
     avanzarPasoTutorial();
   }, true);
+
+  // Silencio de TECLADO y LISTAS nativas durante la visita (petición 2026-10-21): al tocar el
+  // campo real del paso, el teclado del PWA instalable se abría y descuadraba el paso
+  // siguiente, y el select de Temporada (#season-month) dejaba su lista de meses abierta
+  // encima del paso que venía. preventDefault en pointerdown/mousedown cancela el FOCUS —
+  // y con él teclado y picker del select — pero NO el click: el paso sigue avanzando por su
+  // listener global de arriba y la app no cambia de estado (la barra #food-score tampoco
+  // arrastra valor durante el tour). Sólo protege el objetivo del paso ACTIVO (diana
+  // accionable); el resto de la app ya duerme bajo el velo. Nota iOS: el picker del select
+  // puede abrirse al soltar el dedo — la plataforma de la feature es el PWA Android/Brave.
+  function silenciarCamposTutorial(e) {
+    if (!tutorialActivo || !pasoEnPantalla || !pasoEnPantalla.accionable || !e.target.closest) return;
+    let objetivo = null;
+    try { objetivo = e.target.closest(pasoEnPantalla.selector); } catch (err) { return; }
+    if (!objetivo) return;
+    if (objetivo.closest("input, textarea, select")) e.preventDefault();
+  }
+  document.addEventListener("pointerdown", silenciarCamposTutorial, true);
+  document.addEventListener("mousedown", silenciarCamposTutorial, true);
 
   function avanzarPasoTutorial() {
     if (!tut || !sesionTutorial) return;
@@ -414,6 +467,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }, { passive: true });
   }
 
+  // ===== BOTÓN FLOTANTE "SUBIR AL PRINCIPIO" (feature 2026-10-21) =====
+  // Con listas verticales muy largas, al bajar por la pestaña aparece (animado) abajo a la
+  // derecha un círculo con flecha que VUELVE AL PRINCIPIO de la pestaña ACTUAL, también con
+  // animación; se oculta otra vez al estar arriba. En TODAS las pestañas (van de un mismo
+  // scroll de documento). La regla (umbral = una pantallita, ocultarse en lo alto) y el salto
+  // (smooth / auto con reduce-motion / fallback WebView viejo) viven en modules/scroll-arriba.js;
+  // aquí el listener de scroll (rAF-throttled, patrón del tutorial) y el molde.
+  const scrollArriba = (window.MRCheff && window.MRCheff.scrollArriba) || null;
+  const fabSubir = $("#btn-subir-encima");
+  if (fabSubir && scrollArriba) {
+    let fabRaf = null;
+    const pintaFabSubir = () => {
+      fabRaf = null;
+      fabSubir.classList.toggle("visible", scrollArriba.debeMostrarseBoton(window.scrollY, window.innerHeight || 320));
+    };
+    // Un único rAF por ráfaga de scroll/resize: el evento scroll dispara decenas de veces/frame.
+    window.addEventListener("scroll", () => {
+      if (fabRaf == null) fabRaf = requestAnimationFrame(pintaFabSubir);
+    }, { passive: true });
+    window.addEventListener("resize", () => {
+      if (fabRaf == null) fabRaf = requestAnimationFrame(pintaFabSubir);   // el umbral INNER cambia al girar
+    });
+    fabSubir.addEventListener("click", () => {
+      scrollArriba.subirEncima(window, { reducido: scrollArriba.movimientoReducido(window) });
+    });
+  }
+
   // ===== ALIMENTOS =====
   const foodForm = $("#food-form");
   const foodName = $("#food-name");
@@ -456,6 +536,7 @@ document.addEventListener("DOMContentLoaded", () => {
     foodMinVal.textContent = "1";
     renderFoods();
     renderWeeklyAlert();
+    renderShoppingListTrasDespensa();
     toast("Alimento añadido");
   });
 
@@ -515,6 +596,7 @@ document.addEventListener("DOMContentLoaded", () => {
           save(LS.foods, foods);
           renderFoods();
           renderWeeklyAlert();
+          renderShoppingListTrasDespensa();
         }
       });
     });
@@ -524,6 +606,7 @@ document.addEventListener("DOMContentLoaded", () => {
         save(LS.foods, foods);
         renderFoods();
         renderWeeklyAlert();
+        renderShoppingListTrasDespensa();
         toast("Alimento eliminado");
       });
     });
@@ -634,6 +717,529 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ===== ESCÁNER DEL TICKET DE LA COMPRA (OCR EN EL NAVEGADOR) =====
+  // #epic-ocr-despensa-camara: fotografiar el TICKET del super (o la foto del frigorífico, misma
+  // vía) y que Mr Cheff reconozca lo comprado con sus CANTIDADES. Las DECISIONES viven en módulos
+  // puros (specs tests/ocr-despensa.test.js y tests/ocr-foto.test.js):
+  //   · modules/ocr-despensa.js — esMovil / extraerCandidatos+qty / guardarCandidatos (reparto
+  //     exactos/dudosos/nuevos) / pasosDeConfirmacion / confirmarRevision;
+  //   · modules/ocr-foto.js — la MÁQUINA DE LA FOTO: si necesita conversión HEIC, la geometría
+  //     del giro por cara y el ciclo de caras hasta que una lee alimentos.
+  // Aquí sólo la INFRA de vista: activar la cámara SÓLO en móvil, cargar Tesseract.js y el
+  // conversor heic2any por CDN la primera vez que se usan, los lienzos (createElement + contexto
+  // 2d) y el molde del modal. El OCR corre ENTERO en el navegador: la foto nunca sale del terminal.
+  const ocr = window.MRCheff.ocrDespensa;
+  const ocrFoto = window.MRCheff.ocrFoto;
+  const ocrVocabulario = (window.MRCheff.classify && window.MRCheff.classify.FOOD_TYPES) || {};
+  const ocrBtnCamara = $("#btn-ocr-camara");
+  const ocrBtnFoto = $("#btn-ocr-foto");
+  const ocrFile = $("#ocr-file");
+  const TESSERACT_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+  let tesseractPromesa = null;
+
+  // Motor del OCR con carga PEREZOSA: cero coste mientras no se use la función (un <script> del CDN
+  // inyectado al vuelo la primera vez); el propio navegador lo cachea después. Si falla (sin
+  // conexión) la promesa se limpia para darle otra oportunidad en el siguiente intento.
+  function cargarTesseract() {
+    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+    if (!tesseractPromesa) {
+      tesseractPromesa = new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = TESSERACT_CDN;
+        s.async = true;
+        s.onload = () => resolve(window.Tesseract);
+        s.onerror = () => {
+          tesseractPromesa = null;
+          reject(new Error("El motor del OCR no ha cargado: la primera vez necesita conexión a internet"));
+        };
+        document.head.appendChild(s);
+      });
+    }
+    return tesseractPromesa;
+  }
+
+  // La FOTO puede llegar en HEIC/HEIF (el formato por defecto del iPhone; y hay tickets ".png" mal
+  // etiquetados que en realidad son HEIF). Los navegadores de base Chromium no decodifican HEIC: ni
+  // el canvas, ni el motor del OCR, ni createImageBitmap la leen — síntoma: "No se ha podido escanear
+  // la foto". Salida: convertir a JPEG EN EL PROPIO NAVEGADOR (heic2any@0.0.4, libheif en wasm por
+  // CDN — última versión real del paquete, NADA que ver con "0.4.x" que no existe — misma carga
+  // perezosa que Tesseract y SÓLO si la foto lo necesita) y dar al OCR el resultado. La conversión
+  // también es local: la foto sigue sin salir del dispositivo.
+  const HEIC_CDN = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
+  const HEIC_CargaMaxima = 90000;              // un CDN caído debe FALLAR con su toast, no congelar el modal
+  let heicPromesa = null;
+
+  // El UMD del paquete puede llegar como función directa o envuelta (namespace con .default): da
+  // igual — aquí sólo importa devolver la FUNCIÓN convertidora.
+  function funcionHeic2any() {
+    const h = window.heic2any;
+    if (typeof h === "function") return h;
+    if (h && typeof h.default === "function") return h.default;
+    if (h && typeof h.heic2any === "function") return h.heic2any;
+    return null;
+  }
+
+  function cargarHeic2any() {
+    const lista = funcionHeic2any();
+    if (lista) return Promise.resolve(lista);
+    if (!heicPromesa) {
+      heicPromesa = new Promise((resolve, reject) => {
+        let listo = false;
+        const guardar = window.setTimeout(() => {               // sin este guardia, un CDN 404 colgaba la conversión para siempre (ORB no dispara onerror)
+          if (listo) return;
+          listo = true;
+          heicPromesa = null;
+          reject(new Error("El conversor de fotos HEIC no ha cargado (muy lento o sin conexión)"));
+        }, HEIC_CargaMaxima);
+        const s = document.createElement("script");
+        s.src = HEIC_CDN;
+        s.async = true;
+        s.onload = () => {
+          const fn = funcionHeic2any();
+          if (!fn) return;               // roto: cae el guardia y falla con su aviso
+          listo = true;
+          window.clearTimeout(guardar);
+          resolve(fn);
+        };
+        s.onerror = () => {
+          if (listo) return;
+          listo = true;
+          window.clearTimeout(guardar);
+          heicPromesa = null;
+          reject(new Error("El conversor de fotos HEIC no ha cargado: la primera vez necesita conexión a internet"));
+        };
+        document.head.appendChild(s);
+      });
+    }
+    return heicPromesa;
+  }
+
+  function convertirHeic(archivo, progreso) {
+    if (progreso && progreso.isConnected) progreso.textContent = "Convirtiendo la foto (HEIC del iPhone → JPEG)…";
+    const conversor = window.__mrcheffHeicConvertir                    // gancho §6: jsdom/e2e sin wasm real
+      ? Promise.resolve(window.__mrcheffHeicConvertir)
+      : cargarHeic2any();
+    return conversor
+      .then(convertir => convertir({ blob: archivo, toType: "image/jpeg", quality: 0.95 }))
+      .then(res => (Array.isArray(res) ? res[0] : res));               // un HEIC puede traer varias imágenes: la 1ª
+  }
+
+  // Lienzo de una cara para el OCR: la GEOMETRÍA la decide el módulo puro (ocr-foto.geometriaDeLienzo);
+  // aquí sólo el DOM — createElement, contexto 2d y la pintura trasladada/escalada/girada. Un entorno
+  // de test sin contexto 2d real devuelve null (la máquina del módulo degrada sin morir).
+  function lienzoDeBitmap(bitmap, grados) {
+    const geo = ocrFoto.geometriaDeLienzo(bitmap, grados);
+    if (!geo) return null;
+    const lienzo = document.createElement("canvas");
+    lienzo.width = geo.ancho;
+    lienzo.height = geo.alto;
+    const cx = lienzo.getContext("2d");
+    if (!cx || !cx.translate || !cx.scale) return null;
+    cx.translate(lienzo.width / 2, lienzo.height / 2);
+    cx.scale(geo.escala, geo.escala);
+    cx.rotate((grados % 360) * Math.PI / 180);
+    cx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2, bitmap.width, bitmap.height);
+    return lienzo;
+  }
+
+  // Escanea la foto ENTERA delegando en el módulo puro (ocr-foto): (1) prepara — HEIC del iPhone a
+  // JPEG por el conversor de aquí, con sondeo del decodificador real para el HEIC camuflado de
+  // ".png" —, (2) recorre las CARAS (de frente → girada 90° → girada 270°) hasta que una lee
+  // alimentos y (3) entrega el texto a procesarTextoOcr (que abre la confirmación o el aviso).
+  async function escanearFoto(archivo, progreso) {
+    // El usuario puede cerrar el modal EN MEDIO del escaneo (o porque canceló, o por Escape):
+    // closeModal OCULTA el modal (no vacía el DOM), así que la vida del escaneo se lee del estado
+    // del modal mismo; el `progreso` suelto quedaría "conectado" aunque nadie lo vea.
+    const abierto = () => !modal.classList.contains("hidden");
+    const Tesseract = await cargarTesseract();
+    const { foto } = await ocrFoto.prepararFoto(archivo, {
+      esHeic: ocr.esHeic,
+      decodificar: (typeof createImageBitmap === "function") ? b => createImageBitmap(b) : null,   // sin decodificador real (jsdom): la foto pasa sin conversión
+      convertir: a => convertirHeic(a, progreso)
+    });
+    if (!abierto()) return;                              // canceló durante la carga/conversión
+    const bitmap = await createImageBitmap(foto);        // decodificación real: HEIC sin convertir moriría aquí (lo avisa el catch del change)
+    const resultado = await ocrFoto.escanearCaras({
+      abierta: abierto,
+      hayAlimentos: texto => ocr.extraerCandidatos(texto, ocrVocabulario).length > 0,
+      lienzoDe: grados => lienzoDeBitmap(bitmap, grados),
+      reconocer: async (lienzo, grados) => {
+        const girada = grados !== 0;
+        progreso.textContent = girada
+          ? "Reconociendo texto… (girando la foto para leerla boca arriba)"
+          : "Reconociendo texto…";
+        const { data } = await Tesseract.recognize(lienzo, "spa", {
+          logger: m => {
+            if (m && m.status === "recognizing text" && abierto()) {
+              progreso.textContent = `Reconociendo texto… ${Math.round((m.progress || 0) * 100)}%${girada ? " (foto girada)" : ""}`;
+            }
+          }
+        });
+        return (data && data.text) || "";
+      }
+    });
+    if (resultado.texto !== null) procesarTextoOcr(resultado.texto);   // cancelado → nada que procesar
+  }
+
+  // La cámara SÓLO se ofrece en vista móvil (ocr.esMovil decide contra el user agent): el input file
+  // con el atributo `capture` abre la app de la cámara del sistema (Android/iOS), SIN permisos
+  // getUserMedia y SIN exigir https. En escritorio, la vía es elegir una foto del frigorífico/armario
+  // desde el disco — misma lectura, mismo modal de confirmación.
+  const ocrEsMovil = ocr.esMovil(navigator.userAgent);
+  if (ocrBtnCamara && ocrBtnFoto && ocrFile) {
+    ocrBtnCamara.classList.toggle("hidden", !ocrEsMovil);
+    ocrBtnFoto.classList.remove("hidden");        // la vía "elegir foto" se ofrece también en móvil (galería)
+    ocrBtnCamara.addEventListener("click", () => {
+      ocrFile.setAttribute("capture", "environment");
+      ocrFile.click();
+    });
+    ocrBtnFoto.addEventListener("click", () => {
+      ocrFile.removeAttribute("capture");
+      ocrFile.click();
+    });
+    ocrFile.addEventListener("change", () => {
+      const archivo = ocrFile.files && ocrFile.files[0];
+      ocrFile.value = "";                         // limpiar ya: permite re-escanear la misma foto después
+      if (!archivo) return;
+      modalContent.innerHTML = `
+        <h2>📷 Reconociendo alimentos…</h2>
+        <p class="muted" id="ocr-progreso">Cargando el motor de OCR (la primera vez descarga unos megas; la foto no sale de tu navegador)…</p>
+        <div class="modal-footer"><button class="btn ghost" data-close>Cancelar</button></div>`;
+      abrirModal("Escáner del ticket");
+      $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+      const progreso = $("#ocr-progreso", modalContent);
+      escanearFoto(archivo, progreso).catch(err => {
+        if (modal.classList.contains("hidden")) return;   // cerrado por el usuario: nada que contar
+        closeModal();
+        toast((err && err.message) || "No se ha podido escanear la foto", "error");
+      });
+    });
+  }
+
+  // Del texto que el OCR ha leído se ocupa la MISMA función en producción y en pruebas: el motor
+  // Tesseract es lo único que depende de la foto, así que `window.__mrcheffProcesarTextoOcr` queda
+  // solo como inyección de test (§6, patrón __mrcheffEsMovil/__mrcheffCryptoImpl) — jsdom y Playwright
+  // ejercitan el flujo del ticket sin cámara ni CDN.
+  function procesarTextoOcr(texto) {
+    const candidatos = ocr.extraerCandidatos(texto, ocrVocabulario);
+    if (!candidatos.length) {
+      modalContent.innerHTML = `
+        <h2>📷 No he detectado alimentos</h2>
+        <p class="muted">Prueba con una foto más cercana, de frente y con buena luz al papel (ticket
+            del super). Las etiquetas con letra pequeña engañan al OCR.</p>
+        <div class="modal-footer"><button class="btn ghost" data-close>Cerrar</button></div>`;
+      $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+      return;
+    }
+    abrirConfirmarOcr(candidatos);
+  }
+  window.__mrcheffProcesarTextoOcr = procesarTextoOcr;
+
+  // ===== CONFIRMACIÓN DEL TICKET EN LA DESPENSA (2 DIÁLOGOS) =====
+  // La compra ya está hecha: el escáner sólo mete lo comprado en el "Inventario actual" y NUNCA
+  // SALE de la pestaña de Alimentos (sin pendientes en la lista de la compra: esa implementación
+  // se retiró junto con el paso intermedio que mezclaba las cosas). Dos diálogos seguidos, con el
+  // reparto decidido por el módulo puro (ocr.guardarCandidatos sin persistir + pasosDeConfirmacion):
+  //   1º) Ya lo tienes en el inventario: los nombres exactos del ticket con la CANTIDAD comprada
+  //       de cada uno, editable al pelo — al confirmar se SUMA en-situ (su alerta queda como estaba).
+  //   2º) Revisión con dos secciones — Nuevos (alta directa definiendo EN la fila su nombre,
+  //       cantidad, IMPORTANCIA y MÍNIMO) y Dudas (el casador de variantes: elegir "es ESE alimento
+  //       de casa" para sumarle la compra, o "es nuevo" para darlo de alta con lo que se haya
+  //       escrito en la misma fila).
+  // Cada diálogo comparte SU confirmación al guardar; Cancelar no deshace lo ya confirmado. Sin
+  // toasts de éxito: el resultado destella sobre la propia lista del inventario.
+  const REDUZ_MOTION = () => typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function desplazarSuaveHasta(el) {
+    // Descontar el topbar sticky: medido a cero, el destino queda escondido debajo de la cabecera.
+    const barra = document.querySelector(".topbar");
+    const margen = barra ? barra.offsetHeight + 8 : 8;
+    const y = Math.max(0, el.getBoundingClientRect().top + window.scrollY - margen);
+    try {
+      window.scrollTo({ top: y, behavior: REDUZ_MOTION() ? "auto" : "smooth" });
+    } catch (e) {
+      window.scrollTo(0, y);                                  // WebView viejo sin options object
+    }
+  }
+
+  function destellarDestino(el) {
+    el.classList.remove("destello-suave");
+    void el.offsetWidth;                                      // reinicia la animación (re-escaneo → re-destello)
+    el.classList.add("destello-suave");
+    window.setTimeout(() => el.classList.remove("destello-suave"), 2200);
+  }
+
+  // La vista de destino es la MISMA en la que vive el escáner (Alimentos): se sube arriba y el
+  // resultado destella una vez sobre el inventario — sin saltos de pestaña ni toasts.
+  function señalarResultadoEnDespensa() {
+    const lista = $("#food-list");
+    if (!lista) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      desplazarSuaveHasta(lista);
+      destellarDestino(lista);
+    }));
+  }
+
+  function abrirConfirmarOcr(candidatos) {
+    const etqTipo = { proteina: "Proteína", lacteo: "Lácteo", cereal: "Cereal", fruta: "Fruta", verdura: "Verdura", especia: "Especia" };
+
+    // Estado del flujo: la decisión de cada fila arranca del ticket — la cantidad es la leída (o
+    // 1 si la línea no traía cifra) y el criterio de alerta por defecto es el del alta manual
+    // (5/1). El reparto PREVIEW de diálogos corre sobre ESTOS mismos datos: el módulo filtra qty
+    // no numérica al guardar, así que lo que se decide es lo que la persona verá en las filas.
+    const decision = candidatos.map(c => ({
+      incluir: true,
+      nombre: c.nombre,
+      qty: Number.isFinite(c.qty) && c.qty >= 1 ? c.qty : 1,
+      score: 5,
+      min: 1,
+      varianteId: "",                                         // dudas: "" = "es nuevo", otro valor = id de despensa
+      tipo: c.tipo || null
+    }));
+    const previo = ocr.guardarCandidatos(foods, decision.map(d => ({ nombre: d.nombre, qty: d.qty, tipo: d.tipo })), {
+      uid, ahora: Date.now(),
+      // La DUDA se decide con el MISMO casador de variantes del "🛒 Despensa?" de la lista:
+      // "¿es el mismo que uno de mi despensa?" (menu-semanal.candidatosDespensa inyectada, §3).
+      candidatosDespensa: menuSemanal && menuSemanal.candidatosDespensa ? menuSemanal.candidatosDespensa : null
+    });
+    const pasos = ocr.pasosDeConfirmacion(previo);
+    if (!pasos.length) { closeModal(); return; }               // sin nada confirmable: nada que asistir
+    let faseActual = 0;                        // 0 = exactos del inventario · 1 = revisión (nuevos + dudas)
+
+    const nombreDePago = c => ocr.norm(c.nombre);              // la agrupación del preview manda sobre el índice
+    const filasDelPaso = nombrePaso => {
+      const claves = new Set((nombrePaso === "despensa" ? previo.directos : previo.dudosos.concat(previo.nuevos)).map(x => nombreDePago(x)));
+      return candidatos.filter(c => claves.has(nombreDePago(c)));
+    };
+
+    // ── Diálogo 1 (exactos): el nombre va FIJO — ya es un alimento real del inventario y lo que
+    // se confirma aquí es cuánto se compró de él.
+    function filaExactaHTML(c) {
+      const o = candidatos.indexOf(c);
+      const d = decision[o];
+      const enCasa = foods.find(f => String(f.name || "").toLowerCase() === String(c.nombre || "").toLowerCase());
+      return `
+        <div class="ocr-item" data-o="${o}">
+          <div class="ocr-nombre">
+            <span class="rev-nombre-fijo"><strong>${escapeHTML(c.nombre)}</strong><span class="ocr-tipo">${etqTipo[c.tipo] || "Otro"}</span></span>
+            <span class="ocr-linea">Ya tienes ${Number.isFinite(enCasa && enCasa.qty) ? enCasa.qty : 0} en el inventario</span>
+          </div>
+          <input type="number" class="exact-qty" min="0" step="1" value="${d.qty}" aria-label="Cantidad comprada de ${escapeHTML(c.nombre)}">
+          <input type="checkbox" class="ocr-include" ${d.incluir ? "checked" : ""} aria-label="Incluir ${escapeHTML(c.nombre)}">
+        </div>`;
+    }
+
+    // ── Diálogo 2 (secciones NUEVOS y DUDAS): cada fila se define COMPLETA ahí mismo. En las
+    // dudas, la variante de despensa va en un desplegable: resuelta con casa → su alerta no se
+    // toca (los campos de importancia/mínimo se deshabilitan); resuelta como nueva → se define.
+    function filaRevisionHTML(c, esDuda) {
+      const o = candidatos.indexOf(c);
+      const d = decision[o];
+      const lineaContexto = `<span class="ocr-linea" title="Primera línea que ha leído el OCR (sólo contexto)">“${escapeHTML(String(c.linea || "").trim().slice(0, 60))}”${c.veces > 1 ? ` · aparece ×${c.veces}` : ""}</span>`;
+      if (!esDuda) {
+        return `
+        <div class="ocr-item rev-fila-nueva" data-o="${o}">
+          <input type="text" id="rev-nombre-${o}" class="rev-campo-nombre" value="${escapeHTML(d.nombre)}" aria-label="Nombre del alimento (editable)">
+          <div class="rev-sub"><span class="ocr-tipo">${etqTipo[d.tipo] || "Otro"}</span>${lineaContexto}</div>
+          <input type="number" id="rev-qty-${o}" class="rev-campo-qty" min="0" step="1" value="${d.qty}" aria-label="Cantidad comprada de ${escapeHTML(d.nombre)}">
+          <input type="number" id="rev-score-${o}" class="rev-num rev-campo-score" min="1" max="10" step="1" value="${d.score}" aria-label="Importancia de ${escapeHTML(d.nombre)}, del 1 al 10">
+          <input type="number" id="rev-min-${o}" class="rev-num rev-campo-min" min="0" step="1" value="${d.min}" aria-label="Cantidad mínima para avisarte de ${escapeHTML(d.nombre)}">
+          <input type="checkbox" class="ocr-include rev-campo-include" ${d.incluir ? "checked" : ""} aria-label="Incluir ${escapeHTML(d.nombre)}">
+        </div>`;
+      }
+      const opciones = menuSemanal.candidatosDespensa(c.nombre, foods) || [];
+      return `
+        <div class="ocr-item rev-fila-duda" data-o="${o}">
+          <input type="text" id="rev-nombre-${o}" class="rev-campo-nombre" value="${escapeHTML(d.nombre)}" aria-label="Nombre del alimento (editable)">
+          <div class="rev-sub"><span class="ocr-tipo">${etqTipo[d.tipo] || "Otro"}</span>${lineaContexto}</div>
+          <select id="rev-variante-${o}" class="rev-campo-variante" aria-label="¿Es este alimento que ya tienes en casa?">
+            <option value="">es nuevo: se define aquí</option>
+            ${opciones.map(v => `<option value="${escapeHTML(String(v.id))}">${escapeHTML(v.name)} · tienes ${Number.isFinite(v.qty) ? v.qty : 0}</option>`).join("")}
+          </select>
+          <input type="number" id="rev-qty-${o}" class="rev-campo-qty" min="0" step="1" value="${d.qty}" aria-label="Cantidad comprada de ${escapeHTML(d.nombre)}">
+          <input type="number" id="rev-score-${o}" class="rev-num rev-campo-score" min="1" max="10" step="1" value="${d.score}" aria-label="Importancia de ${escapeHTML(d.nombre)}, del 1 al 10">
+          <input type="number" id="rev-min-${o}" class="rev-num rev-campo-min" min="0" step="1" value="${d.min}" aria-label="Cantidad mínima para avisarte de ${escapeHTML(d.nombre)}">
+          <input type="checkbox" class="ocr-include rev-campo-include" ${d.incluir ? "checked" : ""} aria-label="Incluir ${escapeHTML(d.nombre)}">
+        </div>`;
+    }
+
+    // Resuelta "es ESE alimento de casa", la pantalla DEBE decir la verdad: los campos de la fila
+    // pasan a mostrar LA ALERTA REAL del alimento elegido (su importancia y su mínimo) y se
+    // deshabilitan — la alerta de un alimento ya vivido no se redefine desde el ticket; sólo la
+    // CANTIDAD sigue siendo de la persona. Antes de resolver, los campos propios (por defecto
+    // 5/1) salen y se editan; al volver a "es nuevo" se restauran los valores que hubiera
+    // escrito (snapshot al primer cambio de variante).
+    function conectaVariante(fila) {
+      const selector = $("select", fila);
+      if (!selector) return;
+      const camposAlerta = [`#rev-score-${fila.dataset.o}`, `#rev-min-${fila.dataset.o}`].map(sel => $(sel, modalContent));
+      let propio = null;                                    // lo suyo, para restaurar si deshace la variante
+      const aplicaAlerta = () => {
+        const enCasa = selector.value ? foods.find(f => String(f.id) === selector.value) : null;
+        camposAlerta.forEach(campo => { if (campo) campo.disabled = !!enCasa; });
+        if (enCasa) {
+          if (!propio) propio = {
+            score: camposAlerta[0] ? camposAlerta[0].value : "",
+            min: camposAlerta[1] ? camposAlerta[1].value : ""
+          };
+          if (camposAlerta[0]) camposAlerta[0].value = Number.isFinite(enCasa.score) ? String(enCasa.score) : "5";
+          if (camposAlerta[1]) camposAlerta[1].value = Number.isFinite(enCasa.min) ? String(enCasa.min) : "0";
+        } else if (propio) {
+          if (camposAlerta[0] && propio.score !== "") camposAlerta[0].value = propio.score;
+          if (camposAlerta[1] && propio.min !== "") camposAlerta[1].value = propio.min;
+        }
+      };
+      aplicaAlerta();
+      selector.addEventListener("change", aplicaAlerta);
+    }
+
+    function renderDialogo() {
+      const pasoNombre = pasos[faseActual];
+      let cuerpo = "";
+      if (pasoNombre === "despensa") {
+        cuerpo = `
+          <h2>🎫 ${pasos.length > 1 ? "1 de 2 · " : ""}Ya lo tienes en el inventario</h2>
+          <p class="muted">Del ticket, estos ya estaban en tu Inventario actual. La cantidad es la que
+              leí del ticket: ajústala si hace falta y confirma — la compra <strong>suma</strong> a lo
+              que había y la alerta de cada alimento queda como estaba.</p>
+          <div class="ocr-cabecera" aria-hidden="true">
+            <span>Alimento</span><span>Cantidad</span><span>Incluir</span>
+          </div>
+          ${filasDelPaso("despensa").map(filaExactaHTML).join("")}`;
+      } else {
+        const seccionNuevos = previo.nuevos.length
+          ? `<div class="rev-seccion">
+              <h3>Nuevos</h3>
+              <p class="muted">Nada de esto está en tu Inventario actual: define en cada fila su IMPORTANCIA
+                  (prioridad para avisarte) y su MÍNIMO, junto al nombre y la cantidad — al confirmar
+                  entran en la despensa con esa alerta.</p>
+              <div class="rev-cab-nueva" aria-hidden="true">
+                <span class="rev-col-alimento">Alimento</span>
+                <span>Cantidad</span><span>Importancia</span>
+                <span>Mínimo</span><span>Incluir</span>
+              </div>
+              ${filasDelPaso("revisar").filter(c => previo.nuevos.some(n => nombreDePago(n) === nombreDePago(c))).map(c => filaRevisionHTML(c, false)).join("")}
+            </div>`
+          : "";
+        const seccionDudas = previo.dudosos.length
+          ? `<div class="rev-seccion">
+              <h3>Dudas</h3>
+              <p class="muted">¿Es la misma cosa que ya tienes con otro nombre? Elige de tu despensa el
+                  alimento al que pertenece esta compra (se suma a él y su alerta no se toca) o
+                  quédate la opción "es nuevo" para darlo de alta con lo escrito en la misma fila.</p>
+              <div class="rev-cab-duda" aria-hidden="true">
+                <span class="rev-col-alimento">Alimento</span>
+                <span>De tu despensa</span>
+                <span>Cantidad</span><span>Importancia</span>
+                <span>Mínimo</span><span>Incluir</span>
+              </div>
+              ${filasDelPaso("revisar").filter(c => previo.dudosos.some(n => nombreDePago(n) === nombreDePago(c))).map(c => filaRevisionHTML(c, true)).join("")}
+            </div>`
+          : "";
+        cuerpo = `
+          <h2>🎫 ${pasos.length > 1 ? "2 de 2 · " : ""}Añade lo nuevo y resuelve las dudas</h2>
+          <p class="muted">Todo lo confirmado aquí acaba en tu Inventario actual (sin pasar por la lista de la compra).</p>
+          ${seccionNuevos}${seccionDudas}`;
+      }
+      const esFaseExactos = pasoNombre === "despensa";
+      modalContent.innerHTML = `
+        ${cuerpo}
+        <div class="modal-footer">
+          <button class="btn ghost" data-close>Cancelar</button>
+          ${esFaseExactos
+            ? `<button class="btn primary" data-confirmar-exactos>${pasos.length === 2 ? "Confirmar y revisar el resto →" : "Añadir a la despensa"}</button>`
+            : `<button class="btn primary" data-revision-guardar>Añadir a la despensa</button>`}
+        </div>`;
+      abrirModal(esFaseExactos ? "Confirmar la compra de los alimentos ya en casa" : "Añade lo nuevo y resuelve las dudas de la foto");
+      const primero = esFaseExactos ? $(".exact-qty", modalContent) : ($(".ocr-nombre input, .rev-campo-nombre", modalContent));
+      if (primero) primero.select();
+      $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+      $$(".ocr-item", modalContent).forEach(fila => conectaVariante(fila));
+      const botonExactos = $("[data-confirmar-exactos]", modalContent);
+      if (botonExactos) botonExactos.addEventListener("click", confirmarExactos);
+      const botonRevision = $("[data-revision-guardar]", modalContent);
+      if (botonRevision) botonRevision.addEventListener("click", confirmarRevision);
+    }
+
+    function confirmarExactos() {
+      // Cosecha del diálogo 1: nombres fijos, sólo viajan cantidad e incluir.
+      $$(".ocr-item", modalContent).forEach(fila => {
+        const d = decision[Number(fila.dataset.o)];
+        d.incluir = $(".ocr-include", fila).checked;
+        const qty = parseInt($(".exact-qty", fila).value, 10);
+        if (Number.isFinite(qty) && qty >= 0) d.qty = qty;      // cantidad rara → se queda la del ticket
+      });
+      // SÓLO las filas de ESTE diálogo (los exactos): el resto se resuelve en la revisión.
+      const seleccion = $$(".ocr-item", modalContent)
+        .map(fila => decision[Number(fila.dataset.o)])
+        .filter(d => d.incluir)
+        .map(d => ({ nombre: d.nombre, qty: d.qty, tipo: d.tipo }));
+      if (!seleccion.length) { toast("No hay alimentos marcados para guardar", "error"); return; }
+      const result = ocr.guardarCandidatos(foods, seleccion, { uid, ahora: Date.now(), candidatosDespensa: null });
+      foods = result.foods;
+      save(LS.foods, foods);
+      renderFoods();
+      renderWeeklyAlert();
+      renderShoppingListTrasDespensa();
+      if (pasos.length === 2) {
+        faseActual = 1;                         // confirmados los exactos: ahora sí, la revisión
+        renderDialogo();
+      } else {
+        closeModal();
+        señalarResultadoEnDespensa();
+      }
+    }
+
+    function confirmarRevision() {
+      // Cosecha del diálogo 2: nombre/cantidad/importancia/mínimo/variante — con variante elegida
+      // esos campos no mandan (la alerta es la del alimento ya en casa) y el módulo los ignora.
+      $$(".ocr-item", modalContent).forEach(fila => {
+        const o = Number(fila.dataset.o);
+        const d = decision[o];
+        d.incluir = $(".ocr-include", fila).checked;
+        if (!d.incluir) return;
+        d.nombre = $("#rev-nombre-" + o, fila).value.trim();
+        const qty = parseInt($("#rev-qty-" + o, fila).value, 10);
+        if (Number.isFinite(qty) && qty >= 0) d.qty = qty;
+        const score = parseInt($("#rev-score-" + o, fila).value, 10);
+        if (Number.isFinite(score) && score >= 1 && score <= 10) d.score = score;
+        const min = parseInt($("#rev-min-" + o, fila).value, 10);
+        if (Number.isFinite(min) && min >= 0) d.min = min;
+        const variante = $("#rev-variante-" + o, fila);
+        if (variante) d.varianteId = variante.value;
+      });
+      // SÓLO las filas de ESTE diálogo de revisión: los exactos ya sumaron en el diálogo 1 y NO
+      // vuelven a escribirse aquí (si se colasen, la compra iría doble — lo cazó el sondeo e2e).
+      const osDeRevision = new Set($$(".ocr-item", modalContent).map(fila => Number(fila.dataset.o)));
+      let mensajeError = "";
+      decision.forEach((d, o) => {
+        if (!osDeRevision.has(o) || !d.incluir || mensajeError) return;
+        if (!d.varianteId && !d.nombre) { mensajeError = "Hay un alimento sin nombre: escribe uno o desmarca su casilla."; return; }
+      });
+      if (mensajeError) { toast(mensajeError, "error"); return; }
+      // El destino lo decidió la persona fila a fila: con variante la compra entra ESE id; sin
+      // ella es alta (el módulo evita duplicados casando nombre exacto con lo ya en casa).
+      const conVariante = [], deAltaDirecta = [];
+      decision.forEach((d, o) => {
+        if (!osDeRevision.has(o) || !d.incluir) return;
+        const fila = { nombre: d.nombre, qty: d.qty, score: d.score, min: d.min };
+        if (d.varianteId) { fila.varianteId = d.varianteId; conVariante.push(fila); }
+        else deAltaDirecta.push(fila);
+      });
+      if (!conVariante.length && !deAltaDirecta.length) { toast("No hay alimentos marcados para guardar", "error"); return; }
+      const resultado = ocr.confirmarRevision(foods, deAltaDirecta, conVariante, { uid, ahora: Date.now() });
+      foods = resultado.foods;
+      save(LS.foods, foods);
+      renderFoods();
+      renderWeeklyAlert();
+      renderShoppingListTrasDespensa();
+      closeModal();
+      señalarResultadoEnDespensa();
+    }
+
+    renderDialogo();
+  }
+
   // ===== RECETAS =====
   const recipeDesc = $("#recipe-desc");
   const recipeMeal = $("#recipe-meal");
@@ -655,8 +1261,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const mealLabels = { desayuno: "🌅 Desayuno", comida: "🍽️ Comida", cena: "🌙 Cena" };
 
   // ===== BUSCADOR DEL CATÁLOGO (feature 2026-10-18, card entre crear receta y Mis Recetas) =====
-  // TODA la decisión (normalizar consulta vía el matcher compartido, score por título x3 /
-  // ingrediente x1, orden estable, límite) vive en el módulo puro modules/busqueda-recetas.js;
+  // TODA la decisión (normalizar consulta vía el matcher compartido, match de TÍTULO SÓLO —
+  // exacto x3 / prefijo x2, fix 2026-10-20: los ingredientes ya no puntúan —, orden estable,
+  // límite) vive en el módulo puro modules/busqueda-recetas.js;
   // aquí sólo el molde de tarjetas (igual que las de Mis Recetas) y el click → modal de detalle.
   function renderBusquedaCatalogo() {
     const q = recipeCatalogSearch.value;
@@ -666,8 +1273,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const hits = busqueda.resultados;
     recipeCatalogResults.innerHTML = "";
     recipeCatalogEmpty.classList.toggle("hidden", !(busqueda.tokens.length && hits.length === 0));
-    hits.forEach(({ receta: r, hitsTitulo, hitsIngredientes }) => {
-      const donde = hitsTitulo.length ? "en el título" : "en los ingredientes";
+    hits.forEach(hit => {
+      const r = hit.receta;
       const card = document.createElement("div");
       card.className = "recipe-card";
       card.dataset.id = r.id;
@@ -677,7 +1284,6 @@ document.addEventListener("DOMContentLoaded", () => {
           <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
           ${badgeOrigenHTML(r)}
           ${badgeSyncHTML(r)}
-          <span class="muted" style="font-size:.8rem">${escapeHTML(donde)}</span>
         </div>`;
       card.setAttribute("role", "button");
       card.setAttribute("aria-label", "Ver detalles de " + r.title);
@@ -973,6 +1579,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // SIN esa bandera el render del modal queda IDENTICO al de siempre: Recetas/Innovación no la pasan → no se rompe ninguna vista ya probada.
   function openRecipeModal(r, opts) {
     const resaltarFaltantes = !!(opts && opts.highlightMissing);           // guard estricto § plan §2 "no activa sin que la UI lo pida".
+    // Etiqueta "Sugerencia de hoy" oculta cuando el modal se abre desde el PLAN semanal (petición
+    // 2026-10-21); Card 1 y el resto de vistas la siguen mostrando (tests de Card-1 la fijan).
+    const ocultarSugerencia = !!(opts && opts.ocultarEtiquetaSugerencia);
     let faltantesPorIndice = null;                                          // boolean[] paralelo a r.ingredients, sólo calculado SI la vista lo pide (sin bandera → nulo → idéntico).
     if (resaltarFaltantes && window.MRCheff.recipeMissing) {               // el match estricto vive en un PURe módulo testable (DIP §6), no se reinventa aquí (§ "un solo lugar calcula bien").
       const moduloFaltantes = window.MRCheff.recipeMissing;
@@ -988,7 +1597,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
         ${badgeOrigenHTML(r)}
         ${badgeSyncHTML(r)}
-        ${tagClasicoHTML(r, "Idea")}
+        ${ocultarSugerencia ? tagMenuSlotHTML(r) : tagClasicoHTML(r, "Idea")}
       </div>
       ${r.from ? `<p class="muted">Base: ${escapeHTML(r.from)}</p>` : ""}
       ${r.uses && r.uses.length ? `<p class="muted">🥣 Usa de tu casa: ${r.uses.map(escapeHTML).join(", ")}</p>` : ""}
@@ -1141,6 +1750,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const texto = (m && m.etiquetaClasicaVisible) ? m.etiquetaClasicaVisible(rec, SOURCE_LABEL, { fallback }) : (rec && rec.source ? (SOURCE_LABEL[rec.source] || fallback) : null);
     return texto ? `<span class="tag tag-${String(rec.source)}">${texto.toString()}</span>` : "";
   }
+  // Tag clásico del PLAN semanal (2026-10-21, petición del usuario): en la semana cada hueco YA es
+  // una sugerencia del lote — la etiqueta "Sugerencia de hoy" no aporta nada y repetida en las 21
+  // filas es ruido. Se suprime SÓLO ese token (fusiona con el tag si el texto coincidiera): los
+  // demás tags de fuente ("Nueva", "Variación"…) siguen decidiendo por el módulo puro sin cambio.
+  function tagMenuSlotHTML(rec) {
+    const html = tagClasicoHTML(rec);
+    if (!html || html.includes(SOURCE_LABEL.sugerenciaHoy)) return "";
+    return html;
+  }
   // Sello de ORIGEN al guardar una copia (⭐ de Innovación / ✏️ editor): el módulo calculó id/título del plato
   // ORIGINAL en el MOMENTO del guardado para que la etiqueta persista aunque el usuario renombre después.
   // El campo queda persistido en la receta (origen:"italiana"|"espanola") y el módulo le da precedencia.
@@ -1150,6 +1768,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const sello = m.origenAlGuardar(rec);          // string 'italiana'|'espanola' (o null sin datos)
     return sello ? { origen: sello } : {};
   }
+
+  const innovApi = window.MRCheff.innovations;   // módulo puro del generador + conciliación (modules/innovations.js)
 
   btnGenerateInnov.addEventListener("click", () => {
     if (foods.length === 0 && recipes.length === 0) {
@@ -1170,18 +1790,10 @@ document.addEventListener("DOMContentLoaded", () => {
       toast("No hay combinaciones suficientes con lo que tienes", "error");
       return;
     }
-    // Añadimos el nuevo lote al azar, evitando duplicados de título
-    const existing = new Set(innovations.map(i => i.title.toLowerCase().trim()));
-    let added = 0;
-    batch.forEach(i => {
-      const key = i.title.toLowerCase().trim();
-      if (existing.has(key)) return;
-      existing.add(key);
-      innovations.push(i);
-      added++;
-    });
-    // Limitamos la pila para que no crezca sin control
-    if (innovations.length > 30) innovations = innovations.slice(innovations.length - 30);
+    // Interpolación del lote en la pila (dedup por título + techo 30): la regla vive en el módulo
+    // puro `innovations.conciliarLote` (2026-10-21); aquí sólo persistencia y toast.
+    const { pila: nuevaPila, added } = innovApi.conciliarLote(innovations, batch, 30);
+    innovations = nuevaPila;
     save(LS.innov, innovations);
     innovDay = today;
     save(LS.innovDate, innovDay);
@@ -1206,17 +1818,17 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateInnovSummary() {
     if (!innovations.length) { innovSummary.classList.add("hidden"); return; }
     innovSummary.classList.remove("hidden");
-    const bySrc = {};
-    innovations.forEach(i => { const k = claveDeGrupoFuente(i); bySrc[k] = (bySrc[k] || 0) + 1; });
-    const parts = Object.entries(bySrc).map(([s, n]) =>
-      String(s).startsWith("Receta ") ? `${n} ${s}` : `${n} ${SOURCE_LABEL[s] || "nuevas"}`).join(" · ");
-    innovSummary.textContent = `${innovations.length} idea(s) en la lista (${parts}). Guarda las que te gusten con ⭐.`;
+    // El agrupado por fuente visible es del módulo (innovations.resumenPorFuente, 2026-10-21):
+    // el resolver da YA el texto final (origen para las curadas, etiqueta de fuente para el resto)
+    // y aquí queda sólo la frase de vista.
+    const resumen = innovApi.resumenPorFuente(innovations, claveDeGrupoFuente);
+    innovSummary.textContent = `${resumen.total} idea(s) en la lista (${resumen.partes.join(" · ")}). Guarda las que te gusten con ⭐.`;
   }
 
   // Resumen del generador: agrupa por FUENTE, pero para las curadas agrupa por ORIGEN visible
   // ("x Receta española · y Receta italiana") — la etiqueta es la MISMA que pintan las tarjetas.
   function claveDeGrupoFuente(i) {
-    return i.source === "curada" ? etiquetaOrigenSegura(i) : i.source;
+    return i.source === "curada" ? etiquetaOrigenSegura(i) : (SOURCE_LABEL[i.source] || "nuevas");
   }
 
   function renderInnovations() {
@@ -1358,13 +1970,35 @@ document.addEventListener("DOMContentLoaded", () => {
   // §8 log + unit tests en tests/planner.test.js) sobre el ranking completo de suggestToday — toda la
   // lógica de siempre (aforo qty>0, cooldown de cooked, ranking) intacta. Aquí sólo la MEMORIA de la
   // vista: los cursores de rotación (se reinician al recargar la página o al pulsar "Limpiar").
+  //
+  // RODILLO DEL COOLDOWN (bug 2026-10-21): el filtro de cocinadas-esta-semana vive en el pool común
+  // (buildCandidatePool); cocinando en raña —aprobar el plan ancla hasta 21 entradas en mrcheff.cooked—
+  // el cooldown podía AGOTAR todas las recetas cocinables y dejar la Card a cero para siempre (repro
+  // real: 5 cocinables del aforo del usuario, las 5 con entrada cooked en la ventana ⇒ 0 tarjetas;
+  // por eso "ya no sacaba recetas"). Regla: si el ranking estricto trae menos de 4, se rellena con el
+  // pool SIN filtro de cooked (las ya cocinadas quedan al final, ordenadas por aprovechamiento; los
+  // platos NO cocinados siguen mandando). Así la Card devuelve SIEMPRE hasta 4 recetas "cocinables
+  // hoy con lo de casa" y la rotación de cursores sigue cambiando el lote en cada click.
   let cursoresSugerencia = { desayuno: 0, comida: 0, cena: 0 };
   let clicksSugerencia = 0;
 
   btnSuggestGenerate.addEventListener("click", () => {
     const cooked = load(LS.cooked, []);
     const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
-    const todas = planner.suggestToday(pool, foods);   // ranking completo de SIEMPRE (contrato cerrado del módulo)
+    let todas = planner.suggestToday(pool, foods);   // ranking completo de SIEMPRE (contrato cerrado del módulo)
+    if (todas.length < 4) {
+      // Rodillo del cooldown: sin historial cocinado para el 2º corte; dedupe por TÍTULO para no
+      // pintar dos tarjetas gemelas (copia propia editada + original del catálogo viven en el pool
+      // con fingerprints distintos — el pool los conserva y aquí la Card pinta una sola vez cada plato).
+      const poolEntero = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked: [], today });
+      const yaEnCard = new Set(todas.map(t => t.title));
+      const extras = planner.suggestToday(poolEntero, foods).filter(i => {
+        if (yaEnCard.has(i.title)) return false;
+        yaEnCard.add(i.title);
+        return true;
+      });
+      todas = todas.concat(extras);
+    }
     const out = planner.loteRotado(todas, { cursores: cursoresSugerencia, clicks: clicksSugerencia });
     cursoresSugerencia = out.cursores;                 // el módulo es puro: devuelve cursores NUEVOS
     clicksSugerencia += 1;
@@ -1395,6 +2029,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const menuPlanList = $("#menu-plan-list");
   const menuEmpty = $("#menu-empty");
   const shoppingListEl = $("#shopping-list");
+  // Barra del plan APROBADO: resumen "N platos" + botón plegar/desplegar (petición 2026-10-21).
+  const menuPlanBar = $("#menu-plan-bar");
+  const menuPlanTitle = $("#menu-plan-title");
+  const btnMenuColapsar = $("#btn-menu-colapsar");
 
   // Estado del menú semanal cargado de localStorage (persistencia entre pestañas / recargas).
   let weeklyMenu = load(LS.weekmenu, null);
@@ -1426,7 +2064,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="recipe-meta">
           ${badgeOrigenHTML(rec)}
           ${badgeSyncHTML(rec)}
-          ${tagClasicoHTML(rec, SOURCE_LABEL.sugerenciaHoy)}
+          ${tagMenuSlotHTML(rec)}
           <span class="muted" style="font-size:.8rem">${rec.ingredients.length} ingr.</span>
         </div>
         ${rec.uses && rec.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${rec.uses.map(escapeHTML).join(" · ")}</div>` : ""}
@@ -1439,6 +2077,36 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     </div>`;
   }
+
+  // FEATURE 2026-10-21 (petición del usuario): una vez APROBADO, el plan semanal se puede PLEGAR
+  // para que no ocupe pantalla — queda la barra de resumen y SIEMPRE se puede volver a mostrar.
+  // La regla vive en el módulo puro (menuSemanal.alternarColapso, sólo aprobado, inmutable) y el
+  // estado persiste como `colapsado` en mrcheff.weekmenu; aquí sólo molde + persistencia. PUNTO
+  // ÚNICO de la BARRA y del plegado de la lista 7×3 (el PREVIEW la sigue mostrando vía
+  // renderWeeklyMenu: un preview no aprobado no se pliega).
+  function pintaBarraPlan() {
+    const aprobado = !!(weeklyMenu && weeklyMenu.approved === true);
+    const hayDias = aprobado && Array.isArray(weeklyMenu.plan) && weeklyMenu.plan.length > 0;
+    menuPlanBar.classList.toggle("hidden", !hayDias);
+    if (hayDias) menuPlanList.classList.toggle("hidden", weeklyMenu.colapsado === true);
+    if (!hayDias) return;
+    const n = menuSemanal.platosDelPlan(weeklyMenu.plan);
+    menuPlanTitle.textContent = `📅 Tu semana — ${n} ${n === 1 ? "plato" : "platos"}`;
+    const plegado = weeklyMenu.colapsado === true;
+    btnMenuColapsar.setAttribute("aria-expanded", plegado ? "false" : "true");
+    btnMenuColapsar.textContent = plegado ? "▸ Desplegar" : "▾ Plegar";
+    btnMenuColapsar.title = plegado
+      ? "Volver a mostrar la semana completa"
+      : "Plegar la semana (quedan este resumen y la lista de la compra)";
+  }
+
+  btnMenuColapsar.addEventListener("click", () => {
+    const cambio = menuSemanal.alternarColapso(weeklyMenu);
+    if (!cambio.cambiado) return;      // sólo se pliega lo aprobado (guard del módulo)
+    weeklyMenu = cambio.weekmenu;
+    save(LS.weekmenu, weeklyMenu);
+    pintaBarraPlan();
+  });
 
   function renderWeeklyMenu(plan) {
     menuPlanList.innerHTML = "";
@@ -1462,9 +2130,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!comida || !comida.recipe) return;
         row.addEventListener("click", (e) => {
           if (e.target.closest("button")) return;
-          openRecipeModal(comida.recipe, { highlightMissing: true });
+          openRecipeModal(comida.recipe, { highlightMissing: true, ocultarEtiquetaSugerencia: true });
         });
-        activablePorTeclado(row, () => openRecipeModal(comida.recipe, { highlightMissing: true }));
+        activablePorTeclado(row, () => openRecipeModal(comida.recipe, { highlightMissing: true, ocultarEtiquetaSugerencia: true }));
         const btnCook = row.querySelector("[data-cook]");
         if (btnCook) btnCook.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -1501,6 +2169,7 @@ document.addEventListener("DOMContentLoaded", () => {
     weeklyMenu = cambio.weekmenu;
     save(LS.weekmenu, weeklyMenu);
     renderWeeklyMenu(weeklyMenu.plan);
+    pintaBarraPlan();
     if (weeklyMenu.approved) renderShoppingList();
     toast(`Registrado: "${rec.title}" se cocinó — nuevo plato para ese hueco`);
   }
@@ -1520,16 +2189,43 @@ document.addEventListener("DOMContentLoaded", () => {
     weeklyMenu = cambio.weekmenu;
     save(LS.weekmenu, weeklyMenu);
     renderWeeklyMenu(weeklyMenu.plan);
+    pintaBarraPlan();
     if (weeklyMenu.approved) renderShoppingList();
   }
 
   // Render de Card 3 (lista de la compra derivada). Sólo se pinta si hay plan aprobado con ítems pendientes.
   // Con plan disponible, cada fila recibe su URGENCIA de compra (semaforo dinámico según lo cerca que está
   // la fecha de preparación: mañana/hoy=rojo, 2-3 días=naranja, ≥4=verde) y se ordena rojo→verde.
-  function formatoFechaCorta(iso) {
-    try {
-      return new Date(String(iso) + "T00:00:00Z").toLocaleDateString("es-ES", { day: "numeric", month: "short", timeZone: "UTC" });
-    } catch { return String(iso); }
+  // formatoFechaCorta vive en modules/util.js (§3, 2026-10-21) — llega por destructuring arriba;
+  // filaCompra la consume tal cual para el metadato "se usa el 21 oct" de cada fila del semáforo.
+
+  // Fila clásica de la lista de la compra (needyFoods del plan aprobado, con semáforo por fecha).
+  function filaCompra(item) {
+    const urg = item.urgency || "green";
+    const cuando = item.onDay != null && item.daysUntil != null
+      ? `· se usa el ${formatoFechaCorta(item.onDay)} (${item.daysUntil === 0 ? "hoy" : item.daysUntil === 1 ? "mañana" : `en ${item.daysUntil} días`})`
+      : "";
+    return `
+      <li class="alert-row urg-${urg}">
+        <span class="alert-name"><strong>${escapeHTML(item.name)}</strong></span>
+        <span class="alert-meta">qty <b>${item.qty}</b> · mínimo <b>${item.min}</b> · importante <b>${item.score}/10</b> ${escapeHTML(cuando)}</span>
+        <span class="alert-acciones">
+          ${(menuSemanal.candidatosDespensa(item.name, foods)).length
+            ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.name)}" title="¿Ya lo tienes en la despensa con otro nombre?">🛒 Despensa?</button>`
+            : ""}
+          <button class="btn ghost small" data-buy="${escapeHTML(item.name)}" title="Marcar como comprada">✅ comprado</button>
+        </span>
+      </li>`;
+  }
+
+  // La lista de la compra ES derivada: se repinta tras CUALQUIER cambio de la despensa (petición
+  // 2026-10-21 — venimos del ticket y ya compramos: unos ítems quedaron cubiertos y otros ni
+  // estaban en la tienda). Qué significa "cubierta" lo decide el módulo puro
+  // (shoppingListFor: alimento que case con qty > SU min); aquí sólo se cuenta TODOS los sucesos
+  // que pueden moverla: alta OCR (los dos diálogos), alta manual del formulario, ➕➖/🗑 del
+  // inventario y el import del backup — sin olvidar el ✅ comprado, que ya la repintaba.
+  function renderShoppingListTrasDespensa() {
+    if (weeklyMenu && weeklyMenu.approved) renderShoppingList();
   }
 
   function renderShoppingList() {
@@ -1547,23 +2243,7 @@ document.addEventListener("DOMContentLoaded", () => {
     shoppingListEl.innerHTML = `
       <h3>🛒 Lista de la compra</h3>
       <ul class="alert-list-green">
-        ${list.map(item => {
-          const urg = item.urgency || "green";
-          const cuando = item.onDay != null && item.daysUntil != null
-            ? `· se usa el ${formatoFechaCorta(item.onDay)} (${item.daysUntil === 0 ? "hoy" : item.daysUntil === 1 ? "mañana" : `en ${item.daysUntil} días`})`
-            : "";
-          return `
-          <li class="alert-row urg-${urg}">
-            <span class="alert-name"><strong>${escapeHTML(item.name)}</strong></span>
-            <span class="alert-meta">qty <b>${item.qty}</b> · mínimo <b>${item.min}</b> · importante <b>${item.score}/10</b> ${escapeHTML(cuando)}</span>
-            <span class="alert-acciones">
-              ${(menuSemanal.candidatosDespensa(item.name, foods)).length
-                ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.name)}" title="¿Ya lo tienes en la despensa con otro nombre?">🛒 Despensa?</button>`
-                : ""}
-              <button class="btn ghost small" data-buy="${escapeHTML(item.name)}" title="Marcar como comprada">✅ comprado</button>
-            </span>
-          </li>`;
-        }).join("")}
+        ${list.map(filaCompra).join("")}
       </ul>`;
     shoppingListEl.querySelectorAll("[data-buy]").forEach(btn => {
       btn.addEventListener("click", (e) => {
@@ -1603,12 +2283,15 @@ document.addEventListener("DOMContentLoaded", () => {
     // (menuSemanal.markItemBought / markItemBoughtComo); aquí sólo el molde del diálogo.
     // 2026-10-19: 2º parámetro `nombreDespensa` = el usuario confirmó en "🛒 Despensa?" que el
     // ítem es una variante de ESE alimento ya guardado: la compra va a él IN-SITU, sin alta nueva,
-    // y el modal ABRIR ya carga el MÍNIMO y la IMPORTANCIA del alimento de despensa (afinación del
-    // mismo día: la despensa ya tenía su criterio de alerta — no re-preguntar de cero).
+    // y el modal ABRE ya cargando el MÍNIMO y la IMPORTANCIA del alimento de despensa (afinación
+    // del mismo día: la despensa ya tenía su criterio de alerta — no re-preguntar de cero).
+    // (2026-10-21) Fuera el 3er parámetro de datos de la FILA DEL TICKET: el escáner ya no deja
+    // pendientes en la lista, así que aquí sólo abren filas del plan semanal.
     function abrirModalCompra(name, nombreDespensa) {
         const objetivo = nombreDespensa ? foods.find(f => f.name === nombreDespensa) : null;
-        const minPrevio = (objetivo && Number.isFinite(objetivo.min) && objetivo.min != null) ? objetivo.min : 1;
-        const scorePrevio = (objetivo && Number.isFinite(objetivo.score) && objetivo.score != null) ? objetivo.score : 5;
+        // min/score CON los que abre el modal: si la compra va a un alimento de la despensa se conserva
+        // SU criterio (no re-preguntar, 2026-10-19) — la regla vive en menuSemanal.valoresPreviosDeCompra.
+        const { min: minPrevio, score: scorePrevio } = menuSemanal.valoresPreviosDeCompra(objetivo);
         modalContent.innerHTML = `
         <h2>✅ ¿Comprado?</h2>
         <p class="muted">"<strong>${escapeHTML(name)}</strong>"${nombreDespensa
@@ -1638,19 +2321,17 @@ document.addEventListener("DOMContentLoaded", () => {
           const score = parseInt($("#compra-score", modalContent).value, 10);
           const minRaw = $("#compra-min", modalContent).value.trim();
           const min = minRaw === "" ? null : parseInt(minRaw, 10);   // vacío → no se pide: el módulo lo ignora
-          if (!Number.isFinite(qty) || qty < 1) {            // la cantidad comprada no puede ser 0/vacía
-            toast("Indica la cantidad comprada (1 o más)", "error");
+          // Toda la regla (qty ≥1, min ≥0, score 1–10) decide el módulo; aquí sólo traducimos el
+          // campo que falla a su mensaje (texto de vista, 2026-10-21).
+          const chk = menuSemanal.validarCompraForm({ qty, score, min });
+          if (!chk.ok) {
+            toast(
+              chk.campo === "qty" ? "Indica la cantidad comprada (1 o más)" :
+              chk.campo === "min" ? "El mínimo para la alerta va de 0 en adelante" :
+                                    "La importancia va de 1 a 10", "error");
             return;
           }
-          if (min !== null && (!Number.isFinite(min) || min < 0)) {
-            toast("El mínimo para la alerta va de 0 en adelante", "error");
-            return;
-          }
-          if (!Number.isFinite(score) || score < 1 || score > 10) {
-            toast("La importancia va de 1 a 10", "error");
-            return;
-          }
-          const compra = { qty, score, ...(min !== null ? { min } : {}) };
+          const compra = chk.compra;
           const result = nombreDespensa
             ? menuSemanal.markItemBoughtComo(foods, weeklyMenu, name, nombreDespensa, compra)
             : menuSemanal.markItemBought(foods, weeklyMenu, name, uid, Date.now(), compra);
@@ -1684,7 +2365,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const includeUnavailable = menuInclude.checked;
     const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
     const menu = planner.buildWeeklyMenu(pool, foods, { includeUnavailable, today });
-    const totalSlots = menu.plan.reduce((n, d) => n + ((Array.isArray(d.meals) ? d.meals : []).filter(m => m.recipe).length), 0);
+    const totalSlots = menuSemanal.platosDelPlan(menu.plan);
     menuStatus.textContent = includeUnavailable
       ? (totalSlots < 21
         ? `Se asignaron ${totalSlots} de 21 platos (7 días × desayuno/comida/cena): tu despensa + recetas guardadas no dan para más. Activa "Sugerencias" o añade más alimentos para ampliarlo.`
@@ -1695,6 +2376,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // para la visibilidad de los botones de fila (preview → sin "🍳 Cocinar", con "🔄 Cambiar").
     weeklyMenu = { ...menu, approved: false, includeUnavailable, generatedOn: today };
     renderWeeklyMenu(menu.plan);
+    pintaBarraPlan();
     menuEmpty.classList.add("hidden");
     btnMenuApprove.disabled = totalSlots === 0;
     btnMenuApprove.title = totalSlots === 0 ? "Genera primero un menú con al menos un plato" : "Aprueba este plan";
@@ -1712,10 +2394,11 @@ document.addEventListener("DOMContentLoaded", () => {
     save(LS.weekmenu, weeklyMenu);
     btnMenuApprove.disabled = true;
     btnMenuApprove.textContent = "✅ Plan aprobado";
-    menuStatus.textContent = `Plan aprobado: ${weeklyMenu.plan.reduce((n, d) => n + ((Array.isArray(d.meals) ? d.meals : []).filter(m => m.recipe).length), 0)} plato(s) anotados en su día de la semana (aprobado el ${today}).`;
+    menuStatus.textContent = `Plan aprobado: ${menuSemanal.platosDelPlan(weeklyMenu.plan)} plato(s) anotados en su día de la semana (aprobado el ${today}).`;
     // Re-render de las filas: ahora SÍ llevan "🍳 Cocinar" (decisión de menuSemanal.accionesMenuSlot,
     // que ve approved=true) — el preview se pintó sin él y las filas no se refrescan solas.
     renderWeeklyMenu(weeklyMenu.plan);
+    pintaBarraPlan();
     renderShoppingList();
     toast("Menú semanal aprobado");
   });
@@ -1731,6 +2414,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnMenuApprove.disabled = true;
     btnMenuApprove.textContent = "✅ Plan aprobado";
     menuEmpty.classList.add("hidden");
+    pintaBarraPlan();   // (re-honra el plegado persistido del plan aprobado — feature 2026-10-21)
     renderShoppingList();   // sólo pinta si hay needyFoods no comprados (el render filtra por sí, guard §2-A)
   }
 
@@ -1741,6 +2425,7 @@ document.addEventListener("DOMContentLoaded", () => {
     save(LS.weekmenu, weeklyMenu);
     menuPlanList.innerHTML = "";
     menuPlanList.classList.add("hidden");
+    pintaBarraPlan();              // sin plan aprobado ⇒ barra fuera (punto único; la lista ya la tapa Limpiar)
     menuEmpty.classList.remove("hidden");
     menuStatus.classList.add("hidden");
     btnMenuApprove.disabled = true;
@@ -1915,6 +2600,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     renderFoods();
     renderWeeklyAlert();
+    renderShoppingListTrasDespensa();
     renderRecipes();
     renderInnovations();
     importNote.textContent = `Se añadieron ${plan.addedFoods} alimento(s) y ${plan.addedRecipes} receta(s).`;

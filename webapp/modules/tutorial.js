@@ -10,6 +10,13 @@
 // (titulo + texto) y (4) si el elemento es ACTIONABLE (la persona toca el elemento real y así
 // avanza) o no (aparece el botón "Siguiente"). Si el selector no existe en el DOM del día, el
 // paso degrada a informativo: nunca se atasca el tutorial.
+// (5) Optional: tarjeta: "arriba" — para objetivos ALTOS (una lista o cuadrícula que ocupa la
+// vista): la tarjeta flota ENCIMA del aro y el wiring asienta el ARRANQUE del elemento al ~60%
+// de la ventana, así el contenido del paso se ve vivo debajo en lugar de tapado
+// ("Mis recetas" y "Buena fruta, buena verdura", petición 2026-10-21).
+// Optional también: sinTeclado implícito — el wiring silencia TODOS los form-controls del
+// objetivo accionable (input/textarea/select): tocar el campo avanza pero NO abre el teclado
+// del PWA ni el picker nativo del select (decisión 2026-10-21, vive en app.js porque es wiring).
 //
 // API PÚBLICA CERRADA (sin fugas de helpers internos):
 //   PASOS             — guion completo (grupos concatenados: intro, cada vista, cierre)
@@ -94,7 +101,7 @@
     },
     {
       id: "recetas-mis-recetas",
-      vista: "recipes", selector: "#recipe-list", accionable: false,
+      vista: "recipes", selector: "#recipe-list", accionable: false, tarjeta: "arriba",
       titulo: "Mis recetas y su origen",
       texto: "Lo que guardes (⭐ desde Innovación, o lo que edites) vive aquí: todas editables, con su sello de origen — española o italiana — y con el detalle de qué te falta para cocinarla.",
       cta: "Siguiente",
@@ -145,7 +152,7 @@
     },
     {
       id: "temporada-grid",
-      vista: "seasonal", selector: "#season-grid", accionable: false,
+      vista: "seasonal", selector: "#season-grid", accionable: false, tarjeta: "arriba",
       titulo: "Buena fruta, buena verdura",
       texto: "Lo que ves aquí está en su mejor momento: la clave para que el gazpacho, la ensalada o el arroz de hoy salgan como tocan. También puedes buscar por nombre con la otra caja.",
       cta: "Siguiente",
@@ -170,7 +177,10 @@
       && typeof p.texto === "string" && p.texto.trim() !== ""
       && (p.vista === null || typeof p.vista === "string")
       && (p.selector === null || typeof p.selector === "string")
-      && (!p.accionable || (typeof p.selector === "string" && p.selector !== ""));
+      && (!p.accionable || (typeof p.selector === "string" && p.selector !== ""))
+      // tarjeta (opcional, petición 2026-10-21): sólo el modo "arriba" — objetivo ALTO con
+      // la tarjeta flotando encima del aro. Un valor futuro desconocido invalida el paso.
+      && (p.tarjeta === undefined || p.tarjeta === null || p.tarjeta === "arriba");
   }
 
   // El guion del día: sólo los pasos con contrato sano (protege frente a un paso mal escrito).

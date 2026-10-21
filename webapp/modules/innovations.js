@@ -22,7 +22,7 @@
 // la inyección previa de `uid`. Cualquier campo extra desconocido en `focus`/`state` se ignora de forma tolerante (fallback defensivo §2).
 (function (root, factory) {
   const api = factory();
-  if (typeof module === "object" && module.exports) module.exports = api; // Jest / Node: require() directo desde tests. API cerrada a sólo { generate }.
+  if (typeof module === "object" && module.exports) module.exports = api; // Jest / Node: require() directo desde tests. API: { generate, conciliarLote, resumenPorFuente }.
   root.MRCheff = root.MRCheff || {};                                        // Namespace global único y coherente con el resto de módulos.
   Object.assign(root.MRCheff, { innovations: api });
 })(typeof self !== "undefined" ? self : this, function () {
@@ -396,6 +396,58 @@
     return outIdeas;
   }
 
+  // ---------------------------------------------------------------------------
+  // conciliarLote — interpola un lote nuevo del generador en la pila diaria de ideas
+  // (extraído de app.js 2026-10-21, donde el handler de "Generar ideas" llevaba la regla inline):
+  //   * dedup por TÍTULO normalizado (lower + trim, exacto: la misma comparación de siempre) —
+  //     el lote no puede meter ideas que ya estén en la pila ni repetirse entre sí.
+  //   * TECHO de la pila en `limite` (30 por defecto, la misma cáp de siempre): se conserva la
+  //     cola MÁS RECIENTE (las nuevas van al final).
+  //   * inmutable: no muta ni la pila ni el lote — devuelve { pila: nuevaPila, added } donde
+  //     `added` = ideas nuevas INTERPOLADAS (contadas ANTES del techo, como contaba el toast).
+  // ---------------------------------------------------------------------------
+  function conciliarLote(pila, lote, limite = 30) {
+    const clave = i => String(i && i.title == null ? "" : i.title).toLowerCase().trim();
+    const existentes = new Set((Array.isArray(pila) ? pila : []).map(clave));
+    const nuevas = [];
+    (Array.isArray(lote) ? lote : []).forEach(idea => {
+      const k = clave(idea);
+      if (existentes.has(k)) return;         // ya estaba en la pila (o duplicada dentro del lote)
+      existentes.add(k);
+      nuevas.push(idea);
+    });
+    const todo = (Array.isArray(pila) ? pila : []).concat(nuevas);
+    return {
+      added: nuevas.length,
+      pila: todo.length > limite ? todo.slice(todo.length - limite) : todo
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // resumenPorFuente — conteo de ideas AGRUPADAS por su fuente visible (extraído de app.js
+  // 2026-10-21 junto con su truco "startsWith('Receta ')" para saber si la clave ya era texto
+  // visible: aquí el RESOLVER devuelve YA el texto final, así que no hay doble sentido):
+  //   * `resolver(i)` (inyectable) → texto visible de la fuente de UNA idea (p. ej. app.js pasa
+  //     curada → etiqueta de origen "Receta española/italiana" y el resto → su SOURCE_LABEL).
+  //     Sin resolver, agrupa por el token crudo `source`.
+  //   * devuelve { total, partes: ["3 Variación", "2 Receta española", …] } en orden de primera
+  //     aparición (estable); el MOLDE final ("N idea(s) en la lista (…)…") es texto de vista
+  //     y se queda en app.js.
+  // ---------------------------------------------------------------------------
+  function resumenPorFuente(pila, resolver) {
+    const grupos = [];
+    (Array.isArray(pila) ? pila : []).forEach(i => {
+      const texto = resolver ? String(resolver(i)) : String((i && i.source) || "");
+      let g = grupos.find(g => g.texto === texto);
+      if (!g) { g = { texto, n: 0 }; grupos.push(g); }
+      g.n++;
+    });
+    return {
+      total: Array.isArray(pila) ? pila.length : 0,
+      partes: grupos.map(g => `${g.n} ${g.texto}`)
+    };
+  }
+
   // API PÚBLICA CERRADA (§5/§8: exposición estricta; no fugas de helpers internos) — el único export es `generate`.
-  return { generate };
+  return { generate, conciliarLote, resumenPorFuente };
 });

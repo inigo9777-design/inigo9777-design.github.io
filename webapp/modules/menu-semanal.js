@@ -1,8 +1,10 @@
 // modules/menu-semanal.js — Lógica PURe (sin DOM ni localStorage) de "Menú semanal + lista de la compra"
 // (ver webapp/feature-plans/planFeatureRecetasSugeridasYPlanSemana.md §2 Card 2 + Card 3 y CODING_STANDARDS.md §2-D / §3 option A).
 //
-// API PÚBLICA CERRADA (7 funciones, sin fugas de helpers internos):
-//   shoppingListFor(needyFoods, foods, ctx?)  → dedup por MATCHER de tokens (NO subcadena-cruda) + urgencia de compra
+// API PÚBLICA CERRADA (13 funciones, sin fugas de helpers internos):
+//   shoppingListFor(needyFoods, foods, ctx?)  → dedup por MATCHER de tokens (NO subcadena-cruda) + COBERTURA
+//                                               contra el Inventario ACTUAL (petición 2026-10-21: sale el
+//                                               ítem cuyo alimento case con qty > SU min) + urgencia
 //                                               {name, qty:0, min:0, score:5, onDay?, daysUntil?, urgency:"red|orange|green"}
 //   approveMenu(preview, cooked, today, cookEntryFor, uid) → { cooked, weekmenu } inmutables; ancla = FECHA de cada día×comida planificada
 //   markItemBought(foods, weekmenu, itemName, uid, now, compra?) → { foods, weekmenu, alreadyExists, actualizado? }
@@ -25,6 +27,21 @@
 //                                                          → la compra se anota en el alimento YA EXISTENTE que
 //                                                            el usuario eligió en "¿Despensa?" (update in-situ,
 //                                                            sin alta nueva) y el ítem sale de needyFoods.
+//   platosDelPlan(plan)                                    → nº de slots del plan que llevan receta (7×3: máximo 21).
+//                                                            Conteo compartido: app.js lo pintaba con el mismo
+//                                                            reduce copiado en tres sitios.
+//   alternarColapso(weekmenu) → { weekmenu, cambiado }     → PLEGAR/DESPLEGAR el plan APROBADO (petición 2026-10-21):
+//                                                            voltea el campo opcional `colapsado` del shape
+//                                                            persistido y siempre se puede volver a mostrar.
+//                                                            Guard: sólo un plan aprobado con días se pliega.
+//   valoresPreviosDeCompra(alimento) → { min, score }      → valores con los que el modal de compra abre ya
+//                                                            cargado: si la compra va a un alimento EXISTENTE
+//                                                            no re-pregunta su criterio (afinación 2026-10-19);
+//                                                            alimento nuevo/roto → 1 y 5 (alta manual).
+//   validarCompraForm({qty, score, min}) → { ok, compra | } VALIDACIÓN del diálogo "✅ ¿Comprado?" (extraída
+//                                        { ok:false, campo }  de app.js 2026-10-21: qty ≥1, min ≥0 (vacío =
+//                                                            sin min) y score 1–10; la vista sólo traduce
+//                                                            `campo` a su texto de error.
 //
 // Nota de cambio (§8): `regenerateAfterCook` (regeneración COMPLETA al cocinar) se retira — cocinar desde el
 // menú ahora compone `cookEntry` + `swapSlotRecipe` en app.js: el plato entra en cooldown y SÓLO su slot
@@ -111,7 +128,12 @@
   // ---------------------------------------------------------------------------
   // shoppingListFor — lista de la compra a partir de needyFoods:
   //   * dedup entre needy Y contra el aforo por MATCHER de tokens (fix del bug "Plátano" vs "Plátanos":
-  //     el dedup exacto por lower-case dejaba pasar不理解 plural/variación y duplicaba filas).
+  //     el dedup exacto por lower-case no entendía plural/variación y duplicaba filas).
+  //   * COBERTURA contra el Inventario ACTUAL (petición 2026-10-21, lista de la compra dinámica):
+  //     un needy sale de la lista cuando un alimento de casa case (matcher) y tenga MÁS unidades
+  //     que SU mínimo necesario (qty > min) — la persona viene CON EL TICKET y ya compró; si algo
+  //     no estaba en la tienda, en casa quedará qty <= min y la fila SIGUE hasta satisfacerse.
+  //     Con min 0/undefined basta tener qty > 0 (regla antigua para lo sin criterio de alerta).
   //   * ctx opcional { plan, generatedOn, today }: ancla cada ítem a la FECHA MÁS PRÓXIMA en que
   //     algún slot del plan lo necesita → onDay, daysUntil y urgency (red/orange/green) para que la
   //     lista CAMBIE DE COLOR dinámicamente al acercarse la fecha de preparación. Sin ctx → sin
@@ -131,8 +153,10 @@
       if (!raw || typeof raw !== "object" || !raw.name) continue;
       const clave = claveNombre(raw.name);
       if (!clave || seen.has(clave)) continue;
-      // ¿Ya lo tenemos en cantidad real? El matcher de tokens decide (NO lower-case exacto).
-      if (known.some(f => matchIngredienteAlimento(raw.name, f.name))) continue;
+      // ¿Ya lo tenemos en cantidad SUFICIENTE? El matcher de tokens decide el CASO (NO lower-case
+      // exacto) y el MÍNIMO del alimento decide la COBERTURA: la fila sale con qty > min, sigue si
+      // aún no se compensó la compra (ver cabecera — lista de la compra dinámica).
+      if (known.some(f => matchIngredienteAlimento(raw.name, f.name) && Number(f.qty) > minParaCobertura(f))) continue;
       seen.add(clave);
 
       const fila = { name: raw.name, qty: 0, min: 0, score: 5 };
@@ -151,6 +175,13 @@
   }
 
   function hayNombre(name) { return String(name == null ? "" : name).trim() !== ""; }
+
+  // Mínimo de alerta del alimento (≥0; indefinido/none → 0): con él se decide la COBERTURA de un
+  // ítem de la compra (qty > min de un alimento que case — shoppingListFor).
+  function minParaCobertura(f) {
+    const n = Number(f && f.min != null ? f.min : 0);
+    return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
+  }
 
   // Fecha MÁS PRÓXIMA (ISO) en que algún slot del plan necesita el ítem (min de dateForPlanDay).
   function fechaMasProxima(nombre, plan, generatedOn) {
@@ -433,6 +464,40 @@
   }
 
   // ---------------------------------------------------------------------------
+  // valoresPreviosDeCompra — el MÍNIMO y la IMPORTANCIA con los que el modal de compra abre ya
+  // cargado (afinación 2026-10-19): si la compra va a un alimento YA EXISTENTE en la despensa NO
+  // se vuelve a preguntar su criterio de alerta (el suyo ya existe — conservarlo); si es un
+  // alimento nuevo (u entrada rota) cae a los valores de alta manual de siempre: min 1, score 5.
+  // Regla de negocio, no de vista: app.js la consultaba al montar el modal, aquí vive testeada.
+  // ---------------------------------------------------------------------------
+  function valoresPreviosDeCompra(alimento) {
+    return {
+      min: (alimento && Number.isFinite(alimento.min) && alimento.min != null) ? alimento.min : 1,
+      score: (alimento && Number.isFinite(alimento.score) && alimento.score != null) ? alimento.score : 5
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // validarCompraForm — VALIDACIÓN del diálogo "✅ ¿Comprado?" (feature 2026-10-18): la cantidad
+  // comprada es 1 o más, el mínimo para la alerta va de 0 en adelante (vacío ⇒ NO se pide: el
+  // markItemBought conserva el que ya tenía el alimento) y la importancia va de 1 a 10.
+  // Antes esta cadena vivía REPARTIDA: la vista replicaba las tres reglas para decidir qué toast
+  // mostrar y compraNormalizada (guard del markItemBought) re-sanitizaba por si acaso — reglas
+  // EN UN SITIO (§3) y la vista sólo traduce el campo a su texto de error.
+  //   * entrada = { qty, score, min } cruda del formulario (min vacío/null/undefined → sin min).
+  //   * ok     → { ok: true, compra } LISTO para markItemBought / markItemBoughtComo.
+  //   * error  → { ok: false, campo: "qty" | "min" | "score" }, el PRIMER campo que falla.
+  // ---------------------------------------------------------------------------
+  function validarCompraForm(entrada) {
+    const e = entrada || {};
+    const min = (e.min === undefined || e.min === null || e.min === "") ? null : e.min;
+    if (!Number.isFinite(e.qty) || e.qty < 1) return { ok: false, campo: "qty" };
+    if (min !== null && (!Number.isFinite(min) || min < 0)) return { ok: false, campo: "min" };
+    if (!Number.isFinite(e.score) || e.score < 1 || e.score > 10) return { ok: false, campo: "score" };
+    return { ok: true, compra: { qty: e.qty, score: e.score, ...(min !== null ? { min } : {}) } };
+  }
+
+  // ---------------------------------------------------------------------------
   // accionesMenuSlot — visibilidad de los botones de acción en las FILAS del menú (feature 2026-10-18):
   //   * "🍳 Cocinar" SOLO en un plan APROBADO: el preview aún no compromete nada (y cocinar desde él
   //     escribiría en mrcheff.cooked un plato que después podría regenerarse sin más). Regla de negocio,
@@ -447,16 +512,50 @@
     return { cocinar: aprobado, cambiar: hayPlan };
   }
 
-  // API PÚBLICA CERRADA (§5/§8 — solo estas 9 funciones, sin fuga de helpers internos como defaultUid).
+  // ---------------------------------------------------------------------------
+  // platosDelPlan — nº de SLOTS del plan que llevan receta (7 días × 3 comidas ⇒ tope 21).
+  // Antes app.js repartía el MISMO reduce en tres sitios (generar/aprobar): la regla del
+  // conteo vive aquí una sola vez y con test propio (§3).
+  // ---------------------------------------------------------------------------
+  function platosDelPlan(plan) {
+    let n = 0;
+    for (const d of Array.isArray(plan) ? plan : []) {
+      for (const m of Array.isArray(d && d.meals) ? d.meals : []) {
+        if (m && m.recipe) n++;
+      }
+    }
+    return n;
+  }
+
+  // ---------------------------------------------------------------------------
+  // alternarColapso — PLEGAR/DESPLEGAR el plan APROBADO (petición 2026-10-21): una vez aprobado,
+  // la semana puede quedarse PLEGADA (sólo el resumen de la barra) y SIEMPRE se puede volver a
+  // mostrar. Estado = campo opcional `colapsado` del shape persistido (seguimiento de
+  // `triedKeys`, nota §8 del plan-feature; un payload sin la clave vuelve EXPANDIDO).
+  //   * guard: sólo un plan APROBADO con días tiene algo que plegar — preview y estado limpio
+  //     se quedan como están ({ weekmenu: el mismo, cambiado: false }).
+  //   * inmutable: NUEVO objeto weekmenu; el original no se muta (el caller persiste vía helpers).
+  // ---------------------------------------------------------------------------
+  function alternarColapso(weekmenu) {
+    if (!weekmenu || weekmenu.approved !== true) return { weekmenu, cambiado: false };
+    if (!Array.isArray(weekmenu.plan) || weekmenu.plan.length === 0) return { weekmenu, cambiado: false };
+    return { weekmenu: Object.assign({}, weekmenu, { colapsado: weekmenu.colapsado !== true }), cambiado: true };
+  }
+
+  // API PÚBLICA CERRADA (§5/§8 — solo estas 13 funciones, sin fuga de helpers internos como defaultUid).
   return {
     shoppingListFor,
     approveMenu,
     markItemBought,
     markItemBoughtComo,
+    valoresPreviosDeCompra,
+    validarCompraForm,
     candidatosDespensa,
     cookEntry,
     swapSlotRecipe,
     clearMenu,
-    accionesMenuSlot
+    accionesMenuSlot,
+    platosDelPlan,
+    alternarColapso
   };
 });

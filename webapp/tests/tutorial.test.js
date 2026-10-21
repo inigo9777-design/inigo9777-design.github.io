@@ -38,6 +38,13 @@ describe("tutorial — contrato del módulo", () => {
     expect(tut.pasoValido({ titulo: "", texto: "y", vista: null, selector: null, accionable: false })).toBe(false);
     expect(tut.pasoValido({ titulo: "x", texto: "   ", vista: null, selector: null, accionable: false })).toBe(false);
   });
+
+  it("tarjeta opcional (petición 2026-10-21): sólo \"arriba\" es válida; un modo desconocido invalida el paso", () => {
+    expect(tut.pasoValido({ titulo: "x", texto: "y", vista: "recipes", selector: "#a", accionable: false, tarjeta: "arriba" })).toBe(true);
+    expect(tut.pasoValido({ titulo: "x", texto: "y", vista: null, selector: null, accionable: false, tarjeta: null })).toBe(true);
+    expect(tut.pasoValido({ titulo: "x", texto: "y", vista: null, selector: null, accionable: false, tarjeta: "al lado" })).toBe(false);
+    expect(tut.pasoValido({ titulo: "x", texto: "y", vista: null, selector: null, accionable: false, tarjeta: 1 })).toBe(false);
+  });
 });
 
 describe("tutorial — máquina de sesión", () => {
@@ -111,7 +118,7 @@ describe("tutorial — bloque RECETAS (épica tutorial-interactivo)", () => {
       .toBe("recetas-crear,recetas-catalogo,recetas-mis-recetas");
   });
 
-  it("contrato de objetivos: creación y buscador accionables, Mis Recetas informativo", () => {
+  it("contrato de objetivos: creación y buscador accionables, Mis Recetas informativo con tarjeta ARRIBA", () => {
     const [p1, p2, p3] = tut.pasosDeVista("recipes");
     expect(p1.selector).toBe("#recipe-desc");
     expect(p1.accionable).toBe(true);
@@ -119,6 +126,7 @@ describe("tutorial — bloque RECETAS (épica tutorial-interactivo)", () => {
     expect(p2.accionable).toBe(true);
     expect(p3.selector).toBe("#recipe-list");
     expect(p3.accionable).toBe(false);
+    expect(p3.tarjeta).toBe("arriba");   // objetivo ALTO (petición 2026-10-21): la tarjeta no tapa la lista
   });
 });
 
@@ -176,12 +184,13 @@ describe("tutorial — bloque TEMPORADA (épica tutorial-interactivo)", () => {
       .toBe("temporada-mes,temporada-grid");
   });
 
-  it("contrato: selector de mes accionable; la cuadrícula informativa", () => {
+  it("contrato: selector de mes accionable; la cuadrícula informativa con tarjeta ARRIBA", () => {
     const [p1, p2] = tut.pasosDeVista("seasonal");
     expect(p1.selector).toBe("#season-month");
     expect(p1.accionable).toBe(true);
     expect(p2.selector).toBe("#season-grid");
     expect(p2.accionable).toBe(false);
+    expect(p2.tarjeta).toBe("arriba");   // objetivo ALTO (petición 2026-10-21): la tarjeta no tapa la cuadrícula
     expect(p2.cta).toBe("Siguiente");
   });
 });

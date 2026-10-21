@@ -27,6 +27,7 @@
   --muted: #756d60;                    /* secundario cálido */
   --border: #e7e2d8;
   --border-strong: #d4cec2;
+  --filete-marron: #8a5f34;            /* hairline de secciones de la ficha de receta (petición 2026-10-21): marrón cálido del papel */
 
   /* Marca: verde laurel (soberio, de rama, no de casino) */
   --brand: #2f6b45;
@@ -97,6 +98,7 @@
   --muted: #a29a8a;
   --border: #383327;
   --border-strong: #4a4333;
+  --filete-marron: #b3885c;            /* mismo marrón aclarado para leerse sobre la hoja oscura */
 
   --brand: #7cbb8f;
   --brand-strong: #a3d3b0;
@@ -645,6 +647,129 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   .food-item .food-actions { flex-basis: 100%; justify-content: flex-end; }
 }
 
+/* ========== 10-bis. ESCÁNER DE DESPENSA (OCR, #epic-ocr-despensa-camara) ========== */
+/* Botones de entrada (cámara en móvil / foto en escritorio) junto al formulario manual. */
+.ocr-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+
+/* Modal de confirmación: cabecera de columnas + filas candidato (nombre editable + qty + min + importancia + incluir). */
+.ocr-cabecera {
+  display: flex; gap: 10px; align-items: center;
+  font-size: 0.78rem; color: var(--muted);
+  padding: 10px 14px 4px;
+}
+.ocr-cabecera span:first-child { flex: 1 1 200px; min-width: 0; }
+.ocr-cabecera span:not(:first-child):not(:last-child) { width: 84px; text-align: center; flex: 0 0 auto; }
+.ocr-cabecera span:last-child { width: 62px; text-align: center; flex: 0 0 auto; }
+
+.ocr-item {
+  display: flex; gap: 10px; align-items: center;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--card);
+  margin-bottom: 8px;
+}
+.ocr-item .ocr-nombre { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ocr-item .ocr-nombre input { width: 100%; }
+.ocr-tipo {
+  font-size: 0.72rem; color: var(--muted);
+  background: var(--card-muted-bg);
+  align-self: flex-start;
+  padding: 1px 8px; border-radius: 999px;
+}
+.ocr-linea { font-size: 0.78rem; color: var(--muted); overflow-wrap: anywhere; }
+/* Diálogo de revisión del escáner (Nuevos + Dudas, 2026-10-21): el nombre exacto VA FIJO en el
+   1er diálogo (ya es alimento real del inventario) y las filas del 2º llevan nombre/cantidad/
+   importancia/mínimo/variante de despensa. Cada sección es una RETÍCULA COMPARTIDA por su
+   cabecera y sus filas (misma plantilla de columnas y mismo calzado): la columna del alimento
+   flexible y cada campo en la suya — la etiqueta queda SIEMPRE encima de lo que nombra, sin
+   descuadre en ningún ancho (antes la cabecera y la fila calzaban distinto: gap, anchuras,
+   checkbox incluido). */
+.rev-nombre-fijo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rev-seccion { margin: 16px 0 0; }
+.rev-seccion:first-of-type { margin-top: 0; }
+.rev-seccion h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.rev-seccion .muted { margin: 0 0 10px; font-size: 0.8rem; }
+.rev-cab-nueva, .rev-cab-duda {
+  display: grid; align-items: center; column-gap: 10px;
+  padding: 0 14px 6px;
+  font-size: 0.72rem; color: var(--muted);
+}
+.rev-cab-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
+.rev-cab-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
+.rev-cab-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
+.rev-cab-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
+.rev-cab-nueva > span, .rev-cab-duda > span { grid-row: 1; }   /* UNA línea de etiquetas, por orden */
+.rev-cab-nueva span:not(:first-child), .rev-cab-duda span:not(:first-child) { text-align: center; }
+.rev-fila-nueva, .rev-fila-duda {
+  display: grid; align-items: center; column-gap: 10px; row-gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--card);
+  margin-bottom: 8px;
+}
+.rev-fila-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
+.rev-fila-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
+/* Línea 1 = la del NOMBRE: el input y TODOS los campos comparten su misma línea horizontal
+   (centros alineados — nada «colgado» a media altura). Línea 2 = etiqueta + línea del ticket,
+   SOLO bajo la columna del alimento. En Dudas la columna 2 es el desplegable: los campos corridos. */
+.rev-fila-nueva .rev-campo-nombre, .rev-fila-duda .rev-campo-nombre { grid-area: 1 / 1; }
+.rev-fila-nueva .rev-campo-qty,     .rev-fila-duda .rev-campo-variante { grid-area: 1 / 2; }
+.rev-fila-nueva .rev-campo-score,   .rev-fila-duda .rev-campo-qty      { grid-area: 1 / 3; }
+.rev-fila-nueva .rev-campo-min,     .rev-fila-duda .rev-campo-score    { grid-area: 1 / 4; }
+.rev-fila-nueva .rev-campo-include, .rev-fila-duda .rev-campo-min      { grid-area: 1 / 5; }
+.rev-fila-duda .rev-campo-include { grid-area: 1 / 6; }
+.rev-fila-nueva .rev-sub, .rev-fila-duda .rev-sub {
+  grid-area: 2 / 1;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  min-width: 0;
+}
+.rev-sub .ocr-tipo { align-self: center; }
+.rev-campo-nombre, .rev-fila-nueva input[type="number"], .rev-fila-duda input[type="number"], .rev-fila-duda select {
+  width: 100%; min-width: 0;
+}
+.rev-fila-nueva input[type="checkbox"], .rev-fila-duda input[type="checkbox"] { justify-self: center; }
+.rev-fila-nueva input[type="number"]:disabled, .rev-fila-duda input[type="number"]:disabled { opacity: 0.55; }
+.rev-campo-nombre { cursor: text; }
+
+/* Llegada de la confirmación del escáner: el Inventario actual destella una vez — el ojo cae
+   donde acabaron los alimentos SIN que haga falta un toast que lo cuente. */
+@keyframes destello-suave {
+  0%   { box-shadow: 0 0 0 0 var(--brand-soft); }
+  35%  { box-shadow: 0 0 0 10px var(--brand-soft); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.destello-suave { animation: destello-suave 2.1s ease-out 1; border-radius: var(--radius-m); }
+
+/* Móvil estrecho: el nombre (diálogo 1) en línea propia; en las retículas del diálogo 2 el
+   bloque del alimento ocupa TODA la anchura y los campos se reparten debajo — la cabecera
+   comparte esa misma plantilla estrecha, la etiqueta sigue encima de su campo. */
+@media (max-width: 640px) {
+  .ocr-item { flex-wrap: wrap; row-gap: 8px; }
+  .ocr-item .ocr-nombre { flex-basis: 100%; }
+  .rev-cab-nueva, .rev-fila-nueva, .rev-cab-duda, .rev-fila-duda {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) 44px;
+  }
+  .rev-cab-nueva .rev-col-alimento, .rev-cab-duda .rev-col-alimento { grid-column: 1 / -1; }
+  .rev-cab-duda > span:nth-child(2) { grid-column: 1 / -1; }   /* «De tu despensa»: línea propia */
+  .rev-cab-nueva > span, .rev-cab-duda > span { grid-row: auto; }   /* las etiquetas fluyen por filas */
+  .rev-fila-nueva .rev-campo-nombre, .rev-fila-duda .rev-campo-nombre { grid-column: 1 / -1; }
+  /* En estrecho: NUEVA = nombre (1), campos repartidos (2), etiqueta+línea (3);
+     DUDA = el desplegable gana línea completa propia (2) y el resto baja una fila. */
+  .rev-fila-nueva .rev-campo-qty     { grid-area: 2 / 1; }
+  .rev-fila-nueva .rev-campo-score   { grid-area: 2 / 2; }
+  .rev-fila-nueva .rev-campo-min     { grid-area: 2 / 3; }
+  .rev-fila-nueva .rev-campo-include { grid-area: 2 / 4; }
+  .rev-fila-nueva .rev-sub { grid-column: 1 / -1; grid-row: 3; }
+  .rev-fila-duda .rev-campo-variante { grid-column: 1 / -1; grid-row: 2; }
+  .rev-fila-duda .rev-campo-qty     { grid-area: 3 / 1; }
+  .rev-fila-duda .rev-campo-score   { grid-area: 3 / 2; }
+  .rev-fila-duda .rev-campo-min     { grid-area: 3 / 3; }
+  .rev-fila-duda .rev-campo-include { grid-area: 3 / 4; }
+  .rev-fila-duda .rev-sub { grid-column: 1 / -1; grid-row: 4; }
+}
+
 /* ========== 11. TARJETAS DE ALERTA Y LA COMPRA ========== */
 /* Tarjeta de estado (alerta semanal, lista de compra): tinte lateral según riesgo */
 .card.alert-card { border-left: 4px solid var(--border); }
@@ -830,11 +955,30 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   color: var(--muted);
 }
 
-/* ========== 13. MENÚ SEMANAL — una franja por día, a todo el ancho ========== */
-/* Las filas de comida son RECTÁNGULOS LARGOS a sangre: todas ocupan el ancho
-   íntegro de la franja (el redondeo de la franja las recorta limpio con
-   overflow:hidden) y comparten estructura → nunca hay dos filas de distinta
-   forma. El reparto interior es fijo: etiqueta | plato | acciones. */
+/* ========== 13. MENÚ SEMANAL — una tarjeta por día, acolchados suaves dentro ========== */
+/* Barra del plan APROBADO (feature 2026-10-21): resumen "N platos" + plegar/desplegar.
+   Sólo tokens existentes — nada de colores nuevos: hereda texto y marca del tema activo. */
+.menu-plan-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);   /* misma familia de forma que las tarjetas a las que resume */
+  box-shadow: var(--shadow-1);
+  margin-bottom: 12px;
+}
+.menu-plan-title {
+  font-family: Georgia, serif;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 1rem;
+}
+/* Objetivo táctil ≥24px (auditoría e2e/pwa-accesibilidad.mjs), herencia visual de .btn.ghost.small */
+#btn-menu-colapsar { min-height: 24px; }
+
 #menu-plan-list {
   list-style: none;
   display: flex;
@@ -845,18 +989,31 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 /* Anula el "tinte de estado" heredado de .alert-card en esta lista: */
 #menu-plan-list.alert-card { background: none; border: none; border-left: none; }
 
-.menu-day {
+/* El día es UNA TARJETA del mismo pie que .card (superficie, filete, radio grande) y su
+   contenido vive DENTRO del acolchado — como en el resto de la app, nada llega a sangre.
+   ⚠️ ESPECIFICIDAD: el <ul> nace con clase `alert-card` (markup) y la regla genérica de la
+   lista de despensa `.alert-card li` (0,1,1) APLASTABA el estilo del día (0,1,0): centraba
+   el título (align-items:center), achaflanaba el radio y colgaba la fila con su padding.
+   El prefijo #menu-plan-list lo pasa encima (1,1,0) — y fija los campos que la regla
+   genérica compartía (flex-wrap / align-items / font-size / gap). */
+#menu-plan-list .menu-day {
   display: flex;
   flex-direction: column;
-  padding: 0;
+  flex-wrap: nowrap;               /* .alert-card li repartía en wrap: aquí va en bloque */
+  align-items: stretch;            /* el título y las filas estiradas, nada centrado */
+  font-size: inherit;              /* desmentida de la .93rem de la lista de despensa */
+  gap: 8px;                        /* respiro entre acolchados interiores */
+  padding: 14px 12px 16px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-l);
   box-shadow: var(--shadow-1);
   list-style: none;
-  overflow: hidden;                 /* el redondeo recorta las filas a sangre */
 }
 .menu-day-header {
+  align-self: center;              /* centrado en la tarjeta, como está en la foto de referencia */
+  position: relative;              /* ancla del filete inferior (::after a la caja del título) */
+  width: max-content;              /* su filete inferior abraza SOLO al título — no a la tarjeta */
   font-family: Georgia, serif;
   font-weight: 600;
   font-size: 1.12rem;
@@ -864,8 +1021,22 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 18px 10px;
-  border-bottom: 1px solid var(--border);
+  padding: 2px 18px 10px;
+}
+/* Filete bajo el nombre del día (petición 2026-10-21): mismo estilo difuminado que el filete
+   del título de la ficha de receta, en VERDE de marca para la semana — misma anatomía que la
+   ficha, color aparte para distinguir los días del plan de las secciones de receta. Va en
+   ::after sobre el padding-box: ocupa el sitio exacto del border-bottom sólido que sustituye
+   (el abraza-solo-al-título de width:max-content se conserva tal cual era). */
+.menu-day-header::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brand) 20%, var(--brand) 80%, transparent);
+  opacity: 0.7;
 }
 /* El día abre con una señal de marca: jerarquía instantánea al escanear la semana */
 .menu-day-header::before {
@@ -877,50 +1048,66 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   background: var(--brand);
 }
 
-/* Fila de comida a sangre de la franja. La franja horaria lleva SU color en el
-   filete lateral (desayuno=ámbar, comida=azul, cena=violeta) → localizar una
-   comida concreta de un vistazo es SU tarea. Reparto fijo de columnas.
-   width:100% + align-self:stretch son EXPLÍCITOS: ninguna fila puede quedar
-   más estrecha que su franja (comportamiento anómalo visto en el review). */
-.menu-meal-row {
+/* Fila interior SUAVE: un acolchado redondeado (--card-soft, radio-m) que flota dentro de
+   la tarjeta — se acabaron las filas a sangre, los tabiques de 1px y el filete grueso.
+   La franja horaria (desayuno=ámbar, comida=azul, cena=violeta) queda CODIFICADA EN SU
+   PÍLDORA con el par bg/fg de tinta del sistema de tags (tokens de AMBOS temas): el color
+   del repertorio contenida en la pastilla, no rayando la tarjeta. Reparto: píldora |
+   plato | acciones (píldora y acciones de ancho propio).
+   align-self:stretch es EXPLÍCITO: ninguna fila puede quedar más estrecha que su tarjeta
+   (comportamiento anómalo visto en el review).
+   La 1ª columna es FIJA (116px): auto la ajustaba al ancho de CADA píldora (Desayuno 99px
+   ≠ Comida 85px ≠ Cena 64px) y los títulos partían en un vertical distinto por fila — la
+   foto de referencia del usuario exige UNA línea de arrancada compartida.
+   align-items:start: el cuerpo arranca ARRIBA en TODAS las filas (con center, el título de
+   una fila de 3 líneas y el de otra de 5 nacían a alturas distintas); la PÍLDORA se centra
+   con align-self:center (su propio align-self, como en la foto de referencia). */
+#menu-plan-list .menu-meal-row {
   display: grid;
   grid-template-columns: 116px minmax(0, 1fr) auto;
   width: 100%;
   align-self: stretch;
-  align-items: center;
+  align-items: start;
   column-gap: 12px;
+  row-gap: 4px;
   min-height: 54px;
-  padding: 10px 18px 10px 15px;     /* 15 + 3px de filete = 18px → el plato alinea con el título del día */
+  padding: 10px 14px;
   border: none;
-  border-left: 3px solid var(--border-strong);
-  border-radius: 0;
-  background: transparent;
+  border-radius: var(--radius-m);
+  background: var(--card-soft);    /* "panel interior de datos": el token semántico ya existente */
   cursor: pointer;
   transition: background-color 0.15s;
 }
-.menu-meal-row:not(:last-child) { border-bottom: 1px solid var(--border); }
-.menu-meal-row:hover { background: var(--hover-wash); }
-.menu-meal-row[data-meal="desayuno"] { border-left-color: var(--amber); }
-.menu-meal-row[data-meal="comida"]   { border-left-color: var(--info); }
-.menu-meal-row[data-meal="cena"]     { border-left-color: var(--tag-variacion-fg); }
+#menu-plan-list .menu-meal-row:hover { background: var(--hover-wash); }
 
-/* Hueco vacío del día (sin plato): sin etiqueta ni acciones, ocupa toda la fila */
-.menu-meal-row:not([data-meal]) { cursor: default; }
-.menu-meal-row:not([data-meal]) .menu-meal-body { grid-column: 1 / -1; }
+/* Hueco vacío del día (sin plato): mismo panel suave, sin píldora ni acciones; el texto
+   centrado en vertical porque la fila es baja y respira sola */
+#menu-plan-list .menu-meal-row:not([data-meal]) { cursor: default; }
+#menu-plan-list .menu-meal-row:not([data-meal]) .menu-meal-body {
+  grid-column: 1 / -1;
+  align-self: center;
+}
 
 /* El estado del generador respira respecto a los botones que lo provocan */
 #menu-status { margin-top: 10px; }
 
+/* Píldora de franja horaria: tinta contenida, el par bg/fg ya definido por tema; se CENTRA
+   en la fila (align-self sobre el start general) y abraza su contenido sin herir a 116px */
 .menu-meal-tag {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
   line-height: 1.3;
   white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: var(--radius-s);
+  background: var(--tag-fuente-bg);
+  color: var(--tag-fuente-fg);
+  align-self: center;              /* centrada en la fila, como en la foto de referencia */
+  justify-self: start;             /* la pastilla tintada abraza su contenido, no llena la columna */
 }
-.menu-meal-row[data-meal="desayuno"] .menu-meal-tag { color: var(--amber); }
-.menu-meal-row[data-meal="comida"]   .menu-meal-tag { color: var(--info); }
-.menu-meal-row[data-meal="cena"]     .menu-meal-tag { color: var(--tag-variacion-fg); }
+.menu-meal-row[data-meal="desayuno"] .menu-meal-tag { background: var(--tag-protagonista-bg); color: var(--tag-protagonista-fg); }
+.menu-meal-row[data-meal="comida"]   .menu-meal-tag { background: var(--tag-libre-bg);         color: var(--info); }
+.menu-meal-row[data-meal="cena"]     .menu-meal-tag { background: var(--tag-variacion-bg);     color: var(--tag-variacion-fg); }
 
 .menu-meal-body { min-width: 0; }
 .menu-meal-title {
@@ -944,28 +1131,43 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   gap: 6px;
   align-self: center;
 }
+/* Los botones del plan debían su cara al estilo por defecto del navegador (con radio 0):
+   ahora llevan la MISMA voz que los de las tarjetas de recetas (.recipe-card) con radio s
+   — el redondeo que el usuario pidió, pareja con el de las píldoras (también radius-s). */
 .menu-meal-row .recipe-actions button {
   white-space: nowrap;
   padding: 5px 10px;
   font-size: 0.76rem;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--hover-wash);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  min-height: 28px;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.menu-meal-row .recipe-actions button:hover {
+  background: var(--card-muted-bg);
+  border-color: var(--border-strong);
 }
 
-/* En pantallas estrechas la fila se apila: etiqueta+acciones arriba, plato debajo */
+/* En pantallas estrechas la fila se apila: píldora+acciones arriba, plato debajo */
 @media (max-width: 680px) {
-  .menu-meal-row {
+  #menu-plan-list .menu-meal-row {
     grid-template-columns: 1fr auto;
-    row-gap: 4px;
-    padding-left: 12px;             /* 9 + 3px de filete = 12px en móvil */
+    padding: 10px 12px;
   }
-  .menu-meal-tag { grid-column: 1; }
-  .menu-meal-body { grid-column: 1 / -1; grid-row: 2; }
-  .menu-meal-row .recipe-actions { grid-column: 2; grid-row: 1; }
+  #menu-plan-list .menu-meal-tag { grid-column: 1; }
+  #menu-plan-list .menu-meal-body { grid-column: 1 / -1; grid-row: 2; }
+  #menu-plan-list .menu-meal-row .recipe-actions { grid-column: 2; grid-row: 1; }
 }
 @media (max-width: 480px) {
-  .menu-meal-row { grid-template-columns: 1fr; }
-  .menu-meal-tag { grid-column: 1; }
-  .menu-meal-body { grid-column: 1; grid-row: auto; }
-  .menu-meal-row .recipe-actions { grid-column: 1; grid-row: auto; justify-content: flex-end; }
+  #menu-plan-list .menu-meal-row { grid-template-columns: 1fr; }
+  #menu-plan-list .menu-meal-tag { grid-column: 1; }
+  #menu-plan-list .menu-meal-body { grid-column: 1; grid-row: auto; }
+  #menu-plan-list .menu-meal-row .recipe-actions { grid-column: 1; grid-row: auto; justify-content: flex-end; }
 }
 
 /* ========== 14. MODAL, TOAST Y NOTAS ========== */
@@ -998,7 +1200,12 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   overflow-y: auto;
   overscroll-behavior: contain;          /* móvil: scrollear el modal NUNCA arrastra a la lista de debajo (nada de chaining al documento) */
   padding: 30px 34px 26px;
+  /* Scroll SIN barra visible (petición 2026-10-21): la ficha de receta y el editor siguen
+     scrolleando igual — sólo desaparece el raíl. scrollbar-width para Firefox, el ::-webkit
+     para Chromium/WebKit (Brave incluido); sin ambas el PWA móvil pintaría la barrita. */
+  scrollbar-width: none;
 }
+.modal-box::-webkit-scrollbar { display: none; }
 /* Congela el scroll del documento mientras el modal está abierto (apilado con
    overscroll-behavior:contain; app.js añade/quita la clase en abrirModal/closeModal).
    La clase se aplica al documentElement TAMBIÉN: en Android el scroller del documento
@@ -1083,9 +1290,24 @@ html.scroll-candado { overflow: hidden; }
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--text);
+  position: relative;                     /* ancla del filete de sección (::before a la caja del h4) */
   margin: 28px 0 14px;                    /* aire generoso antes de cada sección */
   padding-top: 18px;                      /* el filete se separa del bloque anterior */
-  border-top: 1px solid var(--border);
+}
+/* Filete de sección (petición 2026-10-21): el mismo estilo editorial que el filete del título
+   (.receta-linea: 1px que se disuelve en los extremos) pero en MARRÓN para las secciones de la
+   ficha — la jerarquía de lectura distingue "arranque" (verde bajo el título) de "sección" (marrón).
+   Va en ::before sobre la caja del h4: la línea ocupa el MISMO sitio exacto que ocupaba el
+   border-top sólido que sustituye, así el ritmo 28px / línea / 18px queda intacto. */
+.modal-content h4::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--filete-marron) 20%, var(--filete-marron) 80%, transparent);
+  opacity: 0.7;
 }
 .modal-content ul,
 .modal-content ol { margin-left: 14px; }   /* las listas van UN PELÍN más adentro que «Ingredientes»/«Método»: jerarquía de lectura */
@@ -1392,3 +1614,47 @@ html.scroll-candado { overflow: hidden; }
   font-style: italic;
   color: var(--muted) !important;
 }
+
+/* ========== BOTÓN FLOTANTE "SUBIR AL PRINCIPIO" (feature 2026-10-21) ==========
+   Círculo con flecha, abajo a la derecha: con listas verticales muy largas, al bajar pasa una
+   pantallita y el botón ENTRA por fade + subida de escala; un toque lo devuelve arriba del todo
+   CON animación y se vuelve a ocultar. Sólo tokens existentes: relleno de marca (--brand) con
+   icono en su color designado (--brand-on, el mismo par de contraste de .btn.primary) — ambos
+   temas ya los definen, nada de hex sueltos. */
+.fab-subir-encima {
+  position: fixed;
+  right: 16px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));   /* PWA: respetar la franja del iPhone */
+  width: 46px;
+  height: 46px;                     /* objetivo táctil ≥46px (auditoría pwa-accesibilidad) */
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--brand);
+  color: var(--brand-on);
+  box-shadow: var(--shadow-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  /* INVISIBLE desde la construcción (arriba del todo): sin la clase .visible no atrapa toques
+     y el fade/scale de entrada lo hace "nacer" — el display:none rompería la animación. */
+  opacity: 0;
+  transform: translateY(12px) scale(0.9);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.fab-subir-encima.visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.fab-subir-encima:focus-visible {
+  outline: 2px solid var(--focus-halo);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fab-subir-encima { transition: none; }
+}
+
+/* El tutorial (velo z 90) y el modal (z 100+) tapan al botón: z intermedio por el orden de capas. */

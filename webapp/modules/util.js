@@ -29,5 +29,20 @@
     .replace(/\s+([.,])/g, "$1")               // espacio antes de "," / "." → pegado
     .trim();
 
-  return { escapeHTML, uid, limpiarPaso };
+  // Fecha ISO "YYYY-MM-DD" → texto corto es-ES con DÍA + MES ("21 oct") para meta-texto de filas
+  // (lista de la compra, "se usa el 21 oct"). Nacida en app.js, ya en el módulo compartido (§3):
+  //   · vacío → "" (sin fecha anclada: la fila no pinta el "se usa el …" y este helper nunca llega).
+  //   · fecha imposible → devuelta tal cual (mejor visible y rastreable que un "Invalid Date").
+  //   · `T00:00:00Z` + timeZone UTC: el DÍA ancla a medianoche UTC — sin esto, en husos negativos
+  //     ("2026-10-21" en Uruguay) localizaba al día ANTERIOR (bug clásico de Date con date-string).
+  const formatoFechaCorta = iso => {
+    if (iso == null || iso === "") return "";
+    try {
+      const d = new Date(String(iso) + "T00:00:00Z");
+      if (isNaN(d.getTime())) return String(iso);       // fecha rota: se queda tal cual
+      return d.toLocaleDateString("es-ES", { day: "numeric", month: "short", timeZone: "UTC" });
+    } catch { return String(iso); }                      // entornos sin Intl: al menos el ISO crudo
+  };
+
+  return { escapeHTML, uid, limpiarPaso, formatoFechaCorta };
 });

@@ -16,7 +16,8 @@
 // precacheado (sync-crypto/diff-merge/sync); el nombre SUBE +1 para forzar la re-instalación
 // del worker aunque el fichero byte-idéntico y el respaldo offline ya los traiga.
 // CACHE v5 (2026-10-20, tutorial interactivo): entra modules/tutorial.js al shell.
-const CACHE = "mrcheff-v5";
+// CACHE v6 (2026-10-21, botón flotante "subir encima"): entra modules/scroll-arriba.js al shell.
+const CACHE = "mrcheff-v6";
 
 const SHELL = [
   "./",
@@ -41,6 +42,7 @@ const SHELL = [
   "modules/recipe-missing.js",
   "modules/recipe-editor.js",
   "modules/swipe-tabs.js",
+  "modules/scroll-arriba.js",
   "modules/tutorial.js",
   "modules/sync-crypto.js",
   "modules/diff-merge.js",

@@ -1,7 +1,8 @@
 // tests/buscador-catalogo.integration.test.js — CAPA INTEGRACIÓN (Capa 2, CODING_STANDARDS.md §6).
 // Arranca la app REAL vía bootApp() y ejerce la card "🔎 Buscador del catálogo" del tab RECETAS
 // (feature 2026-10-18, entre crear receta y Mis Recetas):
-//   1) se escribe en #recipe-catalog-search → resultados del catálogo (título o ingrediente)
+//   1) se escribe en #recipe-catalog-search → resultados del catálogo por TÍTULO (fix 2026-10-20:
+//      los ingredientes ya no puntúan)
 //   2) click en una tarjeta del buscador → abre el MODAL de detalle (badge de origen incluido)
 //   3) query sin match → estado vacío visible; NO toca Mis Recetas ni localStorage de recetas.
 
@@ -34,11 +35,19 @@ describe("Buscador del catálogo — pestaña Recetas (integración)", () => {
     expect(JSON.parse(localStorage.getItem("mrcheff.recipes") || "[]")).toEqual([]);
   });
 
-  it("busca por INGREDIENTE fuera del título ('mascarpone' → Tiramisú casero con badge italiana)", () => {
+  it("SÓLO TÍTULO (fix 2026-10-20): 'mascarpone' (ingrediente del Tiramisú) YA NO saca resultados", () => {
     const { document } = appVacia();
     const input = document.getElementById("recipe-catalog-search");
     escribir(input, "mascarpone");
 
+    expect(document.querySelectorAll("#recipe-catalog-results .recipe-card").length).toBe(0);
+    expect(document.getElementById("recipe-catalog-empty").classList.contains("hidden")).toBe(false);
+  });
+
+  it("el badge de origen italiano se mantiene en la card del Tiramisú cuando el match es por título", () => {
+    const { document } = appVacia();
+    const input = document.getElementById("recipe-catalog-search");
+    escribir(input, "tiramisu");
     const cards = [...document.querySelectorAll("#recipe-catalog-results .recipe-card")];
     const tiramisu = cards.find(c => c.querySelector("h3").textContent === "Tiramisú casero");
     expect(tiramisu).toBeDefined();

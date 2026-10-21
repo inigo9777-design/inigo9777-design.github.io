@@ -5,7 +5,7 @@
 // `regenerateAfterCook` (cocinar desde el menú = cookEntry + swap de SOLO ese hueco) y `shoppingListFor` añade
 // urgencia de compra (semáforo rojo/naranja/verde según la fecha de preparación).
 
-const { shoppingListFor, approveMenu, markItemBought, markItemBoughtComo, candidatosDespensa, cookEntry, swapSlotRecipe, clearMenu, accionesMenuSlot } = require("../modules/menu-semanal.js");
+const { shoppingListFor, approveMenu, markItemBought, markItemBoughtComo, candidatosDespensa, cookEntry, swapSlotRecipe, clearMenu, accionesMenuSlot, platosDelPlan, alternarColapso } = require("../modules/menu-semanal.js");
 
 // cookEntryFor determinista para tests (imita planner.cookEntryFor pero inyectable).
 function cookEntryFor(recipe, opts) {
@@ -109,6 +109,27 @@ describe("modules/menu-semanal.js", () => {
       const needy = [{ name: "Huevos" }, { name: "Merluza" }, { name: "MERLUZA" }, { name: "Pan" }];
       const out = shoppingListFor(needy, foods);
       expect(out.map(f => f.name)).toEqual(["Pan"]);   // el pan está (qty 0 = sin stock) → SÍ hay que comprar
+    });
+
+    // (petición 2026-10-21: la lista es DINÁMICA contra el Inventario actual — la persona viene del
+    // ticket y ya compró; el ítem sólo sale cuando el alimento casa (matcher) y pasa de SU mínimo)
+    it("cubre NO es «tener algo»: la fila sigue hasta qty > MIN del alimento en casa", () => {
+      const needy = [{ name: "Yogur" }];
+      // tenía 2 de un min 3: nada comprado — la fila SIGUE (también con min alto sigue la fila)
+      expect(shoppingListFor(needy, [{ name: "Yogur natural", qty: 2, min: 3 }])).toHaveLength(1);
+      // comprado al igual del mínimo (3 = 3): aún sin «más unidades que el mínimo» → SIGUE
+      expect(shoppingListFor(needy, [{ name: "Yogur natural", qty: 3, min: 3 }])).toHaveLength(1);
+      // compra completa (4 > 3): SALE de la lista
+      expect(shoppingListFor(needy, [{ name: "Yogur natural", qty: 4, min: 3 }])).toEqual([]);
+      // criterio de alerta inexistente (min 0/legacy): basta stock: comportamiento anterior
+      expect(shoppingListFor(needy, [{ name: "Yogur natural", qty: 1 }])).toEqual([]);
+      // a cero no cubre ni sin min
+      expect(shoppingListFor(needy, [{ name: "Yogur natural", qty: 0 }])).toHaveLength(1);
+    });
+
+    it("la cobertura prueba con VARIANTES del matcher: «Pan de pueblo» sale si «Pan» pasa de su mínimo", () => {
+      expect(shoppingListFor([{ name: "Pan de pueblo" }], [{ name: "Pan", qty: 4, min: 2 }])).toEqual([]);
+      expect(shoppingListFor([{ name: "Pan de pueblo" }], [{ name: "Pan", qty: 2, min: 2 }])).toHaveLength(1);
     });
 
     it("dedup intra-lote por tokens: plurales/caso distintos de un mismo ítem → una sola fila", () => {
@@ -559,6 +580,104 @@ describe("modules/menu-semanal.js", () => {
       expect(markItemBoughtComo(despensa, weekmenu, "Jamón serrano", "Jamón de York", compra)).toBeNull();
       expect(markItemBoughtComo(despensa, weekmenu, "Jamón serrano", "Jamón ibérico", { qty: 0, score: 5 })).toBeNull();
       expect(markItemBoughtComo(despensa, weekmenu, "Jamón serrano", "Jamón ibérico")).toBeNull();
+    });
+  });
+});
+
+// FEATURE 2026-10-21 (petición del usuario): una vez APROBADO, el plan semanal se puede PLEGAR
+// y siempre se puede volver a desplegar. La decisión vive aquí (módulo puro); app.js sólo moldea
+// la barra y persiste. El estado `colapsado` es campo opcional del shape (como `triedKeys`).
+describe("platosDelPlan + alternarColapso — resumen del plan aprobado y su plegado", () => {
+  const diaConRecetas = (labels, n) => ({
+    dayLabel: labels,
+    meals: Array.from({ length: n }, (_, i) => ({ meal: "comida" + i, recipe: { title: "R" + i } }))
+  });
+
+  describe("platosDelPlan — el conteo que app.js tenía copiado en tres sitios", () => {
+    it("cuenta sólo los slots CON receta (7×3 ⇒ tope 21); plan vacío/roto ⇒ 0", () => {
+      const plan = [
+        diaConRecetas("Lunes", 3),
+        { dayLabel: "Martes", meals: [{ meal: "cena" }, { meal: "comida", recipe: { title: "Tortilla" } }] },
+        diaConRecetas("Miércoles", 1),
+        { dayLabel: "Jueves", meals: [] }
+      ];
+      expect(platosDelPlan(plan)).toBe(5);
+      expect(platosDelPlan(diaConRecetas("L", 3).meals && [
+        diaConRecetas("Lunes", 3), diaConRecetas("Martes", 3), diaConRecetas("Miércoles", 3),
+        diaConRecetas("Jueves", 3), diaConRecetas("Viernes", 3), diaConRecetas("Sábado", 3), diaConRecetas("Domingo", 3)
+      ])).toBe(21);
+      expect(platosDelPlan([])).toBe(0);
+      expect(platosDelPlan(undefined)).toBe(0);
+      expect(platosDelPlan([null, { meals: null }])).toBe(0);
+    });
+  });
+
+  describe("alternarColapso — plegar/desplegar el plan aprobado (inmutable + guard)", () => {
+    const aprobado = { approved: true, plan: [diaConRecetas("Lunes", 3)], needyFoods: [] };
+
+    it("voltea `colapsado` (undefined → true) en un weekmenu NUEVO, sin mutar el original", () => {
+      const cambio = alternarColapso(aprobado);
+      expect(cambio.cambiado).toBe(true);
+      expect(cambio.weekmenu.colapsado).toBe(true);
+      expect(aprobado.colapsado).toBeUndefined();          // el original sigue intacto
+      expect(cambio.weekmenu.plan).toBe(aprobado.plan);    // copia superficial: el plan no se copia de más
+    });
+
+    it("segunda llamada vuelve a EXPANDIR (siempre es posible reabrir la semana)", () => {
+      const plegado = alternarColapso(aprobado).weekmenu;
+      const vuelta = alternarColapso(plegado);
+      expect(vuelta.cambiado).toBe(true);
+      expect(vuelta.weekmenu.colapsado).toBe(false);       // persiste false EXPLÍCITO (no undefined)
+    });
+
+    it("guard: preview (approved false), limpio (null) o plan vacío ⇒ sin cambios", () => {
+      expect(alternarColapso({ approved: false, plan: [diaConRecetas("Lunes", 3)] })).toEqual({
+        weekmenu: { approved: false, plan: [diaConRecetas("Lunes", 3)] }, cambiado: false
+      });
+      expect(alternarColapso(null)).toEqual({ weekmenu: null, cambiado: false });
+      expect(alternarColapso({ approved: true, plan: [] }).cambiado).toBe(false);
+      expect(alternarColapso({ approved: true }).cambiado).toBe(false);
+    });
+  });
+});
+
+// VALIDACIÓN del diálogo "✅ ¿Comprado?" + prefill de su modal — extraídas de app.js a este
+// módulo (2026-10-21): antes la vista replicaba las tres reglas inline y compraNormalizada
+// re-sanitizaba por si acaso; ahora la regla vive UNA VEZ aquí y app.js sólo traduce el
+// campo que falla a su texto de toast.
+describe("validarCompraForm + valoresPreviosDeCompra — reglas del modal de compra", () => {
+  const desestructurar = require("../modules/menu-semanal.js");
+  const { validarCompraForm, valoresPreviosDeCompra } = desestructurar;
+
+  describe("validarCompraForm — la misma cadena que decidían los tres toasts de app.js", () => {
+    it("entrada válida → ok con `compra` listo para markItemBought/-Como (min vacío ⇒ sin min)", () => {
+      expect(validarCompraForm({ qty: 2, score: 7, min: "" })).toEqual({ ok: true, compra: { qty: 2, score: 7 } });
+      expect(validarCompraForm({ qty: 2, score: 7, min: 3 })).toEqual({ ok: true, compra: { qty: 2, score: 7, min: 3 } });
+      expect(validarCompraForm({ qty: 2, score: 7 })).toEqual({ ok: true, compra: { qty: 2, score: 7 } });
+    });
+
+    it(" primera regla que falla gana: qty <1, min <0 y score fuera de 1–10", () => {
+      expect(validarCompraForm({ qty: 0, score: 5 })).toEqual({ ok: false, campo: "qty" });
+      expect(validarCompraForm({ qty: NaN, score: 5 })).toEqual({ ok: false, campo: "qty" });
+      expect(validarCompraForm({ qty: 2, score: 5, min: -1 })).toEqual({ ok: false, campo: "min" });
+      expect(validarCompraForm({ qty: 2, score: 5, min: 0 })).toEqual({ ok: true, compra: { qty: 2, score: 5, min: 0 } });   // 0 SÍ vale
+      expect(validarCompraForm({ qty: 2, score: 0 })).toEqual({ ok: false, campo: "score" });
+      expect(validarCompraForm({ qty: 2, score: 11 })).toEqual({ ok: false, campo: "score" });
+      expect(validarCompraForm(null).ok).toBe(false);            // entrada rota: no explota
+    });
+  });
+
+  describe("valoresPreviosDeCompra — el modal abre cargado (afinación 2026-10-19)", () => {
+    it("alimento de despensa EXISTENTE: conserva su min/score (no re-preguntar)", () => {
+      expect(valoresPreviosDeCompra({ min: 3, score: 8 })).toEqual({ min: 3, score: 8 });
+      expect(valoresPreviosDeCompra({ min: 0, score: 2 })).toEqual({ min: 0, score: 2 });
+    });
+
+    it("alimento NUEVO o roto: alta manual de siempre (min 1 · score 5)", () => {
+      expect(valoresPreviosDeCompra(null)).toEqual({ min: 1, score: 5 });
+      expect(valoresPreviosDeCompra(undefined)).toEqual({ min: 1, score: 5 });
+      expect(valoresPreviosDeCompra({})).toEqual({ min: 1, score: 5 });
+      expect(valoresPreviosDeCompra({ min: NaN, score: null })).toEqual({ min: 1, score: 5 });
     });
   });
 });

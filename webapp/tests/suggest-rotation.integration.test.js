@@ -70,4 +70,39 @@ describe("Sugerencias y menú — lote de 4 con 1 desayuno + 1 comida + 1 cena y
     const reinicio = abrirSugerenciasYClick(document);
     expect(reinicio.map(c => c.title)).toEqual(t1.map(c => c.title));
   });
+
+  // BUG 2026-10-21 ("ya no saca recetas"): con el aforo real del usuario quedaban 5 recetas cocinables
+  // y TODAS estaban cocinadas en la ventana de 7 días (aprobar el plan + cocinadas ancla hasta 21
+  // entradas en mrcheff.cooked) ⇒ el pool filtrado quedaba vacío y la Card a CERO para siempre. El
+  // rodillo del cooldown rellena el lote con el pool SIN filtro de cooked (las ya cocinadas al final):
+  // la Card vuelve a sacar hasta 4 recetas "cocinables hoy con lo de casa" y a rotar en cada click.
+  it("el cooldown NO deja la tarjetera a cero: si TODO lo cocinable está cocinado esta semana, el lote se rellena con esas recetas y sigue rotando", () => {
+    const planner = require("../modules/planner.js");
+    const hoy = new Date().toISOString().slice(0, 10);   // misma fórmula que app.js (const today)
+    // Escenario del bug: cada receta cocinable con la despensa sembrada lleva su entrada cooked de HOY
+    // (huella por fingerprint — el MISMO cálculo que usa la app para el cooldown).
+    const poolEntero = planner.buildCandidatePool(PANTRY, [], catalogo, { cooked: [], today: hoy });
+    const huellas = new Set();
+    const cocinadas = [];
+    planner.suggestToday(poolEntero, PANTRY).forEach((idea, idx) => {
+      const keyFingerprint = planner.fingerprintOf(idea);
+      if (huellas.has(keyFingerprint)) return;
+      huellas.add(keyFingerprint);
+      cocinadas.push({ id: "c-" + idx, title: idea.title, keyFingerprint, on: hoy });
+    });
+    expect(cocinadas.length).toBeGreaterThanOrEqual(3);   // el escenario exige 3+ cocinables TODOS en cooldown
+    const { document } = bootApp({ seed: { foods: PANTRY, recipes: [], innov: [], cooked: cocinadas } });
+    const t1 = abrirSugerenciasYClick(document);
+    expect(t1.length).toBeGreaterThanOrEqual(3);          // ANTES del rodillo: 0 tarjetas
+    expect(t1.length).toBeLessThanOrEqual(4);
+    const tipos = new Set(t1.map(c => c.meal));
+    expect(tipos.has("desayuno")).toBe(true);
+    expect(tipos.has("comida")).toBe(true);
+    expect(tipos.has("cena")).toBe(true);
+    // La rotación sigue viva: el click siguiente trae algún plato distinto
+    document.getElementById("btn-suggest-generate").click();
+    const t2 = leerLote(document);
+    const nuevosEnT2 = t2.filter(c => !t1.some(x => x.title === c.title));
+    expect(nuevosEnT2.length).toBeGreaterThan(0);
+  });
 });

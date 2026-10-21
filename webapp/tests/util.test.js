@@ -71,8 +71,8 @@ describe("util — uid()  (id único para alimentos/recetas/ideas nuevas)", () =
     expect(typeof util.uid()).toBe("string");
   });
 
-  it("tiene exactamente la API documentada: sólo {escapeHTML, uid, limpiarPaso}", () => {
-    expect(Object.keys(util).sort()).toEqual(["escapeHTML", "limpiarPaso", "uid"]);
+  it("tiene exactamente la API documentada: sólo {escapeHTML, uid, limpiarPaso, formatoFechaCorta}", () => {
+    expect(Object.keys(util).sort()).toEqual(["escapeHTML", "formatoFechaCorta", "limpiarPaso", "uid"]);
   });
 });
 
@@ -114,5 +114,29 @@ describe("util — limpiarPaso(paso)  (normalización de VISTA del método, sin 
     // Igual que escapeHTML: no-cadena → String(s) → literales "null"/"undefined"; nunca lanza.
     expect(util.limpiarPaso(null)).toBe("null");
     expect(util.limpiarPaso(undefined)).toBe("undefined");
+  });
+});
+
+// formatoFechaCorta — extraída de app.js a modules/util.js (2026-10-21): la pinta la fila de la
+// lista de la compra ("se usa el 21 oct"). Texto dependiente de ICU del entorno, así que lo
+// asertamos por FORMA (día + mes de palabras) en vez de por literal exacto.
+describe("util — formatoFechaCorta(iso) (día + mes es-ES, anclado a UTC)", () => {
+  it("día + mes abreviado, SIN arrastrarse de día por el huso (ancla T00:00:00Z + timeZone UTC)", () => {
+    // Con new Date("2026-10-21") puro, en husos negativos localizaba al día ANTERIOR:
+    // el ancla UTC fija el mediodía del día pedido en TODO el planeta.
+    const out = util.formatoFechaCorta("2026-10-21");
+    expect(String(out)).toMatch(/^21\b/);            // el DÍA pedido manda (no el anterior)
+    expect(String(out)).not.toMatch(/20\b/);
+    expect(String(out)).toMatch(/(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)/i);   // MES en palabras cualquiera que sea el ICU
+  });
+
+  it("vacío (null/undefined/\"\") → \"\" : la fila sin fecha no pinta el metadato", () => {
+    expect(util.formatoFechaCorta("")).toBe("");
+    expect(util.formatoFechaCorta(null)).toBe("");
+    expect(util.formatoFechaCorta(undefined)).toBe("");
+  });
+
+  it("fecha imposible → el ISO de vuelta tal cual (mejor visible que un \"Invalid Date\")", () => {
+    expect(util.formatoFechaCorta("no-fecha")).toBe("no-fecha");
   });
 });

@@ -97,6 +97,25 @@
                     </div>
                     <button type="submit" class="btn primary">Añadir</button>
                 </form>
+
+                <!-- Escáner del TICKET de la compra (#epic-ocr-despensa-camara): fotografiar el ticket del
+                     super — o la foto del frigorífico, la vía es la misma — y llevar lo comprado a la
+                     despensa (cámara SÓLO en móvil; en escritorio se elige una foto del disco) con sus
+                     CANTIDADES. NADA entra solo: los exactos ya vividos SUMAN su compra y los demás
+                     quedan ARRIBA en la lista de la compra — dudosos con el botón "🛒 Despensa?" y
+                     nuevos ATENUADOS hasta fijar su importancia y mínimo (editables en la fila).
+                     Todo el motor corre en el navegador (Tesseract.js, carga perezosa la primera
+                     vez); sin servidor ni backend; la foto nunca sale del dispositivo. -->
+                <div class="ocr-actions">
+                    <button id="btn-ocr-camara" type="button" class="btn ghost hidden"
+                            title="Abre la cámara del móvil para escanear el ticket del super">
+                        📷 Escanear el ticket con la cámara</button>
+                    <button id="btn-ocr-foto" type="button" class="btn ghost hidden"
+                            title="Elige una foto del ticket (o del frigorífico) para detectar lo comprado">
+                        🖼️ Escanear foto del ticket</button>
+                    <input id="ocr-file" type="file" accept="image/*,.heic,.heif" capture="environment" class="hidden"
+                           aria-label="Foto del ticket de la compra" tabindex="-1" aria-hidden="true">
+                </div>
             </div>
 
             <div id="weekly-alert" class="card alert-card hidden"></div>
@@ -151,7 +170,7 @@
 
             <div class="card">
                 <h2>🔎 Buscador del catálogo</h2>
-                <p class="muted">Busca en las 200 recetas del catálogo curado por título o por ingrediente ("tortilla patatas", "mascarpone"…). Click en una para verla.</p>
+                <p class="muted">Busca en las 200 recetas del catálogo curado por título, y ya sale aunque escribas menos letras ("tortilla patatas", "croqu"…). Click en una para verla.</p>
                 <div class="toolbar">
                     <input type="text" id="recipe-catalog-search" placeholder="Escribe para buscar en el catálogo…" autocomplete="off" aria-label="Buscar en el catálogo de recetas">
                 </div>
@@ -251,6 +270,13 @@
                 <p id="menu-status" class="muted hidden"></p>
             </div>
 
+            <!-- Barra del plan APROBADO: resumen + plegar/desplegar la semana (feature 2026-10-21).
+                 Sólo se pinta con plan aprobado (app.js punto único `pintaBarraPlan`) -->
+            <div id="menu-plan-bar" class="menu-plan-bar hidden">
+                <span id="menu-plan-title">📅 Tu semana</span>
+                <button id="btn-menu-colapsar" class="btn ghost small" aria-expanded="true" aria-controls="menu-plan-list">▾ Plegar</button>
+            </div>
+
             <!-- 7 días × 3 comidas: se pinta dinámicamente con el preview del menú -->
             <ul id="menu-plan-list" class="alert-card alert-green hidden"></ul>
             <p id="menu-empty" class="empty muted hidden">Pulsa "Generar menú" para ver tu semana propuesta.</p>
@@ -319,6 +345,12 @@
         </div>
     </div>
 
+    <!-- Botón flotante "subir al principio" (feature 2026-10-21): listas largas de móvil, en TODAS
+         las pestañas. Aparece pasadas una pantallita de scroll y VUELVE A OCULTARSE arriba del todo;
+         la regla vive en modules/scroll-arriba.js, el fade/scale en style.css, el wiring en app.js. -->
+    <button id="btn-subir-encima" class="fab-subir-encima" aria-label="Subir al principio de la pestaña" title="Subir al principio" tabindex="-1">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 3l8 8h-5v9h-6v-9H4z"/></svg>
+    </button>
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
     <!-- Anuncio silencioso para lectores de pantalla: el viewpager cambia de vista sin foco
          (gesto táctil), así que el cambio se anuncia por región viva; los clicks en las
@@ -352,6 +384,8 @@
     <!-- Modulos de lógica pura extraídos (ver CODING_STANDARDS.md §3 / DIP). -->
     <script src="modules/priority.js"></script>
     <script src="modules/classify.js"></script>
+    <script src="modules/ocr-despensa.js"></script>
+    <script src="modules/ocr-foto.js"></script>
     <script src="modules/recipe-analysis.js"></script>
     <script src="data/recetas-espanolas-data.js"></script>
     <script src="modules/origen-recetas.js"></script>
@@ -367,8 +401,9 @@
     <script src="modules/sync-crypto.js"></script>
     <script src="modules/diff-merge.js"></script>
     <script src="modules/sync.js"></script>
-    <!-- PURe BUSCADOR del catálogo curado (feature 2026-10-18, tab RECETAS): busca por título/ingredientes
-         REUTILIZANDO tokensOf del matcher compartido — por eso DEBE ir ANTES de que app.js lo consuma
+    <!-- PURe BUSCADOR del catálogo curado (feature 2026-10-18, tab RECETAS): decide por TÍTULO SÓLO
+         (fix 2026-10-20: los ingredientes ya no puntúan), REUTILIZANDO tokensOf del matcher compartido
+         — por eso DEBE ir ANTES de que app.js lo consuma
          (window.MRCheff.busquedaRecetas; si el tag faltara, la card del buscador queda sin resultados). -->
     <script src="modules/busqueda-recetas.js"></script>
     <!-- Nueva capa modular de "Sugerencias y menú" (planFeatureRecetasSugeridasYPlanSemana.md): lógica PURe SIN DOM,
@@ -386,6 +421,7 @@
          Consumido por app.js al abrir/guardar el editor (tiempo de click); ver planFeature… §12 y CODING_STANDARDS.md §3. -->
     <script src="modules/recipe-editor.js"></script>
     <script src="modules/swipe-tabs.js"></script>
+    <script src="modules/scroll-arriba.js"></script>
     <!-- TUTORIAL interactivo de entrada (feature 2026-10-20): guion + sesión PURe; el velo y el
          posicionamiento son wiring de app.js. Si el tag faltara, la app funciona normal y sólo
          no hay tutorial (botón 🎓 inerte, guard embutido en app.js). -->

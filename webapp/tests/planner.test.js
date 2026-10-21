@@ -228,6 +228,33 @@ describe("modules/planner.js", () => {
       expect(raro.lote.map(i => i.id)).toEqual(["x"]);                     // el "merienda" entra como comida (fallback)
       expect(raro.cursores.comida).toBe(1);                                // y avanzó SU cursor (el tipo cae a comida)
     });
+
+    // BUG 2026-10-21 (caso real del usuario: 4 desayunos + 1 comida cocinables): el relleno
+    // re-escaneaba SIEMPRE desde el nº1 del ranking — el lote resultaba el MISMO set en cada
+    // click y las sugerencias "no cambiaban" aunque los cursores avanzaran. Con el arranque
+    // circular del relleno, cada click deja fuera un plato distinto: sets consecutivos difieren.
+    it("con poquísimos cocinables el lote CAMBIA en cada click (el relleno rota por el ranking, no vuelve siempre al nº1)", () => {
+      const finos = [
+        { id: "d1", title: "Des d1", meal: "desayuno" },
+        { id: "c1", title: "Com c1", meal: "comida" },
+        { id: "d2", title: "Des d2", meal: "desayuno" },
+        { id: "d3", title: "Des d3", meal: "desayuno" },
+        { id: "d4", title: "Des d4", meal: "desayuno" }
+      ];
+      let cursores = { desayuno: 0, comida: 0, cena: 0 };
+      const sets = [];
+      for (let clicks = 0; clicks < 4; clicks++) {
+        const out = planner.loteRotado(finos, { cursores, clicks });
+        cursores = out.cursores;                            // feed-forward como haría la vista
+        expect(out.lote.length).toBe(4);                    // SIEMPRE 4 tarjetas (hay 5 candidatos)
+        sets.push(out.lote.map(i => i.id).join(","));
+      }
+      const repite = [0, 1, 2].some(i => sets[i] === sets[i + 1]);
+      expect(repite).toBe(false);                           // ningún click consecutivo repite el mismo set
+      const tipos1 = new Set(planner.loteRotado(finos, { clicks: 0 }).lote.map(i => i.meal));
+      expect(tipos1.has("desayuno")).toBe(true);            // los tipos existentes siguen representados
+      expect(tipos1.has("comida")).toBe(true);
+    });
   });
 
   // ---------------------------------------------------------------------------
