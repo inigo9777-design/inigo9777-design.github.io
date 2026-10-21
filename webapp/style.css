@@ -799,6 +799,10 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .alert-card li.urg-red    { border-left-color: var(--red); }
 .alert-card li.urg-orange { border-left-color: var(--amber); }
 .alert-card li.urg-green  { border-left-color: var(--ok); }
+/* SEMÁFORO DE LA COMPRA POR PRIORIDAD (petición 2026-10-21): los ítems de la lista de la compra
+   SIN alimento registrado en el Inventario van en NEUTRO — el color del propio texto de la app
+   (var(--text), token presente en ambos temas: nada de hex suelto ni token nuevo que mantener). */
+.alert-card li.urg-neutral { border-left-color: var(--text); }
 .alert-card li .alert-name { flex: 0 0 auto; }
 .alert-card li .alert-meta { font-size: 0.8rem; color: var(--muted); }
 .alert-card li .alert-meta b { font-variant-numeric: tabular-nums; }

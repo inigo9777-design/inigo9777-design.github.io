@@ -134,3 +134,25 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   consecutivo repite set) + repro e2e con el estado real del backup (4 tarjetas, click a
   click cambia el excluido) + suite completa verde (588/588) + e2e plegado 12/12 + a11y OK;
   captura 81.
+- `2026-10-21 · @AI-agent · #bugfix/lista-compra-color-prioridad · Síntoma (bug reportado por el
+  usuario):` en la lista de la compra (Card 3 de "Sugerencias y menú") muchos ítems SIN registro
+  en el Inventario (defaults: qty 0 / min 0 / score 5) salían UNOS en verde y OTROS en rojo, sin
+  sentido; y los que SÍ tenían prioridad definida en casa no pintaban con ella. **Causa:** el
+  color de la fila lo mandaba `urgenciaPorDias` — el semáforo por FECHA DE PREPARACIÓN del plan
+  (hoy/mañana rojo, 2-3 días naranja, ≥4 verde) — desconectado por completo de la prioridad
+  (score) del alimento en el Inventario. **Arreglo (SEMÁFORO DE LA COMPRA POR PRIORIDAD):**
+  en `shoppingListFor` (módulo puro) cada fila busca SU alimento en el Inventario COMPLETO
+  (registro ≠ stock — el matcher de tokens casa aunque la qty siga ≤ min, que es lo que MANTIENE
+  la fila en la lista; si casan varios manda el de MAYOR prioridad): registrado → `urgencyLevel`
+  de `priority.js` (rojo 8–10 · naranja 6–7 · verde 1–5) y la fila muestra su qty/min/score
+  REALES (ya no los ceros de defecto); sin registro → urgencia NUEVA **"neutral"**, el color del
+  propio texto de la app (`.alert-card li.urg-neutral { border-left-color: var(--text) }` — token
+  existente en ambos temas, ningún hex suelto) y SIEMPRE AL FINAL del orden (peso neutral = 3).
+  `onDay/daysUntil` se siguen calculando: el metadato "se usa el …" queda informativo y como
+  desempate del orden. `app.js` (filaCompra) sólo cambia el default a "neutral". Se retira el
+  helper muerto `urgenciaPorDias`. **Verificación:** unit `tests/menu-semanal.test.js`
+  recontratado (registrado por score, sin registro neutro, varios casan → mayor score, neutro al
+  final, onDay intacto) + integración NUEVA `tests/lista-compra-prioridad.integration.test.js`
+  (DOM real vía bootApp: clases urg-* y datos reales en las tres clases de fila) + ajustes de
+  expectativa de orden en `tests/ocr-ticket.integration.test.js` + suite completa verde
+  (607 tests / 42 suites).

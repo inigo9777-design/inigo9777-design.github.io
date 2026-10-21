@@ -365,9 +365,16 @@ italiana" (see `modules/origen-recetas.js` below).
   (`origenRecetas.etiquetaClasicaVisible` decide; tokens con texto distinto como
   "Sugerencia de hoy" se conservan).
 - Lista de la compra (Card 3): dedup por el matcher de tokens (`modules/ingredient-matching.js`,
-  NO lower-case exacto) y semáforo dinámico por fecha de preparación
-  (`onDay`/`daysUntil`/`urgency`): hoy/mañana=rojo, 2–3 días=naranja, ≥4 días (o sin fecha)=verde;
-  orden salida rojo→verde. **Cobertura dinámica (feature 2026-10-21, la persona viene del ticket
+  NO lower-case exacto). **Semáforo POR PRIORIDAD (bugfix 2026-10-21, era por fecha de preparación):
+  el COLOR de la fila lo manda la prioridad del alimento en el Inventario** — registrado en casa
+  (el matcher lo casa, aunque su qty siga ≤ min: registro ≠ stock; si casan varios manda el de MAYOR
+  score) → `urgencyLevel` de `priority.js` (rojo 8–10, naranja 6–7, verde 1–5) y la fila muestra sus
+  qty/min/score REALES; SIN registro (defaults 0/0/5) → urgencia **"neutral"**, el color del propio
+  texto de la app (`.alert-card li.urg-neutral { border-left-color: var(--text) }`) y SIEMPRE al
+  final del orden (peso neutral=3). `onDay/daysUntil` siguen calculándose: metadato informativo
+  "se usa el …" y desempate del orden. Regla y helper en el módulo puro (`shoppingListFor`,
+  `priority` resuelto por entorno como el matcher); specs `tests/menu-semanal.test.js` +
+  `tests/lista-compra-prioridad.integration.test.js`. **Cobertura dinámica (feature 2026-10-21, la persona viene del ticket
   y YA compró):** un needy sólo sale de la lista cuando queda CUBIERTO — hay alimento en casa
   que case por tokens con qty > SU mínimo (`shoppingListFor`, regla del usuario: "más unidades
   que el mínimo necesario"); con min 0/undefined basta qty>0. Tener "algo" YA no tapa la fila

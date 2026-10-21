@@ -2193,15 +2193,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (weeklyMenu.approved) renderShoppingList();
   }
 
-  // Render de Card 3 (lista de la compra derivada). Sólo se pinta si hay plan aprobado con ítems pendientes.
-  // Con plan disponible, cada fila recibe su URGENCIA de compra (semaforo dinámico según lo cerca que está
-  // la fecha de preparación: mañana/hoy=rojo, 2-3 días=naranja, ≥4=verde) y se ordena rojo→verde.
+  // SEMÁFORO DE LA COMPRA POR PRIORIDAD (petición 2026-10-21): el color de la fila lo manda la
+  // prioridad del alimento en el Inventario (decidida en el módulo puro shoppingListFor) y los
+  // ítems SIN registrar van en NEUTRO (urg-neutral), el color del propio texto de la app.
   // formatoFechaCorta vive en modules/util.js (§3, 2026-10-21) — llega por destructuring arriba;
   // filaCompra la consume tal cual para el metadato "se usa el 21 oct" de cada fila del semáforo.
 
-  // Fila clásica de la lista de la compra (needyFoods del plan aprobado, con semáforo por fecha).
+  // Fila clásica de la lista de la compra (needyFoods del plan aprobado, color por prioridad).
   function filaCompra(item) {
-    const urg = item.urgency || "green";
+    const urg = item.urgency || "neutral";
     const cuando = item.onDay != null && item.daysUntil != null
       ? `· se usa el ${formatoFechaCorta(item.onDay)} (${item.daysUntil === 0 ? "hoy" : item.daysUntil === 1 ? "mañana" : `en ${item.daysUntil} días`})`
       : "";

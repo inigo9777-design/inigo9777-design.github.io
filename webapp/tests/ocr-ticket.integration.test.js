@@ -269,7 +269,9 @@ describe("Escáner → la lista de la compra DINÁMICA se repinta en cada confir
   it("antes de confirmar: las 3 filas pendientes; tras los EXACTOS «Pan» sale (2 > su min 1); tras la REVISIÓN «Yogur» sale (4 > min 3) y «Semillas» sigue sin comprarla", async () => {
     const { document, window } = conPlanAprobado();
     window.__mrcheffProcesarTextoOcr(TICKET);
-    expect(filas(document)).toEqual(["Pan", "Yogur", "Semillas de calabaza"]);   // aún sin comprar
+    // Orden por PRIORIDAD (bugfix 2026-10-21): Yogur (score 7 → naranja), Pan (score 3 → verde)
+    // y «Semillas» SIN registro en el Inventario → neutra, SIEMPRE al final.
+    expect(filas(document)).toEqual(["Yogur", "Pan", "Semillas de calabaza"]);   // aún sin comprar
 
     document.querySelector("[data-confirmar-exactos]").click();             // diálogo 1: Pan +1 (qty 1 → 2)
     expect(filas(document)).toEqual(["Yogur", "Semillas de calabaza"]);     // Pan: 2 > su min 1 → SALE ya
