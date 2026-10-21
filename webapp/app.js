@@ -416,6 +416,33 @@ document.addEventListener("DOMContentLoaded", () => {
     }, { passive: true });
   }
 
+  // ===== BOTÓN FLOTANTE "SUBIR AL PRINCIPIO" (feature 2026-10-21) =====
+  // Con listas verticales muy largas, al bajar por la pestaña aparece (animado) abajo a la
+  // derecha un círculo con flecha que VUELVE AL PRINCIPIO de la pestaña ACTUAL, también con
+  // animación; se oculta otra vez al estar arriba. En TODAS las pestañas (van de un mismo
+  // scroll de documento). La regla (umbral = una pantallita, ocultarse en lo alto) y el salto
+  // (smooth / auto con reduce-motion / fallback WebView viejo) viven en modules/scroll-arriba.js;
+  // aquí el listener de scroll (rAF-throttled, patrón del tutorial) y el molde.
+  const scrollArriba = (window.MRCheff && window.MRCheff.scrollArriba) || null;
+  const fabSubir = $("#btn-subir-encima");
+  if (fabSubir && scrollArriba) {
+    let fabRaf = null;
+    const pintaFabSubir = () => {
+      fabRaf = null;
+      fabSubir.classList.toggle("visible", scrollArriba.debeMostrarseBoton(window.scrollY, window.innerHeight || 320));
+    };
+    // Un único rAF por ráfaga de scroll/resize: el evento scroll dispara decenas de veces/frame.
+    window.addEventListener("scroll", () => {
+      if (fabRaf == null) fabRaf = requestAnimationFrame(pintaFabSubir);
+    }, { passive: true });
+    window.addEventListener("resize", () => {
+      if (fabRaf == null) fabRaf = requestAnimationFrame(pintaFabSubir);   // el umbral INNER cambia al girar
+    });
+    fabSubir.addEventListener("click", () => {
+      scrollArriba.subirEncima(window, { reducido: scrollArriba.movimientoReducido(window) });
+    });
+  }
+
   // ===== ALIMENTOS =====
   const foodForm = $("#food-form");
   const foodName = $("#food-name");

@@ -345,6 +345,12 @@
         </div>
     </div>
 
+    <!-- Botón flotante "subir al principio" (feature 2026-10-21): listas largas de móvil, en TODAS
+         las pestañas. Aparece pasadas una pantallita de scroll y VUELVE A OCULTARSE arriba del todo;
+         la regla vive en modules/scroll-arriba.js, el fade/scale en style.css, el wiring en app.js. -->
+    <button id="btn-subir-encima" class="fab-subir-encima" aria-label="Subir al principio de la pestaña" title="Subir al principio" tabindex="-1">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 3l8 8h-5v9h-6v-9H4z"/></svg>
+    </button>
     <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
     <!-- Anuncio silencioso para lectores de pantalla: el viewpager cambia de vista sin foco
          (gesto táctil), así que el cambio se anuncia por región viva; los clicks en las
@@ -415,6 +421,7 @@
          Consumido por app.js al abrir/guardar el editor (tiempo de click); ver planFeature… §12 y CODING_STANDARDS.md §3. -->
     <script src="modules/recipe-editor.js"></script>
     <script src="modules/swipe-tabs.js"></script>
+    <script src="modules/scroll-arriba.js"></script>
     <!-- TUTORIAL interactivo de entrada (feature 2026-10-20): guion + sesión PURe; el velo y el
          posicionamiento son wiring de app.js. Si el tag faltara, la app funciona normal y sólo
          no hay tutorial (botón 🎓 inerte, guard embutido en app.js). -->

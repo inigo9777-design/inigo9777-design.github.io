@@ -1538,3 +1538,47 @@ html.scroll-candado { overflow: hidden; }
   font-style: italic;
   color: var(--muted) !important;
 }
+
+/* ========== BOTÓN FLOTANTE "SUBIR AL PRINCIPIO" (feature 2026-10-21) ==========
+   Círculo con flecha, abajo a la derecha: con listas verticales muy largas, al bajar pasa una
+   pantallita y el botón ENTRA por fade + subida de escala; un toque lo devuelve arriba del todo
+   CON animación y se vuelve a ocultar. Sólo tokens existentes: relleno de marca (--brand) con
+   icono en su color designado (--brand-on, el mismo par de contraste de .btn.primary) — ambos
+   temas ya los definen, nada de hex sueltos. */
+.fab-subir-encima {
+  position: fixed;
+  right: 16px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));   /* PWA: respetar la franja del iPhone */
+  width: 46px;
+  height: 46px;                     /* objetivo táctil ≥46px (auditoría pwa-accesibilidad) */
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--brand);
+  color: var(--brand-on);
+  box-shadow: var(--shadow-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  /* INVISIBLE desde la construcción (arriba del todo): sin la clase .visible no atrapa toques
+     y el fade/scale de entrada lo hace "nacer" — el display:none rompería la animación. */
+  opacity: 0;
+  transform: translateY(12px) scale(0.9);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.fab-subir-encima.visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.fab-subir-encima:focus-visible {
+  outline: 2px solid var(--focus-halo);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fab-subir-encima { transition: none; }
+}
+
+/* El tutorial (velo z 90) y el modal (z 100+) tapan al botón: z intermedio por el orden de capas. */
