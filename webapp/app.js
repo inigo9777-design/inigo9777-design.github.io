@@ -1528,6 +1528,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // SIN esa bandera el render del modal queda IDENTICO al de siempre: Recetas/Innovación no la pasan → no se rompe ninguna vista ya probada.
   function openRecipeModal(r, opts) {
     const resaltarFaltantes = !!(opts && opts.highlightMissing);           // guard estricto § plan §2 "no activa sin que la UI lo pida".
+    // Etiqueta "Sugerencia de hoy" oculta cuando el modal se abre desde el PLAN semanal (petición
+    // 2026-10-21); Card 1 y el resto de vistas la siguen mostrando (tests de Card-1 la fijan).
+    const ocultarSugerencia = !!(opts && opts.ocultarEtiquetaSugerencia);
     let faltantesPorIndice = null;                                          // boolean[] paralelo a r.ingredients, sólo calculado SI la vista lo pide (sin bandera → nulo → idéntico).
     if (resaltarFaltantes && window.MRCheff.recipeMissing) {               // el match estricto vive en un PURe módulo testable (DIP §6), no se reinventa aquí (§ "un solo lugar calcula bien").
       const moduloFaltantes = window.MRCheff.recipeMissing;
@@ -1543,7 +1546,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
         ${badgeOrigenHTML(r)}
         ${badgeSyncHTML(r)}
-        ${tagClasicoHTML(r, "Idea")}
+        ${ocultarSugerencia ? tagMenuSlotHTML(r) : tagClasicoHTML(r, "Idea")}
       </div>
       ${r.from ? `<p class="muted">Base: ${escapeHTML(r.from)}</p>` : ""}
       ${r.uses && r.uses.length ? `<p class="muted">🥣 Usa de tu casa: ${r.uses.map(escapeHTML).join(", ")}</p>` : ""}
@@ -1695,6 +1698,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const m = window.MRCheff.origenRecetas;
     const texto = (m && m.etiquetaClasicaVisible) ? m.etiquetaClasicaVisible(rec, SOURCE_LABEL, { fallback }) : (rec && rec.source ? (SOURCE_LABEL[rec.source] || fallback) : null);
     return texto ? `<span class="tag tag-${String(rec.source)}">${texto.toString()}</span>` : "";
+  }
+  // Tag clásico del PLAN semanal (2026-10-21, petición del usuario): en la semana cada hueco YA es
+  // una sugerencia del lote — la etiqueta "Sugerencia de hoy" no aporta nada y repetida en las 21
+  // filas es ruido. Se suprime SÓLO ese token (fusiona con el tag si el texto coincidiera): los
+  // demás tags de fuente ("Nueva", "Variación"…) siguen decidiendo por el módulo puro sin cambio.
+  function tagMenuSlotHTML(rec) {
+    const html = tagClasicoHTML(rec);
+    if (!html || html.includes(SOURCE_LABEL.sugerenciaHoy)) return "";
+    return html;
   }
   // Sello de ORIGEN al guardar una copia (⭐ de Innovación / ✏️ editor): el módulo calculó id/título del plato
   // ORIGINAL en el MOMENTO del guardado para que la etiqueta persista aunque el usuario renombre después.
@@ -1907,13 +1919,35 @@ document.addEventListener("DOMContentLoaded", () => {
   // §8 log + unit tests en tests/planner.test.js) sobre el ranking completo de suggestToday — toda la
   // lógica de siempre (aforo qty>0, cooldown de cooked, ranking) intacta. Aquí sólo la MEMORIA de la
   // vista: los cursores de rotación (se reinician al recargar la página o al pulsar "Limpiar").
+  //
+  // RODILLO DEL COOLDOWN (bug 2026-10-21): el filtro de cocinadas-esta-semana vive en el pool común
+  // (buildCandidatePool); cocinando en raña —aprobar el plan ancla hasta 21 entradas en mrcheff.cooked—
+  // el cooldown podía AGOTAR todas las recetas cocinables y dejar la Card a cero para siempre (repro
+  // real: 5 cocinables del aforo del usuario, las 5 con entrada cooked en la ventana ⇒ 0 tarjetas;
+  // por eso "ya no sacaba recetas"). Regla: si el ranking estricto trae menos de 4, se rellena con el
+  // pool SIN filtro de cooked (las ya cocinadas quedan al final, ordenadas por aprovechamiento; los
+  // platos NO cocinados siguen mandando). Así la Card devuelve SIEMPRE hasta 4 recetas "cocinables
+  // hoy con lo de casa" y la rotación de cursores sigue cambiando el lote en cada click.
   let cursoresSugerencia = { desayuno: 0, comida: 0, cena: 0 };
   let clicksSugerencia = 0;
 
   btnSuggestGenerate.addEventListener("click", () => {
     const cooked = load(LS.cooked, []);
     const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
-    const todas = planner.suggestToday(pool, foods);   // ranking completo de SIEMPRE (contrato cerrado del módulo)
+    let todas = planner.suggestToday(pool, foods);   // ranking completo de SIEMPRE (contrato cerrado del módulo)
+    if (todas.length < 4) {
+      // Rodillo del cooldown: sin historial cocinado para el 2º corte; dedupe por TÍTULO para no
+      // pintar dos tarjetas gemelas (copia propia editada + original del catálogo viven en el pool
+      // con fingerprints distintos — el pool los conserva y aquí la Card pinta una sola vez cada plato).
+      const poolEntero = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked: [], today });
+      const yaEnCard = new Set(todas.map(t => t.title));
+      const extras = planner.suggestToday(poolEntero, foods).filter(i => {
+        if (yaEnCard.has(i.title)) return false;
+        yaEnCard.add(i.title);
+        return true;
+      });
+      todas = todas.concat(extras);
+    }
     const out = planner.loteRotado(todas, { cursores: cursoresSugerencia, clicks: clicksSugerencia });
     cursoresSugerencia = out.cursores;                 // el módulo es puro: devuelve cursores NUEVOS
     clicksSugerencia += 1;
@@ -1979,7 +2013,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="recipe-meta">
           ${badgeOrigenHTML(rec)}
           ${badgeSyncHTML(rec)}
-          ${tagClasicoHTML(rec, SOURCE_LABEL.sugerenciaHoy)}
+          ${tagMenuSlotHTML(rec)}
           <span class="muted" style="font-size:.8rem">${rec.ingredients.length} ingr.</span>
         </div>
         ${rec.uses && rec.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${rec.uses.map(escapeHTML).join(" · ")}</div>` : ""}
@@ -2045,9 +2079,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!comida || !comida.recipe) return;
         row.addEventListener("click", (e) => {
           if (e.target.closest("button")) return;
-          openRecipeModal(comida.recipe, { highlightMissing: true });
+          openRecipeModal(comida.recipe, { highlightMissing: true, ocultarEtiquetaSugerencia: true });
         });
-        activablePorTeclado(row, () => openRecipeModal(comida.recipe, { highlightMissing: true }));
+        activablePorTeclado(row, () => openRecipeModal(comida.recipe, { highlightMissing: true, ocultarEtiquetaSugerencia: true }));
         const btnCook = row.querySelector("[data-cook]");
         if (btnCook) btnCook.addEventListener("click", (e) => {
           e.stopPropagation();

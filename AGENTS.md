@@ -62,7 +62,12 @@ TÍTULO que EMPIECE por él ("gamb"→"gambas", "croqu"→"croquetas"; título e
 prefijo x2, así la afinidad real sigue mandando; tokens ≥3 letras vía
 TOKEN_MIN_LEN del matcher — 1-2 letras no dan ruido); + Mis Recetas) · **Innovación**
 (curated-catalog suggestions from the pantry) ·
-**Sugerencias y menú** (↻ Sugerir ahora lote rotado + plan semanal 7×3 + lista de la compra) ·
+**Sugerencias y menú** (↻ Sugerir ahora lote rotado — fix 2026-10-21: el cooldown NO puede dejar
+la Card a cero, si lo cocinable está entero cocinado en la semana se rellena con el pool SIN
+filtro de cooked [rodillo del cooldown, raíz del bug "ya no saca recetas"] — + plan semanal 7×3
+con las filas SIN la etiqueta "Sugerencia de hoy" [petición 2026-10-21: en la semana cada hueco
+ya es una sugerencia, sólo se suprime ese token vía `tagMenuSlotHTML` y la bandera
+`ocultarEtiquetaSugerencia` en el modal; Card 1 la conserva] + lista de la compra) ·
 **Temporada** (in-season fruit/veg by month) · **Copia de seguridad** (side icon tab). Every recipe
 viewed anywhere (cards, plan slots, modal) shows an ORIGIN badge — "Receta española"/"Receta
 italiana" (see `modules/origen-recetas.js` below).
@@ -222,7 +227,9 @@ italiana" (see `modules/origen-recetas.js` below).
 - **Pure modules (`webapp/modules/`, all IIFE + dual-export, no DOM/localStorage — §3 CODING_STANDARDS):**
   `classify.js` · `priority.js` · `recipe-analysis.js` · `ingredient-matching.js` (token matcher,
   shared by planner/menu-semanal/innovations) · `util.js` · `innovations.js` · `planner.js` (public API:
-  buildCandidatePool, matchDetails, suggestToday, buildWeeklyMenu, pickRecipeForSlot, loteRotado…) ·
+  buildCandidatePool, matchDetails, suggestToday, buildWeeklyMenu, pickRecipeForSlot, loteRotado —
+  el relleno del lote es una VENTANA CIRCULAR que rota con el click (`(clicks*max) % len`; fix
+  2026-10-21: volvía siempre al nº1 del ranking y con despensas finas el lote no cambiaba)…) ·
   `menu-semanal.js` (shoppingListFor, approveMenu, markItemBought, cookEntry, swapSlotRecipe, clearMenu,
   accionesMenuSlot — el 🍳 del menu sólo en plan aprobado, platosDelPlan y alternarColapso — plegar/
   desplegar la semana APROBADA, petición 2026-10-21) ·
