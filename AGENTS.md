@@ -287,7 +287,16 @@ italiana" (see `modules/origen-recetas.js` below).
     (sólo aparece aprobado — `pintaBarraPlan` en app.js es el punto ÚNICO de la barra y del plegado de la
     lista; el PREVIEW no se pliega y un plan limpio/nuevo nace expandido) y SIEMPRE vuelve a desplegarse
     ("▸ Desplegar"); el estado opcional `colapsado` viaja en el shape persistido (como `triedKeys`, nota
-    §8) y la regla vive en `alternarColapso` — Card 3 (lista de la compra) queda visible plegada o no. `pickRecipeForSlot` es la 6ª función pública de
+    §8) y la regla vive en `alternarColapso` — Card 3 (lista de la compra) queda visible plegada o no.
+    **Diseño de la semana (2026-10-21):** cada día es una tarjeta `.menu-day` del mismo pie que `.card`
+    (radio-l) con columnas suaves (`--card-soft`, radius-m) DENTRO del acolchado — sin filas a sangre, sin
+    tabiques de 1px y sin el filete lateral: la franja horaria (desayuno=ámbar, comida=azul, cena=violeta)
+    vive en la PÍLDORA `.menu-meal-tag` con los pares bg/fg de tags (`--tag-protagonista/_fg`, `--tag-libre-bg`
+    + `--info`, `--tag-variacion/_fg`), tokens de ambos temas. ⚠️ El `<ul id="menu-plan-list">` nace con la
+    clase `alert-card` en el markup → la regla genérica `.alert-card li` (0,1,1) APLASTABA a `.menu-day`
+    (0,1,0): centraba el título y achicaba el radio; la familia del plan lleva prefijo `#menu-plan-list`
+    (1,1,0) para ganar y el override `#menu-plan-list.alert-card` neutraliza el tinte del contenedor.
+    `pickRecipeForSlot` es la 6ª función pública de
     `planner.js` (contrato ampliado, log §8 del CODING_STANDARDS.md). Las recetas guardadas son EDITABLES
     desde el modal de detalle (✏️ Editar): edición in-situ si ya está en `mrcheff.recipes` o copia nueva
     si es un plato del catálogo o del plan — los huecos del plan que incrustan la receta editada se refrescan

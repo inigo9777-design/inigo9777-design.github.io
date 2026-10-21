@@ -97,3 +97,19 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   snapshot al primer cambio). **Verificación:** integración jsdom (ida/vuelta variante ↔ es
   nuevo, 9 tests) + Brave real `e2e/ocr-despensa.mjs` (D): 7/3 en pantalla y en la despensa
   final sin pisos.
+- `2026-10-21 · @AI-agent · task menu-semanal-diseno · Síntoma:` el título del día («Lunes»)
+  del menú semanal salía CENTRADO y cada día llevaba radio pequeño y padding corto,
+  contradictorio con el CSS de sección 13 (que pedía flex a la izquierda). **Causa (hallada en
+  el rediseño de las tarjetas):** el `<ul id="menu-plan-list">` nace con clase `alert-card` en
+  el markup, y la regla genérica de la lista de despensa `.alert-card li` (0,1,1) APLASTABA a
+  `.menu-day` (0,1,0) en todo lo compartido: `align-items:center` (centraba el header como
+  flex item, shrink-wrapped), `border-radius: var(--radius-m)`, `padding: 9px 12px`,
+  background `--card-soft` y `gap: 8px 14px`. **Arreglo:** la familia del plan lleva
+  prefijo `#menu-plan-list` (1,1,0) en `style.css` — `.menu-day` (con `flex-wrap/align-items/
+  font-size` explícitos para rebatir los de la lista de despensa), `.menu-day-header`
+  (`align-self: stretch` sellado) y `.menu-meal-row` + hover + media queries; el override
+  `#menu-plan-list.alert-card` (que ya existía para el contenedor) queda como estaba.
+  **Verificación:** sonda de getComputedStyle en Brave (`gap/padding/radius/bg/align` del día
+  ya con los valores de .menu-day; header estirado, `width` ≈ tarjeta − paddings) + suite jsdom
+  completa verde (586) + e2e del plegado 12/12 + auditoría a11y móvil OK; capturas
+  74-75-76 (escritorio oscuro/claro + móvil).
