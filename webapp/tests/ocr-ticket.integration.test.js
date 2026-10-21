@@ -43,6 +43,18 @@ function lsFoods(window) {
   return JSON.parse(window.localStorage.getItem("mrcheff.foods") || "[]");
 }
 
+// El destello del inventario entra vía rAF (frames de ~16ms con pretendToBeVisual) y la app lo
+// retira con un timer a los 2200ms. Bajo carga el frame se retrasa y un sleep fijo de 60ms
+// da flake (falló 2 veces en la suite completa nunca en aislado). Sondeo con techo ~1.6s:
+// SIEMPRE cae el destello antes de que el 2200ms lo retire — sondeo y 2200 nunca se crucan.
+async function esperaDestello(document) {
+  for (let i = 0; i < 80; i++) {
+    if (document.getElementById("food-list").classList.contains("destello-suave")) return true;
+    await new Promise(r => setTimeout(r, 20));
+  }
+  return document.getElementById("food-list").classList.contains("destello-suave");
+}
+
 describe("Escáner del ticket → los dos diálogos dentro de Alimentos (integración)", () => {
   it("el hook de inyección está disponible en el window de la app", () => {
     const { window } = appConDespensa();
@@ -115,8 +127,8 @@ describe("Escáner del ticket → los dos diálogos dentro de Alimentos (integra
     // aterrizaje: el escáner NUNCA cambia de pestaña y el inventario destella una vez
     expect(document.getElementById("modal").classList.contains("hidden")).toBe(true);   // modal cerrado, sin toasts de éxito
     expect(document.querySelector("#view-foods").classList.contains("active")).toBe(true);
-    await new Promise(r => setTimeout(r, 60));                // el destello entra vía rAF (2 frames)
-    expect(document.getElementById("food-list").className).toContain("destello-suave");
+    await new Promise(r => setTimeout(r, 60));                // el destello entra vía rAF (frames de ~16ms)
+    expect(await esperaDestello(document)).toBe(true);        // sondeo con techo — el sleep fijo daba flake
     // la clave de pendientes del ticket JAMÁS se escribe (implementación retirada)
     expect(window.localStorage.getItem("mrcheff.compraTicket")).toBe(null);
   });
@@ -200,7 +212,7 @@ describe("Escáner del ticket → los dos diálogos dentro de Alimentos (integra
 
     expect(document.querySelector("#view-foods").classList.contains("active")).toBe(true);
     await new Promise(r => setTimeout(r, 60));
-    expect(document.getElementById("food-list").className).toContain("destello-suave");
+    expect(await esperaDestello(document)).toBe(true);
     const foods = lsFoods(window);
     expect(foods.find(f => f.name === "Pan").qty).toBe(3);                   // 1 en casa + 2 compradas
     expect(foods.find(f => f.name === "Yogur").qty).toBe(3);                 // 2 en casa + 1 comprada
