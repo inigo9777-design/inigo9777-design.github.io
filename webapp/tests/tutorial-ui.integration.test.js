@@ -126,9 +126,28 @@ describe("tutorial interactivo — pantalla ALIMENTOS (pasos accionables)", () =
     expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 2 de 5");
     expect(app.document.getElementById("tutorial-pista").classList.contains("hidden")).toBe(false);
     expect(app.document.getElementById("tutorial-avanzar").classList.contains("hidden")).toBe(true);
-    app.document.getElementById("food-name").click();            // el toque REAL + avance del paso (el foco real lo mira el e2e de Brave; jsdom no enfoca al hacer click)
+    app.document.getElementById("food-name").click();            // el toque REAL + avance del paso (la visita silencia el foco: el campo no enfoca — lo fija el test de silencio y el e2e de Brave)
     await dormir(60);
     expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 3 de 5");
+  });
+
+  it("la visita SILENCIA los campos del guion: pointerdown en el target no puede enfocar (teclado del PWA fuera)", async () => {
+    const app = bootApp({ tutorialAuto: true });
+    await dormir(700);
+    conGuionDeAlimentos(app.window.MRCheff.tutorial);
+    app.document.getElementById("tutorial-avanzar").click();     // bienvenida → #food-name (accionable)
+    await dormir(60);
+    const campo = app.document.getElementById("food-name");
+    const pd = new app.window.MouseEvent("pointerdown", { bubbles: true, cancelable: true });
+    campo.dispatchEvent(pd);
+    expect(pd.defaultPrevented).toBe(true);                      // el focus se cancela: sin teclado en el PWA instalable
+    // el pointerdown por sí SOLO no avanza (el paso continúa con su click)
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 2 de 5");
+    // fuera de la visita la app queda tal cual: el mismo gesto SIN tutorial no se cancela
+    app.document.getElementById("tutorial-cerrar").click();
+    const pdFuera = new app.window.MouseEvent("pointerdown", { bubbles: true, cancelable: true });
+    campo.dispatchEvent(pdFuera);
+    expect(pdFuera.defaultPrevented).toBe(false);
   });
 
   it("tercer paso informativo: botón Siguiente vuelve; 'Terminar' graba la visita", async () => {
@@ -275,6 +294,25 @@ describe("tutorial interactivo — pantalla SUGERENCIAS Y MENÚ (plan real de la
 
 describe("tutorial interactivo — pantalla TEMPORADA (cierre del tour por 5 vistas)", () => {
   const dormir = (ms) => new Promise(r => setTimeout(r, ms));
+
+  it("el select de Temporada se SILENCIA: tocar #season-month avanza sin abrir la lista de meses", async () => {
+    const app = bootApp({ tutorialAuto: true });
+    await dormir(700);
+    const tut = app.window.MRCheff.tutorial;
+    const bienvenida = tut.PASOS[0];
+    const temporada = tut.pasosDeVista("seasonal");
+    const listo = tut.PASOS[tut.PASOS.length - 1];
+    tut.PASOS.splice(0, tut.PASOS.length, bienvenida, ...temporada, listo);
+    app.document.getElementById("tutorial-avanzar").click();     // bienvenida → temporada-mes (select, accionable)
+    await dormir(60);
+    expect(app.document.getElementById("view-seasonal").classList.contains("active")).toBe(true);
+    const selector = app.document.getElementById("season-month");
+    const pd = new app.window.MouseEvent("pointerdown", { bubbles: true, cancelable: true });
+    selector.dispatchEvent(pd);
+    expect(pd.defaultPrevented).toBe(true);                      // sin focus nativo → el picker de meses no llega a abrirse encima del paso siguiente
+    selector.click();                                            // el click REAL avanza el paso igual
+    expect(app.document.getElementById("tutorial-titulo").textContent).toContain("Buena fruta");
+  });
 
   it("RECORRIDO COMPLETO del guion real: 5 pantallas, salta de vista en vista y termina", async () => {
     const app = bootApp({ tutorialAuto: true });

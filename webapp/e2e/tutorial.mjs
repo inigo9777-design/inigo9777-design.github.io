@@ -1,11 +1,14 @@
-// e2e/tutorial.mjs — TUTORIAL interactivo de entrada con Brave REAL (feature 2026-10-20).
-// Ejecutar: node e2e/tutorial.mjs   (sirve la webapp por http://localhost:8617: el auto-open
-// de la primera visita SÓLO existe en web http(s), no en file://)
+// e2e/tutorial.mjs — TUTORIAL interactivo de entrada con Brave REAL (feature 2026-10-20,
+// afinación 2026-10-21). Ejecutar: node e2e/tutorial.mjs   (sirve la webapp por
+// http://localhost:8617: el auto-open de la primera visita SÓLO existe en web http(s), no en file://)
 // Comprueba: (1) auto-apertura en la primera visita, (2) ✕ cierra y SE RECUERDA (recarga sin
 // tutorial), (3) reabrir con el 🎓 de la cabecera, (4) recorrido REAL del guion: cada paso
-// accionable se avanza tocando SU elemento (el toque ejecuta la función real) y cada paso
-// informativo con el botón; (5) el aro envuelve al elemento (geometría), (6) el swipe del
-// viewpager NO cambia de vista durante la visita y (7) el guion completo (16 pasos) termina.
+// accionable se avanza tocando SU elemento (con los campos de formulario SILENCIADOS: el toque
+// avanza pero NO enfoca — el teclado del PWA no abre; el select de Temporada tampoco abre) y
+// cada paso informativo con el botón; (5) el aro envuelve al elemento (geometría), (6) el swipe
+// del viewpager NO cambia de vista durante la visita, (7) el guion completo (16 pasos) termina
+// y (8) los pasos de objetivo ALTO ("Mis recetas", "Buena fruta") muestran la tarjeta ENCIMA
+// del aro con el contenido vivo debajo — no tapando la lista/cuadrícula (petición 2026-10-21).
 import { chromium } from "playwright-core";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -89,12 +92,14 @@ try {
   const cercaFoco = Math.abs(focoFood.foco.t - (focoFood.el.t - 8)) <= 3 && Math.abs(focoFood.foco.w - (focoFood.el.w + 16)) <= 4;
   ok(cercaFoco, "(4a) el aro envuelve a #food-name (geometría ± aire de 8 px)");
 
-  // 3 alimentos#1: click REAL en el campo (dentro del hueco) → avanza Y enfoca
+  // 3 alimentos#1: click REAL en el campo (dentro del hueco) → avanza. El campo queda
+  // SILENCIADO (preventDefault en pointerdown/mousedown): sin focus, el teclado del PWA
+  // instalable no abre y el paso siguiente no se descuelgue (petición 2026-10-21).
   await C("#food-name");
   await esEsperaFocoFijo();
   ok((await paso()).includes("Paso 4"), "(4b) el click en el target avanza (paso 4: importancia)");
   const focoInput = await page.evaluate(() => document.activeElement && document.activeElement.id);
-  ok(focoInput === "food-name", "(4c) la función real del alimento ocurrió (el campo quedó enfocado)");
+  ok(focoInput !== "food-name", "(4c) el campo quedó SILENCIADO: sin focus (teclado del PWA fuera)");
   await page.screenshot({ path: path.join(OUT, "69-tutorial-alimentos.png") });
 
   // 4 alimentos#2 → 5 inventario (informativo) → 6 recetas#1 (salto de vista)
@@ -104,17 +109,31 @@ try {
   ok((await paso()).includes("Paso 6"), "(4d) salto a Recetas (crear receta, paso 6 de 16)");
   ok(await page.$eval("#view-recipes", el => el.classList.contains("active")), "(4e) la vista cambió a Recetas");
 
-  // 6 recetas#1: el textarea se toca y enfoca → 7 buscador
+  // 6 recetas#1: el textarea se toca (silenciado: sin focus) → 7 buscador
   await C("#recipe-desc");
   await esEsperaFocoFijo();
   ok((await paso()).includes("Paso 7"), "(4f) buscador del catálogo (paso 7)");
   const focoTexto = await page.evaluate(() => document.activeElement && document.activeElement.id);
-  ok(focoTexto === "recipe-desc", "(4g) el textarea de receta quedó enfocado");
+  ok(focoTexto !== "recipe-desc", "(4g) el textarea también silenciado (tocar avanza, teclado nunca abre)");
   await page.screenshot({ path: path.join(OUT, "70-tutorial-recetas.png") });
 
-  // 7 buscador → 8 mis recetas (informativo) → 9 innovación#1
+  // 7 buscador → 8 mis recetas (informativo + tarjeta ARRIBA) → 9 innovación#1
   await C("#recipe-catalog-search");
-  await avanzaBoton();
+  await esEsperaFocoFijo();
+  ok((await paso()).includes("Paso 8"), "(4h) Mis recetas y su origen (paso 8 de 16)");
+  // Geometría del paso de objetivo ALTO (petición 2026-10-21): la tarjeta flota ENCIMA del aro,
+  // el arranque de la lista se asienta a media pantalla inferior Y la cabecera asoma atenuada.
+  const geoLista = await page.evaluate(() => {
+    const t = document.getElementById("tutorial-tarjeta").getBoundingClientRect();
+    const f = document.getElementById("tutorial-foco").getBoundingClientRect();
+    const bar = document.querySelector(".topbar").getBoundingClientRect();
+    return { cardTop: t.top, cardBottom: t.bottom, ringTop: f.top, topbarBottom: bar.bottom, vp: window.innerHeight };
+  });
+  ok(geoLista.cardBottom <= geoLista.ringTop + 2, "(4i) la tarjeta queda ENCIMA del aro (la lista NO está tapada)");
+  ok(geoLista.ringTop > geoLista.vp * 0.45, "(4j) el arranque de la lista vive por debajo de la mitad de la ventana, visible");
+  ok(geoLista.cardTop >= geoLista.topbarBottom - 4, "(4k) arriba de la tarjeta asoma la cabecera (logo y clúster) atenuada");
+  await page.screenshot({ path: path.join(OUT, "72-tutorial-mis-recetas.png") });
+  await avanzaBoton();                                             // 8 → 9
   await esEsperaFocoFijo();
   ok((await paso()).includes("Paso 9"), "(5a) el guion salta a Innovación");
 
@@ -152,8 +171,21 @@ try {
   await esEsperaFocoFijo();
   ok(await page.$eval("#view-seasonal", el => el.classList.contains("active")), "(7a) última pantalla: Temporada");
 
-  // 14 temporada#1 → 15 cuadrícula (informativo) → 16 listo (Terminar)
+  // 14 temporada#1 → 15 cuadrícula (informativo + tarjeta ARRIBA) → 16 listo (Terminar)
   await C("#season-month");                                        // click del select → avanza
+  const focoSelect = await page.evaluate(() => document.activeElement && document.activeElement.id);
+  ok(focoSelect !== "season-month", "(7c) el select quedó SILENCIADO: sin focus no abre la lista de meses");
+  await esEsperaFocoFijo();
+  const geoGrid = await page.evaluate(() => {
+    const t = document.getElementById("tutorial-tarjeta").getBoundingClientRect();
+    const f = document.getElementById("tutorial-foco").getBoundingClientRect();
+    const bar = document.querySelector(".topbar").getBoundingClientRect();
+    return { cardTop: t.top, cardBottom: t.bottom, ringTop: f.top, topbarBottom: bar.bottom, vp: window.innerHeight };
+  });
+  ok(geoGrid.cardBottom <= geoGrid.ringTop + 2, "(7d) \"Buena fruta\": tarjeta encima del aro, cuadrícula viva debajo");
+  ok(geoGrid.ringTop > geoGrid.vp * 0.45, "(7e) el arranque de la cuadrícula queda visible en el tercio inferior");
+  ok(geoGrid.cardTop >= geoGrid.topbarBottom - 4, "(7f) la cabecera no queda tapada por la tarjeta");
+  await page.screenshot({ path: path.join(OUT, "73-tutorial-temporada-grid.png") });
   await avanzaBoton();
   await new Promise(r => setTimeout(r, 120));
   const cta = await page.$eval("#tutorial-avanzar", el => el.textContent);

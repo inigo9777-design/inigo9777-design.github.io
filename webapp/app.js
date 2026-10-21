@@ -245,10 +245,19 @@ document.addEventListener("DOMContentLoaded", () => {
     Object.assign(tutorialVelos.foco.style, { top: y0 + "px", left: x0 + "px", width: (x1 - x0) + "px", height: (y1 - y0) + "px" });
 
     // Tarjeta: debajo del foco si hay sitio; si no, encima. Clamp a los márgenes del viewport.
+    // Excepción (petición 2026-10-21): los objetivos ALTOS del guion ("Mis recetas" y la
+    // cuadrícula de Temporada llevan tarjeta: "arriba" en modules/tutorial.js) mandan el
+    // CONTENIDO — la tarjeta flota ENCIMA del aro sin tocarlo (borde inferior a 12 px del aro)
+    // y el arranque del elemento se ve vivo debajo de ella; la cabecera de la app asoma
+    // atenuada por el velo por encima. En ventanas diminutas, el clamp degrade al tope.
     const altoTarjeta = tutorialVelos.tarjeta.offsetHeight || 150;
     const anchoTarjeta = Math.min(tutorialVelos.tarjeta.offsetWidth || 300, 320);
     let cardY = r.bottom + 12;
-    if (cardY + altoTarjeta > altoVP - 12) cardY = Math.max(12, r.top - 12 - altoTarjeta);
+    if (paso.tarjeta === "arriba") {
+      cardY = Math.max(12, y0 - altoTarjeta - 12);
+    } else if (cardY + altoTarjeta > altoVP - 12) {
+      cardY = Math.max(12, r.top - 12 - altoTarjeta);
+    }
     if (cardY + altoTarjeta > altoVP - 12) cardY = Math.max(12, altoVP - 12 - altoTarjeta);
     let cardX = Math.max(12, Math.min(r.left + r.width / 2 - anchoTarjeta / 2, anchoVP - anchoTarjeta - 12));
     Object.assign(tutorialVelos.tarjeta.style, { top: cardY + "px", left: cardX + "px" });
@@ -283,14 +292,34 @@ document.addEventListener("DOMContentLoaded", () => {
       tutorialVelos.anuncio.textContent = `Paso ${tut.numero(sesionTutorial)} de ${total}: ${paso.titulo}`;
     }
     // Colocar el objetivo en la ventana y medir con el layout YA hecho (el scrollIntoView puede
-    // animar: el listener de scroll reposiciona el foco durante el vuelo).
+    // animar: el listener de scroll reposiciona el foco durante el vuelo). Excepción
+    // (petición 2026-10-21) para los objetivos ALTOS con tarjeta: "arriba" — "center" los
+    // clava cubriendo la ventana y la tarjeta tapaba su contenido; ahora el ARRANQUE del
+    // elemento se asienta al ~60% de la ventana: la tarjeta flota entre la cabecera y el aro,
+    // y el contenido del paso se ve vivo debajo (el scroll por JS, window.scrollTo, porque
+    // scrollIntoView no enseña "dónde debe quedar el tope").
     if (objetivo) {
-      try {
-        const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        objetivo.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
-      } catch (e) {
-        try { objetivo.scrollIntoView(); }              // WebView viejo sin options object
-        catch (e2) { /* sin scrollIntoView (entorno de prueba): el paso sigue igual */ }
+      const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (paso.tarjeta === "arriba") {
+        const altoVP = window.innerHeight || document.documentElement.clientHeight;
+        const arranqueDeseado = Math.round(altoVP * 0.6);
+        const ahora = objetivo.getBoundingClientRect().top;
+        const delta = Math.round(ahora - arranqueDeseado);
+        if (Math.abs(delta) > 1) {
+          try {
+            window.scrollTo({ top: Math.max(0, (window.scrollY || 0) + delta), behavior: reduce ? "auto" : "smooth" });
+          } catch (eSin) {
+            try { window.scrollTo(Math.max(0, (window.scrollY || 0) + delta), 0); }  // WebView viejo sin options object
+            catch (e2) { /* sin scrollTo (entorno de prueba): el paso sigue igual */ }
+          }
+        }
+      } else {
+        try {
+          objetivo.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+        } catch (e) {
+          try { objetivo.scrollIntoView(); }              // WebView viejo sin options object
+          catch (e2) { /* sin scrollIntoView (entorno de prueba): el paso sigue igual */ }
+        }
       }
     }
     // El frame inicial del reposicionado (el listener de scroll ya cubre el vuelo del
@@ -301,6 +330,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function abrirTutorial() {
     if (!tut || !tutorialRaiz || !tutorialVelos) return;
+    // Limpiar el foco de la app (petición 2026-10-21): si la visita se reabre con el 🎓 con
+    // un campo activo y el teclado del PWA en pantalla, el keyboard descuadraría los velos.
+    if (document.activeElement && typeof document.activeElement.blur === "function") document.activeElement.blur();
     sesionTutorial = tut.sesionNueva();
     tutorialActivo = true;
     tutorialRaiz.classList.remove("hidden");
@@ -326,6 +358,25 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!objetivo) return;
     avanzarPasoTutorial();
   }, true);
+
+  // Silencio de TECLADO y LISTAS nativas durante la visita (petición 2026-10-21): al tocar el
+  // campo real del paso, el teclado del PWA instalable se abría y descuadraba el paso
+  // siguiente, y el select de Temporada (#season-month) dejaba su lista de meses abierta
+  // encima del paso que venía. preventDefault en pointerdown/mousedown cancela el FOCUS —
+  // y con él teclado y picker del select — pero NO el click: el paso sigue avanzando por su
+  // listener global de arriba y la app no cambia de estado (la barra #food-score tampoco
+  // arrastra valor durante el tour). Sólo protege el objetivo del paso ACTIVO (diana
+  // accionable); el resto de la app ya duerme bajo el velo. Nota iOS: el picker del select
+  // puede abrirse al soltar el dedo — la plataforma de la feature es el PWA Android/Brave.
+  function silenciarCamposTutorial(e) {
+    if (!tutorialActivo || !pasoEnPantalla || !pasoEnPantalla.accionable || !e.target.closest) return;
+    let objetivo = null;
+    try { objetivo = e.target.closest(pasoEnPantalla.selector); } catch (err) { return; }
+    if (!objetivo) return;
+    if (objetivo.closest("input, textarea, select")) e.preventDefault();
+  }
+  document.addEventListener("pointerdown", silenciarCamposTutorial, true);
+  document.addEventListener("mousedown", silenciarCamposTutorial, true);
 
   function avanzarPasoTutorial() {
     if (!tut || !sesionTutorial) return;
