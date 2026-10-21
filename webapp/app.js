@@ -1043,27 +1043,49 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!esDuda) {
         return `
         <div class="ocr-item rev-fila-nueva" data-o="${o}">
-          <input type="text" id="rev-nombre-${o}" class="rev-campo-nombre" value="${escapeHTML(d.nombre)}" aria-label="Nombre del alimento (editable)">
+          <label class="rev-celda rev-celda-nombre" for="rev-nombre-${o}"><span class="rev-etiqueta">Alimento</span>
+            <input type="text" id="rev-nombre-${o}" class="rev-campo-nombre" value="${escapeHTML(d.nombre)}" aria-label="Nombre del alimento (editable)">
+          </label>
           <div class="rev-sub"><span class="ocr-tipo">${etqTipo[d.tipo] || "Otro"}</span>${lineaContexto}</div>
-          <input type="number" id="rev-qty-${o}" class="rev-campo-qty" min="0" step="1" value="${d.qty}" aria-label="Cantidad comprada de ${escapeHTML(d.nombre)}">
-          <input type="number" id="rev-score-${o}" class="rev-num rev-campo-score" min="1" max="10" step="1" value="${d.score}" aria-label="Importancia de ${escapeHTML(d.nombre)}, del 1 al 10">
-          <input type="number" id="rev-min-${o}" class="rev-num rev-campo-min" min="0" step="1" value="${d.min}" aria-label="Cantidad mínima para avisarte de ${escapeHTML(d.nombre)}">
-          <input type="checkbox" class="ocr-include rev-campo-include" ${d.incluir ? "checked" : ""} aria-label="Incluir ${escapeHTML(d.nombre)}">
+          <label class="rev-celda rev-celda-qty" for="rev-qty-${o}"><span class="rev-etiqueta">Cantidad</span>
+            <input type="number" id="rev-qty-${o}" class="rev-campo-qty" min="0" step="1" value="${d.qty}" aria-label="Cantidad comprada de ${escapeHTML(d.nombre)}">
+          </label>
+          <label class="rev-celda rev-celda-score" for="rev-score-${o}"><span class="rev-etiqueta">Importancia</span>
+            <input type="number" id="rev-score-${o}" class="rev-num rev-campo-score" min="1" max="10" step="1" value="${d.score}" aria-label="Importancia de ${escapeHTML(d.nombre)}, del 1 al 10">
+          </label>
+          <label class="rev-celda rev-celda-min" for="rev-min-${o}"><span class="rev-etiqueta">Mínimo</span>
+            <input type="number" id="rev-min-${o}" class="rev-num rev-campo-min" min="0" step="1" value="${d.min}" aria-label="Cantidad mínima para avisarte de ${escapeHTML(d.nombre)}">
+          </label>
+          <label class="rev-celda rev-celda-include"><span class="rev-etiqueta">Incluir</span>
+            <input type="checkbox" class="ocr-include rev-campo-include" ${d.incluir ? "checked" : ""} aria-label="Incluir ${escapeHTML(d.nombre)}">
+          </label>
         </div>`;
       }
       const opciones = menuSemanal.candidatosDespensa(c.nombre, foods) || [];
       return `
         <div class="ocr-item rev-fila-duda" data-o="${o}">
-          <input type="text" id="rev-nombre-${o}" class="rev-campo-nombre" value="${escapeHTML(d.nombre)}" aria-label="Nombre del alimento (editable)">
+          <label class="rev-celda rev-celda-nombre" for="rev-nombre-${o}"><span class="rev-etiqueta">Alimento</span>
+            <input type="text" id="rev-nombre-${o}" class="rev-campo-nombre" value="${escapeHTML(d.nombre)}" aria-label="Nombre del alimento (editable)">
+          </label>
           <div class="rev-sub"><span class="ocr-tipo">${etqTipo[d.tipo] || "Otro"}</span>${lineaContexto}</div>
-          <select id="rev-variante-${o}" class="rev-campo-variante" aria-label="¿Es este alimento que ya tienes en casa?">
-            <option value="">es nuevo: se define aquí</option>
-            ${opciones.map(v => `<option value="${escapeHTML(String(v.id))}">${escapeHTML(v.name)} · tienes ${Number.isFinite(v.qty) ? v.qty : 0}</option>`).join("")}
-          </select>
-          <input type="number" id="rev-qty-${o}" class="rev-campo-qty" min="0" step="1" value="${d.qty}" aria-label="Cantidad comprada de ${escapeHTML(d.nombre)}">
-          <input type="number" id="rev-score-${o}" class="rev-num rev-campo-score" min="1" max="10" step="1" value="${d.score}" aria-label="Importancia de ${escapeHTML(d.nombre)}, del 1 al 10">
-          <input type="number" id="rev-min-${o}" class="rev-num rev-campo-min" min="0" step="1" value="${d.min}" aria-label="Cantidad mínima para avisarte de ${escapeHTML(d.nombre)}">
-          <input type="checkbox" class="ocr-include rev-campo-include" ${d.incluir ? "checked" : ""} aria-label="Incluir ${escapeHTML(d.nombre)}">
+          <label class="rev-celda rev-celda-variante" for="rev-variante-${o}"><span class="rev-etiqueta">De tu despensa</span>
+            <select id="rev-variante-${o}" class="rev-campo-variante" aria-label="¿Es este alimento que ya tienes en casa?">
+              <option value="">es nuevo: se define aquí</option>
+              ${opciones.map(v => `<option value="${escapeHTML(String(v.id))}">${escapeHTML(v.name)} · tienes ${Number.isFinite(v.qty) ? v.qty : 0}</option>`).join("")}
+            </select>
+          </label>
+          <label class="rev-celda rev-celda-qty" for="rev-qty-${o}"><span class="rev-etiqueta">Cantidad</span>
+            <input type="number" id="rev-qty-${o}" class="rev-campo-qty" min="0" step="1" value="${d.qty}" aria-label="Cantidad comprada de ${escapeHTML(d.nombre)}">
+          </label>
+          <label class="rev-celda rev-celda-score" for="rev-score-${o}"><span class="rev-etiqueta">Importancia</span>
+            <input type="number" id="rev-score-${o}" class="rev-num rev-campo-score" min="1" max="10" step="1" value="${d.score}" aria-label="Importancia de ${escapeHTML(d.nombre)}, del 1 al 10">
+          </label>
+          <label class="rev-celda rev-celda-min" for="rev-min-${o}"><span class="rev-etiqueta">Mínimo</span>
+            <input type="number" id="rev-min-${o}" class="rev-num rev-campo-min" min="0" step="1" value="${d.min}" aria-label="Cantidad mínima para avisarte de ${escapeHTML(d.nombre)}">
+          </label>
+          <label class="rev-celda rev-celda-include"><span class="rev-etiqueta">Incluir</span>
+            <input type="checkbox" class="ocr-include rev-campo-include" ${d.incluir ? "checked" : ""} aria-label="Incluir ${escapeHTML(d.nombre)}">
+          </label>
         </div>`;
     }
 
