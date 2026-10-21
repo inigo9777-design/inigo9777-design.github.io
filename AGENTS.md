@@ -456,6 +456,65 @@ italiana" (see `modules/origen-recetas.js` below).
   y peso del envase fuera), y la confirmación del usuario — exactos → SUMA a lo ya en casa,
   dudosos y nuevos → se definen EN los dos diálogos y de alta directa en la despensa (jamás a
   la lista de la compra). Capturas 31-32.
+- **REQUISITO 95% del escáner (2026-10-22, entrega de la épica ocr-despensa-camara):** meta medida
+  en nuestro corpus REAL (fotos descartables en `reports/OCR/`, iPhone 12, tickets de Mercadona y
+  ALDI de El Puerto de Santa María): **Mercadona 100% de ítems reales · 100% de cantidades;
+  ALDI 100% · 95,2%** (el único fuera: MINI CHAPATA, cuyo pack el OCR leyó "ZO <" sin cifra —
+  se corrige a mano en el diálogo; la medición es POR CADENA, no media). Cadena:
+  **(1) `modules/ocr-ticket-parser.js`** (puro, nuevo): PARSER ESTRUCTURAL por LÍNEAS anclado a
+  los PRECIOS — ya NO decide el vocabulario qué se pierde: cada línea-producto del ticket llega a
+  la revisión. Mercadona: columna inicial del qty + talón de dinero (unit + total cuando hay dos
+  cifras); ALDI: auxiliares ANTERIORES al producto ("4x 1,79€" → qty 4, "0,680 kg x 13,99 €/kg" →
+  granel) + precio degradado tolerado ("375eZ"→3,75) con el código de IVA pegado ("9,51 €3");
+  granel → `unidadesDePeso(kg) = max(1, round(kg*2))` lotes de **500 g** con nombre `X (500gr)`
+  (petición del usuario: 1,5 kg = 3 unidades); descartes con MOTIVO (reservadas de cabecera/pie,
+  fecha, descuento, "EX IDA" del mangle — la auxiliar del producto fallido MUERE, no viaja); eco
+  del OCR deduplicado por LÍNEA CRUDA EXACTA (dos "CEBO TAPAS" con precios distintos y el par
+  "1 LoMO…"≠"1 LOMO…" son compras reales — el mismo-nombre del ticket acaba SUMANDO en un
+  alimento en la alta). Calibraciones anticabecera/vocab: rescate mayúscula (≥3 tokens, ≥2 full-
+  caps) exige token SIN dígito ENTRE letras (cabecera ESPEJO de ALDI fuera) y NO rescata en
+  Mercadona (su dirección "CL ALBERT EINSTEIN, 13" en 100% mayúsculas mentía producto); rescata
+  CON la línea de peso pendiente (granel cuyo precio el OCR comió). `PACK_FLOJO` de ALDI:
+  "2 XADO? €" (mangle de "2x 1,5?") apunta la cantidad al producto siguiente; nombre: tokens ≥2
+  letras a partir del prefijo, basura de cabeza botada (mientras queden ≥2 detrás: "BE LOBICHA…"
+  → "LOBICHA…"). **Motor de vista (app.js):** WORKER de Tesseract creado UNA VEZ por foto
+  (`createWorker("spa", 1)` reutilizado para todas las caras de giro + `terminate` en finally) con
+  `setParameters {PSM 6, preserve_interword_spaces, user_defined_dpi 300}` — sin binarización
+  (medía PEOR en el corpus). `procesarTextoOcr` es PARSER-FIRST: si parsearTicket ve un ticket,
+  TODO el ítem llega; el vocabulario FOOD_TYPES queda de RESERVA para la foto de nevera sin
+  talones. El TEXTO RECONOCIDO queda visible en un desplegable `<details class="ocr-crudo">` del
+  aviso y de ambos diálogos (diagnóstico + confianza al corregir). **(2) `modules/categoria-
+  producto.js`** (puro, nuevo): la etiqueta ALIMENTO/PRODUCTO DE HOGAR — petición del usuario
+  (los no-alimentarios del ticket "viven aparte, fuera de todo lo de cocina"): PALABRAS_HOGAR
+  (~45 palabras, misma política de prefijo ≥5 letras del matcher compartido; troceo por letra
+  unicode `\p{L}` — con `\W` É/Ñ partían los tokens "HIGIÉNICO"→"HIGI+NICO"), `esProductoHogar/
+  esHogar/esAlimento/alimentos/hogares/criterioDeAlta` (hogar → alta fija score 5 neutra + min 0:
+  avisan SOLO al agotarse). Persistencia: campo OPCIONAL `categoria:"hogar"` en Food — sin campo
+  = alimento (retro-compatible con backups v2, sync diff3 y la carga vieja). **(3) Inventario en
+  DOS SECCIONES**: los hogareños salen de `#food-list` a la suya `#hogar-seccion`/`#hogar-list`
+  (molde en index.html, filas con badge 🏠 en el hueco del score, misma mecánica ➕➖/🗑, el
+  buscador filtra ambas) y NO se usan para NADA de cocina: todo consumo para RECETAS/SUGERENCIAS/
+  MENÚ/LISTA pasa por el helper `despensaCocina() = categoria.alimentos(foods)` (innovations,
+  buildCandidatePool ×3, suggestToday ×2, shoppingListFor, candidatosDespensa de la fila). Los
+  diálogos del escáner casan con la despensa COMPLETA (un detergente debe poder variar con otro
+  detergente). Alta MANUAL con conmutador 🍎/🏠 (`.food-cat-btn`, aria-pressed): en HOGAR los
+  grupos de mínimo/importancia se OCULTAN y entra fijo {score 5, min 0} igual que el escáner.
+  **(4) Cobertura de tests:** unit del parser (19 con las líneas REALES del corpus volcado) y de
+  categoria-producto (8) + integración nueva "parser-first" en `ocr-ticket.integration.test.js`
+  (todo el ticket entra: cantidades de la columna, línea sin precio sobrevive, hogareños sin
+  criterio, nombres en `.rev-campo-nombre`, texto crudo visible, conmutador del formulario) y
+  fixtures de ocr-foto pasados a la API del worker. **(5) Métrica repetible:**
+  `node e2e/ocr-precision.mjs` (ARNÉS del 95%: foto real → heic2any/WebKit → Tesseract real en
+  Brave → parser → filas del diálogo, confrontado contra `reports/OCR/verdad/*.json` EN EL REPO
+  con matching por tokens + distancia de edición ≤2 — el requisito es ítem legible/editable, no
+  palabra perfecta; captura además el texto de PRODUCCIÓN en reports/OCR/texto/PRODUCCION-*.txt
+  — descartable — para recalibrar). `e2e/ocr-tickets-reales.mjs` reescrito a la era parser-first
+  (nombres literales del ticket, dudas por palabra compartida, mismo-nombre suma; config por
+  NOMBRE de fichero — los dos tickets son .HEIC). Suite: 640 tests / 45 suites verdes (parser
+  19, categoria 8, parser-first en integración). Capturas 40-43. sw.js caché v7 (precachea ambos
+  módulos). NOTA de plataforma: heic2any@0.0.4 NO decodifica las HEIC del corpus (HEVC): en
+  iPhone real la decodificación nativa de WebKit lo hace — mejora pendiente: probar la nativa
+  ANTES de forzar el conversor en `ocr-foto.prepararFoto` (convertir sólo si el sondeo falla).
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —
   red 8–10, orange 6–7, green 1–5; weekly alert shows the FULL list (el cap de 8 del módulo
   se quitó el 2026-10-19: escondía del 9º pendiente en adelante) y A PARTIR DE 8 items la lista

@@ -177,3 +177,28 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   real vía bootApp: label↦SU control en las tres clases de fila, `for` correcto, conectaVariante
   sigue deshabilitando tras el re-molde y la escritura final lee por id) + suite completa verde
   (610 tests / 43 suites).
+
+---
+
+- `2026-10-22 · @AI-agent · #epic-ocr-despensa-camara · síntoma reportado:` la métrica del corpus
+  real (`e2e/ocr-precision.mjs`) medía Mercadona 20/21 ítems: el 2º "LOMO CEBO IBÉRICO" (compra
+  REAL de dos veces al mismo precio, el OCR leyó "1 LoMO…" y "1 LOMO…") no salía en la revisión.
+  **Causa:** el eco del OCR se deduplicaba por `nombre-normalizado|qty|precio` — dos compras del
+  mismo producto al mismo precio colapsaban en una. **Arreglo:** el eco se deduplica por LÍNEA
+  CRUDA EXACTA (el ítem del parser lleva su `linea` original: sólo el duplicado byte a byte es
+  eco); el mismo-nombre del ticket acaba SUMANDO en un alimento al alta (regla anti-duplicado).
+  **Verificación:** métrica Mercadona 100%/100% + spec de parser con las dos líneas crudas
+  distintas del corpus (tests/ocr-ticket-parser.test.js, 19 tests).
+- `2026-10-22 · @AI-agent · #epic-ocr-despensa-camara · síntoma reportado:` la generalización del
+  rescate sin precio dejaba entrar LÍNEAS QUE NO SON PRODUCTOS como ítems: la cabecera ESPEJO de
+  ALDI (el papel casi volteado se lee invertido: "09 oj9EjUOO ElJUO OLUJO9 JSP…", con qty 9
+  fantasma del "09" de la fecha) y la DIRECCIÓN de Mercadona ("CL ALBERT EINSTEIN, 13", 100%
+  mayúsculas). **Causa:** el rescate de mayúsculas (≥3 tokens, ≥2 full-caps) era demasiado
+  generoso cuando se le quitaron los guardas `!qtyInicial`/`!aux`/`origen!==mercadona` para
+  recuperar el granel cuyo precio el OCR comió. **Arreglo triple:** un token con dígito ENTRE
+  letras (`/\p{L}\d+\p{L}/` — "oj9EjUOO") mata el rescate (las cifras de producto van sueltas al
+  final: "FINA, 230", "MALLA 2KG"); en Mercadona NUNCA rescata (su columna de cantidad sostiene
+  sus líneas); y el rescate SÍ acepta la línea de PESO pendiente (granel ALDI: "PIMIENTO DULCE
+  ITALIAN 077201€" recupera su (500gr)). **Verificación:** Métrica final Mercadona 100%·100% /
+  ALDI 100%·95,2% — la calidad es la del corpus REAL, no del volcado de inspección; los problemas
+  quedan especificados en tests/ocr-ticket-parser.test.js (fixtures del texto de producción).

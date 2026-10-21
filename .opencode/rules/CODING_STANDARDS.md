@@ -448,6 +448,15 @@ Aquí queda sólo la referencia, sin su marcha.
       prefijo de 1-2 letras. Firma de API SIN CAMBIO (1 función pública). Tests: unit en
       busqueda-recetas.test.js (describe 5) + e2e Brave real en e2e/buscador-prefijos.mjs.
 
+- `2026-10-22 · @AI-agent · #epic-ocr-despensa-camara · Principio: O · Justificación:` el shape §5
+  de Food gana un campo OPCIONAL aditivo `categoria:"hogar"` (etiqueta alimento/producto no
+  alimentario — productos del ticket que viven en el Inventario y sus alertas semanales, FUERA de
+  recetas/sugerencias/menú/lista): ausente = alimento, así que BACKUPS v2, sync diff3 y toda
+  carga vieja siguen sin tocar y el campo VIAJA en el payload sync/backup sin cambio de versión
+  (un campo irrelevante para el merge por identidad). La decisión vive en el módulo puro
+  `categoria-producto.js`; el consumo de cocina pasa por `categoria.alimentos(foods)` en app.js.
+  Mismo precedente del campo opcional `origen` en receta y del `triedKeys` en slot.
+
 ---
 
 ## 9. Campaña de refactor `app.js` → módulos (estado, 2026-10-21)
