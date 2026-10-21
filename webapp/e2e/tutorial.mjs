@@ -7,8 +7,9 @@
 // avanza pero NO enfoca — el teclado del PWA no abre; el select de Temporada tampoco abre) y
 // cada paso informativo con el botón; (5) el aro envuelve al elemento (geometría), (6) el swipe
 // del viewpager NO cambia de vista durante la visita, (7) el guion completo (16 pasos) termina
-// y (8) los pasos de objetivo ALTO ("Mis recetas", "Buena fruta") muestran la tarjeta ENCIMA
-// del aro con el contenido vivo debajo — no tapando la lista/cuadrícula (petición 2026-10-21).
+// y (8) los pasos de objetivo ALTO (inventario, "Mis recetas", lote de Innovación y "Buena
+// fruta") muestran la tarjeta ENCIMA del aro con el contenido vivo debajo — no tapando la
+// lista/cuadrícula (petición 2026-10-21, pantallazos de referencia del usuario).
 import { chromium } from "playwright-core";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -52,7 +53,15 @@ try {
     return false;
   };
 
-  // (1) PRIMERA VISITA: el tutorial se abre SOLO
+  // Geometría de los pasos de objetivo ALTO (tarjeta: "arriba"): la misma sonda para los
+  // cuatro pasos de lista larga — tarjeta encima del aro, arranque del contenido en media
+  // pantalla inferior y cabecera asomando atenuada (petición 2026-10-21).
+  const geoTresZonas = () => page.evaluate(() => {
+    const t = document.getElementById("tutorial-tarjeta").getBoundingClientRect();
+    const f = document.getElementById("tutorial-foco").getBoundingClientRect();
+    const bar = document.querySelector(".topbar").getBoundingClientRect();
+    return { cardTop: t.top, cardBottom: t.bottom, ringTop: f.top, topbarBottom: bar.bottom, vp: window.innerHeight };
+  });
   await page.goto(`http://localhost:${PUERTO}/`);
   await page.waitForSelector(".topbar .tab");
   await page.waitForSelector("#tutorial:not(.hidden)", { timeout: 5000 });
@@ -102,8 +111,15 @@ try {
   ok(focoInput !== "food-name", "(4c) el campo quedó SILENCIADO: sin focus (teclado del PWA fuera)");
   await page.screenshot({ path: path.join(OUT, "69-tutorial-alimentos.png") });
 
-  // 4 alimentos#2 → 5 inventario (informativo) → 6 recetas#1 (salto de vista)
+  // 4 alimentos#2 → 5 inventario (informativo + tarjeta ARRIBA) → 6 recetas#1 (salto de vista)
   await C("#food-score");
+  await esEsperaFocoFijo();
+  ok((await paso()).includes("Paso 5"), "(4l) Inventario y alerta semanal (paso 5 de 16)");
+  const geoInv = await geoTresZonas();
+  ok(geoInv.cardBottom <= geoInv.ringTop + 2, "(4m) la tarjeta queda ENCIMA del aro del inventario (NO tapa la lista)");
+  ok(geoInv.ringTop > geoInv.vp * 0.45, "(4n) el arranque del inventario queda visible en media pantalla inferior");
+  ok(geoInv.cardTop >= geoInv.topbarBottom - 4, "(4o) la cabecera no queda tapada por la tarjeta");
+  await page.screenshot({ path: path.join(OUT, "74-tutorial-inventario.png") });
   await avanzaBoton();                                             // 5 → 6
   await esEsperaFocoFijo();
   ok((await paso()).includes("Paso 6"), "(4d) salto a Recetas (crear receta, paso 6 de 16)");
@@ -123,12 +139,7 @@ try {
   ok((await paso()).includes("Paso 8"), "(4h) Mis recetas y su origen (paso 8 de 16)");
   // Geometría del paso de objetivo ALTO (petición 2026-10-21): la tarjeta flota ENCIMA del aro,
   // el arranque de la lista se asienta a media pantalla inferior Y la cabecera asoma atenuada.
-  const geoLista = await page.evaluate(() => {
-    const t = document.getElementById("tutorial-tarjeta").getBoundingClientRect();
-    const f = document.getElementById("tutorial-foco").getBoundingClientRect();
-    const bar = document.querySelector(".topbar").getBoundingClientRect();
-    return { cardTop: t.top, cardBottom: t.bottom, ringTop: f.top, topbarBottom: bar.bottom, vp: window.innerHeight };
-  });
+  const geoLista = await geoTresZonas();
   ok(geoLista.cardBottom <= geoLista.ringTop + 2, "(4i) la tarjeta queda ENCIMA del aro (la lista NO está tapada)");
   ok(geoLista.ringTop > geoLista.vp * 0.45, "(4j) el arranque de la lista vive por debajo de la mitad de la ventana, visible");
   ok(geoLista.cardTop >= geoLista.topbarBottom - 4, "(4k) arriba de la tarjeta asoma la cabecera (logo y clúster) atenuada");
@@ -142,6 +153,14 @@ try {
   await new Promise(r => setTimeout(r, 300));
   const aviso = await page.$eval("#toast", el => el.textContent);
   ok(aviso.includes("Añade alimentos"), "(5b) con despensa vacía el toast pide primero anotar alimentos");
+  // 10 lote (informativo + tarjeta ARRIBA): el lote/cuadrícula se mira SIN taparse
+  await esEsperaFocoFijo();
+  ok((await paso()).includes("Paso 10"), "(5c) Un lote listo para mirar (paso 10 de 16)");
+  const geoLote = await geoTresZonas();
+  ok(geoLote.cardBottom <= geoLote.ringTop + 2, "(5d) la tarjeta queda ENCIMA del aro del lote (NO tapa el listado)");
+  ok(geoLote.ringTop > geoLote.vp * 0.45, "(5e) el arranque del listado queda visible en media pantalla inferior");
+  ok(geoLote.cardTop >= geoLote.topbarBottom - 4, "(5f) la cabecera no queda tapada por la tarjeta");
+  await page.screenshot({ path: path.join(OUT, "75-tutorial-lote.png") });
   await avanzaBoton();                                             // 10 lote (informativo) → 11 menú#1
   await esEsperaFocoFijo();
 
@@ -176,12 +195,7 @@ try {
   const focoSelect = await page.evaluate(() => document.activeElement && document.activeElement.id);
   ok(focoSelect !== "season-month", "(7c) el select quedó SILENCIADO: sin focus no abre la lista de meses");
   await esEsperaFocoFijo();
-  const geoGrid = await page.evaluate(() => {
-    const t = document.getElementById("tutorial-tarjeta").getBoundingClientRect();
-    const f = document.getElementById("tutorial-foco").getBoundingClientRect();
-    const bar = document.querySelector(".topbar").getBoundingClientRect();
-    return { cardTop: t.top, cardBottom: t.bottom, ringTop: f.top, topbarBottom: bar.bottom, vp: window.innerHeight };
-  });
+  const geoGrid = await geoTresZonas();
   ok(geoGrid.cardBottom <= geoGrid.ringTop + 2, "(7d) \"Buena fruta\": tarjeta encima del aro, cuadrícula viva debajo");
   ok(geoGrid.ringTop > geoGrid.vp * 0.45, "(7e) el arranque de la cuadrícula queda visible en el tercio inferior");
   ok(geoGrid.cardTop >= geoGrid.topbarBottom - 4, "(7f) la cabecera no queda tapada por la tarjeta");

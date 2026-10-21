@@ -96,13 +96,15 @@ describe("tutorial — bloque ALIMENTOS (épica tutorial-interactivo)", () => {
     expect(ids.slice(inicio, inicio + 3).join(",")).toBe("alimentos-anotar,alimentos-importancia,alimentos-inventario");
   });
 
-  it("los accionables apuntan a elementos que existen SIN datos, y el último es informativo", () => {
+  it("los accionables apuntan a elementos que existen SIN datos, y el último es informativo con tarjeta ARRIBA", () => {
     const [p1, p2, p3] = tut.pasosDeVista("foods");
     expect(p1.selector).toBe("#food-name");
     expect(p1.accionable).toBe(true);
     expect(p2.selector).toBe("#food-score");
     expect(p2.accionable).toBe(true);
+    expect(p3.selector).toBe("#food-list");
     expect(p3.accionable).toBe(false);
+    expect(p3.tarjeta).toBe("arriba");   // el inventario es objetivo ALTO (petición 2026-10-21): la tarjeta no lo tapa
     expect(p3.cta).toBe("Siguiente");
   });
 });
@@ -141,12 +143,13 @@ describe("tutorial — bloque INNOVACIÓN (épica tutorial-interactivo)", () => 
       .toBe("innovacion-generador,innovacion-lote");
   });
 
-  it("contrato: el generador es accionable; el lote es informativo", () => {
+  it("contrato: el generador es accionable; el lote es informativo con tarjeta ARRIBA", () => {
     const [p1, p2] = tut.pasosDeVista("innovation");
     expect(p1.selector).toBe("#btn-generate-innov");
     expect(p1.accionable).toBe(true);
     expect(p2.selector).toBe("#innovation-list");
     expect(p2.accionable).toBe(false);
+    expect(p2.tarjeta).toBe("arriba");   // el lote es objetivo ALTO (petición 2026-10-21): la tarjeta no lo tapa
     expect(p2.cta).toBe("Siguiente");
   });
 });

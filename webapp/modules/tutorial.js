@@ -12,8 +12,9 @@
 // paso degrada a informativo: nunca se atasca el tutorial.
 // (5) Optional: tarjeta: "arriba" — para objetivos ALTOS (una lista o cuadrícula que ocupa la
 // vista): la tarjeta flota ENCIMA del aro y el wiring asienta el ARRANQUE del elemento al ~60%
-// de la ventana, así el contenido del paso se ve vivo debajo en lugar de tapado
-// ("Mis recetas" y "Buena fruta, buena verdura", petición 2026-10-21).
+// de la ventana, así el contenido del paso se ve vivo debajo en lugar de tapado (los cuatro
+// pasos de listas largas del guion: inventario, Mis recetas, lote de Innovación y la
+// cuadrícula de Temporada — petición 2026-10-21).
 // Optional también: sinTeclado implícito — el wiring silencia TODOS los form-controls del
 // objetivo accionable (input/textarea/select): tocar el campo avanza pero NO abre el teclado
 // del PWA ni el picker nativo del select (decisión 2026-10-21, vive en app.js porque es wiring).
@@ -80,7 +81,7 @@
     },
     {
       id: "alimentos-inventario",
-      vista: "foods", selector: "#food-list", accionable: false,
+      vista: "foods", selector: "#food-list", accionable: false, tarjeta: "arriba",
       titulo: "Inventario y alerta semanal",
       texto: "Cada alimento vive aquí con su cantidad y su color. Cuando algo baje de su mínimo, la alerta semanal te avisa al abrir la app (y en Sugerencias y menú entra automáticamente en la lista de la compra).",
       cta: "Siguiente",
@@ -116,7 +117,7 @@
     },
     {
       id: "innovacion-lote",
-      vista: "innovation", selector: "#innovation-list", accionable: false,
+      vista: "innovation", selector: "#innovation-list", accionable: false, tarjeta: "arriba",
       titulo: "Un lote listo para mirar",
       texto: "Cada tarjeta es una receta real con sus ingredientes a juego con lo que has anotado: ábrela para la ficha completa y guárdala con ⭐ si te convence — pasa a Mis recetas y ya cuenta en el plan de la semana. (Con la despensa vacía el generador te dirá antes de apuntar algo en Alimentos.)",
       cta: "Siguiente",
