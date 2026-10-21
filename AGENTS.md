@@ -170,8 +170,21 @@ italiana" (see `modules/origen-recetas.js` below).
   (PASOS por grupos + máquina de sesión; contrato `pasoValido`; pasos con `vista`/`selector`/
   `accionable`/`titulo`/`texto`/`cta`). El wiring está en app.js (sección TUTORIAL): velo
   semitransparente de 4 rectángulos + "foco" con aro de marca sobre el elemento del paso +
-  tarjeta explicativa; los pasos accionables avanzan TOCANDO el elemento REAL (el toque ejecuta su
-  función: focus del input, generar ideas/lote/plan…) y los informativos muestran botón.
+  tarjeta explicativa; los pasos accionables avanzan TOCANDO el elemento REAL (el toque ejecuta
+  su función: generar ideas/lote/plan…) y los informativos muestran botón. **Silencio de campos
+  (petición 2026-10-21):** en los accionables que apuntan a un form-control (input/textarea/
+  select: `#food-name`, `#recipe-desc`, `#recipe-catalog-search`, `#season-month`, `#food-score`)
+  el wiring hace `preventDefault` en `pointerdown`/`mousedown` de su diana — se cancela el
+  FOCUS y con él el teclado del PWA instalable que descuadraba el paso siguiente y el picker
+  nativo que dejaba la lista de meses abierta encima — pero el CLICK sigue vivo, así el paso
+  avanza igual; al reabrir con 🎓 se hace blur del foco activo (iOS nota: su picker puede
+  abrirse al soltar — la plataforma de la feature es el PWA Android/Brave). **Tarjeta sobre
+  objetivos ALTOS (petición 2026-10-21):** "Mis recetas" y "Buena fruta, buena verdura" llevan
+  `tarjeta: "arriba"` en el guion (pasoValido valida el campo: sólo "arriba") — el scroll ya no
+  centra el elemento, su ARRANQUE se asienta al 60% de la ventana (window.scrollTo) y la tarjeta
+  flota ENCIMA del aro sin tocarlo: arriba asoma la cabecera atenuada por el velo, en medio el
+  diálogo y debajo la lista/cuadrícula viva y enfocada — en vez de taparla (e2e mide las tres
+  zonas con capturas 72-73).
   Auto-abre SOLO la primera vez en contexto web instalable (http/https; `file://` no — se
   registra en LS `mrcheff.tutorial.visto`, respetado por ✕ / Escape / "Terminar"; se reabre
   con el botón circular 🎓 `#btn-tutorial` en `.topbar-actions` ENTRE la caja fuerte y el tema,
@@ -184,12 +197,14 @@ italiana" (see `modules/origen-recetas.js` below).
   modal; container `pointer-events:none` con auto en velos/tarjeta — el click DEL FOCO tiene que
   llegar al elemento real) y `modules/tutorial.js` añadido al shell del sw (caché v5).
   Accesibilidad: role dialog + anuncio sr-only "Paso X de N", Escape cierra y marca visto.
-  Verificación: unit `tests/tutorial.test.js` (contrato/grupos/sesión ~12), integración jsdom
+  Verificación: unit `tests/tutorial.test.js` (contrato/grupos/sesión ~13), integración jsdom
   `tests/tutorial-ui.integration.test.js` (auto-apertura, X/Escape/Terminar, reabrir, flujo
   accionable con GUION INYECTADO en la ventana = desacoplado del contenido que crece la épica,
-  recorrido completo 16 pasos) y e2e Brave real `e2e/tutorial.mjs` (20 checks: auto-apertura,
-  segunda visita silenciosa, 🎓, recorrido completo con mouse+coords, geometría del aro,
-  swipe inmóvil; sirviendo por http://localhost:8617 con python3 porque file:// no auto-abre).
+  silencio de campos y del select, recorrido completo 16 pasos) y e2e Brave real
+  `e2e/tutorial.mjs` (28 checks: auto-apertura, segunda visita silenciosa, 🎓, recorrido
+  completo con mouse+coords, campos silenciados sin focus, geometría del aro y de la tarjeta
+  sobre los objetivos altos, swipe inmóvil; sirviendo por http://localhost:8617 con python3
+  porque file:// no auto-abre).
   (10) **Botón flotante "subir al principio"** (feature 2026-10-21, petición del usuario): con
   listas verticales muy largas, al bajar MÁS de una pantallita (`window.innerHeight` de umbral)
   aparece con fade+escala abajo a la derecha el círculo con flecha (`.fab-subir-encima` 46×46,
