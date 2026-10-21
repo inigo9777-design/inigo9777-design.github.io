@@ -2,7 +2,9 @@
 // (ver webapp/feature-plans/planFeatureRecetasSugeridasYPlanSemana.md §2 Card 2 + Card 3 y CODING_STANDARDS.md §2-D / §3 option A).
 //
 // API PÚBLICA CERRADA (7 funciones, sin fugas de helpers internos):
-//   shoppingListFor(needyFoods, foods, ctx?)  → dedup por MATCHER de tokens (NO subcadena-cruda) + urgencia de compra
+//   shoppingListFor(needyFoods, foods, ctx?)  → dedup por MATCHER de tokens (NO subcadena-cruda) + COBERTURA
+//                                               contra el Inventario ACTUAL (petición 2026-10-21: sale el
+//                                               ítem cuyo alimento case con qty > SU min) + urgencia
 //                                               {name, qty:0, min:0, score:5, onDay?, daysUntil?, urgency:"red|orange|green"}
 //   approveMenu(preview, cooked, today, cookEntryFor, uid) → { cooked, weekmenu } inmutables; ancla = FECHA de cada día×comida planificada
 //   markItemBought(foods, weekmenu, itemName, uid, now, compra?) → { foods, weekmenu, alreadyExists, actualizado? }
@@ -111,7 +113,12 @@
   // ---------------------------------------------------------------------------
   // shoppingListFor — lista de la compra a partir de needyFoods:
   //   * dedup entre needy Y contra el aforo por MATCHER de tokens (fix del bug "Plátano" vs "Plátanos":
-  //     el dedup exacto por lower-case dejaba pasar不理解 plural/variación y duplicaba filas).
+  //     el dedup exacto por lower-case no entendía plural/variación y duplicaba filas).
+  //   * COBERTURA contra el Inventario ACTUAL (petición 2026-10-21, lista de la compra dinámica):
+  //     un needy sale de la lista cuando un alimento de casa case (matcher) y tenga MÁS unidades
+  //     que SU mínimo necesario (qty > min) — la persona viene CON EL TICKET y ya compró; si algo
+  //     no estaba en la tienda, en casa quedará qty <= min y la fila SIGUE hasta satisfacerse.
+  //     Con min 0/undefined basta tener qty > 0 (regla antigua para lo sin criterio de alerta).
   //   * ctx opcional { plan, generatedOn, today }: ancla cada ítem a la FECHA MÁS PRÓXIMA en que
   //     algún slot del plan lo necesita → onDay, daysUntil y urgency (red/orange/green) para que la
   //     lista CAMBIE DE COLOR dinámicamente al acercarse la fecha de preparación. Sin ctx → sin
@@ -131,8 +138,10 @@
       if (!raw || typeof raw !== "object" || !raw.name) continue;
       const clave = claveNombre(raw.name);
       if (!clave || seen.has(clave)) continue;
-      // ¿Ya lo tenemos en cantidad real? El matcher de tokens decide (NO lower-case exacto).
-      if (known.some(f => matchIngredienteAlimento(raw.name, f.name))) continue;
+      // ¿Ya lo tenemos en cantidad SUFICIENTE? El matcher de tokens decide el CASO (NO lower-case
+      // exacto) y el MÍNIMO del alimento decide la COBERTURA: la fila sale con qty > min, sigue si
+      // aún no se compensó la compra (ver cabecera — lista de la compra dinámica).
+      if (known.some(f => matchIngredienteAlimento(raw.name, f.name) && Number(f.qty) > minParaCobertura(f))) continue;
       seen.add(clave);
 
       const fila = { name: raw.name, qty: 0, min: 0, score: 5 };
@@ -151,6 +160,13 @@
   }
 
   function hayNombre(name) { return String(name == null ? "" : name).trim() !== ""; }
+
+  // Mínimo de alerta del alimento (≥0; indefinido/none → 0): con él se decide la COBERTURA de un
+  // ítem de la compra (qty > min de un alimento que case — shoppingListFor).
+  function minParaCobertura(f) {
+    const n = Number(f && f.min != null ? f.min : 0);
+    return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
+  }
 
   // Fecha MÁS PRÓXIMA (ISO) en que algún slot del plan necesita el ítem (min de dateForPlanDay).
   function fechaMasProxima(nombre, plan, generatedOn) {

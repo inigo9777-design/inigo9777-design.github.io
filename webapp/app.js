@@ -458,6 +458,7 @@ document.addEventListener("DOMContentLoaded", () => {
     foodMinVal.textContent = "1";
     renderFoods();
     renderWeeklyAlert();
+    renderShoppingListTrasDespensa();
     toast("Alimento añadido");
   });
 
@@ -517,6 +518,7 @@ document.addEventListener("DOMContentLoaded", () => {
           save(LS.foods, foods);
           renderFoods();
           renderWeeklyAlert();
+          renderShoppingListTrasDespensa();
         }
       });
     });
@@ -526,6 +528,7 @@ document.addEventListener("DOMContentLoaded", () => {
         save(LS.foods, foods);
         renderFoods();
         renderWeeklyAlert();
+        renderShoppingListTrasDespensa();
         toast("Alimento eliminado");
       });
     });
@@ -1099,6 +1102,7 @@ document.addEventListener("DOMContentLoaded", () => {
       save(LS.foods, foods);
       renderFoods();
       renderWeeklyAlert();
+      renderShoppingListTrasDespensa();
       if (pasos.length === 2) {
         faseActual = 1;                         // confirmados los exactos: ahora sí, la revisión
         renderDialogo();
@@ -1150,6 +1154,7 @@ document.addEventListener("DOMContentLoaded", () => {
       save(LS.foods, foods);
       renderFoods();
       renderWeeklyAlert();
+      renderShoppingListTrasDespensa();
       closeModal();
       señalarResultadoEnDespensa();
     }
@@ -2074,6 +2079,16 @@ document.addEventListener("DOMContentLoaded", () => {
       </li>`;
   }
 
+  // La lista de la compra ES derivada: se repinta tras CUALQUIER cambio de la despensa (petición
+  // 2026-10-21 — venimos del ticket y ya compramos: unos ítems quedaron cubiertos y otros ni
+  // estaban en la tienda). Qué significa "cubierta" lo decide el módulo puro
+  // (shoppingListFor: alimento que case con qty > SU min); aquí sólo se cuenta TODOS los sucesos
+  // que pueden moverla: alta OCR (los dos diálogos), alta manual del formulario, ➕➖/🗑 del
+  // inventario y el import del backup — sin olvidar el ✅ comprado, que ya la repintaba.
+  function renderShoppingListTrasDespensa() {
+    if (weeklyMenu && weeklyMenu.approved) renderShoppingList();
+  }
+
   function renderShoppingList() {
     shoppingListEl.innerHTML = "";
     const needy = weeklyMenu && weeklyMenu.approved ? weeklyMenu.needyFoods : [];
@@ -2443,6 +2458,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     renderFoods();
     renderWeeklyAlert();
+    renderShoppingListTrasDespensa();
     renderRecipes();
     renderInnovations();
     importNote.textContent = `Se añadieron ${plan.addedFoods} alimento(s) y ${plan.addedRecipes} receta(s).`;
