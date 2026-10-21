@@ -1,7 +1,7 @@
 // modules/menu-semanal.js — Lógica PURe (sin DOM ni localStorage) de "Menú semanal + lista de la compra"
 // (ver webapp/feature-plans/planFeatureRecetasSugeridasYPlanSemana.md §2 Card 2 + Card 3 y CODING_STANDARDS.md §2-D / §3 option A).
 //
-// API PÚBLICA CERRADA (7 funciones, sin fugas de helpers internos):
+// API PÚBLICA CERRADA (11 funciones, sin fugas de helpers internos):
 //   shoppingListFor(needyFoods, foods, ctx?)  → dedup por MATCHER de tokens (NO subcadena-cruda) + COBERTURA
 //                                               contra el Inventario ACTUAL (petición 2026-10-21: sale el
 //                                               ítem cuyo alimento case con qty > SU min) + urgencia
@@ -27,6 +27,13 @@
 //                                                          → la compra se anota en el alimento YA EXISTENTE que
 //                                                            el usuario eligió en "¿Despensa?" (update in-situ,
 //                                                            sin alta nueva) y el ítem sale de needyFoods.
+//   platosDelPlan(plan)                                    → nº de slots del plan que llevan receta (7×3: máximo 21).
+//                                                            Conteo compartido: app.js lo pintaba con el mismo
+//                                                            reduce copiado en tres sitios.
+//   alternarColapso(weekmenu) → { weekmenu, cambiado }     → PLEGAR/DESPLEGAR el plan APROBADO (petición 2026-10-21):
+//                                                            voltea el campo opcional `colapsado` del shape
+//                                                            persistido y siempre se puede volver a mostrar.
+//                                                            Guard: sólo un plan aprobado con días se pliega.
 //
 // Nota de cambio (§8): `regenerateAfterCook` (regeneración COMPLETA al cocinar) se retira — cocinar desde el
 // menú ahora compone `cookEntry` + `swapSlotRecipe` en app.js: el plato entra en cooldown y SÓLO su slot
@@ -463,7 +470,37 @@
     return { cocinar: aprobado, cambiar: hayPlan };
   }
 
-  // API PÚBLICA CERRADA (§5/§8 — solo estas 9 funciones, sin fuga de helpers internos como defaultUid).
+  // ---------------------------------------------------------------------------
+  // platosDelPlan — nº de SLOTS del plan que llevan receta (7 días × 3 comidas ⇒ tope 21).
+  // Antes app.js repartía el MISMO reduce en tres sitios (generar/aprobar): la regla del
+  // conteo vive aquí una sola vez y con test propio (§3).
+  // ---------------------------------------------------------------------------
+  function platosDelPlan(plan) {
+    let n = 0;
+    for (const d of Array.isArray(plan) ? plan : []) {
+      for (const m of Array.isArray(d && d.meals) ? d.meals : []) {
+        if (m && m.recipe) n++;
+      }
+    }
+    return n;
+  }
+
+  // ---------------------------------------------------------------------------
+  // alternarColapso — PLEGAR/DESPLEGAR el plan APROBADO (petición 2026-10-21): una vez aprobado,
+  // la semana puede quedarse PLEGADA (sólo el resumen de la barra) y SIEMPRE se puede volver a
+  // mostrar. Estado = campo opcional `colapsado` del shape persistido (seguimiento de
+  // `triedKeys`, nota §8 del plan-feature; un payload sin la clave vuelve EXPANDIDO).
+  //   * guard: sólo un plan APROBADO con días tiene algo que plegar — preview y estado limpio
+  //     se quedan como están ({ weekmenu: el mismo, cambiado: false }).
+  //   * inmutable: NUEVO objeto weekmenu; el original no se muta (el caller persiste vía helpers).
+  // ---------------------------------------------------------------------------
+  function alternarColapso(weekmenu) {
+    if (!weekmenu || weekmenu.approved !== true) return { weekmenu, cambiado: false };
+    if (!Array.isArray(weekmenu.plan) || weekmenu.plan.length === 0) return { weekmenu, cambiado: false };
+    return { weekmenu: Object.assign({}, weekmenu, { colapsado: weekmenu.colapsado !== true }), cambiado: true };
+  }
+
+  // API PÚBLICA CERRADA (§5/§8 — solo estas 11 funciones, sin fuga de helpers internos como defaultUid).
   return {
     shoppingListFor,
     approveMenu,
@@ -473,6 +510,8 @@
     cookEntry,
     swapSlotRecipe,
     clearMenu,
-    accionesMenuSlot
+    accionesMenuSlot,
+    platosDelPlan,
+    alternarColapso
   };
 });

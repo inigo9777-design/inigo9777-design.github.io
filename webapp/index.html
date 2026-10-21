@@ -270,6 +270,13 @@
                 <p id="menu-status" class="muted hidden"></p>
             </div>
 
+            <!-- Barra del plan APROBADO: resumen + plegar/desplegar la semana (feature 2026-10-21).
+                 Sólo se pinta con plan aprobado (app.js punto único `pintaBarraPlan`) -->
+            <div id="menu-plan-bar" class="menu-plan-bar hidden">
+                <span id="menu-plan-title">📅 Tu semana</span>
+                <button id="btn-menu-colapsar" class="btn ghost small" aria-expanded="true" aria-controls="menu-plan-list">▾ Plegar</button>
+            </div>
+
             <!-- 7 días × 3 comidas: se pinta dinámicamente con el preview del menú -->
             <ul id="menu-plan-list" class="alert-card alert-green hidden"></ul>
             <p id="menu-empty" class="empty muted hidden">Pulsa "Generar menú" para ver tu semana propuesta.</p>
