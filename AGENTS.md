@@ -112,7 +112,12 @@ italiana" (see `modules/origen-recetas.js` below).
   (así vive en index.html; si se pierde, TODO el bloque editorial de la ficha en style.css —
   secciones con filete, sangría de listas, pie de botones igualados, filete con fade
   `.receta-linea` — deja de aplicarse: bug de 2026-10-19, la ficha se veía cruda por ese
-  descuido). Pie de la ficha: botones repartidos igual (flex 1·1·0; 2×2 en ≤420px) y el
+  descuido). **Jerarquía de filetes de la ficha (petición 2026-10-21):** el verde bajo el TÍTULO
+  (`.receta-linea`) manda como estilo y los filetes de sección (`h4::before`, mismo fade
+  `90deg transparent → color 20/80 → transparent` con opacity .7) van en MARRÓN con token propio
+  `--filete-marron` (#8a5f34 claro / #b3885c oscuro — color nuevo ⇒ token en ambos temas); el
+  `.modal-box` scrollea SIN barra visible (`scrollbar-width:none` + `::-webkit-scrollbar
+  display:none`) — cubre ficha y editor, mismo contenedor, el scroll queda intacto. Pie de la ficha: botones repartidos igual (flex 1·1·0; 2×2 en ≤420px) y el
   consejero del botón (`data-tip` + píldora `.tip-chef`, delegado en `#modal-content`) SOLO en
   "🍳 Cocinar hoy" (petición 2026-10-19/20: Cerrar/Editar/Copiar van sin consejo):
   desktop hover/foco, móvil long-press de 450 ms que al soltar NO acciona el botón (su click
@@ -313,7 +318,10 @@ italiana" (see `modules/origen-recetas.js` below).
     distinto fila a fila; 116px restaura la LíNEA DE ARRANCADA compartida, sonda: titX=142 en todas las
     filas, desviación 0) y el TÍTULO DEL DÍA vuelve a CENTRARSE con su filete corto (`align-self:center`
     + `width:max-content` + border-bottom: era el accidente visual de `.alert-card li` que el usuario
-    quería conservar — ahora es deliberado).
+    quería conservar — ahora es deliberado). **Filete del día en VERDE (petición 2026-10-21):** ese
+    filete corto pasa del borde sólido `--border` al fade del título de la ficha pero en verde de
+    marca (`.menu-day-header::after`, `var(--brand)`, opacity .7) — misma anatomía que la ficha de
+    receta, color aparte para los días del plan (allí las secciones van en marrón).
     `pickRecipeForSlot` es la 6ª función pública de
     `planner.js` (contrato ampliado, log §8 del CODING_STANDARDS.md). Las recetas guardadas son EDITABLES
     desde el modal de detalle (✏️ Editar): edición in-situ si ya está en `mrcheff.recipes` o copia nueva
