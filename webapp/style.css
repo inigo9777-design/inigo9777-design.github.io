@@ -953,7 +953,7 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   color: var(--muted);
 }
 
-/* ========== 13. MENÚ SEMANAL — una franja por día, a todo el ancho ========== */
+/* ========== 13. MENÚ SEMANAL — una tarjeta por día, acolchados suaves dentro ========== */
 /* Barra del plan APROBADO (feature 2026-10-21): resumen "N platos" + plegar/desplegar.
    Sólo tokens existentes — nada de colores nuevos: hereda texto y marca del tema activo. */
 .menu-plan-bar {
@@ -964,7 +964,7 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   padding: 8px 14px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-m);
+  border-radius: var(--radius-l);   /* misma familia de forma que las tarjetas a las que resume */
   box-shadow: var(--shadow-1);
   margin-bottom: 12px;
 }
@@ -977,10 +977,6 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 /* Objetivo táctil ≥24px (auditoría e2e/pwa-accesibilidad.mjs), herencia visual de .btn.ghost.small */
 #btn-menu-colapsar { min-height: 24px; }
 
-/* Las filas de comida son RECTÁNGULOS LARGOS a sangre: todas ocupan el ancho
-   íntegro de la franja (el redondeo de la franja las recorta limpio con
-   overflow:hidden) y comparten estructura → nunca hay dos filas de distinta
-   forma. El reparto interior es fijo: etiqueta | plato | acciones. */
 #menu-plan-list {
   list-style: none;
   display: flex;
@@ -991,18 +987,29 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 /* Anula el "tinte de estado" heredado de .alert-card en esta lista: */
 #menu-plan-list.alert-card { background: none; border: none; border-left: none; }
 
-.menu-day {
+/* El día es UNA TARJETA del mismo pie que .card (superficie, filete, radio grande) y su
+   contenido vive DENTRO del acolchado — como en el resto de la app, nada llega a sangre.
+   ⚠️ ESPECIFICIDAD: el <ul> nace con clase `alert-card` (markup) y la regla genérica de la
+   lista de despensa `.alert-card li` (0,1,1) APLASTABA el estilo del día (0,1,0): centraba
+   el título (align-items:center), achaflanaba el radio y colgaba la fila con su padding.
+   El prefijo #menu-plan-list lo pasa encima (1,1,0) — y fija los campos que la regla
+   genérica compartía (flex-wrap / align-items / font-size / gap). */
+#menu-plan-list .menu-day {
   display: flex;
   flex-direction: column;
-  padding: 0;
+  flex-wrap: nowrap;               /* .alert-card li repartía en wrap: aquí va en bloque */
+  align-items: stretch;            /* el título y las filas estiradas, nada centrado */
+  font-size: inherit;              /* desmentida de la .93rem de la lista de despensa */
+  gap: 8px;                        /* respiro entre acolchados interiores */
+  padding: 14px 12px 16px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-l);
   box-shadow: var(--shadow-1);
   list-style: none;
-  overflow: hidden;                 /* el redondeo recorta las filas a sangre */
 }
 .menu-day-header {
+  align-self: stretch;             /* el título traviesa la tarjeta: nada de centrarse */
   font-family: Georgia, serif;
   font-weight: 600;
   font-size: 1.12rem;
@@ -1010,8 +1017,7 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 18px 10px;
-  border-bottom: 1px solid var(--border);
+  padding: 2px 6px 4px 14px;       /* la barra abre en 26px: alineada con la 1ª píldora (12+14) */
 }
 /* El día abre con una señal de marca: jerarquía instantánea al escanear la semana */
 .menu-day-header::before {
@@ -1023,50 +1029,54 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   background: var(--brand);
 }
 
-/* Fila de comida a sangre de la franja. La franja horaria lleva SU color en el
-   filete lateral (desayuno=ámbar, comida=azul, cena=violeta) → localizar una
-   comida concreta de un vistazo es SU tarea. Reparto fijo de columnas.
-   width:100% + align-self:stretch son EXPLÍCITOS: ninguna fila puede quedar
-   más estrecha que su franja (comportamiento anómalo visto en el review). */
-.menu-meal-row {
+/* Fila interior SUAVE: un acolchado redondeado (--card-soft, radio-m) que flota dentro de
+   la tarjeta — se acabaron las filas a sangre, los tabiques de 1px y el filete grueso.
+   La franja horaria (desayuno=ámbar, comida=azul, cena=violeta) queda CODIFICADA EN SU
+   PÍLDORA con el par bg/fg de tinta del sistema de tags (tokens de AMBOS temas): el color
+   del repertorio contenida en la pastilla, no rayando la tarjeta. Reparto: píldora |
+   plato | acciones (píldora y acciones de ancho propio).
+   align-self:stretch es EXPLÍCITO: ninguna fila puede quedar más estrecha que su tarjeta
+   (comportamiento anómalo visto en el review). */
+#menu-plan-list .menu-meal-row {
   display: grid;
-  grid-template-columns: 116px minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   width: 100%;
   align-self: stretch;
   align-items: center;
   column-gap: 12px;
+  row-gap: 4px;
   min-height: 54px;
-  padding: 10px 18px 10px 15px;     /* 15 + 3px de filete = 18px → el plato alinea con el título del día */
+  padding: 10px 14px;
   border: none;
-  border-left: 3px solid var(--border-strong);
-  border-radius: 0;
-  background: transparent;
+  border-radius: var(--radius-m);
+  background: var(--card-soft);    /* "panel interior de datos": el token semántico ya existente */
   cursor: pointer;
   transition: background-color 0.15s;
 }
-.menu-meal-row:not(:last-child) { border-bottom: 1px solid var(--border); }
-.menu-meal-row:hover { background: var(--hover-wash); }
-.menu-meal-row[data-meal="desayuno"] { border-left-color: var(--amber); }
-.menu-meal-row[data-meal="comida"]   { border-left-color: var(--info); }
-.menu-meal-row[data-meal="cena"]     { border-left-color: var(--tag-variacion-fg); }
+#menu-plan-list .menu-meal-row:hover { background: var(--hover-wash); }
 
-/* Hueco vacío del día (sin plato): sin etiqueta ni acciones, ocupa toda la fila */
-.menu-meal-row:not([data-meal]) { cursor: default; }
-.menu-meal-row:not([data-meal]) .menu-meal-body { grid-column: 1 / -1; }
+/* Hueco vacío del día (sin plato): mismo panel suave, sin píldora ni acciones */
+#menu-plan-list .menu-meal-row:not([data-meal]) { cursor: default; }
+#menu-plan-list .menu-meal-row:not([data-meal]) .menu-meal-body { grid-column: 1 / -1; }
 
 /* El estado del generador respira respecto a los botones que lo provocan */
 #menu-status { margin-top: 10px; }
 
+/* Píldora de franja horaria: tinta contenida, el par bg/fg ya definido por tema */
 .menu-meal-tag {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
   line-height: 1.3;
   white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: var(--radius-s);
+  background: var(--tag-fuente-bg);
+  color: var(--tag-fuente-fg);
+  justify-self: start;             /* en columna 1fr (≤480px) la píldora no se estira: jamón */
 }
-.menu-meal-row[data-meal="desayuno"] .menu-meal-tag { color: var(--amber); }
-.menu-meal-row[data-meal="comida"]   .menu-meal-tag { color: var(--info); }
-.menu-meal-row[data-meal="cena"]     .menu-meal-tag { color: var(--tag-variacion-fg); }
+.menu-meal-row[data-meal="desayuno"] .menu-meal-tag { background: var(--tag-protagonista-bg); color: var(--tag-protagonista-fg); }
+.menu-meal-row[data-meal="comida"]   .menu-meal-tag { background: var(--tag-libre-bg);         color: var(--info); }
+.menu-meal-row[data-meal="cena"]     .menu-meal-tag { background: var(--tag-variacion-bg);     color: var(--tag-variacion-fg); }
 
 .menu-meal-body { min-width: 0; }
 .menu-meal-title {
@@ -1096,22 +1106,21 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   font-size: 0.76rem;
 }
 
-/* En pantallas estrechas la fila se apila: etiqueta+acciones arriba, plato debajo */
+/* En pantallas estrechas la fila se apila: píldora+acciones arriba, plato debajo */
 @media (max-width: 680px) {
-  .menu-meal-row {
+  #menu-plan-list .menu-meal-row {
     grid-template-columns: 1fr auto;
-    row-gap: 4px;
-    padding-left: 12px;             /* 9 + 3px de filete = 12px en móvil */
+    padding: 10px 12px;
   }
-  .menu-meal-tag { grid-column: 1; }
-  .menu-meal-body { grid-column: 1 / -1; grid-row: 2; }
-  .menu-meal-row .recipe-actions { grid-column: 2; grid-row: 1; }
+  #menu-plan-list .menu-meal-tag { grid-column: 1; }
+  #menu-plan-list .menu-meal-body { grid-column: 1 / -1; grid-row: 2; }
+  #menu-plan-list .menu-meal-row .recipe-actions { grid-column: 2; grid-row: 1; }
 }
 @media (max-width: 480px) {
-  .menu-meal-row { grid-template-columns: 1fr; }
-  .menu-meal-tag { grid-column: 1; }
-  .menu-meal-body { grid-column: 1; grid-row: auto; }
-  .menu-meal-row .recipe-actions { grid-column: 1; grid-row: auto; justify-content: flex-end; }
+  #menu-plan-list .menu-meal-row { grid-template-columns: 1fr; }
+  #menu-plan-list .menu-meal-tag { grid-column: 1; }
+  #menu-plan-list .menu-meal-body { grid-column: 1; grid-row: auto; }
+  #menu-plan-list .menu-meal-row .recipe-actions { grid-column: 1; grid-row: auto; justify-content: flex-end; }
 }
 
 /* ========== 14. MODAL, TOAST Y NOTAS ========== */
