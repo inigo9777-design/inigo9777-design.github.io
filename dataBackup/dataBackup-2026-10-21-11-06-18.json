@@ -1,0 +1,2527 @@
+{
+  "version": 2,
+  "exportedAt": "2026-10-21T09:06:18.438Z",
+  "foods": [
+    {
+      "id": "mvebz4oq9wo8g",
+      "name": "Huevos",
+      "score": 10,
+      "qty": 4,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1791713012099
+    },
+    {
+      "id": "mvebz4or7wpf2",
+      "name": "Guanchiale",
+      "score": 8,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1791713659006
+    },
+    {
+      "id": "mvebz4orfkqyd",
+      "name": "Leche Tamara",
+      "score": 9,
+      "qty": 4,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1791713678767
+    },
+    {
+      "id": "mvebz4orlwawy",
+      "name": "Solomillo",
+      "score": 7,
+      "qty": 0,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1791713706340
+    },
+    {
+      "id": "mvebz4orvd9h0",
+      "name": "Patatas",
+      "score": 8,
+      "qty": 8,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1791713718507
+    },
+    {
+      "id": "mvebz4orui41y",
+      "name": "Yogures pastoret",
+      "score": 7,
+      "qty": 5,
+      "min": 2,
+      "checked": false,
+      "createdAt": 1791713737537
+    },
+    {
+      "id": "mvebz4oru9d13",
+      "name": "Calabacín",
+      "score": 6,
+      "qty": 0,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1791713775325
+    },
+    {
+      "id": "mvebz4or21tev",
+      "name": "Jamón ibérico",
+      "score": 7,
+      "qty": 0,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1791714103446
+    },
+    {
+      "id": "mvebz4orns32x",
+      "name": "Miel",
+      "score": 5,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1791729939451
+    },
+    {
+      "id": "mvebz4orehqeb",
+      "name": "Chorizo",
+      "score": 6,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1791792368285
+    },
+    {
+      "id": "mvebz4or2rg9g",
+      "name": "Lomo Ibérico",
+      "score": 7,
+      "qty": 1,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1791919753842
+    },
+    {
+      "id": "mvebz4orcb9oo",
+      "name": "Papel higiénico",
+      "score": 10,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792060647890
+    },
+    {
+      "id": "mvebz4org6hp5",
+      "name": "Salchichón ibérico",
+      "score": 7,
+      "qty": 1,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1792077508430
+    },
+    {
+      "id": "mvebz4orsvn3v",
+      "name": "Picos de pan campesinos",
+      "score": 5,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792077579254
+    },
+    {
+      "id": "mvebz4orqlvpe",
+      "name": "patatas fritas",
+      "score": 5,
+      "qty": 0,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1792176868628
+    },
+    {
+      "id": "mvebz4orwgsqf",
+      "name": "Agua de Mar",
+      "score": 10,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792181882756
+    },
+    {
+      "id": "mvebz4ory4237",
+      "name": "Aceite de oliva virgen extra (en litros)",
+      "score": 10,
+      "qty": 15,
+      "min": 3,
+      "checked": false,
+      "createdAt": 1792223637657
+    },
+    {
+      "id": "mvebz4orxqge2",
+      "name": "Pimentón dulce",
+      "score": 6,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792255907180
+    },
+    {
+      "id": "mvebz4or5ktz8",
+      "name": "Cebolla",
+      "score": 7,
+      "qty": 1,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792255928848
+    },
+    {
+      "id": "mvebz4ormw34g",
+      "name": "Ajo",
+      "score": 6,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792255936877
+    },
+    {
+      "id": "mvebz4orwc8sj",
+      "name": "Sal (kl)",
+      "score": 10,
+      "qty": 7,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792279930507
+    },
+    {
+      "id": "mvebz4orn7yd6",
+      "name": "Canela",
+      "score": 7,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792280085742
+    },
+    {
+      "id": "mvebz4org0d9u",
+      "name": "Carne picada de vacuno (gr)",
+      "score": 8,
+      "qty": 0,
+      "min": 250,
+      "checked": false,
+      "createdAt": 1792280160199
+    },
+    {
+      "id": "mvebz4orit9ky",
+      "name": "Laurel",
+      "score": 6,
+      "qty": 1,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1792328715432
+    },
+    {
+      "id": "mvebz4or9s76v",
+      "name": "Albahaca",
+      "score": 5,
+      "qty": 5,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792329195030
+    },
+    {
+      "id": "mvebz4ore4hqg",
+      "name": "Masa de Pizza",
+      "score": 6,
+      "qty": 0,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1792334398638
+    },
+    {
+      "id": "mveg9g8kra694",
+      "name": "Perejil",
+      "score": 5,
+      "qty": 2,
+      "min": 1,
+      "checked": false,
+      "createdAt": 1792365703795
+    },
+    {
+      "id": "mvfde4jef8ue3",
+      "name": "Gambas",
+      "score": 8,
+      "qty": 0,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1792421349238
+    },
+    {
+      "id": "mvfdfjpzi1cpu",
+      "name": "Morcilla asturiana",
+      "score": 7,
+      "qty": 1,
+      "min": 0,
+      "checked": false,
+      "createdAt": 1792421415575
+    }
+  ],
+  "recipes": [
+    {
+      "id": "mvebz4orumh5a",
+      "title": "Huevos · Desayuno",
+      "meal": "desayuno",
+      "ingredients": [
+        "Huevos",
+        "Sal",
+        "Guanchiale",
+        "Jamón ibérico"
+      ],
+      "method": [
+        "1. Primero cortamos las tiras de guanchiale en 2,.",
+        "2. Las vamos cocinando de 2 en 2 en la sarten de hierro mineral.",
+        "3. Entre cada 2 tiras cocinamos a la plancha un huevo en la grasa que suelta el Guanchiale.",
+        "3. Repetimos hasta acabar todos los huevos."
+      ],
+      "createdAt": 1791990539303,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orjdmdk",
+      "title": "Pure de Calabacín · Comida",
+      "meal": "comida",
+      "ingredients": [
+        "Calabacín",
+        "Patatas",
+        "Zanahoria",
+        "Cebolla",
+        "Nata",
+        "Sal"
+      ],
+      "method": [
+        "1. Vamos a hacer un pure de calabacín, para ello necesitamos 1 calabacín, 2 patatas pequeñas, 1 cebolla pequeña, nata de cocinar, sal, AOVE.",
+        "2. Cortando y Pelando toda la verdura, ponemos a calentar una olla de acero inoxidable con AOVE.",
+        "3. Metemos la cebolla. Aplicamos sal , cuando este un poco pochada echamos el resto de ingredientes.",
+        "4. Una vez se haya rehogado todo un poco cubrimos con agua hasta donde lleguen los alimentos.",
+        "6. Dejamos cociendo unos 10 minutos.",
+        "7. Hechamos nata y batimos todo y ya está listo para servir"
+      ],
+      "createdAt": 1791991126169,
+      "uses": []
+    },
+    {
+      "id": "mvebz4oru55tm",
+      "title": "Costilla de cerdo con Miel y mostaza antigua · Comida",
+      "meal": "comida",
+      "ingredients": [
+        "Cerdo",
+        "Mostaza",
+        "Miel",
+        "Sal",
+        "Pimienta",
+        "Tomate",
+        "Salsa"
+      ],
+      "method": [
+        "1. Hoy voy a cocinar una costilla al horno, ingredientes: costilla de cerdo, mostaza antigua, miel, sal, pimienta, tomate frito.",
+        "2. Hacemos la salsa mezclando la miel mostaza antigua y El tomate frito, una cuchara de cada, batimos.",
+        "4. Precalentamos el horno por 15 minutos a 250 grados.",
+        "5. Posteriormente untamos la capa superior de la costilla.",
+        "6. La metemos al horno durante 20 minutos a 210 grados.",
+        "7. Sacamos la costilla del horno le damos la vuelta.",
+        "8. Untamos la otra capa con el resto de la salsa.",
+        "9. Volvemos a meterla otros 20 minutos al horno a 210 grados.",
+        "10. Acabado el horneado sacamos cortamos."
+      ],
+      "createdAt": 1792060566173,
+      "uses": []
+    },
+    {
+      "id": "mvebz4or5tbeq",
+      "title": "Tortilla de patatas española",
+      "meal": "comida",
+      "ingredients": [
+        "Patatas",
+        "Huevos",
+        "Cebolla opcional",
+        "Aceite de oliva",
+        "Sal"
+      ],
+      "method": [
+        "Filetea patatas y cebolla finamente.",
+        "Fríe en abundante aceite hasta dorar.",
+        "Escurre y mezcla con huevos batidos.",
+        "Cuaja en sartén 5 minutos por lado."
+      ],
+      "createdAt": 1792150386420,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orgv4vg",
+      "title": "Mejillones al vapor",
+      "meal": "cena",
+      "ingredients": [
+        "Mejillones vivos",
+        "Vino blanco",
+        "Cebolla",
+        "Ajos",
+        "Perejil",
+        "Tomates"
+      ],
+      "method": [
+        "Lava mejillones bajo agua fría.",
+        "Dora cebolla y ajo en olla.",
+        "Añade vino y coloca mejillones.",
+        "Cocina tapado 5 minutos."
+      ],
+      "createdAt": 1792150408325,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orhbtpi",
+      "title": "Gambas al ajillo",
+      "meal": "cena",
+      "ingredients": [
+        "Gambas peladas",
+        "Ajos",
+        "Pimiento rojo",
+        "Aceite",
+        "Vino blanco",
+        "Perejil"
+      ],
+      "method": [
+        "Calienta aceite en cazuela de barro.",
+        "Dora los ajos laminados sin quemar.",
+        "Añade gambas y saltea 3 minutos.",
+        "Finaliza con vino, perejil y pimiento."
+      ],
+      "createdAt": 1792150417866,
+      "uses": []
+    },
+    {
+      "id": "mvebz4or5c263",
+      "title": "Huevos rotos con jamón",
+      "meal": "comida",
+      "ingredients": [
+        "Patatas",
+        "Huevos",
+        "Jamón serrano",
+        "Aceite oliva",
+        "Sal"
+      ],
+      "method": [
+        "Frié patatas en láminas finas.",
+        "Fry dos huevos aparte.",
+        "Coloca patatas en plato.",
+        "Rompe huevos encima y añade jamón."
+      ],
+      "createdAt": 1792150433183,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orwvqdu",
+      "title": "Tabla de jamón y queso",
+      "meal": "cena",
+      "ingredients": [
+        "Jamón ibérico",
+        "Queso manchego",
+        "Queso cabra",
+        "Pan",
+        "Nueces"
+      ],
+      "method": [
+        "Corta el jamón en lonchas finas.",
+        "Filetea los quesos a tu gusto.",
+        "Coloca todo ordenadamente en tabla.",
+        "Acompaña con nueces y pan."
+      ],
+      "createdAt": 1792151764660,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orl5hxo",
+      "title": "Ensalada rusa clásica",
+      "meal": "comida",
+      "ingredients": [
+        "Patatas",
+        "Zanahorias",
+        "Guisantes",
+        "Atún",
+        "Huevos duros",
+        "Mayonesa",
+        "Aceitunas"
+      ],
+      "method": [
+        "Hierve patatas y zanahorias hasta que estén tiernas.",
+        "Corta en dados uniformes.",
+        "Mezcla con guisantes, atún y huevos picados.",
+        "Añade mayonesa y decora con aceitunas."
+      ],
+      "createdAt": 1792151775069,
+      "uses": []
+    },
+    {
+      "id": "mvebz4oressxd",
+      "title": "Albóndigas en salsa de vino tinto",
+      "meal": "comida",
+      "ingredients": [
+        "Ternera",
+        "Cerdo",
+        "Carne",
+        "Sal",
+        "Pimienta",
+        "Huevos",
+        "Pan",
+        "Ajo",
+        "Aceite",
+        "Cebolla"
+      ],
+      "method": [
+        "1. Carne picada (mitad ternera, mitad cerdo) 500 g.",
+        "2. Perejil picado 1 cucharada.",
+        "3. Mezcla la carne con el huevo, el pan rallado, un ajo picado, perejil, sal.",
+        "4. Dóralas en una sartén con aceite.",
+        "5. Sofríe la cebolla.",
+        "6. El otro ajo picados.",
+        "7. Añade la harina.",
+        "8. Incorpora el vino.",
+        "9. Cocina 20 minutos.",
+        "10. Añade las albóndigas."
+      ],
+      "createdAt": 1792177061534,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orwbwt0",
+      "title": "Pulpo à la gallega",
+      "meal": "comida",
+      "ingredients": [
+        "Pulpo fresco",
+        "Patatas",
+        "Pimentón dulce",
+        "Pimentón picante",
+        "Aceite",
+        "Sal gorda"
+      ],
+      "method": [
+        "Hierve el pulpo 20-30 minutos según tamaño.",
+        "Cuece patatas aparte hasta que estén tiernas.",
+        "Trocea el pulpo y coloca sobre patatas.",
+        "Espolvorea pimentón y aceite caliente."
+      ],
+      "createdAt": 1792255998915,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orixhi1",
+      "title": "Pisto manchego",
+      "meal": "comida",
+      "ingredients": [
+        "Zucchini",
+        "Pimiento rojo",
+        "Pimiento verde",
+        "Tomate",
+        "Cebolla",
+        "Huevos"
+      ],
+      "method": [
+        "Trocea todas las verduras.",
+        "Sofríe cebolla y pimientos primero.",
+        "Añade zucchini y finalmente tomate.",
+        "Cocina lento 30 minutos y sirve con huevo."
+      ],
+      "createdAt": 1792256006556,
+      "uses": []
+    },
+    {
+      "id": "mvebz4or2fr0g",
+      "title": "Pan con tomate catalán",
+      "meal": "desayuno",
+      "ingredients": [
+        "Pan de barra",
+        "Tomates rojos",
+        "Aceite de oliva",
+        "Sal",
+        "Jamón serrano opcional"
+      ],
+      "method": [
+        "Tuesta rebanadas gruesas de pan hasta que estén crujientes.",
+        "Corta tomates por la mitad y frota sobre el pan tostado.",
+        "Rocía generosamente con aceite de oliva virgen extra.",
+        "Añade sal al gusto y jamón serrano si deseas."
+      ],
+      "createdAt": 1792256009552,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orykcsw",
+      "title": "Huevos rellenos de atún",
+      "meal": "cena",
+      "ingredients": [
+        "Huevos duros",
+        "Atún en conserva",
+        "Mayonesa",
+        "Cebolleta",
+        "Pimentón",
+        "Aceite"
+      ],
+      "method": [
+        "Cuece huevos 10 minutos.",
+        "Partir y quitar yemas.",
+        "Mezcla yemas con atún.",
+        "Rellena y pica cebolleta."
+      ],
+      "createdAt": 1792256021119,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orvyb10",
+      "title": "Patatas a la Riojana · Comida",
+      "meal": "comida",
+      "ingredients": [
+        "Patatas",
+        "Oliva",
+        "Pimiento",
+        "Cebolla",
+        "Ajo",
+        "Aceite",
+        "Chorizo",
+        "Pimentón",
+        "Laurel",
+        "Sal"
+      ],
+      "method": [
+        "1. Retira la pulpa con una cuchara.",
+        "2. \"Pica la cebolla.",
+        "3. Pela las patatas.",
+        "4. Córtalas en trozos, chascándolas al final para que suelten almidón.\",.",
+        "5. Sofríe la cebolla a fuego medio hasta que esté blanda.",
+        "6. Añade el ajo.",
+        "7. Cocina durante 1 minuto.\",.",
+        "8. \"Incorpora el chorizo en rodajas.",
+        "9. Retira la cazuela del fuego, añade el pimentón.",
+        "10. Cocina a fuego suave, sin tapar del todo, durante 25–30 minutos, hasta que las patatas estén tiernas."
+      ],
+      "createdAt": 1792256227636,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orxlu9v",
+      "title": "Crema de calabaza",
+      "meal": "cena",
+      "ingredients": [
+        "Calabaza",
+        "Puerro",
+        "Patata",
+        "Nata líquida",
+        "Aceite",
+        "Sal"
+      ],
+      "method": [
+        "Trocea calabaza, puerro y patata.",
+        "Sofríe ligeramente el puerro.",
+        "Añade verduras y cubre con agua.",
+        "Tritura, añade nata y rectifica."
+      ],
+      "createdAt": 1792263232381,
+      "uses": []
+    },
+    {
+      "id": "mvebz4ory4slw",
+      "title": "Croquetas de jamón ibérico",
+      "meal": "comida",
+      "ingredients": [
+        "Jamón serrano",
+        "Leche",
+        "Manteca",
+        "Harina",
+        "Huevo",
+        "Pan rallado",
+        "Aceite"
+      ],
+      "method": [
+        "Haz un bechamel con manteca y harina.",
+        "Añade leche poco a poco sin parar de remover.",
+        "Incorpora jamón picado finamente.",
+        "Forma croquetas, empana y fríe."
+      ],
+      "createdAt": 1792263240660,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orkdo1s",
+      "title": "Paella valenciana tradicional",
+      "meal": "comida",
+      "ingredients": [
+        "Arroz bomba",
+        "Pollo",
+        "Conejo",
+        "Judías verdes",
+        "Garrofó",
+        "Azafrán",
+        "Caldo"
+      ],
+      "method": [
+        "Sofríe carne troceada en paellera.",
+        "Añade verduras y sofríe junto.",
+        "Incorpora arroz y caldos hirviendo con azafrán.",
+        "Cocina 18 minutos sin remover."
+      ],
+      "createdAt": 1792319544178,
+      "uses": []
+    },
+    {
+      "id": "mvebz4or8m71z",
+      "title": "Pinchos morunos",
+      "meal": "cena",
+      "ingredients": [
+        "Lomo de cerdo",
+        "Pimentón dulce",
+        "Comino",
+        "Orégano",
+        "Ajos",
+        "Aceite de oliva",
+        "Limón"
+      ],
+      "method": [
+        "Corta el lomo en dados regulares.",
+        "Marina con pimentón, comino, orégano, ajo y aceite 2 horas.",
+        "Ensarta los dados en brochetas apretados.",
+        "Hazlos a la plancha 8 minutos girando continuamente."
+      ],
+      "createdAt": 1792319583879,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orcn415",
+      "title": "Pimientos rellenos de carne",
+      "meal": "cena",
+      "ingredients": [
+        "Pimientos rojos grandes",
+        "Carne picada",
+        "Arroz",
+        "Tomate",
+        "Queso gratinar"
+      ],
+      "method": [
+        "Asa los pimientos y pélalos.",
+        "Saltea carne picada con arroz y tomate.",
+        "Rellena los pimientos.",
+        "Gratina con queso al horno."
+      ],
+      "createdAt": 1792319586670,
+      "uses": []
+    },
+    {
+      "id": "mvebz4ore61cz",
+      "title": "Pizza jamón y queso casera",
+      "meal": "cena",
+      "ingredients": [
+        "Harina",
+        "Tomates triturados",
+        "Mozzarella",
+        "Jamón York",
+        "Parmesano",
+        "Albahaca",
+        "Aceite de oliva",
+        "Levadura"
+      ],
+      "method": [
+        "Amasa harina, agua, levadura y sal; deja levar una hora.",
+        "Estira la base fina y cubre con tomate triturado.",
+        "Reparte la mozzarella y hornea al máximo 10 minutos.",
+        "Termina con albahaca fresca y aceite crudo."
+      ],
+      "source": "curada",
+      "createdAt": 1792325192019,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orgoqqb",
+      "title": "Melón con jamón",
+      "meal": "comida",
+      "ingredients": [
+        "Melón",
+        "Jamón serrano",
+        "Pimienta negra",
+        "Aceite"
+      ],
+      "method": [
+        "Corta melón en trozos.",
+        "Envuelve con lonchas de jamón.",
+        "Añade pimienta recién molida.",
+        "Sirve frío como entrante."
+      ],
+      "source": "curada",
+      "createdAt": 1792325918347,
+      "uses": []
+    },
+    {
+      "id": "mvebz4orvompo",
+      "title": "Lentejas  con Chorizo· Comida",
+      "meal": "desayuno",
+      "ingredients": [
+        "Lentejas",
+        "Chorizo",
+        "Sal",
+        "Aceite",
+        "Zanahoria",
+        "Cebolla"
+      ],
+      "method": [
+        "1. Cortamos.",
+        "2. Pelamos la verdura.",
+        "3. Dejamos preparada,.",
+        "4. Al de 2 minutos el resto de las verduras, cuando este sofrito, echamos el chorizo para que se dore un poco.",
+        "5. Al de 1 minuto echamos las lentejas sin agua aun.",
+        "6. Apartamos del fuego esperamos que enfrie.",
+        "7. Servimos."
+      ],
+      "createdAt": 1792338491873,
+      "uses": []
+    }
+  ],
+  "innovations": [
+    {
+      "id": "mvhw03ijx3vh2",
+      "title": "Bocadillo caliente de chorizo",
+      "meal": "desayuno",
+      "ingredients": [
+        "Pan",
+        "Chorizo"
+      ],
+      "method": [
+        "Corta el chorizo en lonchas finas.",
+        "Dóralo un momento en la sartén para que suelte su grasa.",
+        "Monta el bocadillo con el pan templado."
+      ],
+      "source": "curada",
+      "uses": [
+        "Picos de pan campesinos",
+        "Chorizo"
+      ],
+      "from": "",
+      "createdAt": 1792573539787
+    },
+    {
+      "id": "mvhw03ij89qs3",
+      "title": "Tostada de morcilla con huevo frito",
+      "meal": "desayuno",
+      "ingredients": [
+        "Pan",
+        "Morcilla",
+        "Huevos",
+        "Aceite de oliva"
+      ],
+      "method": [
+        "Fríe la morcilla desmenuzada en su propia grasa.",
+        "Prepara un huevo frito con la yema jugosa.",
+        "Monta la tostada con la morcilla y el huevo encima."
+      ],
+      "source": "curada",
+      "uses": [
+        "Picos de pan campesinos",
+        "Morcilla asturiana",
+        "Huevos",
+        "Aceite de oliva virgen extra (en litros)"
+      ],
+      "from": "",
+      "createdAt": 1792573539787
+    },
+    {
+      "id": "mvhw03ijfqqng",
+      "title": "Tostadas con aceite de oliva y sal gorda",
+      "meal": "desayuno",
+      "ingredients": [
+        "Pan",
+        "Aceite de oliva virgen extra",
+        "Sal gorda"
+      ],
+      "method": [
+        "Tuesta el pan al gusto.",
+        "Riega con un buen chorro de aceite de oliva virgen extra.",
+        "Espolvorea la sal gorda por encima y sirve."
+      ],
+      "source": "curada",
+      "uses": [
+        "Picos de pan campesinos",
+        "Aceite de oliva virgen extra (en litros)",
+        "Sal (kl)"
+      ],
+      "from": "",
+      "createdAt": 1792573539787
+    },
+    {
+      "id": "mvhw03ijznsm1",
+      "title": "Gambas a la plancha con sal gorda",
+      "meal": "cena",
+      "ingredients": [
+        "Gambas",
+        "Sal gorda",
+        "Aceite de oliva",
+        "Perejil"
+      ],
+      "method": [
+        "Pon una base de sal gorda en plancha o sartén fuerte.",
+        "Asa las gambas 2 minutos por cara.",
+        "Sirve con perejil y un hilo de aceite."
+      ],
+      "source": "curada",
+      "uses": [
+        "Gambas",
+        "Sal (kl)",
+        "Aceite de oliva virgen extra (en litros)",
+        "Perejil"
+      ],
+      "from": "",
+      "createdAt": 1792573539787
+    },
+    {
+      "id": "mvhw03ijfyle1",
+      "title": "Huevos revueltos con durillo",
+      "meal": "desayuno",
+      "ingredients": [
+        "Huevos",
+        "Patatas",
+        "Chorizo",
+        "Cebolla",
+        "Aceite de oliva",
+        "Sal"
+      ],
+      "method": [
+        "Pica las patatas y el chorizo en trozos pequeños.",
+        "Sofríe las patatas y el chorizo hasta que estén dorados.",
+        "Bate los huevos y viértelos sobre la mezcla.",
+        "Revuelve todo junto hasta que los huevos cuajen."
+      ],
+      "source": "curada",
+      "uses": [
+        "Huevos",
+        "Patatas",
+        "Chorizo",
+        "Cebolla",
+        "Aceite de oliva virgen extra (en litros)",
+        "Sal (kl)"
+      ],
+      "from": "",
+      "createdAt": 1792573539787
+    },
+    {
+      "id": "mvhw03ij25xhn",
+      "title": "Revuelto de gambas con ajos tiernos",
+      "meal": "desayuno",
+      "ingredients": [
+        "Huevos",
+        "Gambas",
+        "Ajos tiernos",
+        "Aceite de oliva",
+        "Sal"
+      ],
+      "method": [
+        "Saltea las gambas con los ajos tiernos picados.",
+        "Bate los huevos y añádelos fuera del fuego.",
+        "Remueve hasta cuajar y sirve al momento."
+      ],
+      "source": "curada",
+      "uses": [
+        "Huevos",
+        "Gambas",
+        "Ajo",
+        "Aceite de oliva virgen extra (en litros)",
+        "Sal (kl)"
+      ],
+      "from": "",
+      "createdAt": 1792573539787
+    },
+    {
+      "id": "mvhw03ijhc0ax",
+      "title": "Pisto de berenjena",
+      "meal": "comida",
+      "ingredients": [
+        "Berenjena",
+        "Pimiento",
+        "Tomate",
+        "Cebolla",
+        "Aceite",
+        "Huevo"
+      ],
+      "method": [
+        "Filetea berenjena y saltea.",
+        "Sofríe pimiento y cebolla.",
+        "Añade tomate y cocina.",
+        "Sirve con huevo frito."
+      ],
+      "source": "curada",
+      "uses": [
+        "Cebolla",
+        "Aceite de oliva virgen extra (en litros)",
+        "Huevos"
+      ],
+      "from": "",
+      "createdAt": 1792573539787
+    },
+    {
+      "id": "mvhw03ijie2yi",
+      "title": "Batido de frutas con lácteos",
+      "meal": "desayuno",
+      "ingredients": [
+        "Leche",
+        "Yogur natural",
+        "Plátanos",
+        "Fresas",
+        "Miel",
+        "Granola"
+      ],
+      "method": [
+        "Lava y corta las frutas en trozos.",
+        "Coloca las frutas, leche y yogur en la batidora.",
+        "Mezcla hasta obtener una textura cremosa.",
+        "Sirve con miel y granola por encima."
+      ],
+      "source": "curada",
+      "uses": [
+        "Leche Tamara",
+        "Miel"
+      ],
+      "from": "",
+      "createdAt": 1792573539787
+    }
+  ],
+  "innovDay": "2026-10-21",
+  "cooked": [
+    {
+      "id": "mveb6jlbwhc1f",
+      "title": "Batido de fresas",
+      "keyFingerprint": "az car¦fresas¦hielo¦leche",
+      "on": "2026-10-19"
+    },
+    {
+      "id": "mveb6jlb5zjmh",
+      "title": "Ajiaco canario",
+      "keyFingerprint": "carne¦gofio¦papa bonita¦patatas¦pepino¦yuca",
+      "on": "2026-10-19"
+    },
+    {
+      "id": "mveb6jlbwuf8w",
+      "title": "Ajo blanco con uvas",
+      "keyFingerprint": "aceite de oliva¦ajos¦almendras molidas¦pan¦uvas¦vinagre",
+      "on": "2026-10-19"
+    },
+    {
+      "id": "mveb6jlbn20ie",
+      "title": "Batido de frutas con lácteos",
+      "keyFingerprint": "fresas¦granola¦leche¦miel¦pl tanos¦yogur natural",
+      "on": "2026-10-20"
+    },
+    {
+      "id": "mveb6jlbci46m",
+      "title": "Albóndigas en salsa de almendras",
+      "keyFingerprint": "ajos¦almendras¦caldo¦carne mixta¦harina¦leche¦vino",
+      "on": "2026-10-20"
+    },
+    {
+      "id": "mveb6jlbgepni",
+      "title": "Bacalao con tomate y albahaca",
+      "keyFingerprint": "aceite¦ajo¦albahaca fresca¦lomos bacalao¦tomates maduros¦vinagre",
+      "on": "2026-10-20"
+    },
+    {
+      "id": "mveb6jlbgbcjp",
+      "title": "Batido de plátano con leche",
+      "keyFingerprint": "canela¦leche¦pl tanos",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mveb6jlb9ekwr",
+      "title": "Alubias rojas con chorizo",
+      "keyFingerprint": "alubias rojas cocidas¦cebolla¦chorizo¦laurel¦piment n dulce",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mveb6jlbxcpha",
+      "title": "Berenjena a la parmigiana",
+      "keyFingerprint": "albahaca¦berenjenas¦mozzarella¦parmesano¦tomates",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mveb6jlbgwugn",
+      "title": "Bikini de jamón y queso",
+      "keyFingerprint": "jam n cocido¦mantequilla¦pan de molde¦queso",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mveb6jlboiua5",
+      "title": "Arroz a banda",
+      "keyFingerprint": "ajos¦arroz¦azafr n¦calamares¦fondo de pescado¦piment n dulce",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mveb6jlbmerqn",
+      "title": "Berenjenas rellenas de carne",
+      "keyFingerprint": "berenjenas¦carne picada¦cebolla¦queso rallado¦tomates",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mveb6jlbhoc4d",
+      "title": "Bikini de sobrasada y queso",
+      "keyFingerprint": "mantequilla¦pan de molde¦queso¦sobrasada",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mveb6jlbxg8ua",
+      "title": "Arroz con leche clásico",
+      "keyFingerprint": "arroz redondo¦az car¦canela¦leche¦lim n¦nuez moscada",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mveb6jlbiyo9e",
+      "title": "Boquerones en vinagre",
+      "keyFingerprint": "aceite¦ajos¦boquerones frescos¦perejil¦sal¦vinagre",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mveb6jlbm5ta5",
+      "title": "Bocadillo caliente de chorizo",
+      "keyFingerprint": "chorizo¦pan",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mveb6jlbo4zuz",
+      "title": "Arroz negro con calamares",
+      "keyFingerprint": "alioli¦arroz¦calamares¦cebolla¦fondo de pescado¦tinta de calamar",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mveb6jlbn76cz",
+      "title": "Boquerones fritos",
+      "keyFingerprint": "aceite de oliva¦boquerones frescos¦harina¦lim n¦sal",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mveb6jlbqwv7t",
+      "title": "Bocadillo caliente de lomo con queso",
+      "keyFingerprint": "lomo adobado¦pan¦queso",
+      "on": "2026-10-18"
+    },
+    {
+      "id": "mveb6jlb3dr8e",
+      "title": "Arroz negro con sepia",
+      "keyFingerprint": "ajo¦arroz¦azafr n¦caldo¦perejil¦sepia¦tinta de sepia",
+      "on": "2026-10-18"
+    },
+    {
+      "id": "mveb6jlb41ajg",
+      "title": "Chipirones encebollados",
+      "keyFingerprint": "aceite de oliva¦cebolla¦chipirones¦laurel¦vino blanco",
+      "on": "2026-10-18"
+    },
+    {
+      "id": "mveb77zk9qpev",
+      "title": "Bollos preñaos de chorizo",
+      "keyFingerprint": "aceite de oliva¦chorizos¦pan de bollo",
+      "on": "2026-10-18"
+    },
+    {
+      "id": "mveb77zkst7hg",
+      "title": "Bacalao a la vizcaína",
+      "keyFingerprint": "aceite de oliva¦ajos¦bacalao desalado¦cebolla¦pimientos choriceros",
+      "on": "2026-10-18"
+    },
+    {
+      "id": "mveb77zkqi5c2",
+      "title": "Crema de calabaza",
+      "keyFingerprint": "aceite¦calabaza¦nata l quida¦patata¦puerro¦sal",
+      "on": "2026-10-18"
+    },
+    {
+      "id": "mvefi3mtstl7b",
+      "title": "Bocadillo caliente de chorizo",
+      "keyFingerprint": "chorizo¦pan",
+      "on": "2026-10-19"
+    },
+    {
+      "id": "mvefi3mt2mqnp",
+      "title": "Tortilla de patatas española",
+      "keyFingerprint": "aceite de oliva¦cebolla opcional¦huevos¦patatas¦sal",
+      "on": "2026-10-19"
+    },
+    {
+      "id": "mvefi3mt6s6jn",
+      "title": "Huevos al plato con tomate",
+      "keyFingerprint": "aceite de oliva¦ajo¦cebolla¦huevos¦perejil¦tomates maduros",
+      "on": "2026-10-19"
+    },
+    {
+      "id": "mvefi3mtqklkk",
+      "title": "Huevos · Desayuno",
+      "keyFingerprint": "guanchiale¦huevos¦jam n ib rico¦sal",
+      "on": "2026-10-20"
+    },
+    {
+      "id": "mvefi3mtiduqg",
+      "title": "Patatas a la riojana",
+      "keyFingerprint": "aceite de oliva¦ajo¦cebolla¦chorizo¦laurel¦patatas¦piment n dulce¦pimiento choricero¦sal",
+      "on": "2026-10-20"
+    },
+    {
+      "id": "mvefi3mtcvy5e",
+      "title": "Huevos perdidos con morcilla",
+      "keyFingerprint": "aceite¦cebolla¦huevos¦morcilla asturiana¦pan casero¦sal",
+      "on": "2026-10-20"
+    },
+    {
+      "id": "mvefi3mtos6sp",
+      "title": "Huevos revueltos con durillo",
+      "keyFingerprint": "aceite de oliva¦cebolla¦chorizo¦huevos¦patatas¦sal",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mvefi3mtk2eqx",
+      "title": "Bruschetta de tomate",
+      "keyFingerprint": "aceite de oliva¦ajos¦albahaca¦pan¦sal¦tomates",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mvefi3mt0oacv",
+      "title": "Revuelto de setas y gambas",
+      "keyFingerprint": "aceite¦ajo¦gambas peladas¦huevos¦sal¦setas variadas",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mvefi3mtoi9q6",
+      "title": "Tostadas con aceite de oliva y sal gorda",
+      "keyFingerprint": "aceite de oliva virgen extra¦pan¦sal gorda",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mvefi3mti70xn",
+      "title": "Alubias rojas con chorizo",
+      "keyFingerprint": "alubias rojas cocidas¦cebolla¦chorizo¦laurel¦piment n dulce",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mvefi3mt2mgjs",
+      "title": "Revuelto de ajetes tiernos",
+      "keyFingerprint": "aceite de oliva¦ajetes tiernos¦huevos¦pan tostado¦sal",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mvefi3mtgzt7x",
+      "title": "Huevos al plato con chorizo",
+      "keyFingerprint": "aceite de oliva¦chorizo¦huevos¦pan de pueblo¦piment n dulce¦sal",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mvefi3mtshos5",
+      "title": "Huevos rotos con jamón",
+      "keyFingerprint": "aceite oliva¦huevos¦jam n serrano¦patatas¦sal",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mvefi3mtgm3f9",
+      "title": "Solomillo al whisky",
+      "keyFingerprint": "aceite de oliva¦ajos¦sal¦solomillo de cerdo¦whisky",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mvefi3mt31bus",
+      "title": "Torrijas ligeras de desayuno",
+      "keyFingerprint": "aceite¦canela¦huevo¦leche¦miel¦pan del d a anterior",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mvefi3mtnpw3i",
+      "title": "Patatas a la Riojana · Comida",
+      "keyFingerprint": "aceite¦ajo¦cebolla¦chorizo¦laurel¦oliva¦patatas¦piment n¦pimiento¦sal",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mvefi3mtyzb0h",
+      "title": "Ajo blanco con uvas",
+      "keyFingerprint": "aceite de oliva¦ajos¦almendras molidas¦pan¦uvas¦vinagre",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mvefi3mt1fbxf",
+      "title": "Migas de pan con chorizo",
+      "keyFingerprint": "aceite de oliva¦ajos¦chorizo¦pan del d a anterior¦piment n dulce",
+      "on": "2026-10-18"
+    },
+    {
+      "id": "mvefi3mtmsdc5",
+      "title": "Bacalao dorado con patatas paja",
+      "keyFingerprint": "aceite de oliva¦aceitunas negras¦cebolla¦huevos¦lomos de bacalao desalado¦patatas",
+      "on": "2026-10-18"
+    },
+    {
+      "id": "mvefi3mtiivva",
+      "title": "Bacalao con tomate y albahaca",
+      "keyFingerprint": "aceite¦ajo¦albahaca fresca¦lomos bacalao¦tomates maduros¦vinagre",
+      "on": "2026-10-18"
+    },
+    {
+      "id": "mveccfqa15yxq",
+      "title": "Chipirones encebollados",
+      "keyFingerprint": "aceite de oliva¦cebolla¦chipirones¦laurel¦vino blanco",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mveccfqa97nr0",
+      "title": "Revuelto de ajetes tiernos",
+      "keyFingerprint": "aceite de oliva¦ajetes tiernos¦huevos¦pan tostado¦sal",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mveccfqa9pp57",
+      "title": "Solomillo al whisky",
+      "keyFingerprint": "aceite de oliva¦ajos¦sal¦solomillo de cerdo¦whisky",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mveccfqaq25g6",
+      "title": "Ajo blanco con uvas",
+      "keyFingerprint": "aceite de oliva¦ajos¦almendras molidas¦pan¦uvas¦vinagre",
+      "on": "2026-10-18"
+    },
+    {
+      "id": "mvee3evm0g55z",
+      "title": "Revuelto de gambas con ajos tiernos",
+      "keyFingerprint": "aceite de oliva¦ajos tiernos¦gambas¦huevos¦sal",
+      "on": "2026-10-18"
+    },
+    {
+      "id": "mvee3evmfii14",
+      "title": "Pollo al ajillo",
+      "keyFingerprint": "aceite de oliva¦ajos¦laurel¦pollo troceado¦sal¦vino blanco",
+      "on": "2026-10-18"
+    },
+    {
+      "id": "mvfo1f71tguyv",
+      "title": "Huevos revueltos con durillo",
+      "keyFingerprint": "aceite de oliva¦cebolla¦chorizo¦huevos¦patatas¦sal",
+      "on": "2026-10-19"
+    },
+    {
+      "id": "mvfo1f71jnd92",
+      "title": "Patatas a la riojana",
+      "keyFingerprint": "aceite de oliva¦ajo¦cebolla¦chorizo¦laurel¦patatas¦piment n dulce¦pimiento choricero¦sal",
+      "on": "2026-10-19"
+    },
+    {
+      "id": "mvfo1f71r2bah",
+      "title": "Huevos perdidos con morcilla",
+      "keyFingerprint": "aceite¦cebolla¦huevos¦morcilla asturiana¦pan casero¦sal",
+      "on": "2026-10-19"
+    },
+    {
+      "id": "mvfo1f71rlqvc",
+      "title": "Tostada de morcilla con huevo frito",
+      "keyFingerprint": "aceite de oliva¦huevos¦morcilla¦pan",
+      "on": "2026-10-20"
+    },
+    {
+      "id": "mvfo1f71fsxrl",
+      "title": "Bruschetta de tomate",
+      "keyFingerprint": "aceite de oliva¦ajos¦albahaca¦pan¦sal¦tomates",
+      "on": "2026-10-20"
+    },
+    {
+      "id": "mvfo1f712s93i",
+      "title": "Gambas a la plancha con sal gorda",
+      "keyFingerprint": "aceite de oliva¦gambas¦perejil¦sal gorda",
+      "on": "2026-10-20"
+    },
+    {
+      "id": "mvfo1f71zbx5e",
+      "title": "Tostadas con aceite de oliva y sal gorda",
+      "keyFingerprint": "aceite de oliva virgen extra¦pan¦sal gorda",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mvfo1f718mv48",
+      "title": "Boquerones en vinagre",
+      "keyFingerprint": "aceite¦ajos¦boquerones frescos¦perejil¦sal¦vinagre",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mvfo1f71xivgw",
+      "title": "Huevos al plato con chorizo",
+      "keyFingerprint": "aceite de oliva¦chorizo¦huevos¦pan de pueblo¦piment n dulce¦sal",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mvfo1f71w9cee",
+      "title": "Huevos rotos con jamón",
+      "keyFingerprint": "aceite oliva¦huevos¦jam n serrano¦patatas¦sal",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mvfo1f71tpjbe",
+      "title": "Revuelto de setas y gambas",
+      "keyFingerprint": "aceite¦ajo¦gambas peladas¦huevos¦sal¦setas variadas",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mvfo1f712me8d",
+      "title": "Torrijas ligeras de desayuno",
+      "keyFingerprint": "aceite¦canela¦huevo¦leche¦miel¦pan del d a anterior",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mvfo1f710sig8",
+      "title": "Patatas a la Riojana · Comida",
+      "keyFingerprint": "aceite¦ajo¦cebolla¦chorizo¦laurel¦oliva¦patatas¦piment n¦pimiento¦sal",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mvfo1f71xgsek",
+      "title": "Chipirones encebollados",
+      "keyFingerprint": "aceite de oliva¦cebolla¦chipirones¦laurel¦vino blanco",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mvfo1f71ag86m",
+      "title": "Revuelto de champiñones",
+      "keyFingerprint": "aceite de oliva¦ajos¦champi ones¦huevos¦perejil",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mvfo1f71vichm",
+      "title": "Tortilla de bacalao",
+      "keyFingerprint": "aceite de oliva¦bacalao desalado¦cebolla¦huevos¦perejil",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mvfo1f715k1w3",
+      "title": "Espaguetis aglio e olio",
+      "keyFingerprint": "aceite de oliva¦ajos¦espaguetis¦guindilla¦perejil",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mvfo1f71v5nyv",
+      "title": "Tostada de tomate y ajo",
+      "keyFingerprint": "aceite de oliva virgen extra¦ajos¦pan¦sal¦tomates maduros",
+      "on": "2026-10-25"
+    },
+    {
+      "id": "mvfo1f712u9k3",
+      "title": "Bacalao al pil-pil",
+      "keyFingerprint": "aceite de oliva¦ajos¦lomos de bacalao¦perejil",
+      "on": "2026-10-25"
+    },
+    {
+      "id": "mvfo1f71tp8kp",
+      "title": "Revuelto de ajetes tiernos",
+      "keyFingerprint": "aceite de oliva¦ajetes tiernos¦huevos¦pan tostado¦sal",
+      "on": "2026-10-25"
+    },
+    {
+      "id": "mvfttp48lm6my",
+      "title": "Tostada de morcilla con huevo frito",
+      "keyFingerprint": "aceite de oliva¦huevos¦morcilla¦pan",
+      "on": "2026-10-19"
+    },
+    {
+      "id": "mvfttp48udnt9",
+      "title": "Bruschetta de tomate",
+      "keyFingerprint": "aceite de oliva¦ajos¦albahaca¦pan¦sal¦tomates",
+      "on": "2026-10-19"
+    },
+    {
+      "id": "mvfttp48mqb8m",
+      "title": "Gambas a la plancha con sal gorda",
+      "keyFingerprint": "aceite de oliva¦gambas¦perejil¦sal gorda",
+      "on": "2026-10-19"
+    },
+    {
+      "id": "mvfttp48wirk8",
+      "title": "Tostadas con aceite de oliva y sal gorda",
+      "keyFingerprint": "aceite de oliva virgen extra¦pan¦sal gorda",
+      "on": "2026-10-20"
+    },
+    {
+      "id": "mvfttp48ninng",
+      "title": "Alubias rojas con chorizo",
+      "keyFingerprint": "alubias rojas cocidas¦cebolla¦chorizo¦laurel¦piment n dulce",
+      "on": "2026-10-20"
+    },
+    {
+      "id": "mvfttp48440jr",
+      "title": "Boquerones en vinagre",
+      "keyFingerprint": "aceite¦ajos¦boquerones frescos¦perejil¦sal¦vinagre",
+      "on": "2026-10-20"
+    },
+    {
+      "id": "mvfttp48u7qg8",
+      "title": "Huevos al plato con chorizo",
+      "keyFingerprint": "aceite de oliva¦chorizo¦huevos¦pan de pueblo¦piment n dulce¦sal",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mvfttp49qjpdt",
+      "title": "Huevos rotos con jamón",
+      "keyFingerprint": "aceite oliva¦huevos¦jam n serrano¦patatas¦sal",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mvfttp49xkkja",
+      "title": "Torrijas ligeras de desayuno",
+      "keyFingerprint": "aceite¦canela¦huevo¦leche¦miel¦pan del d a anterior",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mvfttp49voeq2",
+      "title": "Patatas a la Riojana · Comida",
+      "keyFingerprint": "aceite¦ajo¦cebolla¦chorizo¦laurel¦oliva¦patatas¦piment n¦pimiento¦sal",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mvfttp49cqkya",
+      "title": "Revuelto de champiñones",
+      "keyFingerprint": "aceite de oliva¦ajos¦champi ones¦huevos¦perejil",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mvfttp49fpiz0",
+      "title": "Tortilla de bacalao",
+      "keyFingerprint": "aceite de oliva¦bacalao desalado¦cebolla¦huevos¦perejil",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mvfttp4955o4c",
+      "title": "Espaguetis aglio e olio",
+      "keyFingerprint": "aceite de oliva¦ajos¦espaguetis¦guindilla¦perejil",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mvfttp49hubru",
+      "title": "Tostada de tomate y ajo",
+      "keyFingerprint": "aceite de oliva virgen extra¦ajos¦pan¦sal¦tomates maduros",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mvfttp49k66nl",
+      "title": "Bacalao al pil-pil",
+      "keyFingerprint": "aceite de oliva¦ajos¦lomos de bacalao¦perejil",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mvfttp497xbvg",
+      "title": "Revuelto de ajetes tiernos",
+      "keyFingerprint": "aceite de oliva¦ajetes tiernos¦huevos¦pan tostado¦sal",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mvfttp494s4d8",
+      "title": "Huevos · Desayuno",
+      "keyFingerprint": "guanchiale¦huevos¦jam n ib rico¦sal",
+      "on": "2026-10-25"
+    },
+    {
+      "id": "mvfttp49y1ori",
+      "title": "Chuletillas de cordero a la brasa",
+      "keyFingerprint": "aceite de oliva¦ajos¦chuletillas de cordero¦lim n¦perejil¦sal gorda",
+      "on": "2026-10-25"
+    },
+    {
+      "id": "mvfttp49kyay7",
+      "title": "Solomillo al whisky",
+      "keyFingerprint": "aceite de oliva¦ajos¦sal¦solomillo de cerdo¦whisky",
+      "on": "2026-10-25"
+    },
+    {
+      "id": "mvhw071a5z3b4",
+      "title": "Torrijas ligeras de desayuno",
+      "keyFingerprint": "aceite¦canela¦huevo¦leche¦miel¦pan del d a anterior",
+      "on": "2026-10-26"
+    },
+    {
+      "id": "mvhw071amyksn",
+      "title": "Patatas a la Riojana · Comida",
+      "keyFingerprint": "aceite¦ajo¦cebolla¦chorizo¦laurel¦oliva¦patatas¦piment n¦pimiento¦sal",
+      "on": "2026-10-26"
+    },
+    {
+      "id": "mvhw071aru2os",
+      "title": "Espaguetis aglio e olio",
+      "keyFingerprint": "aceite de oliva¦ajos¦espaguetis¦guindilla¦perejil",
+      "on": "2026-10-26"
+    },
+    {
+      "id": "mvhw071asnd6w",
+      "title": "Revuelto de champiñones",
+      "keyFingerprint": "aceite de oliva¦ajos¦champi ones¦huevos¦perejil",
+      "on": "2026-10-27"
+    },
+    {
+      "id": "mvhw071am34yi",
+      "title": "Tortilla de bacalao",
+      "keyFingerprint": "aceite de oliva¦bacalao desalado¦cebolla¦huevos¦perejil",
+      "on": "2026-10-27"
+    },
+    {
+      "id": "mvhw071adl1i8",
+      "title": "Revuelto de ajetes tiernos",
+      "keyFingerprint": "aceite de oliva¦ajetes tiernos¦huevos¦pan tostado¦sal",
+      "on": "2026-10-27"
+    },
+    {
+      "id": "mvhw071ac37qy",
+      "title": "Tostada de tomate y ajo",
+      "keyFingerprint": "aceite de oliva virgen extra¦ajos¦pan¦sal¦tomates maduros",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mvhw071ay3065",
+      "title": "Bacalao al pil-pil",
+      "keyFingerprint": "aceite de oliva¦ajos¦lomos de bacalao¦perejil",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mvhw071aj6b41",
+      "title": "Solomillo al whisky",
+      "keyFingerprint": "aceite de oliva¦ajos¦sal¦solomillo de cerdo¦whisky",
+      "on": "2026-10-21"
+    },
+    {
+      "id": "mvhw071ajulnz",
+      "title": "Tortilla francesa de queso",
+      "keyFingerprint": "aceite de oliva¦huevos¦queso¦sal",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mvhw071a17oxk",
+      "title": "Chuletillas de cordero a la brasa",
+      "keyFingerprint": "aceite de oliva¦ajos¦chuletillas de cordero¦lim n¦perejil¦sal gorda",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mvhw071a9wvuu",
+      "title": "Espinacas con garbanzos",
+      "keyFingerprint": "aceite¦ajos¦comino¦espinacas¦garbanzos cocidos¦piment n",
+      "on": "2026-10-22"
+    },
+    {
+      "id": "mvhw071art4oy",
+      "title": "Huevos escalfados sobre espinacas",
+      "keyFingerprint": "aceite de oliva¦ajos¦espinacas¦huevos¦sal¦vino blanco",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mvhw071akqlm7",
+      "title": "Gazpachuelo malagueño",
+      "keyFingerprint": "aceite¦ajo¦calamares¦mayonesa¦patatas¦perejil",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mvhw071axnm51",
+      "title": "Gambas al ajillo",
+      "keyFingerprint": "aceite¦ajos¦gambas peladas¦perejil¦pimiento rojo¦vino blanco",
+      "on": "2026-10-23"
+    },
+    {
+      "id": "mvhw071aubdyq",
+      "title": "Lentejas  con Chorizo· Comida",
+      "keyFingerprint": "aceite¦cebolla¦chorizo¦lentejas¦sal¦zanahoria",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mvhw071a3s3hb",
+      "title": "Hamburguesa de carne sevillana",
+      "keyFingerprint": "aceite oliva¦ajo¦carne vacuno picada¦huevo¦pan rallado¦perejil",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mvhw071a4zrdb",
+      "title": "Gofio escaldado",
+      "keyFingerprint": "aceite¦caldo pescado¦gofio¦patatas¦pescado¦sal",
+      "on": "2026-10-24"
+    },
+    {
+      "id": "mvhw071a3vz12",
+      "title": "Tostada de sobrasada con miel",
+      "keyFingerprint": "miel¦pan¦sobrasada",
+      "on": "2026-10-25"
+    },
+    {
+      "id": "mvhw071adqlgr",
+      "title": "Pollo guisado a la cerveza",
+      "keyFingerprint": "aceite de oliva¦ajos¦cebolla¦cerveza¦laurel¦muslos de pollo",
+      "on": "2026-10-25"
+    },
+    {
+      "id": "mvhw071afjads",
+      "title": "Huevos rellenos de atún",
+      "keyFingerprint": "aceite¦at n en conserva¦cebolleta¦huevos duros¦mayonesa¦piment n",
+      "on": "2026-10-25"
+    }
+  ],
+  "weekmenu": {
+    "plan": [
+      {
+        "dayLabel": "Lunes",
+        "meals": [
+          {
+            "meal": "desayuno",
+            "recipe": {
+              "id": "mvhw069sor00d",
+              "title": "Torrijas ligeras de desayuno",
+              "meal": "desayuno",
+              "ingredients": [
+                "Pan del día anterior",
+                "Leche",
+                "Miel",
+                "Canela",
+                "Huevo",
+                "Aceite"
+              ],
+              "method": [
+                "Remoja el pan en leche con miel y canela.",
+                "Pasa por huevo batido.",
+                "Freír rápidamente en aceite caliente.",
+                "Escurre y sirve tibio."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Leche Tamara",
+                "Miel",
+                "Canela",
+                "Huevos",
+                "Aceite de oliva virgen extra (en litros)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Pan del día anterior"
+            ]
+          },
+          {
+            "meal": "comida",
+            "recipe": {
+              "id": "mvhw069sjuwoj",
+              "title": "Patatas a la Riojana · Comida",
+              "meal": "comida",
+              "ingredients": [
+                "Patatas",
+                "Oliva",
+                "Pimiento",
+                "Cebolla",
+                "Ajo",
+                "Aceite",
+                "Chorizo",
+                "Pimentón",
+                "Laurel",
+                "Sal"
+              ],
+              "method": [
+                "1. Retira la pulpa con una cuchara.",
+                "2. \"Pica la cebolla.",
+                "3. Pela las patatas.",
+                "4. Córtalas en trozos, chascándolas al final para que suelten almidón.\",.",
+                "5. Sofríe la cebolla a fuego medio hasta que esté blanda.",
+                "6. Añade el ajo.",
+                "7. Cocina durante 1 minuto.\",.",
+                "8. \"Incorpora el chorizo en rodajas.",
+                "9. Retira la cazuela del fuego, añade el pimentón.",
+                "10. Cocina a fuego suave, sin tapar del todo, durante 25–30 minutos, hasta que las patatas estén tiernas."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Patatas",
+                "Aceite de oliva virgen extra (en litros)",
+                "Cebolla",
+                "Ajo",
+                "Chorizo",
+                "Pimentón dulce",
+                "Laurel",
+                "Sal (kl)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Pimiento"
+            ]
+          },
+          {
+            "meal": "cena",
+            "recipe": {
+              "id": "mvhw069sr059h",
+              "title": "Espaguetis aglio e olio",
+              "meal": "cena",
+              "ingredients": [
+                "Espaguetis",
+                "Ajos",
+                "Aceite de oliva",
+                "Guindilla",
+                "Perejil"
+              ],
+              "method": [
+                "Funde los ajos laminados con la guindilla en aceite.",
+                "Cuece la pasta al dente y reserva agua.",
+                "Saltea la pasta en el aceite con un chorro de agua de cocción.",
+                "Termina con perejil picado."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Ajo",
+                "Aceite de oliva virgen extra (en litros)",
+                "Perejil"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Espaguetis",
+              "Guindilla"
+            ]
+          }
+        ]
+      },
+      {
+        "dayLabel": "Martes",
+        "meals": [
+          {
+            "meal": "desayuno",
+            "recipe": {
+              "id": "mvhw069sy6l9q",
+              "title": "Revuelto de champiñones",
+              "meal": "desayuno",
+              "ingredients": [
+                "Huevos",
+                "Champiñones",
+                "Ajos",
+                "Perejil",
+                "Aceite de oliva"
+              ],
+              "method": [
+                "Dora los champiñones laminados con ajo en aceite.",
+                "Bate los huevos y añádelos fuera del fuego removiendo suave.",
+                "Termina con perejil picado y puntita de sal."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Huevos",
+                "Ajo",
+                "Perejil",
+                "Aceite de oliva virgen extra (en litros)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Champiñones"
+            ]
+          },
+          {
+            "meal": "comida",
+            "recipe": {
+              "id": "mvhw069sle3wr",
+              "title": "Tortilla de bacalao",
+              "meal": "comida",
+              "ingredients": [
+                "Huevos",
+                "Bacalao desalado",
+                "Cebolla",
+                "Perejil",
+                "Aceite de oliva"
+              ],
+              "method": [
+                "Sofríe la cebolla hasta translúcida.",
+                "Añade el bacalao desmigado un par de minutos.",
+                "Mezcla con los huevos batidos y perejil.",
+                "Cuaja la tortilla jugosa en poco aceite."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Huevos",
+                "Cebolla",
+                "Perejil",
+                "Aceite de oliva virgen extra (en litros)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Bacalao desalado"
+            ]
+          },
+          {
+            "meal": "cena",
+            "recipe": {
+              "id": "mvhw069sxrfmc",
+              "title": "Revuelto de ajetes tiernos",
+              "meal": "cena",
+              "ingredients": [
+                "Ajetes tiernos",
+                "Huevos",
+                "Aceite de oliva",
+                "Sal",
+                "Pan tostado"
+              ],
+              "method": [
+                "Limpia y trocea los ajetes.",
+                "Sofríe en aceite hasta que estén tiernos.",
+                "Añade los huevos batidos y remueve a fuego suave.",
+                "Retira cuando cuaje y sirve con pan tostado."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Huevos",
+                "Aceite de oliva virgen extra (en litros)",
+                "Sal (kl)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Ajetes tiernos",
+              "Pan tostado"
+            ]
+          }
+        ]
+      },
+      {
+        "dayLabel": "Miércoles",
+        "meals": [
+          {
+            "meal": "desayuno",
+            "recipe": {
+              "id": "mvhw069s5lt2b",
+              "title": "Tostada de tomate y ajo",
+              "meal": "desayuno",
+              "ingredients": [
+                "Pan",
+                "Tomates maduros",
+                "Ajos",
+                "Aceite de oliva virgen extra",
+                "Sal"
+              ],
+              "method": [
+                "Calienta una sartén con un chorrito de aceite de oliva.",
+                "Saltea 1-2 dientes de ajo picado fino hasta que queden dorados sin quemar.",
+                "Tuesta el pan y frota su superficie caliente con un tomate maduro cortado por la mitad.",
+                "Coloca los ajos salteados encima, pincela con un poco más de aceite y una pizca de sal."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Picos de pan campesinos",
+                "Ajo",
+                "Aceite de oliva virgen extra (en litros)",
+                "Sal (kl)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Tomates maduros"
+            ]
+          },
+          {
+            "meal": "comida",
+            "recipe": {
+              "id": "mvhw069sqsguf",
+              "title": "Bacalao al pil-pil",
+              "meal": "comida",
+              "ingredients": [
+                "Lomos de bacalao",
+                "Aceite de oliva",
+                "Ajos",
+                "Perejil"
+              ],
+              "method": [
+                "Desala el bacalao 24 horas cambiando agua.",
+                "Dora los ajos en aceite suave.",
+                "Añade bacalao piel hacia abajo.",
+                "Agita la cazuela hasta formar emulsión."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Aceite de oliva virgen extra (en litros)",
+                "Ajo",
+                "Perejil"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Lomos de bacalao"
+            ]
+          },
+          {
+            "meal": "cena",
+            "recipe": {
+              "id": "mvhw069s0f3za",
+              "title": "Solomillo al whisky",
+              "meal": "cena",
+              "ingredients": [
+                "Solomillo de cerdo",
+                "Whisky",
+                "Ajos",
+                "Aceite de oliva",
+                "Sal"
+              ],
+              "method": [
+                "Sella el solomillo en plancha fuerte y resérvalo.",
+                "En la misma sartén, machaca ajos con sal y vierte el whisky.",
+                "Termina la salsa reducida un minuto.",
+                "Corta el solomillo en medallones y baña con la salsa."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Ajo",
+                "Aceite de oliva virgen extra (en litros)",
+                "Sal (kl)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Solomillo de cerdo",
+              "Whisky"
+            ]
+          }
+        ]
+      },
+      {
+        "dayLabel": "Jueves",
+        "meals": [
+          {
+            "meal": "desayuno",
+            "recipe": {
+              "id": "mvhw069s0fkz7",
+              "title": "Tortilla francesa de queso",
+              "meal": "desayuno",
+              "ingredients": [
+                "Huevos",
+                "Queso",
+                "Aceite de oliva",
+                "Sal"
+              ],
+              "method": [
+                "Bate los huevos con sal.",
+                "Cuaja la tortilla en sartén baja con poco aceite.",
+                "Reparte el queso, dobla y sirve jugosa."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Huevos",
+                "Aceite de oliva virgen extra (en litros)",
+                "Sal (kl)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Queso"
+            ]
+          },
+          {
+            "meal": "comida",
+            "recipe": {
+              "id": "mvhw069sywnjx",
+              "title": "Chuletillas de cordero a la brasa",
+              "meal": "comida",
+              "ingredients": [
+                "Chuletillas de cordero",
+                "Ajos",
+                "Perejil",
+                "Aceite de oliva",
+                "Sal gorda",
+                "Limón"
+              ],
+              "method": [
+                "Machaca ajos y perejil con aceite y pinta las chuletillas.",
+                "Calienta la parrilla o plancha hasta que humee.",
+                "Asa 3-4 minutos por cada lado según grosor.",
+                "Reposa un minuto y sirve con sal gorda y limón."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Ajo",
+                "Perejil",
+                "Aceite de oliva virgen extra (en litros)",
+                "Sal (kl)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Chuletillas de cordero",
+              "Limón"
+            ]
+          },
+          {
+            "meal": "cena",
+            "recipe": {
+              "id": "mvhw069so8ojr",
+              "title": "Espinacas con garbanzos",
+              "meal": "cena",
+              "ingredients": [
+                "Espinacas",
+                "Garbanzos cocidos",
+                "Ajos",
+                "Pimentón",
+                "Comino",
+                "Aceite"
+              ],
+              "method": [
+                "Saltea ajos hasta dorar suavemente.",
+                "Añade espinacas y sofríe 5 minutos.",
+                "Mezcla con garbanzos calientes.",
+                "Condimenta con pimentón y cominos."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Ajo",
+                "Pimentón dulce",
+                "Aceite de oliva virgen extra (en litros)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Espinacas",
+              "Garbanzos cocidos",
+              "Comino"
+            ]
+          }
+        ]
+      },
+      {
+        "dayLabel": "Viernes",
+        "meals": [
+          {
+            "meal": "desayuno",
+            "recipe": {
+              "id": "mvhw069sxtm17",
+              "title": "Huevos escalfados sobre espinacas",
+              "meal": "desayuno",
+              "ingredients": [
+                "Huevos",
+                "Espinacas",
+                "Ajos",
+                "Vino blanco",
+                "Aceite de oliva",
+                "Sal"
+              ],
+              "method": [
+                "Saltea las espinacas con ajo en aceite.",
+                "Añade un chorrito de vino blanco y deja reducir.",
+                "Escalfa los huevos 3 minutos y colócalos encima."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Huevos",
+                "Ajo",
+                "Aceite de oliva virgen extra (en litros)",
+                "Sal (kl)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Espinacas",
+              "Vino blanco"
+            ]
+          },
+          {
+            "meal": "comida",
+            "recipe": {
+              "id": "mvhw069skcq67",
+              "title": "Gazpachuelo malagueño",
+              "meal": "comida",
+              "ingredients": [
+                "Patatas",
+                "Calamares",
+                "Mayonesa",
+                "Ajo",
+                "Aceite",
+                "Perejil"
+              ],
+              "method": [
+                "Cuece patatas hasta tiernas.",
+                "Saltea calamares rápidamente.",
+                "Emulsiona con mayonesa y ajo.",
+                "Mezcla todo y sirve frío."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Patatas",
+                "Ajo",
+                "Aceite de oliva virgen extra (en litros)",
+                "Perejil"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Calamares",
+              "Mayonesa"
+            ]
+          },
+          {
+            "meal": "cena",
+            "recipe": {
+              "id": "mvhw069sew3s9",
+              "title": "Gambas al ajillo",
+              "meal": "cena",
+              "ingredients": [
+                "Gambas peladas",
+                "Ajos",
+                "Pimiento rojo",
+                "Aceite",
+                "Vino blanco",
+                "Perejil"
+              ],
+              "method": [
+                "Calienta aceite en cazuela de barro.",
+                "Dora los ajos laminados sin quemar.",
+                "Añade gambas y saltea 3 minutos.",
+                "Finaliza con vino, perejil y pimiento."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Ajo",
+                "Aceite de oliva virgen extra (en litros)",
+                "Perejil"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Gambas peladas",
+              "Pimiento rojo",
+              "Vino blanco"
+            ]
+          }
+        ]
+      },
+      {
+        "dayLabel": "Sábado",
+        "meals": [
+          {
+            "meal": "desayuno",
+            "recipe": {
+              "id": "mvhw069s1uo8j",
+              "title": "Lentejas  con Chorizo· Comida",
+              "meal": "desayuno",
+              "ingredients": [
+                "Lentejas",
+                "Chorizo",
+                "Sal",
+                "Aceite",
+                "Zanahoria",
+                "Cebolla"
+              ],
+              "method": [
+                "1. Cortamos.",
+                "2. Pelamos la verdura.",
+                "3. Dejamos preparada,.",
+                "4. Al de 2 minutos el resto de las verduras, cuando este sofrito, echamos el chorizo para que se dore un poco.",
+                "5. Al de 1 minuto echamos las lentejas sin agua aun.",
+                "6. Apartamos del fuego esperamos que enfrie.",
+                "7. Servimos."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Chorizo",
+                "Sal (kl)",
+                "Aceite de oliva virgen extra (en litros)",
+                "Cebolla"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Lentejas",
+              "Zanahoria"
+            ]
+          },
+          {
+            "meal": "comida",
+            "recipe": {
+              "id": "mvhw069s7ukwm",
+              "title": "Hamburguesa de carne sevillana",
+              "meal": "comida",
+              "ingredients": [
+                "Carne vacuno picada",
+                "Huevo",
+                "Pan rallado",
+                "Ajo",
+                "Perejil",
+                "Aceite oliva"
+              ],
+              "method": [
+                "Mezcla carne con huevo y especias.",
+                "Forma hamburguesas a mano.",
+                "Fríe 4 minutos por lado.",
+                "Sirve con patatas alioli."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Huevos",
+                "Ajo",
+                "Perejil",
+                "Aceite de oliva virgen extra (en litros)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Carne vacuno picada",
+              "Pan rallado"
+            ]
+          },
+          {
+            "meal": "cena",
+            "recipe": {
+              "id": "mvhw069ste32b",
+              "title": "Gofio escaldado",
+              "meal": "cena",
+              "ingredients": [
+                "Gofio",
+                "Caldo pescado",
+                "Pescado",
+                "Patatas",
+                "Aceite",
+                "Sal"
+              ],
+              "method": [
+                "Cuece pescado y patatas.",
+                "Disuelve gofio en caldo.",
+                "Añade trozos de pescado.",
+                "Sirve caliente inmediatamente."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Patatas",
+                "Aceite de oliva virgen extra (en litros)",
+                "Sal (kl)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Gofio",
+              "Caldo pescado",
+              "Pescado"
+            ]
+          }
+        ]
+      },
+      {
+        "dayLabel": "Domingo",
+        "meals": [
+          {
+            "meal": "desayuno",
+            "recipe": {
+              "id": "mvhw069sbf24g",
+              "title": "Tostada de sobrasada con miel",
+              "meal": "desayuno",
+              "ingredients": [
+                "Pan",
+                "Sobrasada",
+                "Miel"
+              ],
+              "method": [
+                "Tuesta el pan.",
+                "Unta una capa fina de sobrasada.",
+                "Riega con hilos de miel y sirve templado."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Picos de pan campesinos",
+                "Miel"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Sobrasada"
+            ]
+          },
+          {
+            "meal": "comida",
+            "recipe": {
+              "id": "mvhw069snwehk",
+              "title": "Pollo guisado a la cerveza",
+              "meal": "comida",
+              "ingredients": [
+                "Muslos de pollo",
+                "Cerveza",
+                "Cebolla",
+                "Ajos",
+                "Laurel",
+                "Aceite de oliva"
+              ],
+              "method": [
+                "Dora los muslos de pollo por todas sus caras.",
+                "Sofríe la cebolla y los ajos picados en la misma cazuela.",
+                "Añade la cerveza y el laurel, y lleva a ebullición.",
+                "Cocina a fuego lento 30 minutos hasta espesar."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Cebolla",
+                "Ajo",
+                "Laurel",
+                "Aceite de oliva virgen extra (en litros)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Muslos de pollo",
+              "Cerveza"
+            ]
+          },
+          {
+            "meal": "cena",
+            "recipe": {
+              "id": "mvhw069sd7gjt",
+              "title": "Huevos rellenos de atún",
+              "meal": "cena",
+              "ingredients": [
+                "Huevos duros",
+                "Atún en conserva",
+                "Mayonesa",
+                "Cebolleta",
+                "Pimentón",
+                "Aceite"
+              ],
+              "method": [
+                "Cuece huevos 10 minutos.",
+                "Partir y quitar yemas.",
+                "Mezcla yemas con atún.",
+                "Rellena y pica cebolleta."
+              ],
+              "source": "receta_sugerida",
+              "uses": [
+                "Huevos",
+                "Pimentón dulce",
+                "Aceite de oliva virgen extra (en litros)"
+              ],
+              "from": "",
+              "createdAt": 1792573543360
+            },
+            "missing": [
+              "Atún en conserva",
+              "Mayonesa",
+              "Cebolleta"
+            ]
+          }
+        ]
+      }
+    ],
+    "needyFoods": [
+      {
+        "name": "Pan del día anterior"
+      },
+      {
+        "name": "Pimiento"
+      },
+      {
+        "name": "Espaguetis"
+      },
+      {
+        "name": "Guindilla"
+      },
+      {
+        "name": "Champiñones"
+      },
+      {
+        "name": "Bacalao desalado"
+      },
+      {
+        "name": "Ajetes tiernos"
+      },
+      {
+        "name": "Pan tostado"
+      },
+      {
+        "name": "Tomates maduros"
+      },
+      {
+        "name": "Lomos de bacalao"
+      },
+      {
+        "name": "Solomillo de cerdo"
+      },
+      {
+        "name": "Whisky"
+      },
+      {
+        "name": "Queso"
+      },
+      {
+        "name": "Chuletillas de cordero"
+      },
+      {
+        "name": "Limón"
+      },
+      {
+        "name": "Espinacas"
+      },
+      {
+        "name": "Garbanzos cocidos"
+      },
+      {
+        "name": "Comino"
+      },
+      {
+        "name": "Vino blanco"
+      },
+      {
+        "name": "Calamares"
+      },
+      {
+        "name": "Mayonesa"
+      },
+      {
+        "name": "Gambas peladas"
+      },
+      {
+        "name": "Pimiento rojo"
+      },
+      {
+        "name": "Lentejas"
+      },
+      {
+        "name": "Zanahoria"
+      },
+      {
+        "name": "Carne vacuno picada"
+      },
+      {
+        "name": "Pan rallado"
+      },
+      {
+        "name": "Gofio"
+      },
+      {
+        "name": "Caldo pescado"
+      },
+      {
+        "name": "Pescado"
+      },
+      {
+        "name": "Sobrasada"
+      },
+      {
+        "name": "Muslos de pollo"
+      },
+      {
+        "name": "Cerveza"
+      },
+      {
+        "name": "Atún en conserva"
+      },
+      {
+        "name": "Cebolleta"
+      }
+    ],
+    "approved": true,
+    "includeUnavailable": true,
+    "generatedOn": "2026-10-21"
+  }
+}
