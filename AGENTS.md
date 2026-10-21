@@ -296,12 +296,17 @@ italiana" (see `modules/origen-recetas.js` below).
     clase `alert-card` en el markup → la regla genérica `.alert-card li` (0,1,1) APLASTABA a `.menu-day`
     (0,1,0): centraba el título y achicaba el radio; la familia del plan lleva prefijo `#menu-plan-list`
     (1,1,0) para ganar y el override `#menu-plan-list.alert-card` neutraliza el tinte del contenedor.
-    **Alineación y rostro de los botones (2026-10-21, 2ª pasada):** `align-items:start` en la fila — la
-    PÍLDORA abre la fila pegada al TÍTULO (píldora y título arrancan a la misma altura SIEMPRE, sin
-    depender del nº de líneas; con `center` el arranque bajaba/subía entre filas) y los botones del plan
-    ya no salían al estilo por defecto del navegador (radio 0): llevan la voz de `.recipe-card` —
-    `--hover-wash` + filete + `border-radius: var(--radius-s)` (6px, el MISMO redondeo de las
-    píldoras) — verificado por sonda (pillTop == titTop == 10 en todas las filas, desviación 0).
+    **Alineación y rostro de los botones (2026-10-21, 2ª pasada):** `align-items:start` en la fila — el
+    cuerpo arranca ARRIBA en todas las filas (con `center` el título nacía a otra altura según el nº de
+    líneas) — la PÍLDORA se CENTRA en la fila con `align-self:center` y los botones del plan ya no salen
+    al estilo por defecto del navegador (radio 0): llevan la voz de `.recipe-card` — `--hover-wash` +
+    filete + `border-radius: var(--radius-s)` (6px, el MISMO redondeo de las píldoras).
+    **3ª pasada (2026-10-21, foto de referencia del usuario):** columna de la píldora FIJA (116px —
+    con `auto`, cada fila medía su propia píldora, 99/85/64px, y los títulos partían en un vertical
+    distinto fila a fila; 116px restaura la LíNEA DE ARRANCADA compartida, sonda: titX=142 en todas las
+    filas, desviación 0) y el TÍTULO DEL DÍA vuelve a CENTRARSE con su filete corto (`align-self:center`
+    + `width:max-content` + border-bottom: era el accidente visual de `.alert-card li` que el usuario
+    quería conservar — ahora es deliberado).
     `pickRecipeForSlot` es la 6ª función pública de
     `planner.js` (contrato ampliado, log §8 del CODING_STANDARDS.md). Las recetas guardadas son EDITABLES
     desde el modal de detalle (✏️ Editar): edición in-situ si ya está en `mrcheff.recipes` o copia nueva
