@@ -27,6 +27,7 @@
   --muted: #756d60;                    /* secundario cálido */
   --border: #e7e2d8;
   --border-strong: #d4cec2;
+  --filete-marron: #8a5f34;            /* hairline de secciones de la ficha de receta (petición 2026-10-21): marrón cálido del papel */
 
   /* Marca: verde laurel (soberio, de rama, no de casino) */
   --brand: #2f6b45;
@@ -97,6 +98,7 @@
   --muted: #a29a8a;
   --border: #383327;
   --border-strong: #4a4333;
+  --filete-marron: #b3885c;            /* mismo marrón aclarado para leerse sobre la hoja oscura */
 
   --brand: #7cbb8f;
   --brand-strong: #a3d3b0;
@@ -1010,6 +1012,7 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 .menu-day-header {
   align-self: center;              /* centrado en la tarjeta, como está en la foto de referencia */
+  position: relative;              /* ancla del filete inferior (::after a la caja del título) */
   width: max-content;              /* su filete inferior abraza SOLO al título — no a la tarjeta */
   font-family: Georgia, serif;
   font-weight: 600;
@@ -1019,7 +1022,21 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   align-items: center;
   gap: 10px;
   padding: 2px 18px 10px;
-  border-bottom: 1px solid var(--border);   /* filete corto bajo el título del día */
+}
+/* Filete bajo el nombre del día (petición 2026-10-21): mismo estilo difuminado que el filete
+   del título de la ficha de receta, en VERDE de marca para la semana — misma anatomía que la
+   ficha, color aparte para distinguir los días del plan de las secciones de receta. Va en
+   ::after sobre el padding-box: ocupa el sitio exacto del border-bottom sólido que sustituye
+   (el abraza-solo-al-título de width:max-content se conserva tal cual era). */
+.menu-day-header::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--brand) 20%, var(--brand) 80%, transparent);
+  opacity: 0.7;
 }
 /* El día abre con una señal de marca: jerarquía instantánea al escanear la semana */
 .menu-day-header::before {
@@ -1183,7 +1200,12 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   overflow-y: auto;
   overscroll-behavior: contain;          /* móvil: scrollear el modal NUNCA arrastra a la lista de debajo (nada de chaining al documento) */
   padding: 30px 34px 26px;
+  /* Scroll SIN barra visible (petición 2026-10-21): la ficha de receta y el editor siguen
+     scrolleando igual — sólo desaparece el raíl. scrollbar-width para Firefox, el ::-webkit
+     para Chromium/WebKit (Brave incluido); sin ambas el PWA móvil pintaría la barrita. */
+  scrollbar-width: none;
 }
+.modal-box::-webkit-scrollbar { display: none; }
 /* Congela el scroll del documento mientras el modal está abierto (apilado con
    overscroll-behavior:contain; app.js añade/quita la clase en abrirModal/closeModal).
    La clase se aplica al documentElement TAMBIÉN: en Android el scroller del documento
@@ -1268,9 +1290,24 @@ html.scroll-candado { overflow: hidden; }
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--text);
+  position: relative;                     /* ancla del filete de sección (::before a la caja del h4) */
   margin: 28px 0 14px;                    /* aire generoso antes de cada sección */
   padding-top: 18px;                      /* el filete se separa del bloque anterior */
-  border-top: 1px solid var(--border);
+}
+/* Filete de sección (petición 2026-10-21): el mismo estilo editorial que el filete del título
+   (.receta-linea: 1px que se disuelve en los extremos) pero en MARRÓN para las secciones de la
+   ficha — la jerarquía de lectura distingue "arranque" (verde bajo el título) de "sección" (marrón).
+   Va en ::before sobre la caja del h4: la línea ocupa el MISMO sitio exacto que ocupaba el
+   border-top sólido que sustituye, así el ritmo 28px / línea / 18px queda intacto. */
+.modal-content h4::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--filete-marron) 20%, var(--filete-marron) 80%, transparent);
+  opacity: 0.7;
 }
 .modal-content ul,
 .modal-content ol { margin-left: 14px; }   /* las listas van UN PELÍN más adentro que «Ingredientes»/«Método»: jerarquía de lectura */
