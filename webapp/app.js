@@ -1024,8 +1024,12 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="rev-nombre-fijo"><strong>${escapeHTML(c.nombre)}</strong><span class="ocr-tipo">${etqTipo[c.tipo] || "Otro"}</span></span>
             <span class="ocr-linea">Ya tienes ${Number.isFinite(enCasa && enCasa.qty) ? enCasa.qty : 0} en el inventario</span>
           </div>
-          <input type="number" class="exact-qty" min="0" step="1" value="${d.qty}" aria-label="Cantidad comprada de ${escapeHTML(c.nombre)}">
-          <input type="checkbox" class="ocr-include" ${d.incluir ? "checked" : ""} aria-label="Incluir ${escapeHTML(c.nombre)}">
+          <label class="rev-celda rev-celda-qty"><span class="rev-etiqueta">Cantidad</span>
+            <input type="number" class="exact-qty" min="0" step="1" value="${d.qty}" aria-label="Cantidad comprada de ${escapeHTML(c.nombre)}">
+          </label>
+          <label class="rev-celda rev-celda-include"><span class="rev-etiqueta">Incluir</span>
+            <input type="checkbox" class="ocr-include" ${d.incluir ? "checked" : ""} aria-label="Incluir ${escapeHTML(c.nombre)}">
+          </label>
         </div>`;
     }
 
