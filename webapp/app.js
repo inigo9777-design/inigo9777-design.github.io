@@ -2252,7 +2252,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
     // FEATURE 2026-10-19 "🛒 Despensa?": variantes del mismo alimento que el casador de tokens
-    // sóla une ("Jamón serrano" ↔ "Jamón ibérico", "Pan de pueblo" ↔ "Pan"). Los candidatos los
+    // solo une ("Jamón serrano" ↔ "Jamón ibérico", "Pan de pueblo" ↔ "Pan"). Los candidatos los
     // decide el módulo puro (menuSemanal.candidatosDespensa) — sin ellos el botón ni sale — y la
     // ÚLTIMA PALABRA la tiene la persona: el diálogo lista las opciones y confirma una a una.
     shoppingListEl.querySelectorAll("[data-despensa]").forEach(btn => {
@@ -2591,7 +2591,21 @@ document.addEventListener("DOMContentLoaded", () => {
     save(LS.foods, foods);
     save(LS.recipes, recipes);
     if (plan.addedCooked > 0) save(LS.cooked, plan.cooked);                      // anexo del historial cocinado (v2)
-    if (plan.weekmenu != null && !load(LS.weekmenu, null)) save(LS.weekmenu, plan.weekmenu);   // se deja constancia de la adopción del plan entrante (v2)
+    if (plan.weekmenu != null && !load(LS.weekmenu, null)) {               // se deja constancia de la adopción del plan entrante (v2)
+      save(LS.weekmenu, plan.weekmenu);
+      weeklyMenu = plan.weekmenu;                                         // Card 2 toma el plan importado (vive de la variable del closure)
+      if (weeklyMenu.approved) {
+        // El plan APROBADO del otro dispositivo se recupera YA a la vista (igual que el bloque
+        // de persistencia al recargar): días + botón de Aprobar en estado final + barra/plegado
+        // — la lista de la compra la repinta el renderShoppingListTrasDespensa de abajo con
+        // los needyFoods del plan adoptado.
+        renderWeeklyMenu(weeklyMenu.plan);            // guard interno: plan ausente/vacío ⇒ lista oculta
+        btnMenuApprove.disabled = true;
+        btnMenuApprove.textContent = "✅ Plan aprobado";
+        menuEmpty.classList.add("hidden");
+        pintaBarraPlan();
+      }
+    }
     if (plan.persistInnov) {   // solo si la entrada trajo innovaciones nuevas: marca "hoy" para que el auto-expiry del cierre DOMContentLoaded no las borre en la próxima carga (§5 "Alcance de expiración automática")
       innovDay = today;
       save(LS.innov, innovations);
@@ -2646,11 +2660,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ---- snapshot local completo (payload v2 del §1: misma forma que merge3 consume) ----
+  // REGLA del transporte (2026-10-21): sólo un menú APROBADO viaja — el snapshot lleva el plan
+  // aprobado ENTERO (plan + needyFoods = lista de la compra) para que el otro dispositivo lo
+  // recupere; el preview no aprobado va como NULL, como ausencia.
   function estadoLocalCompleto() {
     return {
       foods, recipes, innovations,
       cooked: load(LS.cooked, []),
-      weekmenu: load(LS.weekmenu, null)
+      weekmenu: menuSemanal.weekmenuTransportable(load(LS.weekmenu, null))
     };
   }
 
@@ -2668,6 +2685,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (estado.weekmenu != null) {
       weeklyMenu = estado.weekmenu;                     // la variable de Card 2 se reasigna también
       save(LS.weekmenu, weeklyMenu);
+      if (weeklyMenu.approved) {
+        // El plan APROBADO recuperado del otro dispositivo nace en su estado final, con la MISMA
+        // imagen que tiene al recargar: días pintados abajo, botón de Aprobar bajo el faldón y
+        // barra de plegado (petición 2026-10-21: plan + lista de la compra viajan enteros).
+        btnMenuApprove.disabled = true;
+        btnMenuApprove.textContent = "✅ Plan aprobado";
+        menuEmpty.classList.add("hidden");
+        pintaBarraPlan();
+      }
     }
     renderFoods();
     renderWeeklyAlert();

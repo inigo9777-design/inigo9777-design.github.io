@@ -136,6 +136,22 @@ describe("backup v2 — buildBackup + fusion de cooked/weekmenu", () => {
     expect(conLocal.weekmenu).toBe(local);
   });
 
+  it("REGLA del transporte (2026-10-21): el preview NO aprobado no se exporta ni se adopta al importar", () => {
+    const preview = { approved: false, generatedOn: "2026-10-21", plan: [{ dayLabel: "Lunes", meals: [] }] };
+
+    // EXPORT: el payload manual sólo transporta el plan APROBADO (con todo: plan+needyFoods)
+    const exportado = backup.buildBackup({ foods: [], recipes: [], innovations: [], innovDay: "", weekmenu: preview }, { now: "ISO" });
+    expect(exportado.weekmenu).toBeNull();                            // un preview no viaja jamás
+    const aprobada = { approved: true, generatedOn: "2026-10-21", plan: [{ dayLabel: "Lunes", meals: [] }], needyFoods: [{ name: "Leche" }] };
+    expect(backup.buildBackup({ foods: [], recipes: [], innovations: [], innovDay: "", weekmenu: aprobada }, { now: "ISO" }).weekmenu).toBe(aprobada);
+
+    // IMPORT: un fichero v2 ANTIGUO que llevase un preview no se recupera como plan (defensivo)
+    const importadoPreview = backup.mergeIncoming({ foods: [], recipes: [], innovations: [], weekmenu: null }, { weekmenu: preview }, {});
+    expect(importadoPreview.weekmenu).toBeNull();
+    const importadoAprobado = backup.mergeIncoming({ foods: [], recipes: [], innovations: [], weekmenu: null }, { weekmenu: aprobada }, {});
+    expect(importadoAprobado.weekmenu).toBe(aprobada);
+  });
+
   it("payload v1 (sin cooked/weekmenu) sigue funcionando: no lanza, no anexa, merge sin esas claves", () => {
     const current = { foods: [{ id: "f", name: "Tomate", score: 5 }], recipes: [], innovations: [], cooked: [], weekmenu: null };
     const out = backup.mergeIncoming(current, { version: 1, foods: [], recipes: [{ id: "r", title: "R", ingredients: ["Sal"] }] }, {});

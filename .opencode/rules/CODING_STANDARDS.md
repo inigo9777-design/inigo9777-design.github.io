@@ -228,6 +228,15 @@ Los bugs ya resueltos que antes vivían aquí están MOVIDOS a `bugfix.md` (raí
 `#bugfix-pwa-no-refresca-cambios` (2026-10-19, caché de la PWA servía assets viejos).
 Aquí queda sólo la referencia, sin su marcha.
 
+- `2026-10-21 · @AI-agent · #feature-sync-plan-lista · Principio: L · Justificación:` contrato §5
+  del payload v2 RESTINGIDO por decisión de producto: el campo `weekmenu` ahora sólo transporta
+  el menú APROBADO (con todo: plan + needyFoods) — un preview no se exporta, se importa ni
+  participa del diff3 (regla `menu-semanal.weekmenuTransportable`, 14ª pública). El resto de
+  campos del payload queda igual. La regla de 1 línea se DUPLICA deliberadamente en
+  `backup.js` y `diff-merge.js` para mantener los módulos puros independientes (mismo
+  precedente que `claveIngredientes`). Cambio semántico probado: unit (menu-semanal,
+  merge-identidad, diff-merge) + integración (sync-ui, import-plan-lista).
+
 - `2026-10-21 · @AI-agent · #epic-ocr-despensa-camara · Principio: O, L · Justificación:` REWORK de la
   confirmación del escáner a petición del usuario (la compra ya está hecha: TODO se resuelve en los
   dos diálogos, dentro de Alimentos, sin tocar la lista de la compra): se RETIRAN de `ocr-despensa.js`

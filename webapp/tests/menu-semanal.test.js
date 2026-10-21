@@ -5,7 +5,7 @@
 // `regenerateAfterCook` (cocinar desde el menú = cookEntry + swap de SOLO ese hueco) y `shoppingListFor` añade
 // urgencia de compra (semáforo rojo/naranja/verde según la fecha de preparación).
 
-const { shoppingListFor, approveMenu, markItemBought, markItemBoughtComo, candidatosDespensa, cookEntry, swapSlotRecipe, clearMenu, accionesMenuSlot, platosDelPlan, alternarColapso } = require("../modules/menu-semanal.js");
+const { shoppingListFor, approveMenu, markItemBought, markItemBoughtComo, candidatosDespensa, cookEntry, swapSlotRecipe, clearMenu, accionesMenuSlot, platosDelPlan, alternarColapso, weekmenuTransportable } = require("../modules/menu-semanal.js");
 
 // cookEntryFor determinista para tests (imita planner.cookEntryFor pero inyectable).
 function cookEntryFor(recipe, opts) {
@@ -679,5 +679,31 @@ describe("validarCompraForm + valoresPreviosDeCompra — reglas del modal de com
       expect(valoresPreviosDeCompra({})).toEqual({ min: 1, score: 5 });
       expect(valoresPreviosDeCompra({ min: NaN, score: null })).toEqual({ min: 1, score: 5 });
     });
+  });
+});
+
+describe("weekmenuTransportable — REGLA del transporte del plan semanal (petición 2026-10-21)", () => {
+  const semanaAprobada = {
+    approved: true, generatedOn: "2026-10-21", plan: preview3Dias().plan,
+    needyFoods: [{ name: "Aceite", qty: 1, min: 0, score: 5 }]
+  };
+
+  it("sólo un plan APROBADO es transportable, y lo es ENTERO (misma referencia: plan + needyFoods viajan juntos)", () => {
+    expect(weekmenuTransportable(semanaAprobada)).toBe(semanaAprobada);
+    expect(weekmenuTransportable(semanaAprobada).needyFoods).toEqual([{ name: "Aceite", qty: 1, min: 0, score: 5 }]);
+  });
+
+  it("el PREVIEW (no aprobado) y el estado limpio NO viajan: null, como ausencia", () => {
+    expect(weekmenuTransportable(preview3Dias())).toBeNull();           // plan sin aprobar: nada del menú se transporta
+    expect(weekmenuTransportable({ approved: false, generatedOn: "2026-10-21", plan: [] })).toBeNull();
+    expect(weekmenuTransportable(null)).toBeNull();
+    expect(weekmenuTransportable(undefined)).toBeNull();
+    expect(weekmenuTransportable("roto")).toBeNull();
+    expect(weekmenuTransportable({ plan: [], needyFoods: [] })).toBeNull();   // sin flag approved no hay transporte
+  });
+
+  it("aprobar es lo que pone la semana en circulación: approveMenu produce un menu transportable", () => {
+    const { weekmenu } = approveMenu(preview3Dias(), [], TODAY, cookEntryFor, () => "uid-a");
+    expect(weekmenuTransportable(weekmenu)).toBe(weekmenu);
   });
 });

@@ -316,7 +316,17 @@
   function claveCocinada(c) { return (c.keyFingerprint || c.id || "") + "\u00A6" + (c.on || ""); }
 
   // ---- weekmenu: LWW por generatedOn (snapshot transportado; el siguiente sync reconverge) ----
+  // REGLA del transporte (2026-10-21): sólo un plan APROBADO participa del sync — el preview no
+  // aprobado se trata como AUSENTE (también apaga una base antigua que pudiera llevarlo, para que
+  // no circule de nuevo). Con toda su información viaja ENTERO (plan + needyFoods). Réplica
+  // deliberada de `menuSemanal.weekmenuTransportable`, módulos puros independientes (§8).
+  const soloAprobada = function (weekmenu) {
+    return (weekmenu && weekmenu.approved === true) ? weekmenu : null;
+  };
   function resolverWeekmenu(base, mio, suyo) {
+    base = soloAprobada(base);
+    mio = soloAprobada(mio);
+    suyo = soloAprobada(suyo);
     if (mio == null && suyo == null) return base == null ? null : base;
     if (mio == null) return suyo;
     if (suyo == null) return mio;

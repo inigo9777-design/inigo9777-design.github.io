@@ -15,6 +15,14 @@ if (typeof window.requestAnimationFrame !== "function") {
   window.cancelAnimationFrame = id => clearTimeout(id);
 }
 
+// setImmediate — el sandbox de Jest lo OCULTA (no está en su lista de globals) y la implementación
+// interna de FileReader de jsdom lo llama a pelo (FileReader-impl.js) al leer un Blob: el import
+// manual (#import-file) de app.js necesita que exista. Reemplazo honesto con setTimeout(0).
+if (typeof global.setImmediate === "undefined") {
+  global.setImmediate = fn => setTimeout(fn, 0);
+  global.clearImmediate = id => clearTimeout(id);
+}
+
 // scrollIntoView is not implemented in jsdom and app.js calls it on generate.
 window.HTMLElement.prototype.scrollIntoView = function () {};
 
