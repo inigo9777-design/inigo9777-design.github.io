@@ -1036,13 +1036,16 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
    del repertorio contenida en la pastilla, no rayando la tarjeta. Reparto: píldora |
    plato | acciones (píldora y acciones de ancho propio).
    align-self:stretch es EXPLÍCITO: ninguna fila puede quedar más estrecha que su tarjeta
-   (comportamiento anómalo visto en el review). */
+   (comportamiento anómalo visto en el review).
+   align-items:start: la PÍLDORA y el cuerpo arrancan ARRIBA — el punto de arranque del
+   contenido no depende del alto de cada fila (con center, el título de una fila de 3 líneas
+   y el de otra de 5 nacían a alturas distintas: la semilla del desalineado vertical). */
 #menu-plan-list .menu-meal-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   width: 100%;
   align-self: stretch;
-  align-items: center;
+  align-items: start;
   column-gap: 12px;
   row-gap: 4px;
   min-height: 54px;
@@ -1055,9 +1058,13 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 #menu-plan-list .menu-meal-row:hover { background: var(--hover-wash); }
 
-/* Hueco vacío del día (sin plato): mismo panel suave, sin píldora ni acciones */
+/* Hueco vacío del día (sin plato): mismo panel suave, sin píldora ni acciones; el texto
+   centrado en vertical porque la fila es baja y respira sola */
 #menu-plan-list .menu-meal-row:not([data-meal]) { cursor: default; }
-#menu-plan-list .menu-meal-row:not([data-meal]) .menu-meal-body { grid-column: 1 / -1; }
+#menu-plan-list .menu-meal-row:not([data-meal]) .menu-meal-body {
+  grid-column: 1 / -1;
+  align-self: center;
+}
 
 /* El estado del generador respira respecto a los botones que lo provocan */
 #menu-status { margin-top: 10px; }
@@ -1100,10 +1107,26 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   gap: 6px;
   align-self: center;
 }
+/* Los botones del plan debían su cara al estilo por defecto del navegador (con radio 0):
+   ahora llevan la MISMA voz que los de las tarjetas de recetas (.recipe-card) con radio s
+   — el redondeo que el usuario pidió, pareja con el de las píldoras (también radius-s). */
 .menu-meal-row .recipe-actions button {
   white-space: nowrap;
   padding: 5px 10px;
   font-size: 0.76rem;
+  font-weight: 600;
+  font-family: inherit;
+  background: var(--hover-wash);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  min-height: 28px;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.menu-meal-row .recipe-actions button:hover {
+  background: var(--card-muted-bg);
+  border-color: var(--border-strong);
 }
 
 /* En pantallas estrechas la fila se apila: píldora+acciones arriba, plato debajo */
