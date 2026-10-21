@@ -196,7 +196,7 @@ try {
   await ctxTicket.addInitScript(() => {
     localStorage.setItem("mrcheff.tutorial", JSON.stringify({ visto: true }));
     localStorage.setItem("mrcheff.foods", JSON.stringify([
-      { id: "a1", name: "Yogur natural", score: 5, qty: 2, min: 1, checked: false, createdAt: 1 }
+      { id: "a1", name: "Yogur natural", score: 7, qty: 2, min: 3, checked: false, createdAt: 1 }
     ]));
   });
   const pageT = await ctxTicket.newPage();
@@ -213,15 +213,34 @@ try {
   ok((await pageT.inputValue("#rev-qty-2")) === "1", "(D) '1 Pan de pueblo' → 1 (nuevo: se define en la propia fila)");
   ok((await pageT.locator("option", { hasText: "Yogur natural" }).count()) >= 1,
     "(D) la duda trae el desplegable con la variante de despensa disponible ('Yogur natural')");
+
+  // RETíCULA alineada: cada etiqueta de la cabecera queda sobre el campo de su columna (±6px).
+  // La guardia vive aquí porque es geometría real del navegador (jsdom no puede).
+  const columnas = await pageT.evaluate(() => {
+    const centro = el => { const r = el.getBoundingClientRect(); return Math.round(r.left + r.width / 2); };
+    return [...document.querySelectorAll(".rev-seccion")].map(sec => {
+      const etiquetas = [...sec.querySelectorAll(".rev-cab-nueva span:not(.rev-col-alimento), .rev-cab-duda span:not(.rev-col-alimento)")];
+      const campos = [...sec.querySelector(".ocr-item").querySelectorAll("select, input[type=number], input[type=checkbox]")];
+      return etiquetas.map((etq, i) => ({ texto: etq.textContent.trim(), delta: Math.abs(centro(etq) - (campos[i] ? centro(campos[i]) : -999)) }));
+    });
+  });
+  const descuadradas = columnas.flat().filter(c => c.delta > 6);
+  ok(descuadradas.length === 0, `(D) cabecera y fila COMPARTEN retícula: etiqueta sobre su campo (±6px)${descuadradas.length ? " — descuadrado: " + descuadradas.map(c => c.texto).join(", ") : ""}`);
+
   await pageT.screenshot({ path: path.join(OUT_DIR, "25-ocr-ticket-confirmar.png") });
 
   // La persona define TODO en las filas: la nueva Leche con su IMPORTANCIA (7), Pan con los
-  // valores por defecto, y la duda del Yogur se resuelve eligiendo la variante de despensa
-  // (sus campos de alerta se apagan — la del alimento real ya existía).
+  // valores por defecto, y la duda del Yogur se resuelve eligiendo la variante de despensa:
+  // la fila pasa a mostrar LA ALERTA REAL del alimento (7/3) con sus campos apagados — pantalla
+  // e inventario dicen lo mismo; la CANTIDAD sigue siendo editable.
   await pageT.fill("#rev-score-0", "7");
   await pageT.locator("#rev-variante-1").selectOption("a1");
+  ok((await pageT.inputValue("#rev-score-1")) === "7" && (await pageT.inputValue("#rev-min-1")) === "3",
+    "(D) al elegir variante, la fila muestra YA la alerta REAL del alimento (7/3 — nada de los 5/1 de la alta)");
   ok(await pageT.$eval("#rev-score-1", el => el.disabled) && await pageT.$eval("#rev-min-1", el => el.disabled),
-    "(D) variante elegida → los campos de alerta de la fila se DESHABILITAN (no aplican)");
+    "(D) variante elegida → su propio criterio ya NO se pide (la alerta es la del alimento real)");
+  ok(await pageT.$eval("#rev-qty-1", el => !el.disabled),
+    "(D) con variante, el campo EDITABLE sigue siendo la CANTIDAD de la compra");
   await pageT.click("[data-revision-guardar]");
   await pageT.waitForSelector("#modal.hidden", { state: "attached" });
   await pageT.waitForFunction(() => document.getElementById("food-list").classList.contains("destello-suave"), null, { timeout: 3000 });
@@ -237,8 +256,8 @@ try {
     "(D) el NUEVO 'Leche' entra en la despensa con qty del ticket + su IMPORTANCIA definida en la fila (7)");
   ok(!!d.foods.find(f => f.name === "Pan" && f.qty === 1), "(D) el NUEVO 'Pan' entra con los criterios por defecto de la fila");
   const yo = d.foods.find(f => f.name === "Yogur natural");
-  ok(!!yo && yo.qty === 4 && yo.score === 5 && yo.min === 1,
-    "(D) la DUDA resuelta con variante SUMA a 'Yogur natural' (2 en casa + 2 del ticket) SIN tocar su alerta");
+  ok(!!yo && yo.qty === 4 && yo.score === 7 && yo.min === 3,
+    "(D) la DUDA resuelta con variante SUMA a 'Yogur natural' (2 en casa + 2 del ticket) y su alerta queda 7/3, sin pisar");
   ok(!d.foods.some(f => f.name === "Yogur"), "(D) no se da de alta un 'Yogur' aparte: la compra va AL alimento ya en casa");
   ok(d.foods.length === 3, "(D) la despensa acaba con las tres cosas del ticket y nada más");
   await ctxTicket.close();

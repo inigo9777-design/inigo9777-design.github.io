@@ -322,11 +322,17 @@ italiana" (see `modules/origen-recetas.js` below).
   **Nuevos** (nombre/cantidad/IMPORTANCIA/MÍNIMO definidos EN la fila: `.rev-seccion` arriba,
   alta directa al confirmar) y **Dudas** (debajo: desplegable `#rev-variante-{o}` con las
   variantes de despensa del mismo casador `candidatosDespensa` — elegir variante = suma a ESE
-  alimento y los campos de alerta de la fila se DESHABILITAN (su alerta no se toca); la opción
+  alimento y la fila pasa a mostrar YA LA ALERTA REAL de ese alimento (su IMPORTANCIA/MÍNIMO)
+  deshabilitada: por defecto los campos de la fila salen con la alta (5/1) editables, y al
+  resolverla la pantalla dice lo MISMO que el inventario (fix 2026-10-21: antes pintaba 5/1 de
+  mentira); al volver a "es nuevo" se restauran lo que la persona hubiera escrito. La opción
   "es nuevo: se define aquí" = alta con lo escrito en la fila). Cada diálogo compromete SU
   confirmación (Cancelar después no deshace lo ya guardado; sin botón "Volver"). Sin toasts de
   éxito: al cerrar el modal el Inventario destella UNA vez (`.destello-suave`, reduce-motion off,
-  scroll suave hasta `#food-list`). La escritura final es el módulo puro `confirmarRevision`
+  scroll suave hasta `#food-list`). Las secciones de la revisión comparten con sus filas una
+  RETÍCULA CSS (`.rev-cab-nueva/.rev-fila-nueva` y `.rev-cab-duda/.rev-fila-duda`: misma
+  plantilla de columnas y calzado — etiqueta siempre encima del campo que nombra; en ≤640px el
+  alimento ocupa línea completa). La escritura final es el módulo puro `confirmarRevision`
   (alta con criterio definido, datos raros desinfectados qty≥0/score 1–10 clamp/min≥0, DUPLICADO
   evitado: nombre que ya existe en casa → suma en vez de alta). reduce-motion desactiva la
   animación (auto en scrollTo).
