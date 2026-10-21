@@ -697,8 +697,6 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 .rev-cab-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
 .rev-cab-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
-.rev-cab-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
-.rev-cab-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
 .rev-cab-nueva > span, .rev-cab-duda > span { grid-row: 1; }   /* UNA línea de etiquetas, por orden */
 .rev-cab-nueva span:not(:first-child), .rev-cab-duda span:not(:first-child) { text-align: center; }
 .rev-fila-nueva, .rev-fila-duda {
@@ -711,15 +709,24 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 .rev-fila-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
 .rev-fila-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
-/* Línea 1 = la del NOMBRE: el input y TODOS los campos comparten su misma línea horizontal
-   (centros alineados — nada «colgado» a media altura). Línea 2 = etiqueta + línea del ticket,
-   SOLO bajo la columna del alimento. En Dudas la columna 2 es el desplegable: los campos corridos. */
-.rev-fila-nueva .rev-campo-nombre, .rev-fila-duda .rev-campo-nombre { grid-area: 1 / 1; }
-.rev-fila-nueva .rev-campo-qty,     .rev-fila-duda .rev-campo-variante { grid-area: 1 / 2; }
-.rev-fila-nueva .rev-campo-score,   .rev-fila-duda .rev-campo-qty      { grid-area: 1 / 3; }
-.rev-fila-nueva .rev-campo-min,     .rev-fila-duda .rev-campo-score    { grid-area: 1 / 4; }
-.rev-fila-nueva .rev-campo-include, .rev-fila-duda .rev-campo-min      { grid-area: 1 / 5; }
-.rev-fila-duda .rev-campo-include { grid-area: 1 / 6; }
+/* Celda envuelta (bugfix 2026-10-21): cada control va DENTRO de su propio <label> con un
+   micro-etiqueta encima (.rev-etiqueta). En escritorio la etiqueta va OCULTA — el nombre de la
+   columna lo pone la cabecera compartida, que calza con el ancho de la celda; en móvil (≤640px)
+   la cabecera se esconde y la etiqueta sale PEGADA a su campo (las propiedades ya no quedan
+   lejos de los inputs). */
+.rev-celda { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rev-celda-include, .rev-celda-variante { align-items: center; }
+.rev-etiqueta { display: none; }
+/* Línea 1 = la del NOMBRE: la celda del input y TODAS las celdas de campos comparten su misma
+   línea horizontal (centros alineados — nada «colgado» a media altura). Línea 2 = etiqueta +
+   línea del ticket, SOLO bajo la columna del alimento. En Dudas la columna 2 es el
+   desplegable: los campos corridos. La colocación va por CELDA (el wrapper), no por el input. */
+.rev-fila-nueva .rev-celda-nombre, .rev-fila-duda .rev-celda-nombre { grid-area: 1 / 1; }
+.rev-fila-nueva .rev-celda-qty,     .rev-fila-duda .rev-celda-variante { grid-area: 1 / 2; }
+.rev-fila-nueva .rev-celda-score,   .rev-fila-duda .rev-celda-qty      { grid-area: 1 / 3; }
+.rev-fila-nueva .rev-celda-min,     .rev-fila-duda .rev-celda-score    { grid-area: 1 / 4; }
+.rev-fila-nueva .rev-celda-include, .rev-fila-duda .rev-celda-min      { grid-area: 1 / 5; }
+.rev-fila-duda .rev-celda-include { grid-area: 1 / 6; }
 .rev-fila-nueva .rev-sub, .rev-fila-duda .rev-sub {
   grid-area: 2 / 1;
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -729,9 +736,11 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .rev-campo-nombre, .rev-fila-nueva input[type="number"], .rev-fila-duda input[type="number"], .rev-fila-duda select {
   width: 100%; min-width: 0;
 }
-.rev-fila-nueva input[type="checkbox"], .rev-fila-duda input[type="checkbox"] { justify-self: center; }
+.rev-celda-include { justify-content: center; }
 .rev-fila-nueva input[type="number"]:disabled, .rev-fila-duda input[type="number"]:disabled { opacity: 0.55; }
 .rev-campo-nombre { cursor: text; }
+/* Diálogo 1 (exactos): fila flex — la celda no se estira, su campo conserva el calado heredado. */
+.ocr-item .rev-celda { flex: 0 0 auto; }
 
 /* Llegada de la confirmación del escáner: el Inventario actual destella una vez — el ojo cae
    donde acabaron los alimentos SIN que haga falta un toast que lo cuente. */
@@ -742,32 +751,19 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 .destello-suave { animation: destello-suave 2.1s ease-out 1; border-radius: var(--radius-m); }
 
-/* Móvil estrecho: el nombre (diálogo 1) en línea propia; en las retículas del diálogo 2 el
-   bloque del alimento ocupa TODA la anchura y los campos se reparten debajo — la cabecera
-   comparte esa misma plantilla estrecha, la etiqueta sigue encima de su campo. */
+/* Móvil estrecho (bugfix 2026-10-21: "las propiedades están lejos de los inputs y no se
+   entiende"): la CABECERA compartida se esconde (ya no calza con nada) y cada campo nombra su
+   etiqueta PEGADA encima (.rev-etiqueta visible). La retícula pasa a 2 columnas: el alimento y
+   su contexto ocupan línea completa y los campos se leen en parejas (Cantidad | Importancia /
+   Mínimo | Incluir), etiqueta siempre encima de lo que nombra. */
 @media (max-width: 640px) {
   .ocr-item { flex-wrap: wrap; row-gap: 8px; }
   .ocr-item .ocr-nombre { flex-basis: 100%; }
-  .rev-cab-nueva, .rev-fila-nueva, .rev-cab-duda, .rev-fila-duda {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) 44px;
-  }
-  .rev-cab-nueva .rev-col-alimento, .rev-cab-duda .rev-col-alimento { grid-column: 1 / -1; }
-  .rev-cab-duda > span:nth-child(2) { grid-column: 1 / -1; }   /* «De tu despensa»: línea propia */
-  .rev-cab-nueva > span, .rev-cab-duda > span { grid-row: auto; }   /* las etiquetas fluyen por filas */
-  .rev-fila-nueva .rev-campo-nombre, .rev-fila-duda .rev-campo-nombre { grid-column: 1 / -1; }
-  /* En estrecho: NUEVA = nombre (1), campos repartidos (2), etiqueta+línea (3);
-     DUDA = el desplegable gana línea completa propia (2) y el resto baja una fila. */
-  .rev-fila-nueva .rev-campo-qty     { grid-area: 2 / 1; }
-  .rev-fila-nueva .rev-campo-score   { grid-area: 2 / 2; }
-  .rev-fila-nueva .rev-campo-min     { grid-area: 2 / 3; }
-  .rev-fila-nueva .rev-campo-include { grid-area: 2 / 4; }
-  .rev-fila-nueva .rev-sub { grid-column: 1 / -1; grid-row: 3; }
-  .rev-fila-duda .rev-campo-variante { grid-column: 1 / -1; grid-row: 2; }
-  .rev-fila-duda .rev-campo-qty     { grid-area: 3 / 1; }
-  .rev-fila-duda .rev-campo-score   { grid-area: 3 / 2; }
-  .rev-fila-duda .rev-campo-min     { grid-area: 3 / 3; }
-  .rev-fila-duda .rev-campo-include { grid-area: 3 / 4; }
-  .rev-fila-duda .rev-sub { grid-column: 1 / -1; grid-row: 4; }
+  .ocr-cabecera, .rev-cab-nueva, .rev-cab-duda { display: none; }
+  .rev-fila-nueva, .rev-fila-duda { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 6px; }
+  .rev-celda-nombre, .rev-celda-variante { grid-column: 1 / -1; }
+  .rev-etiqueta { display: block; font-size: 0.68rem; color: var(--muted); text-align: center; }
+  .rev-fila-nueva .rev-sub, .rev-fila-duda .rev-sub { grid-column: 1 / -1; grid-row: auto; }
 }
 
 /* ========== 11. TARJETAS DE ALERTA Y LA COMPRA ========== */
@@ -783,6 +779,9 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .alert-card.alert-orange h3 { color: var(--amber); }
 .alert-card.alert-green  { border-left-color: var(--ok); }
 .alert-card.alert-green h3  { color: var(--ok); }
+/* La compra (2026-10-21): su título va en el color del TEXTO (el mismo blanco de los items sin
+   prioridad) — el tinte verde queda en el borde de la tarjeta, no títulos de colores. */
+#shopping-list.alert-green h3 { color: var(--text); }
 
 .alert-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .alert-card li {

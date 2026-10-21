@@ -156,3 +156,24 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   (DOM real vía bootApp: clases urg-* y datos reales en las tres clases de fila) + ajustes de
   expectativa de orden en `tests/ocr-ticket.integration.test.js` + suite completa verde
   (607 tests / 42 suites).
+- `2026-10-21 · @AI-agent · #bugfix/compra-titulo-blanco-dialogo-ocr-movil · Síntoma (DOS
+  reportados en pantallazos por el usuario):` (1) el título "🛒 Lista de la compra" salía VERDE —
+  heredaba el tinte `--ok` de `.alert-card.alert-green h3` porque la tarjeta lleva `alert-green`;
+  y (2) en MÓVIL, el diálogo de revisión del escáner ("Añade lo nuevo y resuelve las dudas")
+  ponía la cabecera de columnas (Cantidad/Importancia/Mínimo/Incluir) AÑOS lejos de los inputs
+  de cada fila: la retícula se reordenaba en estrecho y las etiquetas quedaban desconectadas de
+  lo que nombran. **Arreglo (1):** regla específica
+  `#shopping-list.alert-green h3 { color: var(--text) }` — el título va del color del TEXTO (el
+  mismo blanco de los items sin prioridad, bugfix anterior); el verde queda en el borde de la
+  tarjeta. **Arreglo (2):** cada control va DENTRO de su propio `<label class="rev-celda">` con
+  un micro-etiqueta `.rev-etiqueta` encima (módulo HTML en `app.js`, ambos diálogos y también el
+  desplegable "De tu despensa" en Dudas); en escritorio la etiqueta interna sigue OCULTA (la
+  cabecera compartida nombra las columnas y calza con el ancho de la celda) y en ≤640px la
+  CABECERA se esconde (ya no calzaba con nada) y el micro-etiqueta sale PEGADO a su campo, en
+  retícula de 2 columnas (alimento/contexto a línea completa, campos en parejas) — clic en la
+  etiqueta = foco en su campo (asociación implícita del label). Colocación de la retícula ahora
+  por CELDA (wrapper), no por el input; se retiraron las reglas duplicadas de `.rev-cab-*`.
+  **Verificación:** integración NUEVA `tests/ocr-dialogo-etiquetas.integration.test.js` (DOM
+  real vía bootApp: label↦SU control en las tres clases de fila, `for` correcto, conectaVariante
+  sigue deshabilitando tras el re-molde y la escritura final lee por id) + suite completa verde
+  (610 tests / 43 suites).
