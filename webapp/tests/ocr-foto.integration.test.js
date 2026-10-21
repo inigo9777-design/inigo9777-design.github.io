@@ -45,13 +45,22 @@ async function pulso(window, veces = 8) {
 }
 
 // Motor de TEST: cada llamada del OCR consume un texto de la cola (el último se repite).
+// API del WORKER (la que usa la app desde 2026-10-22): createWorker("spa", 1, {logger}) reutilizado
+// una sola vez para todas las caras + setParameters + terminate al final.
 function motorDeTest(window, textos) {
   const llamadas = [];
   window.Tesseract = {
-    recognize: (lienzo, idioma, _opts) => {
-      llamadas.push(lienzo);
-      const texto = textos[Math.min(llamadas.length - 1, textos.length - 1)];
-      return Promise.resolve({ data: { text: texto } });
+    createWorker: (idioma, _oem, opts) => {
+      const worker = {
+        setParameters: () => Promise.resolve(),
+        recognize: lienzo => {
+          llamadas.push(lienzo);
+          const texto = textos[Math.min(llamadas.length - 1, textos.length - 1)];
+          return Promise.resolve({ data: { text: texto } });
+        },
+        terminate: () => Promise.resolve()
+      };
+      return Promise.resolve(worker);
     }
   };
   return llamadas;

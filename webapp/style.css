@@ -1661,3 +1661,25 @@ html.scroll-candado { overflow: hidden; }
 }
 
 /* El tutorial (velo z 90) y el modal (z 100+) tapan al botón: z intermedio por el orden de capas. */
+
+/* ===== El TEXTO RECONOCIDO del escáner (requisito 95%): desplegable con el OCR crudo ===== */
+.ocr-crudo { margin-top: 10px; }
+.ocr-crudo summary { cursor: pointer; font-size: 0.82rem; color: var(--muted); }
+.ocr-crudo summary:hover, .ocr-crudo summary:focus { color: var(--text); }
+.ocr-crudo pre {
+  max-height: 220px; overflow: auto; margin: 6px 0 0; padding: 10px;
+  font-size: 0.76rem; line-height: 1.45; color: var(--muted);
+  background: var(--card-soft); border: 1px solid var(--border); border-radius: var(--radius-m);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+/* ===== PRODUCTOS DE HOGAR (etiqueta alimento/no-alimentario): sección aparte del inventario ===== */
+.hogar-seccion { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border-strong); }
+.hogar-seccion h3 { margin: 0 0 4px; font-size: 1.02rem; }
+.food-score.cat-hogar { color: var(--muted); }   /* sin urgencia propia: el badge casa habla */
+.rev-celda input:disabled { color: var(--muted); background: var(--card-soft); opacity: .75; }
+
+/* Conmutador del formulario de alta (🍎 Alimento / 🏠 Hogar) */
+.food-cat-group { display: flex; align-items: center; gap: 6px; }
+.food-cat-btn { min-width: 24px; min-height: 24px; }
+.food-cat-btn[aria-pressed="true"] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-strong); }

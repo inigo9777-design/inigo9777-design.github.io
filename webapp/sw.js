@@ -17,7 +17,9 @@
 // del worker aunque el fichero byte-idéntico y el respaldo offline ya los traiga.
 // CACHE v5 (2026-10-20, tutorial interactivo): entra modules/tutorial.js al shell.
 // CACHE v6 (2026-10-21, botón flotante "subir encima"): entra modules/scroll-arriba.js al shell.
-const CACHE = "mrcheff-v6";
+// CACHE v7 (2026-10-22, parser del ticket + hogar): entran ocr-ticket-parser.js y
+// categoria-producto.js al shell (requisito 95% de ítems + etiqueta alimento/no-alimentario).
+const CACHE = "mrcheff-v7";
 
 const SHELL = [
   "./",
@@ -44,6 +46,8 @@ const SHELL = [
   "modules/swipe-tabs.js",
   "modules/scroll-arriba.js",
   "modules/tutorial.js",
+  "modules/ocr-ticket-parser.js",
+  "modules/categoria-producto.js",
   "modules/sync-crypto.js",
   "modules/diff-merge.js",
   "modules/sync.js",

@@ -11,9 +11,9 @@ const { bootApp } = require("./boot");
 
 const TICKET = [
   "TICKET SUPER 20/10/2026",
-  "3 Leche entera · 1,29 €",
-  "2 x Yogur",
-  "1 Pan de pueblo",
+  "3 Leche entera 1,29",
+  "2 Yogur 1,35",
+  "1 Pan 1,10",
   "TOTAL 12,40 €",
   "GRACIAS POR SU VISITA"
 ].join("\n");

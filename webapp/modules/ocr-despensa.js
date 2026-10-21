@@ -131,7 +131,9 @@
   // array ni los alimentos de entrada del llamador se tocan (§3 pureza; la app reasigna foods).
   // `directos` son los que casaron exacto (filas del 1er diálogo del asistente); `dudosos` y `nuevos`
   // son las secciones del 2º. Sin deps.candidatosDespensa la duda no se puede distinguir del nuevo:
-  // todo lo desconocido cae en `nuevos`.
+  // todo lo desconocido cae en `nuevos`. El candidato puede llevar `hogar: true` (etiqueta
+  // alimento/no-alimentario del ticket — modules/categoria-producto.js): viaja ADITIVAMENTE en las
+  // tres salidas para que la vista la pinte y la alta la use (sin importancia ni mínimo pedido).
   function guardarCandidatos(despensa, seleccion, deps) {
     const variantes = (deps && typeof deps.candidatosDespensa === "function") ? deps.candidatosDespensa : null;
     const validos = (Array.isArray(seleccion) ? seleccion : []).filter(c => {
@@ -144,17 +146,18 @@
     const directos = [], dudosos = [], nuevos = [];
     validos.forEach(c => {
       const nombre = String(c.nombre).trim();
+      const etiqueta = { hogar: !!(c && c.hogar) };
       const ya = salida.find(f => String(f.name || "").toLowerCase() === nombre.toLowerCase());
       if (ya) {
         ya.qty = Math.max(0, Math.round((Number(ya.qty) || 0) + c.qty));   // el ticket SUMA a lo que había; min/score intactos
         actualizados += 1;
-        directos.push({ nombre, qty: Math.max(0, Math.round(c.qty)), tipo: c.tipo || null });
+        directos.push({ nombre, qty: Math.max(0, Math.round(c.qty)), tipo: c.tipo || null, ...etiqueta });
       } else if (variantes && variantes(nombre, salida).length > 0) {
         // DUDOSO: "¿es el mismo que uno de la despensa?" — el diálogo de revisión pregunta.
-        dudosos.push({ nombre, qty: Math.max(0, Math.round(c.qty)), tipo: c.tipo || null });
+        dudosos.push({ nombre, qty: Math.max(0, Math.round(c.qty)), tipo: c.tipo || null, ...etiqueta });
       } else {
         // NUEVO: el diálogo de revisión pide su alta con el criterio que defina la persona.
-        nuevos.push({ nombre, qty: Math.max(0, Math.round(c.qty)), tipo: c.tipo || null });
+        nuevos.push({ nombre, qty: Math.max(0, Math.round(c.qty)), tipo: c.tipo || null, ...etiqueta });
       }
     });
     return { foods: salida, actualizados, directos, dudosos, nuevos };
@@ -172,7 +175,7 @@
     return pasos;
   }
 
-  // ─── CONFIRMAR LA REVISIÓN (2º diálogo del escáner): lo nuevo y las dudas dejan de ser estados
+  // ─── CONFIRMAR LA REVISIÓN (2º diálogo del escáner): lo nuevo y las dudas dejen de ser estados
   // intermedios y ACABAN EN LA DESPENSA (la compra ya está hecha, nada va a la lista de la compra):
   //   · fila con `varianteId` (duda resuelta: "es ESE alimento de casa") → SUMA de qty sobre COPIA
   //     en-situ; su min/importancia quedan como estaban (igual que los exactos del paso 1);
@@ -180,6 +183,9 @@
   //     tal cual se definieron EN el diálogo; si su nombre casa EXACTO (case-insensitive, como el
   //     formulario manual) con un alimento ya en casa, suma en su lugar en vez de crear un duplicado;
   //   · filas sin nombre válido se saltan — la vista valida antes; esto es el filtro final.
+  // Los productos de HOGAR (`hogar: true`) no pidieron criterio en el diálogo (petición del
+  // usuario): alta con score 5 (urgencia neutra) y min 0 (avisa cuando se acabe) y el tag
+  // `categoria: "hogar"` en el food — el resto de la app los deja fuera de recetas/menús/lista.
   // Devuelve { foods, creados, sumados }: nombres de las altas y de las sumas (el aviso de la vista
   // los cuenta). Array NUEVO con objetos NUEVOS: la despensa de entrada no se toca (§3). uid/ahora
   // INYECTADOS (§6): nada de reloj ni random propios.
@@ -194,15 +200,19 @@
     function alta(d) {
       const nombre = String(d && d.nombre || "").trim();
       if (!nombre) return null;
+      const esHogar = !!(d && d.hogar);
       const qty = Math.max(0, entero(d.qty) != null ? entero(d.qty) : 1);
       const score = (v => Number.isFinite(v) ? Math.min(10, Math.max(1, v)) : 5)(entero(d.score));
-      const min = Math.max(0, entero(d.min) != null ? entero(d.min) : 1);
+      const minDefecto = esHogar ? 0 : 1;
+      const min = Math.max(0, entero(d.min) != null ? entero(d.min) : minDefecto);
       const ya = salida.find(f => String(f.name || "").toLowerCase() === nombre.toLowerCase());
       if (ya) {
         ya.qty = Math.max(0, Math.round((Number(ya.qty) || 0) + qty));
         return { sumado: ya.name };
       }
-      salida.push({ id: String((deps && deps.uid)()), name: nombre, score, qty, min, checked: false, createdAt: (deps && deps.ahora) || 0 });
+      const food = { id: String((deps && deps.uid)()), name: nombre, score, qty, min, checked: false, createdAt: (deps && deps.ahora) || 0 };
+      if (esHogar) food.categoria = "hogar";
+      salida.push(food);
       return { creado: nombre };
     }
 

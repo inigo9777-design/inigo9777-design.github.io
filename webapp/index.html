@@ -95,6 +95,13 @@
                         <label for="food-score">Importancia: <span id="food-score-val">5</span></label>
                         <input type="range" id="food-score" min="1" max="10" value="5" aria-label="Importancia del alimento (del 1 al 10)">
                     </div>
+                    <!-- CONMUTADOR alimento/Producto de hogar: los productos no alimentarios (detergente,
+                         papel, lejía…) no piden importancia ni mínimo — entran fijos y avisan al agotarse. -->
+                    <div class="food-cat-group" role="group" aria-label="¿Es alimento o producto de hogar?">
+                        <span class="rev-etiqueta">Clase</span>
+                        <button type="button" id="food-cat-alimento" class="btn ghost small food-cat-btn" aria-pressed="true">🍎 Alimento</button>
+                        <button type="button" id="food-cat-hogar" class="btn ghost small food-cat-btn" aria-pressed="false">🏠 Hogar</button>
+                    </div>
                     <button type="submit" class="btn primary">Añadir</button>
                 </form>
 
@@ -128,6 +135,15 @@
                 </div>
                 <ul id="food-list" class="food-list"></ul>
                 <p id="food-empty" class="empty muted hidden">No tienes alimentos registrados. Añade el primero arriba.</p>
+                <!-- PRODUCTOS DE HOGAR (etiqueta alimento/no-alimentario): viven APARTE del inventario —
+                     sin importancia ni mínimo contenidos, entran en las alertas semanales cuando se
+                     agotan y NO se usan para recetas, sugerencias, menú semanal ni lista de la compra. -->
+                <div id="hogar-seccion" class="hogar-seccion hidden">
+                    <h3>🏠 Productos de hogar</h3>
+                    <p class="muted">Lo comprado que no es alimento (detergente, papel, lejía…): entra en las
+                        alertas semanales cuando se agota, pero no se usa para recetas ni para el menú.</p>
+                    <ul id="hogar-list" class="food-list"></ul>
+                </div>
             </div>
         </section>
 
@@ -386,6 +402,10 @@
     <script src="modules/classify.js"></script>
     <script src="modules/ocr-despensa.js"></script>
     <script src="modules/ocr-foto.js"></script>
+    <!-- PARSER ESTRUCTURAL del ticket (requisito 95%): lee las LÍNEAS ancladas a los precios —
+         Mercadona (columna de cantidad) y ALDI (auxiliares de peso/pack, granel a lotes de 500 g). -->
+    <script src="modules/ocr-ticket-parser.js"></script>
+    <script src="modules/categoria-producto.js"></script>
     <script src="modules/recipe-analysis.js"></script>
     <script src="data/recetas-espanolas-data.js"></script>
     <script src="modules/origen-recetas.js"></script>

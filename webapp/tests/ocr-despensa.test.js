@@ -139,8 +139,8 @@ describe("ocr-despensa — guardarCandidatos (contrato ticket: NADIE entra en la
     expect(foods).toEqual([]);                                // la despensa NO se inventa altas
     expect(actualizados).toBe(0);
     expect(nuevos).toEqual([
-      { nombre: "Leche", qty: 2, tipo: "lacteo" },
-      { nombre: "Huevos XL", qty: 12, tipo: "proteina" }
+      { nombre: "Leche", qty: 2, tipo: "lacteo", hogar: false },
+      { nombre: "Huevos XL", qty: 12, tipo: "proteina", hogar: false }
     ]);
   });
 
@@ -194,7 +194,7 @@ describe("ocr-despensa — guardarCandidatos (contrato ticket: NADIE entra en la
       deps
     );
     expect(actualizados).toBe(1);
-    expect(directos).toEqual([{ nombre: "Pollo", qty: 3, tipo: null }]);   // el repetidor del paso 1
+    expect(directos).toEqual([{ nombre: "Pollo", qty: 3, tipo: null, hogar: false }]);   // el repetidor del paso 1
     expect(dudosos).toHaveLength(0);
     expect(nuevos.map(n => n.nombre)).toEqual(["Cuscús"]);                 // el repetidor del paso 2
   });
@@ -269,7 +269,7 @@ describe("ocr-despensa — reparto con la despensa: exacto suma, dudoso, nuevo s
   test("dudoso ('Yogur' vs despensa 'Yogur natural') NO entra: sale para la revisión del diálogo", () => {
     const { foods, dudosos, nuevos } = ocrDespensa.guardarCandidatos(
       despensa, [{ nombre: "Yogur", qty: 4 }], { candidatosDespensa: variantes });
-    expect(dudosos).toEqual([{ nombre: "Yogur", qty: 4, tipo: null }]);
+    expect(dudosos).toEqual([{ nombre: "Yogur", qty: 4, tipo: null, hogar: false }]);
     expect(nuevos).toEqual([]);
     expect(foods.find(f => f.name === "Yogur natural").qty).toBe(2);   // la despensa SIN tocar
     expect(foods).toHaveLength(2);                                      // ni rastro de alta de "Yogur"
@@ -279,7 +279,7 @@ describe("ocr-despensa — reparto con la despensa: exacto suma, dudoso, nuevo s
     const { foods, nuevos, dudosos } = ocrDespensa.guardarCandidatos(
       despensa, [{ nombre: "Ajo", qty: 1 }], { candidatosDespensa: variantes });
     expect(dudosos).toEqual([]);
-    expect(nuevos).toEqual([{ nombre: "Ajo", qty: 1, tipo: null }]);
+    expect(nuevos).toEqual([{ nombre: "Ajo", qty: 1, tipo: null, hogar: false }]);
     expect(foods).toHaveLength(2);                                     // la despensa NO lo recoge (todavía)
   });
 
