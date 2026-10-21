@@ -677,28 +677,39 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 .ocr-linea { font-size: 0.78rem; color: var(--muted); overflow-wrap: anywhere; }
 /* Diálogo de revisión del escáner (Nuevos + Dudas, 2026-10-21): el nombre exacto VA FIJO en el
-   1er diálogo (ya es alimento real del inventario) y las filas del 2º llevan los CINCO campos
-   definibles (nombre/cantidad/importancia/mínimo/variante de despensa) — cabeceras alineadas
-   con las anchuras reales de los controles de la fila. */
+   1er diálogo (ya es alimento real del inventario) y las filas del 2º llevan nombre/cantidad/
+   importancia/mínimo/variante de despensa. Cada sección es una RETÍCULA COMPARTIDA por su
+   cabecera y sus filas (misma plantilla de columnas y mismo calzado): la columna del alimento
+   flexible y cada campo en la suya — la etiqueta queda SIEMPRE encima de lo que nombra, sin
+   descuadre en ningún ancho (antes la cabecera y la fila calzaban distinto: gap, anchuras,
+   checkbox incluido). */
 .rev-nombre-fijo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .rev-seccion { margin: 16px 0 0; }
 .rev-seccion:first-of-type { margin-top: 0; }
 .rev-seccion h3 { margin: 0 0 4px; font-size: 1.05rem; }
 .rev-seccion .muted { margin: 0 0 10px; font-size: 0.8rem; }
-.rev-cabecera {
-  display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;
-  margin: 0 2px 6px; font-size: 0.72rem; color: var(--muted);
+.rev-cab-nueva, .rev-cab-duda {
+  display: grid; align-items: center; column-gap: 10px;
+  padding: 0 14px 6px;
+  font-size: 0.72rem; color: var(--muted);
 }
-.rev-cabecera span { flex: 0 0 auto; text-align: center; }
-.rev-cabecera .rev-col-alimento { flex: 1 1 200px; min-width: 0; text-align: left; }
-.rev-cabecera .rev-w84  { width: 84px; }
-.rev-cabecera .rev-w64  { width: 64px; }
-.rev-cabecera .rev-w150 { width: 150px; }
-.rev-cabecera .rev-w62  { width: 62px; }
-.ocr-item select { flex: 0 0 auto; width: 150px; }
-.ocr-item .rev-num { width: 64px; }
-.ocr-item input[type="number"] { width: 84px; flex: 0 0 auto; }
-.ocr-item input[type="checkbox"] { width: 19px; height: 19px; cursor: pointer; flex: 0 0 auto; }
+.rev-cab-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
+.rev-cab-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
+.rev-fila-nueva, .rev-fila-duda {
+  display: grid; align-items: center; column-gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  background: var(--card);
+  margin-bottom: 8px;
+}
+.rev-fila-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
+.rev-fila-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
+.rev-cab-nueva span:not(:first-child), .rev-cab-duda span:not(:first-child) { text-align: center; }
+.rev-fila-nueva input[type="number"], .rev-fila-duda input[type="number"] { width: 100%; min-width: 0; }
+.rev-fila-nueva input[type="checkbox"], .rev-fila-duda input[type="checkbox"] { justify-self: center; }
+.rev-fila-nueva input[type="number"]:disabled, .rev-fila-duda input[type="number"]:disabled { opacity: 0.55; }
+.rev-fila-duda select { width: 100%; min-width: 0; }
 
 /* Llegada de la confirmación del escáner: el Inventario actual destella una vez — el ojo cae
    donde acabaron los alimentos SIN que haga falta un toast que lo cuente. */
@@ -709,10 +720,16 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 .destello-suave { animation: destello-suave 2.1s ease-out 1; border-radius: var(--radius-m); }
 
-/* Móvil estrecho: nombre en línea propia y los tres números + check debajo, sin aplastar el nombre. */
+/* Móvil estrecho: el nombre (diálogo 1) en línea propia; en las retículas del diálogo 2 el
+   bloque del alimento ocupa TODA la anchura y los campos se reparten debajo — la cabecera
+   comparte esa misma plantilla estrecha, la etiqueta sigue encima de su campo. */
 @media (max-width: 640px) {
   .ocr-item { flex-wrap: wrap; row-gap: 8px; }
   .ocr-item .ocr-nombre { flex-basis: 100%; }
+  .rev-cab-nueva, .rev-fila-nueva { grid-template-columns: repeat(3, minmax(0, 1fr)) 44px; }
+  .rev-cab-duda, .rev-fila-duda { grid-template-columns: 110px repeat(3, minmax(0, 1fr)) 44px; }
+  .rev-cab-nueva .rev-col-alimento, .rev-cab-duda .rev-col-alimento { grid-column: 1 / -1; }
+  .rev-fila-nueva .ocr-nombre, .rev-fila-duda .ocr-nombre { grid-column: 1 / -1; }
 }
 
 /* ========== 11. TARJETAS DE ALERTA Y LA COMPRA ========== */

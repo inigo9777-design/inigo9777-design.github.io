@@ -65,3 +65,26 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   sessionStorage). El nombre del caché deja de ser la llave de frescura: +1 sólo si cambia la
   lista SHELL o la estrategia. **Alcance:** sólo `sw.js` + su registro (sin shapes de §5).
   Verificación: guardia externa `e2e/pwa-entrega.mjs` (6 checks con servidor mutable).
+
+- `2026-10-21 · @AI-agent · #epic-ocr-despensa-camara · Síntoma (bug reportado por el usuario
+  probando el diálogo 2 del escáner):` las columnas del diálogo de revisión (Nuevos y Dudas)
+  salían DESCUADRADAS — la cabecera etiquetaba en sitios donde no había campo, y los campos
+  quedaban apelotonados a la derecha/bajo el nombre. **Causa:** la cabecera (flex, gap 8px)
+  y las filas (flex, gap 10px) calzaban distinto: anchuras no correspondidas, el checkbox
+  (19px) contra una columna de 62px y el aplanado lateral descompensado. **Arreglo:** cada
+  sección comparte una RETÍCULA (`grid`) por cabecera y filas `.rev-cab-nueva/.rev-fila-nueva`
+  y `.rev-cab-duda/.rev-fila-duda` con la MISMA plantilla de columnas y calzado — la etiqueta
+  cae siempre sobre el campo que nombra; en ≤640px el bloque del alimento pasa a línea completa
+  y los campos se reparten debajo con la misma plantilla estrecha. **Verificación:** guardia
+  geométrica en `e2e/ocr-despensa.mjs` (D): el centro de cada etiqueta sobre el centro de su
+  campo (±6px, Brave real).
+- `2026-10-21 · @AI-agent · #epic-ocr-despensa-camara · Síntoma (bug reportado por el usuario):`
+  en Dudas, al resolver con un alimento REAL de la despensa, la fila seguía pintando los 5/1 de
+  una alta — información falsa (la compra iba bien al alimento real, pero la pantalla decía
+  otra cosa). **Causa:** `conectaVariante` de la vista sólo apagaba los campos, sin cargar
+  los valores. **Arreglo:** al elegir variante los campos de la fila muestran YA la alerta
+  REAL del alimento (su score y su min) deshabilitados — sólo la CANTIDAD sigue editable;
+  al volver a "es nuevo" se restauran los valores propios (que hubiera escrito la persona,
+  snapshot al primer cambio). **Verificación:** integración jsdom (ida/vuelta variante ↔ es
+  nuevo, 9 tests) + Brave real `e2e/ocr-despensa.mjs` (D): 7/3 en pantalla y en la despensa
+  final sin pisos.

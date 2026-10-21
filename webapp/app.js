@@ -957,7 +957,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const lineaContexto = `<span class="ocr-linea" title="Primera línea que ha leído el OCR (sólo contexto)">“${escapeHTML(String(c.linea || "").trim().slice(0, 60))}”${c.veces > 1 ? ` · aparece ×${c.veces}` : ""}</span>`;
       if (!esDuda) {
         return `
-        <div class="ocr-item" data-o="${o}">
+        <div class="ocr-item rev-fila-nueva" data-o="${o}">
           <div class="ocr-nombre">
             <input type="text" id="rev-nombre-${o}" value="${escapeHTML(d.nombre)}" aria-label="Nombre del alimento (editable)">
             <span class="ocr-tipo">${etqTipo[d.tipo] || "Otro"}</span>
@@ -971,7 +971,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const opciones = menuSemanal.candidatosDespensa(c.nombre, foods) || [];
       return `
-        <div class="ocr-item" data-o="${o}">
+        <div class="ocr-item rev-fila-duda" data-o="${o}">
           <div class="ocr-nombre">
             <input type="text" id="rev-nombre-${o}" value="${escapeHTML(d.nombre)}" aria-label="Nombre del alimento (editable)">
             <span class="ocr-tipo">${etqTipo[d.tipo] || "Otro"}</span>
@@ -988,15 +988,34 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>`;
     }
 
-    // Resuelta "es ESE alimento de casa": la importancia/mínimo de la fila NO aplican (la alerta
-    // es la del alimento ya vivido) — se apagan; con "es nuevo" vuelven a ser editables.
+    // Resuelta "es ESE alimento de casa", la pantalla DEBE decir la verdad: los campos de la fila
+    // pasan a mostrar LA ALERTA REAL del alimento elegido (su importancia y su mínimo) y se
+    // deshabilitan — la alerta de un alimento ya vivido no se redefine desde el ticket; sólo la
+    // CANTIDAD sigue siendo de la persona. Antes de resolver, los campos propios (por defecto
+    // 5/1) salen y se editan; al volver a "es nuevo" se restauran los valores que hubiera
+    // escrito (snapshot al primer cambio de variante).
     function conectaVariante(fila) {
       const selector = $("select", fila);
       if (!selector) return;
       const camposAlerta = [`#rev-score-${fila.dataset.o}`, `#rev-min-${fila.dataset.o}`].map(sel => $(sel, modalContent));
-      const aplicaAlertaPropia = () => camposAlerta.forEach(campo => { if (campo) campo.disabled = selector.value !== ""; });
-      aplicaAlertaPropia();
-      selector.addEventListener("change", aplicaAlertaPropia);
+      let propio = null;                                    // lo suyo, para restaurar si deshace la variante
+      const aplicaAlerta = () => {
+        const enCasa = selector.value ? foods.find(f => String(f.id) === selector.value) : null;
+        camposAlerta.forEach(campo => { if (campo) campo.disabled = !!enCasa; });
+        if (enCasa) {
+          if (!propio) propio = {
+            score: camposAlerta[0] ? camposAlerta[0].value : "",
+            min: camposAlerta[1] ? camposAlerta[1].value : ""
+          };
+          if (camposAlerta[0]) camposAlerta[0].value = Number.isFinite(enCasa.score) ? String(enCasa.score) : "5";
+          if (camposAlerta[1]) camposAlerta[1].value = Number.isFinite(enCasa.min) ? String(enCasa.min) : "0";
+        } else if (propio) {
+          if (camposAlerta[0] && propio.score !== "") camposAlerta[0].value = propio.score;
+          if (camposAlerta[1] && propio.min !== "") camposAlerta[1].value = propio.min;
+        }
+      };
+      aplicaAlerta();
+      selector.addEventListener("change", aplicaAlerta);
     }
 
     function renderDialogo() {
@@ -1019,10 +1038,10 @@ document.addEventListener("DOMContentLoaded", () => {
               <p class="muted">Nada de esto está en tu Inventario actual: define en cada fila su IMPORTANCIA
                   (prioridad para avisarte) y su MÍNIMO, junto al nombre y la cantidad — al confirmar
                   entran en la despensa con esa alerta.</p>
-              <div class="rev-cabecera" aria-hidden="true">
+              <div class="rev-cab-nueva" aria-hidden="true">
                 <span class="rev-col-alimento">Alimento</span>
-                <span class="rev-w84">Cantidad</span><span class="rev-w64">Importancia</span>
-                <span class="rev-w64">Mínimo</span><span class="rev-w62">Incluir</span>
+                <span>Cantidad</span><span>Importancia</span>
+                <span>Mínimo</span><span>Incluir</span>
               </div>
               ${filasDelPaso("revisar").filter(c => previo.nuevos.some(n => nombreDePago(n) === nombreDePago(c))).map(c => filaRevisionHTML(c, false)).join("")}
             </div>`
@@ -1033,11 +1052,11 @@ document.addEventListener("DOMContentLoaded", () => {
               <p class="muted">¿Es la misma cosa que ya tienes con otro nombre? Elige de tu despensa el
                   alimento al que pertenece esta compra (se suma a él y su alerta no se toca) o
                   quédate la opción "es nuevo" para darlo de alta con lo escrito en la misma fila.</p>
-              <div class="rev-cabecera" aria-hidden="true">
+              <div class="rev-cab-duda" aria-hidden="true">
                 <span class="rev-col-alimento">Alimento</span>
-                <span class="rev-w150">De tu despensa</span>
-                <span class="rev-w84">Cantidad</span><span class="rev-w64">Importancia</span>
-                <span class="rev-w64">Mínimo</span><span class="rev-w62">Incluir</span>
+                <span>De tu despensa</span>
+                <span>Cantidad</span><span>Importancia</span>
+                <span>Mínimo</span><span>Incluir</span>
               </div>
               ${filasDelPaso("revisar").filter(c => previo.dudosos.some(n => nombreDePago(n) === nombreDePago(c))).map(c => filaRevisionHTML(c, true)).join("")}
             </div>`

@@ -31,7 +31,7 @@ function appConDespensa() {
   return bootApp({
     seed: {
       foods: [
-        { id: "a1", name: "Yogur natural", score: 5, qty: 2, min: 1, checked: false, createdAt: 1 },
+        { id: "a1", name: "Yogur natural", score: 7, qty: 2, min: 3, checked: false, createdAt: 1 },
         { id: "a2", name: "Pan", score: 3, qty: 1, min: 1, checked: false, createdAt: 2 }
       ],
       recipes: [], innov: [], cooked: []
@@ -92,12 +92,16 @@ describe("Escáner del ticket → los dos diálogos dentro de Alimentos (integra
     document.getElementById("rev-qty-0").value = "2";
     document.getElementById("rev-score-0").value = "8";
     document.getElementById("rev-min-0").value = "2";
-    // ...y resuelve la duda: ES "Yogur natural" → los campos de alerta de la fila SE APAGAN
+    // ...y resuelve la duda: ES "Yogur natural" → la fila DEJA DE PEDIR SU criterio y muestra
+    // YA la alerta REAL del alimento (7/3) — pantalla e inventario dicen lo mismo
     const sel = document.getElementById("rev-variante-1");
     sel.value = "a1";
     sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+    expect(document.getElementById("rev-score-1").value).toBe("7");       // la alerta REAL, no los 5/1 de la alta
+    expect(document.getElementById("rev-min-1").value).toBe("3");
     expect(document.getElementById("rev-score-1").disabled).toBe(true);
     expect(document.getElementById("rev-min-1").disabled).toBe(true);
+    expect(document.getElementById("rev-qty-1").disabled).toBe(false);    // la CANTIDAD sigue siendo editable
 
     document.querySelector("[data-revision-guardar]").click();
 
@@ -107,7 +111,7 @@ describe("Escáner del ticket → los dos diálogos dentro de Alimentos (integra
     expect(foods.find(f => f.name === "Leche sin")).toEqual(expect.objectContaining({ qty: 2, score: 8, min: 2 }));
     const yo = foods.find(f => f.name === "Yogur natural");
     expect(yo.qty).toBe(4);                                                  // 2 en casa + 2 del ticket (variante)
-    expect(yo.min).toBe(1); expect(yo.score).toBe(5);                        // alerta del alimento real, sin pisar
+    expect(yo.min).toBe(3); expect(yo.score).toBe(7);                        // SU alerta, sin pisar (la que la fila mostró)
     // aterrizaje: el escáner NUNCA cambia de pestaña y el inventario destella una vez
     expect(document.getElementById("modal").classList.contains("hidden")).toBe(true);   // modal cerrado, sin toasts de éxito
     expect(document.querySelector("#view-foods").classList.contains("active")).toBe(true);
@@ -143,6 +147,36 @@ describe("Escáner del ticket → los dos diálogos dentro de Alimentos (integra
     expect(foods.some(f => f.name === "Leche sin" || f.name === "Leche")).toBe(false);
     expect(foods.some(f => f.name === "Yogur")).toBe(false);
     expect(window.localStorage.getItem("mrcheff.compraTicket")).toBe(null);
+  });
+
+  it("duda: elegir variante carga la alerta REAL del alimento en la fila; volver a 'es nuevo' restaura lo suyo editable", () => {
+    const { document, window } = appConDespensa();
+    window.__mrcheffProcesarTextoOcr(TICKET);
+    document.querySelector("[data-confirmar-exactos]").click();
+    // por defecto la fila ofrece su ALTA (5/1) editable — antes de resolver, nada de nada raro
+    expect(document.getElementById("rev-score-1").value).toBe("5");
+    expect(document.getElementById("rev-min-1").value).toBe("1");
+    expect(document.getElementById("rev-score-1").disabled).toBe(false);
+    // elige "Yogur natural" → los campos muestran SU alerta real (7/3) y se apagan...
+    const sel = document.getElementById("rev-variante-1");
+    sel.value = "a1";
+    sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+    expect(document.getElementById("rev-score-1").value).toBe("7");
+    expect(document.getElementById("rev-min-1").value).toBe("3");
+    expect(document.getElementById("rev-score-1").disabled).toBe(true);
+    expect(document.getElementById("rev-min-1").disabled).toBe(true);
+    // ...y si se repite y vuelve a "es nuevo: se define aquí", lo suyo vuelve y es editable
+    sel.value = "";
+    sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+    expect(document.getElementById("rev-score-1").value).toBe("5");
+    expect(document.getElementById("rev-min-1").value).toBe("1");
+    expect(document.getElementById("rev-score-1").disabled).toBe(false);
+    expect(document.getElementById("rev-min-1").disabled).toBe(false);
+    // por si acaso: con lo suyo restaurado la ALTA sale con esos mismos valores
+    document.getElementById("rev-variante-1").value = "";
+    document.querySelector("[data-revision-guardar]").click();
+    const foods = lsFoods(window);
+    expect(foods.find(f => f.name === "Yogur")).toEqual(expect.objectContaining({ qty: 2, score: 5, min: 1 }));
   });
 
   it("ticket con TODO exacto → UN solo diálogo: confirmar y fuera, destello sobre el inventario", async () => {
