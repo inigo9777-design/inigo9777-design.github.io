@@ -227,6 +227,20 @@ try {
   const descuadradas = columnas.flat().filter(c => c.delta > 6);
   ok(descuadradas.length === 0, `(D) cabecera y fila COMPARTEN retícula: etiqueta sobre su campo (±6px)${descuadradas.length ? " — descuadrado: " + descuadradas.map(c => c.texto).join(", ") : ""}`);
 
+  // MISMA LÍNEA horizontal: el input del nombre y cada campo (desplegable/cantidad/importancia/
+  // mínimo/incluir) comparten la línea del nombre — petición del usuario tras el descuelgue previo.
+  const lineasFila = await pageT.evaluate(() => {
+    const centroY = el => { const r = el.getBoundingClientRect(); return Math.round(r.top + r.height / 2); };
+    return [...document.querySelectorAll(".rev-seccion")].map(sec =>
+      [...sec.querySelectorAll(".ocr-item")].map(fila => {
+        const nombre = fila.querySelector('input[type="text"]');
+        return [...fila.querySelectorAll("select, input[type=number], input[type=checkbox]")]
+          .map(c => ({ id: c.id || c.type, delta: Math.abs(centroY(nombre) - centroY(c)) }));
+      }).flat());
+  });
+  const fueraDeLinea = lineasFila.flat().filter(c => c.delta > 6);
+  ok(fueraDeLinea.length === 0, `(D) nombre y campos EN LA MISMA LÍNEA horizontal (centros ±6px)${fueraDeLinea.length ? " — fuera de línea: " + fueraDeLinea.map(c => c.id + " Δ" + c.delta).join(", ") : ""}`);
+
   await pageT.screenshot({ path: path.join(OUT_DIR, "25-ocr-ticket-confirmar.png") });
 
   // La persona define TODO en las filas: la nueva Leche con su IMPORTANCIA (7), Pan con los
