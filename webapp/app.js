@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ===== HELPERS =====
   // uid() y escapeHTML() viven en modules/util.js, lógica PURa (sin DOM ni localStorage) anti-XSS e id-generación; ver
   // CODING_STANDARDS.md §3 option A / DIP y el patrón idéntico de priority.classify.recipeAnalysis.innovations bajo window.MRCheff.*.
-  const { escapeHTML, uid, limpiarPaso } = window.MRCheff.util;
+  const { escapeHTML, uid, limpiarPaso, formatoFechaCorta } = window.MRCheff.util;
   const recipeEditor = window.MRCheff.recipeEditor;   // módulo puro del editor de recetas (modules/recipe-editor.js)
 
   // $/$$ son helpers DE VISTA (manipulan el DOM) → NO lógica de decisión: quedan en este closure como antes.
@@ -1679,6 +1679,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return sello ? { origen: sello } : {};
   }
 
+  const innovApi = window.MRCheff.innovations;   // módulo puro del generador + conciliación (modules/innovations.js)
+
   btnGenerateInnov.addEventListener("click", () => {
     if (foods.length === 0 && recipes.length === 0) {
       toast("Añade alimentos o guarda una receta para inventar", "error");
@@ -1698,18 +1700,10 @@ document.addEventListener("DOMContentLoaded", () => {
       toast("No hay combinaciones suficientes con lo que tienes", "error");
       return;
     }
-    // Añadimos el nuevo lote al azar, evitando duplicados de título
-    const existing = new Set(innovations.map(i => i.title.toLowerCase().trim()));
-    let added = 0;
-    batch.forEach(i => {
-      const key = i.title.toLowerCase().trim();
-      if (existing.has(key)) return;
-      existing.add(key);
-      innovations.push(i);
-      added++;
-    });
-    // Limitamos la pila para que no crezca sin control
-    if (innovations.length > 30) innovations = innovations.slice(innovations.length - 30);
+    // Interpolación del lote en la pila (dedup por título + techo 30): la regla vive en el módulo
+    // puro `innovations.conciliarLote` (2026-10-21); aquí sólo persistencia y toast.
+    const { pila: nuevaPila, added } = innovApi.conciliarLote(innovations, batch, 30);
+    innovations = nuevaPila;
     save(LS.innov, innovations);
     innovDay = today;
     save(LS.innovDate, innovDay);
@@ -1734,17 +1728,17 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateInnovSummary() {
     if (!innovations.length) { innovSummary.classList.add("hidden"); return; }
     innovSummary.classList.remove("hidden");
-    const bySrc = {};
-    innovations.forEach(i => { const k = claveDeGrupoFuente(i); bySrc[k] = (bySrc[k] || 0) + 1; });
-    const parts = Object.entries(bySrc).map(([s, n]) =>
-      String(s).startsWith("Receta ") ? `${n} ${s}` : `${n} ${SOURCE_LABEL[s] || "nuevas"}`).join(" · ");
-    innovSummary.textContent = `${innovations.length} idea(s) en la lista (${parts}). Guarda las que te gusten con ⭐.`;
+    // El agrupado por fuente visible es del módulo (innovations.resumenPorFuente, 2026-10-21):
+    // el resolver da YA el texto final (origen para las curadas, etiqueta de fuente para el resto)
+    // y aquí queda sólo la frase de vista.
+    const resumen = innovApi.resumenPorFuente(innovations, claveDeGrupoFuente);
+    innovSummary.textContent = `${resumen.total} idea(s) en la lista (${resumen.partes.join(" · ")}). Guarda las que te gusten con ⭐.`;
   }
 
   // Resumen del generador: agrupa por FUENTE, pero para las curadas agrupa por ORIGEN visible
   // ("x Receta española · y Receta italiana") — la etiqueta es la MISMA que pintan las tarjetas.
   function claveDeGrupoFuente(i) {
-    return i.source === "curada" ? etiquetaOrigenSegura(i) : i.source;
+    return i.source === "curada" ? etiquetaOrigenSegura(i) : (SOURCE_LABEL[i.source] || "nuevas");
   }
 
   function renderInnovations() {
@@ -2090,11 +2084,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Render de Card 3 (lista de la compra derivada). Sólo se pinta si hay plan aprobado con ítems pendientes.
   // Con plan disponible, cada fila recibe su URGENCIA de compra (semaforo dinámico según lo cerca que está
   // la fecha de preparación: mañana/hoy=rojo, 2-3 días=naranja, ≥4=verde) y se ordena rojo→verde.
-  function formatoFechaCorta(iso) {
-    try {
-      return new Date(String(iso) + "T00:00:00Z").toLocaleDateString("es-ES", { day: "numeric", month: "short", timeZone: "UTC" });
-    } catch { return String(iso); }
-  }
+  // formatoFechaCorta vive en modules/util.js (§3, 2026-10-21) — llega por destructuring arriba;
+  // filaCompra la consume tal cual para el metadato "se usa el 21 oct" de cada fila del semáforo.
 
   // Fila clásica de la lista de la compra (needyFoods del plan aprobado, con semáforo por fecha).
   function filaCompra(item) {
@@ -2186,8 +2177,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // pendientes en la lista, así que aquí sólo abren filas del plan semanal.
     function abrirModalCompra(name, nombreDespensa) {
         const objetivo = nombreDespensa ? foods.find(f => f.name === nombreDespensa) : null;
-        const minPrevio = (objetivo && Number.isFinite(objetivo.min) && objetivo.min != null) ? objetivo.min : 1;
-        const scorePrevio = (objetivo && Number.isFinite(objetivo.score) && objetivo.score != null) ? objetivo.score : 5;
+        // min/score CON los que abre el modal: si la compra va a un alimento de la despensa se conserva
+        // SU criterio (no re-preguntar, 2026-10-19) — la regla vive en menuSemanal.valoresPreviosDeCompra.
+        const { min: minPrevio, score: scorePrevio } = menuSemanal.valoresPreviosDeCompra(objetivo);
         modalContent.innerHTML = `
         <h2>✅ ¿Comprado?</h2>
         <p class="muted">"<strong>${escapeHTML(name)}</strong>"${nombreDespensa
@@ -2217,19 +2209,17 @@ document.addEventListener("DOMContentLoaded", () => {
           const score = parseInt($("#compra-score", modalContent).value, 10);
           const minRaw = $("#compra-min", modalContent).value.trim();
           const min = minRaw === "" ? null : parseInt(minRaw, 10);   // vacío → no se pide: el módulo lo ignora
-          if (!Number.isFinite(qty) || qty < 1) {            // la cantidad comprada no puede ser 0/vacía
-            toast("Indica la cantidad comprada (1 o más)", "error");
+          // Toda la regla (qty ≥1, min ≥0, score 1–10) decide el módulo; aquí sólo traducimos el
+          // campo que falla a su mensaje (texto de vista, 2026-10-21).
+          const chk = menuSemanal.validarCompraForm({ qty, score, min });
+          if (!chk.ok) {
+            toast(
+              chk.campo === "qty" ? "Indica la cantidad comprada (1 o más)" :
+              chk.campo === "min" ? "El mínimo para la alerta va de 0 en adelante" :
+                                    "La importancia va de 1 a 10", "error");
             return;
           }
-          if (min !== null && (!Number.isFinite(min) || min < 0)) {
-            toast("El mínimo para la alerta va de 0 en adelante", "error");
-            return;
-          }
-          if (!Number.isFinite(score) || score < 1 || score > 10) {
-            toast("La importancia va de 1 a 10", "error");
-            return;
-          }
-          const compra = { qty, score, ...(min !== null ? { min } : {}) };
+          const compra = chk.compra;
           const result = nombreDespensa
             ? menuSemanal.markItemBoughtComo(foods, weeklyMenu, name, nombreDespensa, compra)
             : menuSemanal.markItemBought(foods, weeklyMenu, name, uid, Date.now(), compra);

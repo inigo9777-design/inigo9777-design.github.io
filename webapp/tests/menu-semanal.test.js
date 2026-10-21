@@ -640,3 +640,44 @@ describe("platosDelPlan + alternarColapso — resumen del plan aprobado y su ple
     });
   });
 });
+
+// VALIDACIÓN del diálogo "✅ ¿Comprado?" + prefill de su modal — extraídas de app.js a este
+// módulo (2026-10-21): antes la vista replicaba las tres reglas inline y compraNormalizada
+// re-sanitizaba por si acaso; ahora la regla vive UNA VEZ aquí y app.js sólo traduce el
+// campo que falla a su texto de toast.
+describe("validarCompraForm + valoresPreviosDeCompra — reglas del modal de compra", () => {
+  const desestructurar = require("../modules/menu-semanal.js");
+  const { validarCompraForm, valoresPreviosDeCompra } = desestructurar;
+
+  describe("validarCompraForm — la misma cadena que decidían los tres toasts de app.js", () => {
+    it("entrada válida → ok con `compra` listo para markItemBought/-Como (min vacío ⇒ sin min)", () => {
+      expect(validarCompraForm({ qty: 2, score: 7, min: "" })).toEqual({ ok: true, compra: { qty: 2, score: 7 } });
+      expect(validarCompraForm({ qty: 2, score: 7, min: 3 })).toEqual({ ok: true, compra: { qty: 2, score: 7, min: 3 } });
+      expect(validarCompraForm({ qty: 2, score: 7 })).toEqual({ ok: true, compra: { qty: 2, score: 7 } });
+    });
+
+    it(" primera regla que falla gana: qty <1, min <0 y score fuera de 1–10", () => {
+      expect(validarCompraForm({ qty: 0, score: 5 })).toEqual({ ok: false, campo: "qty" });
+      expect(validarCompraForm({ qty: NaN, score: 5 })).toEqual({ ok: false, campo: "qty" });
+      expect(validarCompraForm({ qty: 2, score: 5, min: -1 })).toEqual({ ok: false, campo: "min" });
+      expect(validarCompraForm({ qty: 2, score: 5, min: 0 })).toEqual({ ok: true, compra: { qty: 2, score: 5, min: 0 } });   // 0 SÍ vale
+      expect(validarCompraForm({ qty: 2, score: 0 })).toEqual({ ok: false, campo: "score" });
+      expect(validarCompraForm({ qty: 2, score: 11 })).toEqual({ ok: false, campo: "score" });
+      expect(validarCompraForm(null).ok).toBe(false);            // entrada rota: no explota
+    });
+  });
+
+  describe("valoresPreviosDeCompra — el modal abre cargado (afinación 2026-10-19)", () => {
+    it("alimento de despensa EXISTENTE: conserva su min/score (no re-preguntar)", () => {
+      expect(valoresPreviosDeCompra({ min: 3, score: 8 })).toEqual({ min: 3, score: 8 });
+      expect(valoresPreviosDeCompra({ min: 0, score: 2 })).toEqual({ min: 0, score: 2 });
+    });
+
+    it("alimento NUEVO o roto: alta manual de siempre (min 1 · score 5)", () => {
+      expect(valoresPreviosDeCompra(null)).toEqual({ min: 1, score: 5 });
+      expect(valoresPreviosDeCompra(undefined)).toEqual({ min: 1, score: 5 });
+      expect(valoresPreviosDeCompra({})).toEqual({ min: 1, score: 5 });
+      expect(valoresPreviosDeCompra({ min: NaN, score: null })).toEqual({ min: 1, score: 5 });
+    });
+  });
+});

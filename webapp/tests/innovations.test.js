@@ -101,8 +101,8 @@ describe("modules/innovations.js — contrato de forma §5 (forma del objeto res
     expect(new Set(Object.keys(idea))).toEqual(EXPECTED_KEYS); // sólo importa el token 'curada', no su etiqueta visible
   });
 
-  it("módulo con API PÚBLICA CERRADA (§5/§8): la única export es `generate` (no se filtran helpers internos)", () => {
-    expect(Object.keys(require("../modules/innovations")).sort()).toEqual(["generate"]);
+  it("módulo con API PÚBLICA CERRADA (§5/§8): sólo generates + piezas de vista (no se filtran helpers internos)", () => {
+    expect(Object.keys(require("../modules/innovations")).sort()).toEqual(["conciliarLote", "generate", "resumenPorFuente"]);
   });
 });
 
@@ -370,3 +370,60 @@ describe("INTEGRACIÓN — catálogo curado REAL cableado globalmente (§3.7), N
   });
 });
 
+
+// Conciliación del lote y resumen por fuente — extraídas de app.js a modules/innovations.js
+// (2026-10-21): el handler de "Generar ideas" llevaba inline el dedup por título + techo 30 y
+// updateInnovSummary el agrupado por fuente con el truco startsWith("Receta ") — reglas de
+// módulo, no de vista.
+describe("conciliarLote + resumenPorFuente — piezas de vista de Innovación, ahora puras", () => {
+  const { conciliarLote, resumenPorFuente } = require("../modules/innovations.js");
+
+  describe("conciliarLote(pila, lote, limite=30) — interpolación del lote del generador", () => {
+    it("solapa lo NUEVO al final, deduplicando por título lower/trim (contra la pila y entre sí)", () => {
+      const pila = [{ title: "Tortilla francesa" }, { title: "Gazpacho" }];
+      // (el criterio es lower+trim EXACTO, el de siempre: espacios internos DIFERENTES son otra cadena)
+      const lote = [
+        { title: "tortilla FRANCESA" },             // misma idea, otro aspecto (lower+trim): NO se suma
+        { title: "Salmorejo" },
+        { title: "Salmorejo" }                     // duplicada DENTRO del lote: una sola vez
+      ];
+      const out = conciliarLote(pila, lote);
+      expect(out.added).toBe(1);
+      expect(out.pila.map(i => i.title)).toEqual(["Tortilla francesa", "Gazpacho", "Salmorejo"]);
+    });
+
+    it("techo: con la pila por encima del límite se queda la COLA más reciente", () => {
+      const pila = Array.from({ length: 30 }, (_, i) => ({ title: "Idea " + i }));
+      const out = conciliarLote(pila, [{ title: "Recién salida" }]);
+      expect(out.added).toBe(1);
+      expect(out.pila).toHaveLength(30);
+      expect(out.pila[0].title).toBe("Idea 1");               // la más vieja cae
+      expect(out.pila[29].title).toBe("Recién salida");       // la nueva queda al final
+    });
+
+    it("inmutable + tolerante: no muta la pila y sobrevive a pila/lote fuera de forma", () => {
+      const pila = [{ title: "A" }];
+      conciliarLote(pila, [{ title: "B" }]);
+      expect(pila).toHaveLength(1);                            // el caller es quien persiste
+      expect(conciliarLote(null, null)).toEqual({ added: 0, pila: [] });
+    });
+  });
+
+  describe("resumenPorFuente(pila, resolver) — agrupado por fuente visible, estable", () => {
+    it("agrupa por el TEXTO del resolver (primera aparición) y da el total", () => {
+      const pila = [
+        { source: "curada" }, { source: "curada" }, { source: "variacion" }, { source: "curada" }
+      ];
+      const out = resumenPorFuente(pila, i => i.source === "curada" ? "Receta española" : "Variación");
+      expect(out.total).toBe(4);
+      expect(out.partes).toEqual(["3 Receta española", "1 Variación"]);
+    });
+
+    it("sin resolver agrupa por el token crudo; pila rota → total 0", () => {
+      expect(resumenPorFuente([{ source: "nueva" }, { source: "nueva" }])).toEqual({
+        total: 2, partes: ["2 nueva"]
+      });
+      expect(resumenPorFuente(null)).toEqual({ total: 0, partes: [] });
+    });
+  });
+});

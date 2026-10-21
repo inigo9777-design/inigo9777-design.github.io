@@ -1,7 +1,7 @@
 // modules/menu-semanal.js — Lógica PURe (sin DOM ni localStorage) de "Menú semanal + lista de la compra"
 // (ver webapp/feature-plans/planFeatureRecetasSugeridasYPlanSemana.md §2 Card 2 + Card 3 y CODING_STANDARDS.md §2-D / §3 option A).
 //
-// API PÚBLICA CERRADA (11 funciones, sin fugas de helpers internos):
+// API PÚBLICA CERRADA (13 funciones, sin fugas de helpers internos):
 //   shoppingListFor(needyFoods, foods, ctx?)  → dedup por MATCHER de tokens (NO subcadena-cruda) + COBERTURA
 //                                               contra el Inventario ACTUAL (petición 2026-10-21: sale el
 //                                               ítem cuyo alimento case con qty > SU min) + urgencia
@@ -34,6 +34,14 @@
 //                                                            voltea el campo opcional `colapsado` del shape
 //                                                            persistido y siempre se puede volver a mostrar.
 //                                                            Guard: sólo un plan aprobado con días se pliega.
+//   valoresPreviosDeCompra(alimento) → { min, score }      → valores con los que el modal de compra abre ya
+//                                                            cargado: si la compra va a un alimento EXISTENTE
+//                                                            no re-pregunta su criterio (afinación 2026-10-19);
+//                                                            alimento nuevo/roto → 1 y 5 (alta manual).
+//   validarCompraForm({qty, score, min}) → { ok, compra | } VALIDACIÓN del diálogo "✅ ¿Comprado?" (extraída
+//                                        { ok:false, campo }  de app.js 2026-10-21: qty ≥1, min ≥0 (vacío =
+//                                                            sin min) y score 1–10; la vista sólo traduce
+//                                                            `campo` a su texto de error.
 //
 // Nota de cambio (§8): `regenerateAfterCook` (regeneración COMPLETA al cocinar) se retira — cocinar desde el
 // menú ahora compone `cookEntry` + `swapSlotRecipe` en app.js: el plato entra en cooldown y SÓLO su slot
@@ -456,6 +464,40 @@
   }
 
   // ---------------------------------------------------------------------------
+  // valoresPreviosDeCompra — el MÍNIMO y la IMPORTANCIA con los que el modal de compra abre ya
+  // cargado (afinación 2026-10-19): si la compra va a un alimento YA EXISTENTE en la despensa NO
+  // se vuelve a preguntar su criterio de alerta (el suyo ya existe — conservarlo); si es un
+  // alimento nuevo (u entrada rota) cae a los valores de alta manual de siempre: min 1, score 5.
+  // Regla de negocio, no de vista: app.js la consultaba al montar el modal, aquí vive testeada.
+  // ---------------------------------------------------------------------------
+  function valoresPreviosDeCompra(alimento) {
+    return {
+      min: (alimento && Number.isFinite(alimento.min) && alimento.min != null) ? alimento.min : 1,
+      score: (alimento && Number.isFinite(alimento.score) && alimento.score != null) ? alimento.score : 5
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // validarCompraForm — VALIDACIÓN del diálogo "✅ ¿Comprado?" (feature 2026-10-18): la cantidad
+  // comprada es 1 o más, el mínimo para la alerta va de 0 en adelante (vacío ⇒ NO se pide: el
+  // markItemBought conserva el que ya tenía el alimento) y la importancia va de 1 a 10.
+  // Antes esta cadena vivía REPARTIDA: la vista replicaba las tres reglas para decidir qué toast
+  // mostrar y compraNormalizada (guard del markItemBought) re-sanitizaba por si acaso — reglas
+  // EN UN SITIO (§3) y la vista sólo traduce el campo a su texto de error.
+  //   * entrada = { qty, score, min } cruda del formulario (min vacío/null/undefined → sin min).
+  //   * ok     → { ok: true, compra } LISTO para markItemBought / markItemBoughtComo.
+  //   * error  → { ok: false, campo: "qty" | "min" | "score" }, el PRIMER campo que falla.
+  // ---------------------------------------------------------------------------
+  function validarCompraForm(entrada) {
+    const e = entrada || {};
+    const min = (e.min === undefined || e.min === null || e.min === "") ? null : e.min;
+    if (!Number.isFinite(e.qty) || e.qty < 1) return { ok: false, campo: "qty" };
+    if (min !== null && (!Number.isFinite(min) || min < 0)) return { ok: false, campo: "min" };
+    if (!Number.isFinite(e.score) || e.score < 1 || e.score > 10) return { ok: false, campo: "score" };
+    return { ok: true, compra: { qty: e.qty, score: e.score, ...(min !== null ? { min } : {}) } };
+  }
+
+  // ---------------------------------------------------------------------------
   // accionesMenuSlot — visibilidad de los botones de acción en las FILAS del menú (feature 2026-10-18):
   //   * "🍳 Cocinar" SOLO en un plan APROBADO: el preview aún no compromete nada (y cocinar desde él
   //     escribiría en mrcheff.cooked un plato que después podría regenerarse sin más). Regla de negocio,
@@ -500,12 +542,14 @@
     return { weekmenu: Object.assign({}, weekmenu, { colapsado: weekmenu.colapsado !== true }), cambiado: true };
   }
 
-  // API PÚBLICA CERRADA (§5/§8 — solo estas 11 funciones, sin fuga de helpers internos como defaultUid).
+  // API PÚBLICA CERRADA (§5/§8 — solo estas 13 funciones, sin fuga de helpers internos como defaultUid).
   return {
     shoppingListFor,
     approveMenu,
     markItemBought,
     markItemBoughtComo,
+    valoresPreviosDeCompra,
+    validarCompraForm,
     candidatosDespensa,
     cookEntry,
     swapSlotRecipe,
