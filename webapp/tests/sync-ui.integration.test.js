@@ -231,3 +231,77 @@ describe("sync-ui — wiring real de app.js (FASE 5)", () => {
     expect(app.window.localStorage.getItem(CLAVES.base)).toBeFalsy();
   });
 });
+
+// ---------- REGLA del transporte del plan semanal (petición 2026-10-21) ----------
+// El plan APROBADO viaja por el buzón con TODO su contenido (plan 7×3 + needyFoods = lista de la
+// compra) y se recupera VIVO en el otro dispositivo; un preview NO aprobado no viaja.
+
+// Plan REAL 7×3 con los huecos aún sin receta (meals[]) — los needy Foods alimentan la Card 3.
+const semanaPlan = () => ({
+  approved: true, generatedOn: "2026-10-21",
+  plan: Array.from({ length: 7 }, (_, i) => ({ dayLabel: `Día ${i + 1}`, meals: [] })),
+  needyFoods: [{ name: "Leche", qty: 1, min: 0, score: 5 }]
+});
+
+describe("sync-ui — el PLAN APROBADO viaja por el buzón (regla del transporte, 2026-10-21)", () => {
+
+  async function snapshotPublicado(gist, app) {
+    await hasta(() => JSON.parse(app.localStorage.getItem(CLAVES.pendiente) || "null"));
+    const publicada = gist.contenido;                          // la offer tal como quedó en el buzón
+    expect(publicada.kind).toBe("offer");
+    const key = await cripto.deriveKey(PASS, publicada.header.salt, publicada.header.iterations, { crypto: WEB_CRYPTO });
+    return cripto.decryptJson(key, publicada.payload, { crypto: WEB_CRYPTO });
+  }
+
+  test("PUBLICACIÓN: el plan aprobado viaja ENTERO (needyFoods incluidas) — descifrado y legible", async () => {
+    const gist = gistEnMemoria();
+    const seed = estadoLocal();
+    seed.weekmenu = semanaPlan();
+    const app = preparaApp({ gist, seed });
+
+    clic(app, btnSync(app));
+    const snapshot = await snapshotPublicado(gist, app);
+    expect(snapshot.weekmenu.approved).toBe(true);
+    expect(snapshot.weekmenu.plan).toHaveLength(7);
+    expect(snapshot.weekmenu.needyFoods.map(f => f.name)).toEqual(["Leche"]);   // la lista de la compra viaja con el plan
+  });
+
+  test("PUBLICACIÓN: un PREVIEW no aprobado NO viaja (weekmenu null en el snapshot cifrado)", async () => {
+    const gist = gistEnMemoria();
+    const seed = estadoLocal();
+    seed.weekmenu = { approved: false, generatedOn: "2026-10-21", plan: semanaPlan().plan.slice(0, 3) };
+    const app = preparaApp({ gist, seed });
+
+    clic(app, btnSync(app));
+    const snapshot = await snapshotPublicado(gist, app);
+    expect(snapshot.weekmenu).toBeNull();                      // aprobar es lo que pone la semana en circulación
+  });
+
+  test("RECOGIDA: el plan aprobado del otro dispositivo se recupera VIVO (días, botón de Aprobar y lista de la compra)", async () => {
+    const gist = gistEnMemoria();
+    const suyo = estadoLocal();
+    suyo.weekmenu = semanaPlan();
+    gist.contenido = await envolventeDe({ deviceId: "movil", estado: suyo, nonce: "nonce-plan" });
+    const app = preparaApp({ gist });
+
+    expect(app.window.localStorage.getItem("mrcheff.weekmenu")).toBeNull();    // sin plan local antes
+    clic(app, btnSync(app));
+    await hasta(() => JSON.parse(app.window.localStorage.getItem("mrcheff.weekmenu") || "null"));
+    const adoptado = JSON.parse(app.window.localStorage.getItem("mrcheff.weekmenu"));
+    expect(adoptado.approved).toBe(true);
+    expect(adoptado.plan).toHaveLength(7);
+    expect(nota(app)).toBe(sync.MENSAJES.aplicado);
+
+    // el plan nace en su estado final: 7 días pintados + botón de Aprobar bajo el faldón + barra
+    expect(app.document.querySelectorAll("#menu-plan-list .menu-day")).toHaveLength(7);
+    expect(app.document.getElementById("btn-menu-approve").disabled).toBe(true);
+    expect(app.document.getElementById("btn-menu-approve").textContent).toBe("✅ Plan aprobado");
+
+    // la lista de la compra (Card 3) nace de los needyFoods adoptados: la Leche no está en casa
+    const filas = [...app.document.querySelectorAll("#shopping-list ul li")].map(li => li.textContent);
+    expect(filas.some(t => t.includes("Leche"))).toBe(true);
+
+    // la base avanza con el plan aprobado: el próximo sync parte de él
+    expect(JSON.parse(app.localStorage.getItem(CLAVES.base)).weekmenu.approved).toBe(true);
+  });
+});

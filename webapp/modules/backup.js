@@ -38,6 +38,15 @@
   // (la vista) lo inyecta opcionalmente por contexto para tests (precedente uid/rng, §3.7 / §6 "Determinismo").
   const defaultUid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
+  // REGLA del transporte del plan semanal (2026-10-21): SOLO un menú APROBADO viaja en el payload
+  // v2 — con TODO su plan y needyFoods (la lista de la compra) para recuperarse en el otro
+  // dispositivo; el preview no aprobado va como null (no se transporta nada del menú). Réplica
+  // deliberada de `menuSemanal.weekmenuTransportable` para mantener los módulos puros
+  // independientes (mismo precedente que `claveIngredientes`, CODING_STANDARDS §8).
+  const soloAprobada = function (weekmenu) {
+    return (weekmenu && weekmenu.approved === true) ? weekmenu : null;
+  };
+
   // Reúne todo lo exportable en un objeto único con versión y fecha. `state` son los datos actuales INMUTABLES de la
   // app; `exportedAt` se inyecta opcionalmente por contexto para hacer determinista el test ("hoy" no real, §6), si no
   // hay valor pasado usa new Date().toISOString() — comportamiento IDENTICO al del code legacy que reemplaza. Cuando
@@ -52,7 +61,7 @@
       innovations,
       innovDay,
       cooked: Array.isArray(cooked) ? cooked : [],             // historial de "se cocinó" (ancla del cooldown de 7 días)
-      weekmenu: weekmenu != null ? weekmenu : null             // plan semanal (snapshot transportado, no dato a unir)
+      weekmenu: soloAprobada(weekmenu)                         // plan semanal SIEMPRE APROBADO; un preview no viaja (regla 2026-10-21)
     };
   };
 
@@ -173,9 +182,12 @@
       addedCooked++;
     });
 
-    // weekmenu: se adopta el entrante SOLO si el local no tiene ninguno (es snapshot transportado, no dato a
-    // fusionar línea a línea); si el local ya tiene plan, NADA desaparece (§5 del CODING_STANDARDS.md).
-    const nextWeekmenu = data.weekmenu != null && !(current.weekmenu != null) ? data.weekmenu : (current.weekmenu != null ? current.weekmenu : null);
+    // weekmenu: se adopta el entrante SOLO si viene APROBADO (regla del transporte 2026-10-21: un
+    // preview no se recupera jamás — vigila copias v2 antiguas que pudieran llevarlo) y SOLO si el
+    // local no tiene ninguno (es snapshot transportado, no dato a fusionar línea a línea); si el
+    // local ya tiene plan, NADA desaparece (§5 del CODING_STANDARDS.md).
+    const semanaEntrante = soloAprobada(data.weekmenu);
+    const nextWeekmenu = semanaEntrante != null && !(current.weekmenu != null) ? semanaEntrante : (current.weekmenu != null ? current.weekmenu : null);
 
     return { foods: nextFoods, recipes: nextRecipes, innovations: nextInnovations, persistInnov, addedFoods, addedRecipes,
              cooked: nextCooked, weekmenu: nextWeekmenu, addedCooked };

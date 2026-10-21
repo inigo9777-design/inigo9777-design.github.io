@@ -42,6 +42,12 @@
 //                                        { ok:false, campo }  de app.js 2026-10-21: qty ≥1, min ≥0 (vacío =
 //                                                            sin min) y score 1–10; la vista sólo traduce
 //                                                            `campo` a su texto de error.
+//   weekmenuTransportable(weekmenu)      → weekmenu | null    — REGLA del transporte (petición 2026-10-21):
+//                                                            Sólo un plan APROBADO viaja por sync/copia, y
+//                                                            viaja ENTERO (plan + needyFoods = la lista de
+//                                                            la compra) para recuperarse en el otro
+//                                                            dispositivo. Preview no aprobado o estado
+//                                                            limpio → null (nada del plan se transporta).
 //
 // Nota de cambio (§8): `regenerateAfterCook` (regeneración COMPLETA al cocinar) se retira — cocinar desde el
 // menú ahora compone `cookEntry` + `swapSlotRecipe` en app.js: el plato entra en cooldown y SÓLO su slot
@@ -542,7 +548,21 @@
     return { weekmenu: Object.assign({}, weekmenu, { colapsado: weekmenu.colapsado !== true }), cambiado: true };
   }
 
-  // API PÚBLICA CERRADA (§5/§8 — solo estas 13 funciones, sin fuga de helpers internos como defaultUid).
+  // ---------------------------------------------------------------------------
+  // weekmenuTransportable — REGLA del transporte del menú semanal (petición 2026-10-21):
+  // sólo un plan APROBADO viaja entre dispositivos (sync por buzón y copia de seguridad
+  // manual), y con TODA su información: plan[7×3] + needyFoods (la lista de la compra se
+  // recupera con sus ausentes pendientes). El preview (¡no aprobado!) y el estado limpio
+  // viajan como NADA (null): aprobar es lo que pone la semana en circulación — misma regla
+  // de `accionesMenuSlot`, la decisión es de negocio, no de vista. La usan app.js (snapshot
+  // del sync) y — réplica deliberada, módulos puros independientes, precedente
+  // `claveIngredientes` §8 — backup.js (export/import) y diff-merge.js (merge3).
+  // ---------------------------------------------------------------------------
+  function weekmenuTransportable(weekmenu) {
+    return (weekmenu && weekmenu.approved === true) ? weekmenu : null;
+  }
+
+  // API PÚBLICA CERRADA (§5/§8 — solo estas 14 funciones, sin fuga de helpers internos como defaultUid).
   return {
     shoppingListFor,
     approveMenu,
@@ -556,6 +576,7 @@
     clearMenu,
     accionesMenuSlot,
     platosDelPlan,
-    alternarColapso
+    alternarColapso,
+    weekmenuTransportable
   };
 });

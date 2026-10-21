@@ -225,6 +225,19 @@ describe("diff-merge — foods / cooked / innovations / weekmenu (unión por ide
     expect(dmerge.merge3(null, { weekmenu: remota }, { weekmenu: local }).estado.weekmenu).toBe(remota);   // más nuevo SIEMPRE
   });
 
+  it("weekmenu REGLA del transporte (2026-10-21): el preview no aprobado NO participa del merge (se trata como ausencia)", () => {
+    const aprobada = { approved: true, generatedOn: "2026-10-21", plan: [1], needyFoods: [{ name: "Leche" }] };
+    const preview = { approved: false, generatedOn: "2026-10-21", plan: [2] };
+
+    // el plan aprobado de UNO solo impone aunque el otro traiga un preview más "nuevo"
+    expect(dmerge.merge3(null, { weekmenu: aprobada }, { weekmenu: preview }).estado.weekmenu).toBe(aprobada);
+    expect(dmerge.merge3(null, { weekmenu: preview }, { weekmenu: aprobada }).estado.weekmenu).toBe(aprobada);
+
+    // una BASE antigua que hubiese guardado un preview no lo resucita
+    expect(dmerge.merge3({ weekmenu: preview }, { weekmenu: null }, { weekmenu: null }).estado.weekmenu).toBeNull();
+    expect(dmerge.merge3({ weekmenu: preview }, { weekmenu: {} }, { weekmenu: undefined }).estado.weekmenu).toBeNull();
+  });
+
   it("receta borrada en AMBOS lados desaparece; borrada en UNO solo se RESUCITA (caso borde §4 documentado)", () => {
     const base = { recipes: [recetaBase()] };
     const ambosBorrados = dmerge.merge3(base, { recipes: [] }, { recipes: [] });

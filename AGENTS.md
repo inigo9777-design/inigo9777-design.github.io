@@ -240,10 +240,23 @@ italiana" (see `modules/origen-recetas.js` below).
   Conservar ambas — la copia remota entra con uid nuevo + badge "⧉ duplicada" para limpieza manual) y NADA
   queda escrito (ni local ni buzón) hasta resolver. Un fallo de red NUNCA corrompe el estado local.
   Copias guardadas por ⭐/✏️ llevan `editedAt` y el payload backup v2 (`version: 2`) transporta
-  cooked/weekmenu; el export/import manual queda intocado (plan B, decisión fijada §3 del plan). El sync
+  cooked/weekmenu. **REGLA del transporte del plan semanal (2026-10-21):** SÓLO un menú APROBADO
+  viaja, y viaja ENTERO (plan 7×3 + `needyFoods` = la lista de la compra) para recuperarse en el
+  otro dispositivo — la regla vive en la 14ª pública de `menu-semanal.js`
+  (`weekmenuTransportable`) y los tres puntos de transporte la aplican: snapshot del sync
+  (`estadoLocalCompleto` en app.js), export/import manual (`buildBackup`/`mergeIncoming` en
+  `backup.js`: un preview no se exporta ni se adopta jamás) y la zona weekmenu del diff3
+  (`resolverWeekmenu` en `diff-merge.js`, también apaga una base antigua que hubiese guardado un
+  preview). La recuperación se ve viva AL INSTANTE: tras recogida por sync (`aplicarEstadoSync`)
+  o import (`commitImport`) el plan se repinta con su estado final (7 días + botón de Aprobar
+  bajo el faldón + barra de plegado) y la Card 3 nace de los needyFoods adoptados. El export/
+  import manual sigue siendo plan B intocado en su resto (decisión fijada §3 del plan). El sync
   automático al abrir es idea futura, NO feature. Specs de integración del wiring: `tests/sync-ui.integration.test.js`
   (boot real + `window.fetch` sustituido; boot.js aporta la WebCrypto cruda + TextEncoder/TextDecoder que
-  jsdom no trae) y `tests/sync-protocol.integration.test.js` (2 dispositivos en memoria); e2e manual real
+  jsdom no trae) y `tests/sync-protocol.integration.test.js` (2 dispositivos en memoria); el transporte del plan
+  se cubre en `sync-ui` (publicación descifrada + recogida viva) y en `tests/import-plan-lista.integration.test.js`
+  (vía FileReader real — `tests/setup.js` aporta el polyfill de `setImmediate` que el sandbox de
+  Jest oculta y la lectura de Blob de jsdom necesita); e2e manual real
   con token de entorno: `node e2e/sync-buzon.mjs` (el PAT NUNCA se hardcodea ni se da a ningún agente).
 - **Pure modules (`webapp/modules/`, all IIFE + dual-export, no DOM/localStorage — §3 CODING_STANDARDS):**
   `classify.js` · `priority.js` · `recipe-analysis.js` · `ingredient-matching.js` (token matcher,

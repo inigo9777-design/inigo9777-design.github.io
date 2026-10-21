@@ -23,6 +23,12 @@
 //       con badge "duplicada"; "Aplicar resolución" → ACK. Nada de texto se pierde (§11).
 //   (5) PC: "🔄 Sync" → la resolución viaja: las 2 versiones están en ambos dispositivos.
 //   (6) Móvil en modo avión (fetch caído) → mensaje de error textual y estado local intacto.
+//   (7) REGLA del transporte del plan (2026-10-21): en el PC genera y APRUEBA el menú semanal
+//       (con su compra pendiente) → "🔄 Sync" → en el móvil "🔄 Sync" → "Cambios del otro
+//       dispositivo aplicados." y en Sugerencias y menú aparecen los 7 días y la lista de la
+//       compra con el botón de Aprobar bajo el faldón. Lo mismo por copia manual: exportar
+//       en el PC e importar en el móvil replica la recuperación. Con el menú SÓLO GENERADO
+//       (preview, no aprobado) ni el sync ni el export transportan nada del plan.
 // Capturas en reports/ui-brave/40-…43-sync-*.png.
 import { chromium } from "playwright-core";
 import { mkdirSync } from "node:fs";
