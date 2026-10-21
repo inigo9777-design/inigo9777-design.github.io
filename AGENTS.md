@@ -207,7 +207,8 @@ italiana" (see `modules/origen-recetas.js` below).
   shared by planner/menu-semanal/innovations) · `util.js` · `innovations.js` · `planner.js` (public API:
   buildCandidatePool, matchDetails, suggestToday, buildWeeklyMenu, pickRecipeForSlot, loteRotado…) ·
   `menu-semanal.js` (shoppingListFor, approveMenu, markItemBought, cookEntry, swapSlotRecipe, clearMenu,
-  accionesMenuSlot — el 🍳 del menu sólo en plan aprobado) ·
+  accionesMenuSlot — el 🍳 del menu sólo en plan aprobado, platosDelPlan y alternarColapso — plegar/
+  desplegar la semana APROBADA, petición 2026-10-21) ·
   `recipe-editor.js` (buildDraft, validateDraft, estaGuardada, applyEdit, patchPlan) · `recipe-missing.js`
   (qué ingredientes faltan para el modal) · `backup.js` · **`busqueda-recetas.js`** (buscador del
   catálogo: texto libre → resultado por TÍTULO SÓLO, exacto x3 / prefijo x2 — fix 2026-10-20:
@@ -259,12 +260,17 @@ italiana" (see `modules/origen-recetas.js` below).
     FECHA de su día planificado (próxima ocurrencia de ese weekday desde HOY, HOY incluido como día 0); con el
     menú 7×3 hay una entrada por RECETA del plan (hasta 21) y las de un mismo día comparten fecha ancla.
     "🍳 Cocinar" desde el menú = `cookEntry` (hoy) + `swapSlotRecipe` del propio hueco (no regenera el plan entero).
-  - `mrcheff.weekmenu`: `{ approved, includeUnavailable, generatedOn, plan[7], needyFoods[] }` — ancla = HOY real
+  - `mrcheff.weekmenu`: `{ approved, includeUnavailable, generatedOn, plan[7], needyFoods[], colapsado? }` — ancla = HOY real
     al aprobar, no el día visual marcado. Desde la feature 2026-10-18 el plan es **7 días × 3 comidas**:
     `plan[7] = { dayLabel, meals[3] = { meal: "desayuno"|"comida"|"cena", recipe|null, missing } }` y
     `needyFoods` = unión dedup de los ausentes de los 21 slots. `swapSlotRecipe` (módulo `menu-semanal.js`)
     puede añadir por slot el campo opcional `triedKeys: string[]` (fingerprints ya probados, para que el
-    botón "🔄 Cambiar" recorra el ranking sin oscilar). `pickRecipeForSlot` es la 6ª función pública de
+    botón "🔄 Cambiar" recorra el ranking sin oscilar). **Plegado de la semana (feature 2026-10-21,
+    petición del usuario):** el plan APROBADO se PLEGA vía la barra "📅 Tu semana — N platos" + "▾ Plegar"
+    (sólo aparece aprobado — `pintaBarraPlan` en app.js es el punto ÚNICO de la barra y del plegado de la
+    lista; el PREVIEW no se pliega y un plan limpio/nuevo nace expandido) y SIEMPRE vuelve a desplegarse
+    ("▸ Desplegar"); el estado opcional `colapsado` viaja en el shape persistido (como `triedKeys`, nota
+    §8) y la regla vive en `alternarColapso` — Card 3 (lista de la compra) queda visible plegada o no. `pickRecipeForSlot` es la 6ª función pública de
     `planner.js` (contrato ampliado, log §8 del CODING_STANDARDS.md). Las recetas guardadas son EDITABLES
     desde el modal de detalle (✏️ Editar): edición in-situ si ya está en `mrcheff.recipes` o copia nueva
     si es un plato del catálogo o del plan — los huecos del plan que incrustan la receta editada se refrescan

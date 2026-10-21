@@ -5,7 +5,7 @@
 // `regenerateAfterCook` (cocinar desde el menú = cookEntry + swap de SOLO ese hueco) y `shoppingListFor` añade
 // urgencia de compra (semáforo rojo/naranja/verde según la fecha de preparación).
 
-const { shoppingListFor, approveMenu, markItemBought, markItemBoughtComo, candidatosDespensa, cookEntry, swapSlotRecipe, clearMenu, accionesMenuSlot } = require("../modules/menu-semanal.js");
+const { shoppingListFor, approveMenu, markItemBought, markItemBoughtComo, candidatosDespensa, cookEntry, swapSlotRecipe, clearMenu, accionesMenuSlot, platosDelPlan, alternarColapso } = require("../modules/menu-semanal.js");
 
 // cookEntryFor determinista para tests (imita planner.cookEntryFor pero inyectable).
 function cookEntryFor(recipe, opts) {
@@ -580,6 +580,63 @@ describe("modules/menu-semanal.js", () => {
       expect(markItemBoughtComo(despensa, weekmenu, "Jamón serrano", "Jamón de York", compra)).toBeNull();
       expect(markItemBoughtComo(despensa, weekmenu, "Jamón serrano", "Jamón ibérico", { qty: 0, score: 5 })).toBeNull();
       expect(markItemBoughtComo(despensa, weekmenu, "Jamón serrano", "Jamón ibérico")).toBeNull();
+    });
+  });
+});
+
+// FEATURE 2026-10-21 (petición del usuario): una vez APROBADO, el plan semanal se puede PLEGAR
+// y siempre se puede volver a desplegar. La decisión vive aquí (módulo puro); app.js sólo moldea
+// la barra y persiste. El estado `colapsado` es campo opcional del shape (como `triedKeys`).
+describe("platosDelPlan + alternarColapso — resumen del plan aprobado y su plegado", () => {
+  const diaConRecetas = (labels, n) => ({
+    dayLabel: labels,
+    meals: Array.from({ length: n }, (_, i) => ({ meal: "comida" + i, recipe: { title: "R" + i } }))
+  });
+
+  describe("platosDelPlan — el conteo que app.js tenía copiado en tres sitios", () => {
+    it("cuenta sólo los slots CON receta (7×3 ⇒ tope 21); plan vacío/roto ⇒ 0", () => {
+      const plan = [
+        diaConRecetas("Lunes", 3),
+        { dayLabel: "Martes", meals: [{ meal: "cena" }, { meal: "comida", recipe: { title: "Tortilla" } }] },
+        diaConRecetas("Miércoles", 1),
+        { dayLabel: "Jueves", meals: [] }
+      ];
+      expect(platosDelPlan(plan)).toBe(5);
+      expect(platosDelPlan(diaConRecetas("L", 3).meals && [
+        diaConRecetas("Lunes", 3), diaConRecetas("Martes", 3), diaConRecetas("Miércoles", 3),
+        diaConRecetas("Jueves", 3), diaConRecetas("Viernes", 3), diaConRecetas("Sábado", 3), diaConRecetas("Domingo", 3)
+      ])).toBe(21);
+      expect(platosDelPlan([])).toBe(0);
+      expect(platosDelPlan(undefined)).toBe(0);
+      expect(platosDelPlan([null, { meals: null }])).toBe(0);
+    });
+  });
+
+  describe("alternarColapso — plegar/desplegar el plan aprobado (inmutable + guard)", () => {
+    const aprobado = { approved: true, plan: [diaConRecetas("Lunes", 3)], needyFoods: [] };
+
+    it("voltea `colapsado` (undefined → true) en un weekmenu NUEVO, sin mutar el original", () => {
+      const cambio = alternarColapso(aprobado);
+      expect(cambio.cambiado).toBe(true);
+      expect(cambio.weekmenu.colapsado).toBe(true);
+      expect(aprobado.colapsado).toBeUndefined();          // el original sigue intacto
+      expect(cambio.weekmenu.plan).toBe(aprobado.plan);    // copia superficial: el plan no se copia de más
+    });
+
+    it("segunda llamada vuelve a EXPANDIR (siempre es posible reabrir la semana)", () => {
+      const plegado = alternarColapso(aprobado).weekmenu;
+      const vuelta = alternarColapso(plegado);
+      expect(vuelta.cambiado).toBe(true);
+      expect(vuelta.weekmenu.colapsado).toBe(false);       // persiste false EXPLÍCITO (no undefined)
+    });
+
+    it("guard: preview (approved false), limpio (null) o plan vacío ⇒ sin cambios", () => {
+      expect(alternarColapso({ approved: false, plan: [diaConRecetas("Lunes", 3)] })).toEqual({
+        weekmenu: { approved: false, plan: [diaConRecetas("Lunes", 3)] }, cambiado: false
+      });
+      expect(alternarColapso(null)).toEqual({ weekmenu: null, cambiado: false });
+      expect(alternarColapso({ approved: true, plan: [] }).cambiado).toBe(false);
+      expect(alternarColapso({ approved: true }).cambiado).toBe(false);
     });
   });
 });

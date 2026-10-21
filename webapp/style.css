@@ -954,6 +954,29 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 
 /* ========== 13. MENÚ SEMANAL — una franja por día, a todo el ancho ========== */
+/* Barra del plan APROBADO (feature 2026-10-21): resumen "N platos" + plegar/desplegar.
+   Sólo tokens existentes — nada de colores nuevos: hereda texto y marca del tema activo. */
+.menu-plan-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-1);
+  margin-bottom: 12px;
+}
+.menu-plan-title {
+  font-family: Georgia, serif;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 1rem;
+}
+/* Objetivo táctil ≥24px (auditoría e2e/pwa-accesibilidad.mjs), herencia visual de .btn.ghost.small */
+#btn-menu-colapsar { min-height: 24px; }
+
 /* Las filas de comida son RECTÁNGULOS LARGOS a sangre: todas ocupan el ancho
    íntegro de la franja (el redondeo de la franja las recorta limpio con
    overflow:hidden) y comparten estructura → nunca hay dos filas de distinta

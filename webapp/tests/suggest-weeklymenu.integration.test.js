@@ -231,3 +231,69 @@ describe("Card 2+3 'Menú semanal + lista de la compra' — integración", () =>
     expect(btnApprove.disabled).toBe(false);
   });
 });
+
+// FEATURE 2026-10-21 (petición del usuario): el plan APROBADO se puede PLEGAR (queda la barra de
+// resumen) y SIEMPRE se puede volver a mostrar. Recorrido real: aprobar → plegar → "recargar"
+// (el estado guardado arranca otra app) → desplegar. La regla vive en el módulo puro
+// (menuSemanal.alternarColapso); aquí se ejercita la VISTA real: barra + persistencia + render.
+describe("Plan APROBADO plegable — barra de resumen con plegar/desplegar (Card 2)", () => {
+  function aprobarPlan() {
+    const app = seedPocoStock();
+    const { document } = app;
+    document.querySelector('[data-view="suggest"]').click();
+    document.getElementById("btn-menu-generate").click();
+    // PREVIEW (aún sin aprobar): la barra de plegado NO aparece — sólo hay semana que plegar
+    // una vez comprometida.
+    expect(document.getElementById("menu-plan-bar").classList.contains("hidden")).toBe(true);
+    document.getElementById("btn-menu-approve").click();
+    return app;
+  }
+
+  it("tras aprobar: barra visible («N platos») + ▾ Plegar; plegar oculta la lista 7×3 y PERSISTE `colapsado`", () => {
+    const { document, localStorage } = aprobarPlan();
+
+    const barra = document.getElementById("menu-plan-bar");
+    expect(barra.classList.contains("hidden")).toBe(false);
+    expect(document.getElementById("menu-plan-title").textContent).toMatch(/— \d+ plat/);
+    const btn = document.getElementById("btn-menu-colapsar");
+    expect(btn.textContent).toBe("▾ Plegar");
+    expect(btn.getAttribute("aria-expanded")).toBe("true");
+    expect(document.getElementById("menu-plan-list").classList.contains("hidden")).toBe(false);
+
+    btn.click();
+    // plegado: sin grid, con resumen; la Card 3 (lista de la compra) NO se toca
+    expect(document.getElementById("menu-plan-list").classList.contains("hidden")).toBe(true);
+    expect(barra.classList.contains("hidden")).toBe(false);
+    expect(btn.textContent).toBe("▸ Desplegar");
+    expect(btn.getAttribute("aria-expanded")).toBe("false");
+    expect(JSON.parse(localStorage.getItem("mrcheff.weekmenu")).colapsado).toBe(true);
+  });
+
+  it("«recarga» con la semana plegada: arranca PLEGADA (colapsado persistido) y desplegar re-abre al detalle", () => {
+    const { document: d1, localStorage } = aprobarPlan();
+    d1.getElementById("btn-menu-colapsar").click();
+    const semanGuardada = JSON.parse(localStorage.getItem("mrcheff.weekmenu"));
+    expect(semanGuardada.colapsado).toBe(true);
+
+    // Nueva boot con el MISMO estado guardado = recarga real de la página
+    const { document, localStorage: ls2 } = bootApp({
+      seed: { foods: foodsPocoStock, recipes: [], innov: [], cooked: [], weekmenu: semanGuardada }
+    });
+    expect(document.getElementById("menu-plan-bar").classList.contains("hidden")).toBe(false);
+    expect(document.getElementById("menu-plan-list").classList.contains("hidden")).toBe(true);   // sigue plegada
+    expect(document.getElementById("btn-menu-colapsar").textContent).toBe("▸ Desplegar");
+
+    document.getElementById("btn-menu-colapsar").click();
+    expect(document.getElementById("menu-plan-list").classList.contains("hidden")).toBe(false);
+    expect(JSON.parse(ls2.getItem("mrcheff.weekmenu")).colapsado).toBe(false);
+    expect(document.getElementById("btn-menu-colapsar").textContent).toBe("▾ Plegar");
+  });
+
+  it("Limpiar retira la barra (estado aprobado→limpio) y Cocinar/Cambiar no la traen de vuelta", () => {
+    const { document } = aprobarPlan();
+    document.getElementById("btn-menu-colapsar").click();          // plegada
+    document.getElementById("btn-menu-clear").click();
+    expect(document.getElementById("menu-plan-bar").classList.contains("hidden")).toBe(true);
+    expect(document.getElementById("menu-plan-list").classList.contains("hidden")).toBe(true);
+  });
+});

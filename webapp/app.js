@@ -1923,6 +1923,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const menuPlanList = $("#menu-plan-list");
   const menuEmpty = $("#menu-empty");
   const shoppingListEl = $("#shopping-list");
+  // Barra del plan APROBADO: resumen "N platos" + botón plegar/desplegar (petición 2026-10-21).
+  const menuPlanBar = $("#menu-plan-bar");
+  const menuPlanTitle = $("#menu-plan-title");
+  const btnMenuColapsar = $("#btn-menu-colapsar");
 
   // Estado del menú semanal cargado de localStorage (persistencia entre pestañas / recargas).
   let weeklyMenu = load(LS.weekmenu, null);
@@ -1967,6 +1971,36 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     </div>`;
   }
+
+  // FEATURE 2026-10-21 (petición del usuario): una vez APROBADO, el plan semanal se puede PLEGAR
+  // para que no ocupe pantalla — queda la barra de resumen y SIEMPRE se puede volver a mostrar.
+  // La regla vive en el módulo puro (menuSemanal.alternarColapso, sólo aprobado, inmutable) y el
+  // estado persiste como `colapsado` en mrcheff.weekmenu; aquí sólo molde + persistencia. PUNTO
+  // ÚNICO de la BARRA y del plegado de la lista 7×3 (el PREVIEW la sigue mostrando vía
+  // renderWeeklyMenu: un preview no aprobado no se pliega).
+  function pintaBarraPlan() {
+    const aprobado = !!(weeklyMenu && weeklyMenu.approved === true);
+    const hayDias = aprobado && Array.isArray(weeklyMenu.plan) && weeklyMenu.plan.length > 0;
+    menuPlanBar.classList.toggle("hidden", !hayDias);
+    if (hayDias) menuPlanList.classList.toggle("hidden", weeklyMenu.colapsado === true);
+    if (!hayDias) return;
+    const n = menuSemanal.platosDelPlan(weeklyMenu.plan);
+    menuPlanTitle.textContent = `📅 Tu semana — ${n} ${n === 1 ? "plato" : "platos"}`;
+    const plegado = weeklyMenu.colapsado === true;
+    btnMenuColapsar.setAttribute("aria-expanded", plegado ? "false" : "true");
+    btnMenuColapsar.textContent = plegado ? "▸ Desplegar" : "▾ Plegar";
+    btnMenuColapsar.title = plegado
+      ? "Volver a mostrar la semana completa"
+      : "Plegar la semana (quedan este resumen y la lista de la compra)";
+  }
+
+  btnMenuColapsar.addEventListener("click", () => {
+    const cambio = menuSemanal.alternarColapso(weeklyMenu);
+    if (!cambio.cambiado) return;      // sólo se pliega lo aprobado (guard del módulo)
+    weeklyMenu = cambio.weekmenu;
+    save(LS.weekmenu, weeklyMenu);
+    pintaBarraPlan();
+  });
 
   function renderWeeklyMenu(plan) {
     menuPlanList.innerHTML = "";
@@ -2029,6 +2063,7 @@ document.addEventListener("DOMContentLoaded", () => {
     weeklyMenu = cambio.weekmenu;
     save(LS.weekmenu, weeklyMenu);
     renderWeeklyMenu(weeklyMenu.plan);
+    pintaBarraPlan();
     if (weeklyMenu.approved) renderShoppingList();
     toast(`Registrado: "${rec.title}" se cocinó — nuevo plato para ese hueco`);
   }
@@ -2048,6 +2083,7 @@ document.addEventListener("DOMContentLoaded", () => {
     weeklyMenu = cambio.weekmenu;
     save(LS.weekmenu, weeklyMenu);
     renderWeeklyMenu(weeklyMenu.plan);
+    pintaBarraPlan();
     if (weeklyMenu.approved) renderShoppingList();
   }
 
@@ -2227,7 +2263,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const includeUnavailable = menuInclude.checked;
     const pool = planner.buildCandidatePool(foods, recipes, catalogoEspanol, { cooked, today });
     const menu = planner.buildWeeklyMenu(pool, foods, { includeUnavailable, today });
-    const totalSlots = menu.plan.reduce((n, d) => n + ((Array.isArray(d.meals) ? d.meals : []).filter(m => m.recipe).length), 0);
+    const totalSlots = menuSemanal.platosDelPlan(menu.plan);
     menuStatus.textContent = includeUnavailable
       ? (totalSlots < 21
         ? `Se asignaron ${totalSlots} de 21 platos (7 días × desayuno/comida/cena): tu despensa + recetas guardadas no dan para más. Activa "Sugerencias" o añade más alimentos para ampliarlo.`
@@ -2238,6 +2274,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // para la visibilidad de los botones de fila (preview → sin "🍳 Cocinar", con "🔄 Cambiar").
     weeklyMenu = { ...menu, approved: false, includeUnavailable, generatedOn: today };
     renderWeeklyMenu(menu.plan);
+    pintaBarraPlan();
     menuEmpty.classList.add("hidden");
     btnMenuApprove.disabled = totalSlots === 0;
     btnMenuApprove.title = totalSlots === 0 ? "Genera primero un menú con al menos un plato" : "Aprueba este plan";
@@ -2255,10 +2292,11 @@ document.addEventListener("DOMContentLoaded", () => {
     save(LS.weekmenu, weeklyMenu);
     btnMenuApprove.disabled = true;
     btnMenuApprove.textContent = "✅ Plan aprobado";
-    menuStatus.textContent = `Plan aprobado: ${weeklyMenu.plan.reduce((n, d) => n + ((Array.isArray(d.meals) ? d.meals : []).filter(m => m.recipe).length), 0)} plato(s) anotados en su día de la semana (aprobado el ${today}).`;
+    menuStatus.textContent = `Plan aprobado: ${menuSemanal.platosDelPlan(weeklyMenu.plan)} plato(s) anotados en su día de la semana (aprobado el ${today}).`;
     // Re-render de las filas: ahora SÍ llevan "🍳 Cocinar" (decisión de menuSemanal.accionesMenuSlot,
     // que ve approved=true) — el preview se pintó sin él y las filas no se refrescan solas.
     renderWeeklyMenu(weeklyMenu.plan);
+    pintaBarraPlan();
     renderShoppingList();
     toast("Menú semanal aprobado");
   });
@@ -2274,6 +2312,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnMenuApprove.disabled = true;
     btnMenuApprove.textContent = "✅ Plan aprobado";
     menuEmpty.classList.add("hidden");
+    pintaBarraPlan();   // (re-honra el plegado persistido del plan aprobado — feature 2026-10-21)
     renderShoppingList();   // sólo pinta si hay needyFoods no comprados (el render filtra por sí, guard §2-A)
   }
 
@@ -2284,6 +2323,7 @@ document.addEventListener("DOMContentLoaded", () => {
     save(LS.weekmenu, weeklyMenu);
     menuPlanList.innerHTML = "";
     menuPlanList.classList.add("hidden");
+    pintaBarraPlan();              // sin plan aprobado ⇒ barra fuera (punto único; la lista ya la tapa Limpiar)
     menuEmpty.classList.remove("hidden");
     menuStatus.classList.add("hidden");
     btnMenuApprove.disabled = true;
