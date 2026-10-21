@@ -179,12 +179,13 @@ italiana" (see `modules/origen-recetas.js` below).
   nativo que dejaba la lista de meses abierta encima — pero el CLICK sigue vivo, así el paso
   avanza igual; al reabrir con 🎓 se hace blur del foco activo (iOS nota: su picker puede
   abrirse al soltar — la plataforma de la feature es el PWA Android/Brave). **Tarjeta sobre
-  objetivos ALTOS (petición 2026-10-21):** "Mis recetas" y "Buena fruta, buena verdura" llevan
-  `tarjeta: "arriba"` en el guion (pasoValido valida el campo: sólo "arriba") — el scroll ya no
-  centra el elemento, su ARRANQUE se asienta al 60% de la ventana (window.scrollTo) y la tarjeta
-  flota ENCIMA del aro sin tocarlo: arriba asoma la cabecera atenuada por el velo, en medio el
-  diálogo y debajo la lista/cuadrícula viva y enfocada — en vez de taparla (e2e mide las tres
-  zonas con capturas 72-73).
+  los 4 objetivos ALTOS (petición 2026-10-21, pantallazos de referencia):** "Inventario y
+  alerta semanal", "Mis recetas", "Un lote listo para mirar" y "Buena fruta, buena verdura"
+  llevan `tarjeta: "arriba"` en el guion (pasoValido valida el campo: sólo "arriba") — el
+  scroll ya no centra el elemento, su ARRANQUE se asienta al 60% de la ventana
+  (window.scrollTo) y la tarjeta flota ENCIMA del aro sin tocarlo: arriba asoma la cabecera
+  atenuada por el velo, en medio el diálogo y debajo la lista/cuadrícula viva y enfocada —
+  en vez de taparla (e2e mide las tres zonas en los 4 pasos con capturas 72-75).
   Auto-abre SOLO la primera vez en contexto web instalable (http/https; `file://` no — se
   registra en LS `mrcheff.tutorial.visto`, respetado por ✕ / Escape / "Terminar"; se reabre
   con el botón circular 🎓 `#btn-tutorial` en `.topbar-actions` ENTRE la caja fuerte y el tema,
@@ -201,9 +202,9 @@ italiana" (see `modules/origen-recetas.js` below).
   `tests/tutorial-ui.integration.test.js` (auto-apertura, X/Escape/Terminar, reabrir, flujo
   accionable con GUION INYECTADO en la ventana = desacoplado del contenido que crece la épica,
   silencio de campos y del select, recorrido completo 16 pasos) y e2e Brave real
-  `e2e/tutorial.mjs` (28 checks: auto-apertura, segunda visita silenciosa, 🎓, recorrido
-  completo con mouse+coords, campos silenciados sin focus, geometría del aro y de la tarjeta
-  sobre los objetivos altos, swipe inmóvil; sirviendo por http://localhost:8617 con python3
+  `e2e/tutorial.mjs` (34 checks: auto-apertura, segunda visita silenciosa, 🎓, recorrido
+  completo con mouse+coords, campos silenciados sin focus, geometría de las tres zonas en los
+  cuatro pasos altos, swipe inmóvil; sirviendo por http://localhost:8617 con python3
   porque file:// no auto-abre).
   (10) **Botón flotante "subir al principio"** (feature 2026-10-21, petición del usuario): con
   listas verticales muy largas, al bajar MÁS de una pantallita (`window.innerHeight` de umbral)
