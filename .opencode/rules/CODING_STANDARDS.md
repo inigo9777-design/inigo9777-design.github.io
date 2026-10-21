@@ -438,3 +438,22 @@ Aquí queda sólo la referencia, sin su marcha.
       El mínimo de 3 letras lo fija ya el matcher compartido (TOKEN_MIN_LEN): nada de ruido
       prefijo de 1-2 letras. Firma de API SIN CAMBIO (1 función pública). Tests: unit en
       busqueda-recetas.test.js (describe 5) + e2e Brave real en e2e/buscador-prefijos.mjs.
+
+---
+
+## 9. Campaña de refactor `app.js` → módulos (estado, 2026-10-21)
+
+Petición del usuario: revisar TODO `webapp/app.js` y llevar la lógica que quede inline a sus módulos,
+con tests. El barrido completo (2 745 líneas) confirma que las DECISIONES ya viven en `modules/`
+(desde el gran refactor); lo que queda inline es molde HTML, wiring de eventos e infra de vista —
+que permanecen en `app.js` por diseño (§2-D, composition-root). Estado por olas:
+
+- **Completado (wave 1, `epic/menu-colapsable-modulos`):** `formatoFechaCorta` → `util.js`;
+  `valoresPreviosDeCompra` + `validarCompraForm` → `menu-semanal.js`; `conciliarLote` +
+  `resumenPorFuente` → `innovations.js`; `platosDelPlan` + `alternarColapso` (feature del plan
+  plegable) → `menu-semanal.js`. Todo con specs co-locales y suite verde.
+- **Pendiente (wave 2, no empezada):** recolección de filas de los DIÁLOGOS del escáner → helpers
+  puros de `ocr-despensa.js` (el scraper DOM se queda, el reparto/comprobación se sube);
+  alta manual de despensa (dedup exacto + inc/del) → módulo propio `modules/despensa.js` si crece;
+  chips del preview de receta (dedup de ingredientes del textarea) → `recipe-analysis.js` o
+  `recipe-editor.js`.
