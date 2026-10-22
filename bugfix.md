@@ -266,10 +266,10 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
 
 - `2026-10-23 · @AI-agent · #bugfix-ocr-duda-movil-nombre-primero · petición del usuario: ` en el
   PWA (≤640px) el bloque «De tu despensa» + desplegable abría la fila de DUDAS y el nombre quedaba
-  abajo. **Arreglo:** intercambio area directo de las áreas 1↔4 de la retícula de la fila (el
+  abajo. **Arreglo:** intercambio directo de las áreas 1↔4 de la retícula de la fila (el
   NOMBRE sube a la línea 1, el desplegable baja a la 4) — resulta el orden pedido: Alimento+caja →
   campos (cantidad/importancia/mínimo/incluir) → tipo 🍎/🏠 → desplegable «De tu despensa» → sub
-  (tag de categoría + línea del ticket) al final. NOTHING más se mueve (nueva retícula de
-  NUEVOS intacta, desktop intocada — su plantilla es propia). **Verificación:** e2e
+  (tag de categoría + línea del ticket) al final. NADA MÁS se mueve (retícula de NUEVOS intacta,
+  desktop con su plantilla propia). **Verificación:** e2e
   `dialogos-movil-reticula.mjs` actualizado (asertos del nuevo orden + `nombrePrimeroEnDuda`) y
   en verde, suite 643/643; capturas 51-52 + 59.
