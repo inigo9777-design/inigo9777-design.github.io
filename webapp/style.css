@@ -766,9 +766,9 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
    Vuelve la retícula del primer diseño de los dos diálogos (nada aplastado) con el cambio
    pedido: los campos de cantidad/importancia/mínimo/incluir ENCIMA del campo del nombre —
    línea 1 de campos (cada uno con su etiqueta encima), línea 2 el conmutador 🍎/🏠, línea 3 el
-   nombre a línea completa y al final el sub (tag + línea del ticket). En Dudas el desplegable
-   va en SU línea completa, antes que los campos. La cabecera compartida sigue escondida:
-   nombrada por micro-etiqueta. */
+   nombre a línea completa y al final el sub (tag + línea del ticket). En DUDAS el nombre va
+   PRIMERO (línea 1, intercambio con el desplegable de 2026-10-23) y el desplegable cierra la
+   fila antes del sub. La cabecera compartida sigue escondida: nombrada por micro-etiqueta. */
 @media (max-width: 640px) {
   .ocr-item { flex-wrap: wrap; row-gap: 8px; }
   .ocr-item .ocr-nombre { flex-basis: 100%; }
@@ -784,14 +784,17 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   .rev-fila-nueva .rev-celda-cat     { grid-area: 2 / 1 / 3 / -1; }
   .rev-fila-nueva .rev-celda-nombre  { grid-area: 3 / 1 / 4 / -1; }
   .rev-fila-nueva .rev-sub, .rev-fila-duda .rev-sub { grid-area: 4 / 1 / 5 / -1; }
-  /* En DUDAS el desplegable ocupa la línea 1 entera y todo lo demás baja una línea. */
-  .rev-fila-duda .rev-celda-variante { grid-area: 1 / 1 / 2 / -1; }
+  /* DUDAS (petición del usuario, 2026-10-23): el NOMBRE del alimento SUBE al hueco del
+     desplegable (línea 1) y el desplegable «De tu despensa» BAJA al del nombre (línea 4) —
+     intercambio directo de áreas 1↔4, nada más se mueve:
+     nombre → campos → tipo → desplegable → sub (tag + línea del ticket). */
+  .rev-fila-duda .rev-celda-nombre  { grid-area: 1 / 1 / 2 / -1; }
   .rev-fila-duda .rev-celda-qty     { grid-area: 2 / 1; }
   .rev-fila-duda .rev-celda-score   { grid-area: 2 / 2; }
   .rev-fila-duda .rev-celda-min     { grid-area: 2 / 3; }
   .rev-fila-duda .rev-celda-include { grid-area: 2 / 4; }
   .rev-fila-duda .rev-celda-cat     { grid-area: 3 / 1 / 4 / -1; }
-  .rev-fila-duda .rev-celda-nombre  { grid-area: 4 / 1 / 5 / -1; }
+  .rev-fila-duda .rev-celda-variante { grid-area: 4 / 1 / 5 / -1; }
   /* El SUB de DUDAS baja UNA MÁS: la regla combinada lo dejó en la línea 4 — la MISMA del
      nombre — y el tag («Cereal», «🏠 Producto de hogar»…) salía ENCIMA del input (bugfix
      2026-10-23). Su retícula tiene UNA línea más que la de NUEVOS: desplegable + conmutador. */

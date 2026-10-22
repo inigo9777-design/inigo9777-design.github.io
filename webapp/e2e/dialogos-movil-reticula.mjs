@@ -98,11 +98,23 @@ const d2 = await page.evaluate(() => {
     titulo: document.querySelector(".modal-content h2").textContent.trim(),
     nueva: leer(document.querySelector(".rev-fila-nueva")),
     duda: leer(document.querySelector(".rev-fila-duda")),
-    varianteArriba: (() => {
+    varianteAbajo: (() => {
       const fila = document.querySelector(".rev-fila-duda");
       const v = fila.querySelector(".rev-celda-variante");
       const n = fila.querySelector(".rev-celda-nombre");
-      return v.getBoundingClientRect().top < n.getBoundingClientRect().top;
+      return v.getBoundingClientRect().top > n.getBoundingClientRect().bottom
+        && v.getBoundingClientRect().top < fila.getBoundingClientRect().bottom;
+    })(),
+    nombrePrimeroEnDuda: (() => {
+      const fila = document.querySelector(".rev-fila-duda");
+      return fila.querySelector(".rev-celda-nombre").getBoundingClientRect().top
+        < fila.querySelector(".rev-celda-qty").getBoundingClientRect().top;
+    })(),
+    subUltimo: (() => {
+      const fila = document.querySelector(".rev-fila-duda");
+      const sub = fila.querySelector(".rev-sub");
+      const v = fila.querySelector(".rev-celda-variante");
+      return sub.getBoundingClientRect().top > v.getBoundingClientRect().bottom - 2;
     })(),
     varianteAncho: (() => {
       const fila = document.querySelector(".rev-fila-duda");
@@ -116,10 +128,12 @@ ok(d2.nueva.camposArriba, "revisión NUEVOS: cantidad/importancia/mínimo/inclui
 ok(d2.nueva.nombreLlena && d2.nueva.altoNombre < 80, `revisión NUEVOS: nombre en su línea completa (${Math.round(d2.nueva.nombreAncho || 0)}px de ${Math.round(d2.nueva.anchoFila)}px de fila — nada de 1 letra por línea)`);
 ok(d2.nueva.subAbajo, "revisión NUEVOS: tag + línea del ticket al final");
 ok(!d2.nueva.ph, "revisión NUEVOS: sin desborde horizontal");
-ok(d2.duda.pistas === 4 && d2.varianteArriba, "revisión DUDAS: desplegable en su línea completa ENCIMA de los campos y del nombre");
+ok(d2.duda.nombreLlena, "revisión DUDAS: nombre en su línea completa");
+ok(d2.nombrePrimeroEnDuda, "revisión DUDAS: el NOMBRE ES LO PRIMERO (intercambio 2026-10-23 con el desplegable)");
+ok(d2.varianteAbajo, "revisión DUDAS: el desplegable «De tu despensa» baja DEBAJO del conmutador de tipo");
+ok(d2.subUltimo && d2.duda.subAbajo, "revisión DUDAS: tag de categoría + línea del ticket quedan lo ÚLTIMO");
 ok(d2.varianteAncho >= d2.duda.anchoFila - 40, `revisión DUDAS: desplegable aprovecha la línea (${Math.round(d2.varianteAncho)}px de ${Math.round(d2.duda.anchoFila)}px)`);
 ok(d2.duda.nombreLlena, "revisión DUDAS: nombre también en su línea completa");
-ok(d2.duda.subAbajo, "revisión DUDAS: tag + línea del ticket DEBAJO del nombre — nada de solapamiento");
 
 // el conmutador 🍎/🏠 del alta vive debajo de los campos y encima del nombre
 const conmutador = await page.evaluate(() => {
