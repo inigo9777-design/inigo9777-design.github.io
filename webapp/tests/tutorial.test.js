@@ -45,6 +45,14 @@ describe("tutorial — contrato del módulo", () => {
     expect(tut.pasoValido({ titulo: "x", texto: "y", vista: null, selector: null, accionable: false, tarjeta: "al lado" })).toBe(false);
     expect(tut.pasoValido({ titulo: "x", texto: "y", vista: null, selector: null, accionable: false, tarjeta: 1 })).toBe(false);
   });
+
+  it("pasoValido: la demo del escáner (opcional, 2026-10-22) sólo admite el pase 'escaner'", () => {
+    expect(tut.pasoValido({ titulo: "x", texto: "y", vista: "foods", selector: "#btn-ocr-foto", accionable: true, demo: "escaner" })).toBe(true);
+    expect(tut.pasoValido({ titulo: "x", texto: "y", vista: "foods", selector: "#a", accionable: true, demo: null })).toBe(true);
+    expect(tut.pasoValido({ titulo: "x", texto: "y", vista: "foods", selector: "#a", accionable: true })).toBe(true);   // sin demo = paso normal
+    expect(tut.pasoValido({ titulo: "x", texto: "y", vista: "foods", selector: "#a", accionable: true, demo: "otra-cosa" })).toBe(false);
+    expect(tut.pasoValido({ titulo: "x", texto: "y", vista: "foods", selector: "#a", accionable: true, demo: 1 })).toBe(false);
+  });
 });
 
 describe("tutorial — máquina de sesión", () => {
@@ -86,18 +94,18 @@ describe("tutorial — máquina de sesión", () => {
 });
 
 describe("tutorial — bloque ALIMENTOS (épica tutorial-interactivo)", () => {
-  it("la vista foods trae 3 pasos consecutivos dentro del guion", () => {
+  it("la vista foods trae 4 pasos consecutivos dentro del guion (contiene la DEMO del escáner)", () => {
     const porVista = tut.pasosDeVista("foods");
-    expect(porVista.length).toBe(3);
+    expect(porVista.length).toBe(4);
     expect(porVista.every(p => p.vista === "foods")).toBe(true);
     const ids = tut.PASOS.map(p => p.id);
     const inicio = ids.indexOf("alimentos-anotar");
     expect(inicio).toBeGreaterThan(0);                            // tras la intro
-    expect(ids.slice(inicio, inicio + 3).join(",")).toBe("alimentos-anotar,alimentos-importancia,alimentos-inventario");
+    expect(ids.slice(inicio, inicio + 4).join(",")).toBe("alimentos-anotar,alimentos-importancia,alimentos-inventario,alimentos-escaner-demo");
   });
 
-  it("los accionables apuntan a elementos que existen SIN datos, y el último es informativo con tarjeta ARRIBA", () => {
-    const [p1, p2, p3] = tut.pasosDeVista("foods");
+  it("los accionables apuntan a elementos que existen SIN datos; el inventario es informativo con tarjeta ARRIBA; el escáner es DEMO", () => {
+    const [p1, p2, p3, p4] = tut.pasosDeVista("foods");
     expect(p1.selector).toBe("#food-name");
     expect(p1.accionable).toBe(true);
     expect(p2.selector).toBe("#food-score");
@@ -106,6 +114,14 @@ describe("tutorial — bloque ALIMENTOS (épica tutorial-interactivo)", () => {
     expect(p3.accionable).toBe(false);
     expect(p3.tarjeta).toBe("arriba");   // el inventario es objetivo ALTO (petición 2026-10-21): la tarjeta no lo tapa
     expect(p3.cta).toBe("Siguiente");
+    // El paso DEMO del escáner (petición 2026-10-22): accionable sobre el botón de foto,
+    // en ambos entornos, y marcado con demo "escaner" — el wiring lanza los diálogos de
+    // ejemplo; NADA se escribe en el inventario (es sólo explicativo).
+    expect(p4.selector).toBe("#btn-ocr-foto");
+    expect(p4.accionable).toBe(true);
+    expect(p4.demo).toBe("escaner");
+    expect(p4.tarjeta).toBeUndefined();
+    expect(p4.titulo.toLowerCase()).toContain("escanea");
   });
 });
 
@@ -115,7 +131,7 @@ describe("tutorial — bloque RECETAS (épica tutorial-interactivo)", () => {
     expect(porVista.length).toBe(3);
     expect(porVista.every(p => p.vista === "recipes")).toBe(true);
     const ids = tut.PASOS.map(p => p.id);
-    expect(ids.indexOf("recetas-crear")).toBe(ids.indexOf("alimentos-inventario") + 1);   // sigue al de Alimentos
+    expect(ids.indexOf("recetas-crear")).toBe(ids.indexOf("alimentos-escaner-demo") + 1);   // sigue al de Alimentos (con su demo)
     expect(ids.slice(ids.indexOf("recetas-crear"), ids.indexOf("recetas-crear") + 3).join(","))
       .toBe("recetas-crear,recetas-catalogo,recetas-mis-recetas");
   });

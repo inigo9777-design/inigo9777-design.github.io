@@ -350,12 +350,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // (el botón o input REAL ejecuta su función) y el tutorial sólo cuenta el paso. No se usa
   // stopPropagation: no hay objetivos del tutorial que abran modales. Guard extra: un selector
   // del guion mal escrito ·closest lanza SyntaxError· no puede romper el click de la app.
+  // EXCEPCIÓN (demo del escáner, 2026-10-22): en el paso con `demo` SÍ se detiene el gesto con
+  // stopPropagation + preventDefault — tocando el botón real NO se abre el file-picker, se
+  // lanzan los dos diálogos de ejemplo con datos de prueba (nada se escribe; el avance del
+  // paso lo manda cerrarDemoEscaner al cerrarse el diálogo, no este listener).
   document.addEventListener("click", (e) => {
     if (!tutorialActivo || !pasoEnPantalla || !pasoEnPantalla.accionable || !e.target.closest) return;
     if (e.target.closest("#tutorial-tarjeta")) return;   // la tarjeta es salida, no "el objetivo del paso"
     let objetivo = null;
     try { objetivo = e.target.closest(pasoEnPantalla.selector); } catch (err) { return; }
     if (!objetivo) return;
+    if (pasoEnPantalla.demo === "escaner") {
+      e.stopPropagation();
+      e.preventDefault();
+      lanzarDemoEscaner();
+      return;
+    }
     avanzarPasoTutorial();
   }, true);
 
@@ -1025,13 +1035,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ticketParser) {
       const parseo = ticketParser.parsearTicket(texto);
       if (parseo.items.length) {
-        const candidatos = parseo.items.map(it => ({
-          nombre: it.nombre,
-          qty: it.qty,
-          tipo: (window.MRCheff.classify && window.MRCheff.classify.classifyFood(it.nombre)) || null,
-          hogar: !!categoria.esProductoHogar(it.nombre)
-        }));
-        abrirConfirmarOcr(candidatos, crudo);
+        abrirConfirmarOcr(candidatosDeTicket(parseo.items), crudo);
         return;
       }
     }
@@ -1047,6 +1051,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     abrirConfirmarOcr(candidatos, crudo);
+  }
+  // Candidatos de los ítems del PARSEADOR ESTRUCTURAL (parser-first): el módulo clasificatorio
+  // comparte helper con la demo del tutorial (la demo del escáner parsea SU ticket de prueba).
+  function candidatosDeTicket(items) {
+    return (Array.isArray(items) ? items : []).map(it => ({
+      nombre: it.nombre,
+      qty: it.qty,
+      tipo: (window.MRCheff.classify && window.MRCheff.classify.classifyFood(it.nombre)) || null,
+      hogar: !!categoria.esProductoHogar(it.nombre)
+    }));
   }
   // El TEXTO RECONOCIDO queda a la vista (desplegable, muted): con él la persona ve qué leyó el
   // motor de verdad y corrige el nombre de cualquier fila con confianza — y diagnosticar un escaneo
@@ -1102,7 +1116,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }));
   }
 
-  function abrirConfirmarOcr(candidatos, textoCrudo) {
+  function abrirConfirmarOcr(candidatos, textoCrudo, opciones) {
+    const demoDeTutorial = !!(opciones && opciones.demo);   // DEMO del tutorial: NADA se escribe
+    // La despensa que VEN las pantallas: la real, o la de juguete de la demo (la primera visita
+    // nace vacía y el diálogo 1 de exactos necesita algo que casar; el flujo demo no toca nada).
+    const despensaVista = (opciones && Array.isArray(opciones.foods)) ? opciones.foods : foods;
     const etqTipo = { proteina: "Proteína", lacteo: "Lácteo", cereal: "Cereal", fruta: "Fruta", verdura: "Verdura", especia: "Especia" };
 
     // Estado del flujo: la decisión de cada fila arranca del ticket — la cantidad es la leída (o
@@ -1121,7 +1139,7 @@ document.addEventListener("DOMContentLoaded", () => {
       tipo: c.tipo || null,
       hogar: !!c.hogar
     }));
-    const previo = ocr.guardarCandidatos(foods, decision.map(d => ({ nombre: d.nombre, qty: d.qty, tipo: d.tipo, hogar: d.hogar })), {
+    const previo = ocr.guardarCandidatos(despensaVista, decision.map(d => ({ nombre: d.nombre, qty: d.qty, tipo: d.tipo, hogar: d.hogar })), {
       uid, ahora: Date.now(),
       // La DUDA se decide con el MISMO casador de variantes del "🛒 Despensa?" de la lista:
       // "¿es el mismo que uno de mi despensa?" (menu-semanal.candidatosDespensa inyectada, §3).
@@ -1142,7 +1160,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function filaExactaHTML(c) {
       const o = candidatos.indexOf(c);
       const d = decision[o];
-      const enCasa = foods.find(f => String(f.name || "").toLowerCase() === String(c.nombre || "").toLowerCase());
+      const enCasa = despensaVista.find(f => String(f.name || "").toLowerCase() === String(c.nombre || "").toLowerCase());
       const etq = d.hogar ? "🏠 Producto de hogar" : (etqTipo[c.tipo] || "Otro");
       return `
         <div class="ocr-item" data-o="${o}">
@@ -1213,7 +1231,7 @@ document.addEventListener("DOMContentLoaded", () => {
           </label>
         </div>`;
       }
-      const opciones = menuSemanal.candidatosDespensa(c.nombre, foods) || [];
+      const variantes = menuSemanal.candidatosDespensa(c.nombre, despensaVista) || [];
       return `
         <div class="ocr-item rev-fila-duda" data-o="${o}">
           <label class="rev-celda rev-celda-nombre" for="rev-nombre-${o}"><span class="rev-etiqueta">${etqNombre}</span>
@@ -1223,7 +1241,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <label class="rev-celda rev-celda-variante" for="rev-variante-${o}"><span class="rev-etiqueta">De tu despensa</span>
             <select id="rev-variante-${o}" class="rev-campo-variante" aria-label="¿Es este alimento que ya tienes en casa?">
               <option value="">es nuevo: se define aquí</option>
-              ${opciones.map(v => `<option value="${escapeHTML(String(v.id))}">${escapeHTML(v.name)} · tienes ${Number.isFinite(v.qty) ? v.qty : 0}</option>`).join("")}
+              ${variantes.map(v => `<option value="${escapeHTML(String(v.id))}">${escapeHTML(v.name)} · tienes ${Number.isFinite(v.qty) ? v.qty : 0}</option>`).join("")}
             </select>
           </label>
           <label class="rev-celda rev-celda-qty" for="rev-qty-${o}"><span class="rev-etiqueta">Cantidad</span>
@@ -1254,7 +1272,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const camposAlerta = [`#rev-score-${fila.dataset.o}`, `#rev-min-${fila.dataset.o}`].map(sel => $(sel, modalContent));
       let propio = null;                                    // lo suyo, para restaurar si deshace la variante
       const aplicaAlerta = () => {
-        const enCasa = selector.value ? foods.find(f => String(f.id) === selector.value) : null;
+        const enCasa = selector.value ? despensaVista.find(f => String(f.id) === selector.value) : null;
         catBtns.forEach(b => { b.disabled = !!enCasa; });   // resuelta con casa: la categoría ya no decide nada
         camposAlerta.forEach(campo => { if (campo) campo.disabled = !!enCasa || d.hogar; });
         if (enCasa) {
@@ -1365,7 +1383,13 @@ document.addEventListener("DOMContentLoaded", () => {
           ${seccionNuevos}${seccionDudas}`;
       }
       const esFaseExactos = pasoNombre === "despensa";
+      // Banner DEMO (paso del tutorial, 2026-10-22): en ambas pantallas se dice con claridad
+      // que es un ejemplo — nada de lo confirmado aquí entra en el inventario.
+      const bannerDemo = demoDeTutorial
+        ? `<div class="ocr-demo-banner">🎓 <strong>Demo del tutorial</strong>: estos diálogos se muestran con datos de prueba para enseñarte el escáner — <strong>nada se guarda</strong> en tu inventario.</div>`
+        : "";
       modalContent.innerHTML = `
+        ${bannerDemo}
         ${cuerpo}
         ${detallesTextoCrudo(textoCrudo)}
         <div class="modal-footer">
@@ -1399,6 +1423,11 @@ document.addEventListener("DOMContentLoaded", () => {
         .filter(d => d.incluir)
         .map(d => ({ nombre: d.nombre, qty: d.qty, tipo: d.tipo, hogar: d.hogar }));
       if (!seleccion.length) { toast("No hay alimentos marcados para guardar", "error"); return; }
+      if (demoDeTutorial) {
+        // DEMO: la confirmación del diálogo 1 NO toca la despensa — sólo conduce a la revisión.
+        if (pasos.length === 2) { faseActual = 1; renderDialogo(); } else cerrarDemoEscaner();
+        return;
+      }
       const result = ocr.guardarCandidatos(foods, seleccion, { uid, ahora: Date.now(), candidatosDespensa: null });
       foods = result.foods;
       save(LS.foods, foods);
@@ -1455,6 +1484,11 @@ document.addEventListener("DOMContentLoaded", () => {
         else deAltaDirecta.push(fila);
       });
       if (!conVariante.length && !deAltaDirecta.length) { toast("No hay alimentos marcados para guardar", "error"); return; }
+      if (demoDeTutorial) {
+        // DEMO: la revisión tampoco escribe — se cierra y el paso del tutorial sigue su curso.
+        cerrarDemoEscaner();
+        return;
+      }
       const resultado = ocr.confirmarRevision(foods, deAltaDirecta, conVariante, { uid, ahora: Date.now() });
       foods = resultado.foods;
       save(LS.foods, foods);
@@ -1466,6 +1500,30 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     renderDialogo();
+  }
+
+  // ── DEMO DEL ESCÁNER EN EL TUTORIAL (feature 2026-10-22, petición del usuario: "con los
+  // diálogos y con datos de prueba, estos datos NO se añaden al inventario en el modo
+  // tutorial, es sólo explicativo"). El paso del guion lanza los DOS diálogos reales del
+  // escáner sobre una despensa de juguete (opciones.foods) y NADA se escribe: las dos
+  // confirmaciones sólo conducen el flujo visual y el cierre (confirmar, Cancelar, ✕ o
+  // Escape) devuelve el paso al tutorial vía cerrarDemoEscaner.
+  let demoEscanerAbierta = false;        // la cierra CUALQUIER vía de closeModal (bandera consultada allí)
+
+  function lanzarDemoEscaner() {
+    const demo = ocr.datosDemoEscaner ? ocr.datosDemoEscaner() : null;
+    if (!demo || !demo.despensa) return;
+    const parseo = ticketParser ? ticketParser.parsearTicket(demo.texto) : { items: [] };
+    const candidatos = parseo.items.length
+      ? candidatosDeTicket(parseo.items)
+      : ocr.extraerCandidatos(demo.texto, ocrVocabulario);   // red de seguridad: el ticket demo parsea seguro
+    if (!candidatos.length) return;
+    demoEscanerAbierta = true;
+    abrirConfirmarOcr(candidatos, demo.texto, { demo: true, foods: demo.despensa });
+  }
+
+  function cerrarDemoEscaner() {
+    closeModal();                            // la demo acaba SIEMPRE cerrando el diálogo
   }
 
   // ===== RECETAS =====
@@ -1933,6 +1991,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // la píldora se quedaría ahí por encima de lo que abra después (2026-10-20).
     const tipChef = document.getElementById("tip-chef");
     if (tipChef) tipChef.classList.remove("show");
+    // CIERRE de la DEMO del escáner en el tutorial (2026-10-22): cualquier vía — footer
+    // Cancelar, ✕, fondo o Escape — acaba el pase explicativo y devuelve el control al paso
+    // del tutorial (sólo si la visita sigue viva y el paso en pantalla es el de la demo).
+    if (demoEscanerAbierta) {
+      demoEscanerAbierta = false;
+      if (tutorialActivo && pasoEnPantalla && pasoEnPantalla.demo === "escaner") avanzarPasoTutorial();
+    }
   }
   $$("[data-close]").forEach(el => el.addEventListener("click", closeModal));
   document.addEventListener("keydown", (e) => {

@@ -286,3 +286,17 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   `margin-top: 6px` y las 4 etiquetas quedan a la misma altura (Δ 0px medido). **Verificación:**
   e2e `dialogos-movil-reticula.mjs` actualizado (nombrePrimero/enNueva, conmutador bajo los
   campos, «Incluir» alineado ≤3px en ambas secciones), suite 643/643; capturas 51-52.
+- `2026-10-22 · @AI-agent · #feature/tutorial-demo-escaner · Síntoma:` el test de integración
+  RECORRIDO COMPLETO del tutorial fallaba al final: el anuncio recibía el repintado de un paso
+  ya pasado ("Siguiente" en lugar de "Terminar") y se veían "ecos" de pasos antiguos tras el
+  cierre. **Causa:** defecto PREEXISTENTE del arnés de test (`tests/boot.js`), no del app:
+  jsdom — incluso con `runScripts:"outside-only"` — dispara SU `DOMContentLoaded` natural cuando
+  el documento termina de parsearse, ASÍNCRONO tras el constructor; sumado al disparo manual del
+  arnés, el closure de `DOMContentLoaded` de `app.js` corría DOS veces en cada `bootApp()`
+  (doble sesión del tutorial, cada botón con su listener duplicado, dobles renders — los
+  recorridos que no atravesaban el final del guion no lo notaban). Verificado con sondas
+  temporales que en HEAD/develop el doble boot ya existía. **Arreglo:** el arnés CAPTURA ahora
+  los listeners de `DOMContentLoaded` que registran los scripts y el disparo manual los invoca
+  UNA sola vez (sincrónico); el evento natural de jsdom queda sin oyentes. Producción intacta.
+  **Verificación:** sondas (1 click → 1 llamada, antes 2) + suite completa 650 tests / 45
+  suites verdes + cobertura global 94/83.
