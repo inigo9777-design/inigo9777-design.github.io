@@ -125,6 +125,18 @@ return [
     ]
   },
   {
+    "id": "huevos-guanciale",
+    "title": "Huevos fritos con guanciale",
+    "meal": "desayuno",
+    "ingredients": ["Huevos", "Guanciale", "Pan", "Aceite de oliva", "Pimienta negra"],
+    "method": [
+      "Corta el guanciale en taquitos y ponlos en la sartén sin más grasa, a fuego medio: en 5-6 minutos se rinden en su propia curación, hasta que la grasa quede transparente y la carne crujiente.",
+      "Saca los taquitos y fríe los huevos en esa grasa perfumada, con la clara burbujeando y cuajada en los bordes y la yema líquida.",
+      "Sala con cuentagotas — el guanciale ya dejó sal en la sartén — y termina con pimienta recién molida.",
+      "Sirve los huevos sobre tostadas de pan con el guanciale repartido encima; la yema líquida hace de salsa y el pan va para mojar."
+    ]
+  },
+  {
     "id": "torrijas-desayuno",
     "title": "Torrijas ligeras de desayuno",
     "meal": "desayuno",
@@ -375,6 +387,19 @@ return [
     ]
   },
   {
+    "id": "pure-calabacin",
+    "title": "Puré de calabacín",
+    "meal": "comida",
+    "ingredients": ["Calabacines", "Patata", "Cebolla", "Leche", "Aceite de oliva", "Sal"],
+    "method": [
+      "Pela y trocea los calabacines junto a la patata y la cebolla en piezas regulares, para que cuezan parejas.",
+      "Cúbrelo todo con agua y un chorrito de leche — la leche suaviza el fondo sin pesar el puré — y cuece a fuego suave 20-25 minutos, hasta que la patata ceda al pincharla.",
+      "Escurre reservando el líquido y tritura con la batidora, añadiendo el líquido de cocción poco a poco, hasta una crema fina y sin grumos.",
+      "Rectifica de sal y espesor: si queda denso, alarga con leche templada en un hilo fino.",
+      "Sirve con un hilo de aceite crudo por encima; unos picatostes le dan el contraste que le va bien."
+    ]
+  },
+  {
     "id": "sepia-calamar-guisada",
     "title": "Sepia guisada con guisantes",
     "meal": "cena",
@@ -522,6 +547,33 @@ return [
       "Vuelca la crema en la cazuela, moja con vino (deja evaporar 1 minuto) y el resto del caldo; lleva a burbujear suavemente.",
       "Introduce las albóndigas y cocínalas TAPADAS 25-30 minutos a fuego suave, hasta que la salsa esté ligada y las albóndigas tiernas.",
       "Rectifica de sal y sirve; si puedes, hazlo el día antes: la salsa se intensifica."
+    ]
+  },
+  {
+    "id": "albondigas-vino-tinto",
+    "title": "Albóndigas en salsa de vino tinto",
+    "meal": "comida",
+    "ingredients": ["Carne picada mixta", "Pan rallado", "Huevo", "Vino tinto", "Cebolla", "Tomate triturado"],
+    "method": [
+      "Mezcla la carne con el pan rallado, el huevo batido, sal y una pizca de pimienta, sin amasarla en exceso: cuanto más se trabaja, más dura sale la albóndiga.",
+      "Forma bolitas del tamaño de una nuez y fríelas en aceite a fuego medio-fuerte 5-6 minutos, girándolas, hasta dorarlas selladas por fuera; no han de cocerse del todo dentro.",
+      "En esa misma sartén, sofríe la cebolla picada 8 minutos a fuego medio, hasta que se ablande y tome color; añade el tomate y cocina 5 minutos más, hasta que pierda su sabor a crudo.",
+      "Moja con el vino tinto y deja hervir 2 minutos para que se evapore el alcohol.",
+      "Devuelve las albóndigas a la salsa y cuécelas TAPADAS 20-25 minutos a fuego suave, hasta que la salsa espese y las abrace.",
+      "Rectifica de sal y deja reposar 10 minutos antes de servir; al día siguiente, la salsa gana."
+    ]
+  },
+  {
+    "id": "costilla-miel-mostaza",
+    "title": "Costilla de cerdo con miel y mostaza antigua",
+    "meal": "comida",
+    "ingredients": ["Costillas de cerdo", "Miel", "Mostaza antigua", "Ajo", "Aceite de oliva", "Pimienta negra"],
+    "method": [
+      "Mezcla la marinada en un bol: mostaza antigua, miel, ajo machacado, un hilo de aceite y pimienta; unta las costillas por ambas caras.",
+      "Déjalas reposar en la nevera al menos 1 hora; la marinada de la noche anterior rinde el doble.",
+      "Hornea envueltas en papel de aluminio a 180 °C, 75-90 minutos, hasta que la carne se aparte del hueso sin pelearse.",
+      "Destapa, pinta con el resto de la marinada y sube el horno a 200 °C unos 10-15 minutos: el azúcar de la miel carameliza y forma costra brillante; vigila el último tercio para que no se queme.",
+      "Deja reposar 10 minutos tapado y corta entre hueso y hueso; el reposo reparte los jugos y la carne no se desarma."
     ]
   },
   {
@@ -1937,6 +1989,18 @@ return [
       "Cuece 20 minutos a fuego manso."
     ]
   },
+  { id: "lentejas-chorizo", title: "Lentejas con chorizo", meal: "comida",
+    ingredients: ["Lentejas", "Chorizo", "Cebolla", "Zanahoria", "Ajo", "Pimentón dulce", "Laurel"],
+    method: [
+      "Pasa las lentejas por agua fría y escúrrelas; las pardinas no piden remojo.",
+      "Sofríe la cebolla y la zanahoria picadas en un hilo de aceite, a fuego medio, 8 minutos, hasta que la cebolla vuelva transparente; añade el ajo picado el último minuto.",
+      "Mete el chorizo en rodajas y deja que suelte su grasa 3-4 minutos: es el fondo del plato.",
+      "Fuera del fuego, añade el pimentón y remueve rápido — quemado amarga.",
+      "Incorpora las lentejas, cubre con agua fría tres dedos por encima y pon el laurel; lleva a hervor y baja a fuego suave.",
+      "Cuece 35-45 minutos a fuego apenas perceptible, ajustando siempre con agua CALIENTE: el agua fría les endurece la piel.",
+      "Rectifica de sal y dales 10 minutos de reposo antes de servir; al día siguiente rinden más."
+    ]
+  },
   { id: "potaje-vigilia", title: "Potaje de vigilia", meal: "comida",
     ingredients: ["Garbanzos cocidos", "Bacalao desalado", "Espinacas", "Cebolla", "Azafrán", "Huevos"],
     method: [
@@ -2164,6 +2228,16 @@ return [
       "Estira la base fina y cubre con tomate triturado.",
       "Reparte la mozzarella y hornea al máximo 10 minutos.",
       "Termina con albahaca fresca y aceite crudo."
+    ]
+  },
+  { id: "pizza-jamon-queso", title: "Pizza jamón y queso casera", meal: "comida",
+    ingredients: ["Harina", "Levadura", "Tomate triturado", "Jamón york", "Mozzarella", "Orégano"],
+    method: [
+      "Amasa harina, agua templada, levadura, un hilo de aceite y sal durante 10 minutos, hasta una masa lisa; deja levar tapada 1 hora, hasta que doble su tamaño.",
+      "Estira la masa fina sobre papel de horno y unta una capa fina de tomate con la cuchara, hasta el borde.",
+      "Reparte el jamón en tiras y la mozzarella troceada; un hilo de aceite y orégano por encima.",
+      "Hornea al máximo (240-250 °C) sobre bandeja o piedra ya caliente, 8-10 minutos: los bordes deben hincharse y dorarse antes de que la masa se seque.",
+      "Al salir, espera 2 minutos antes de cortar: la mozzarella asienta y no se te escapa por las rodajas."
     ]
   },
   { id: "risotto-setas", title: "Risotto de setas", meal: "comida",
