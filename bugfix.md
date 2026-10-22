@@ -202,3 +202,23 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   ITALIAN 077201€" recupera su (500gr)). **Verificación:** Métrica final Mercadona 100%·100% /
   ALDI 100%·95,2% — la calidad es la del corpus REAL, no del volcado de inspección; los problemas
   quedan especificados en tests/ocr-ticket-parser.test.js (fixtures del texto de producción).
+
+---
+
+- `2026-10-22 · @AI-agent · #bugfix-ocr-dialogos-movil-descuadrados · síntoma reportado:` en el
+  PWA móvil (~390px) los DOS diálogos del escáner del ticket salen totalmente descuadrados: la
+  fila se abre con una retícula de SEIS columnas acartonadas y el NOMBRE del alimento queda
+  aplastado a 1 letra por línea (captura 50 de la sonda). **Causa:** el rework del descuelgue
+  (2026-10-21) puso en las celdas de la fila `grid-areas` de ESCRITORIO (`grid-area: 1/N`) y el
+  bloque `@media (max-width: 640px)` sólo cambiaba `grid-template-columns` — las areas
+  conservan su colocación explícita (misma especificidad; gana la que se declara DESPUÉS) y
+  las celdas del escritorio generan pistas implícitas trituradas: la propiedad móvil que no
+  REDECLARE las áreas no las vence.
+  **Arreglo:** el bloque móvil vuelve a la retícula de líneas del primer diseño (nada
+  aplastado) SOBREESCRIBIENDO cada area en el breakpoint, con el orden pedido por el usuario:
+  línea 1 = campos (cantidad/importancia/mínimo/incluir con su etiqueta encima), línea 2 =
+  nombre a línea completa, el sub al final; en Dudas el desplegable ocupa su línea completa
+  antes de los campos; en el diálogo 1 (flex) el swap sale por `order: -1`. **Verificación:**
+  e2e real en `e2e/dialogos-movil-reticula.mjs` (12 checks de geometría a 390px: 4 pistas
+  reales, campos encima del nombre, desplegable línea completa, sin desborde — capturas 51-52)
+  + suite completa verde (640/640).
