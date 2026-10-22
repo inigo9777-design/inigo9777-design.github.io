@@ -751,19 +751,43 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 .destello-suave { animation: destello-suave 2.1s ease-out 1; border-radius: var(--radius-m); }
 
-/* Móvil estrecho (bugfix 2026-10-21: "las propiedades están lejos de los inputs y no se
-   entiende"): la CABECERA compartida se esconde (ya no calza con nada) y cada campo nombra su
-   etiqueta PEGADA encima (.rev-etiqueta visible). La retícula pasa a 2 columnas: el alimento y
-   su contexto ocupan línea completa y los campos se leen en parejas (Cantidad | Importancia /
-   Mínimo | Incluir), etiqueta siempre encima de lo que nombra. */
+/* Móvil estrecho: REVERSIÓN + modificación pedida (bugfix 2026-10-23): el rework del
+   descuelgue (2026-10-21) dejó en el escritorio unas grid-areas fijas (`grid-area: 1/N`)
+   que en el PWA instalado aplastaban el nombre a 1 letra por línea — su especificidad vence
+   a cualquier propiedad móvil que no las redeclare, así que aquí se Sobreescriben UNA A UNA.
+   Vuelve la retícula del primer diseño de los dos diálogos (nada aplastado) con el cambio
+   pedido: los campos de cantidad/importancia/mínimo/incluir ENCIMA del campo del nombre —
+   línea 1 de campos (cada uno con su etiqueta encima), línea 2 el nombre a línea completa y
+   al final el sub (tag + línea del ticket). En Dudas el desplegable va en SU línea completa,
+   antes que los campos. La cabecera compartida sigue escondida: nombrada por micro-etiqueta. */
 @media (max-width: 640px) {
   .ocr-item { flex-wrap: wrap; row-gap: 8px; }
   .ocr-item .ocr-nombre { flex-basis: 100%; }
   .ocr-cabecera, .rev-cab-nueva, .rev-cab-duda { display: none; }
-  .rev-fila-nueva, .rev-fila-duda { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 6px; }
-  .rev-celda-nombre, .rev-celda-variante { grid-column: 1 / -1; }
+
+  .rev-fila-nueva, .rev-fila-duda { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 8px; }
+  /* Áreas del móvil en NUEVOS: campos línea 1, nombre completo línea 2, sub línea 3. */
+  .rev-fila-nueva .rev-celda-qty     { grid-area: 1 / 1; }
+  .rev-fila-nueva .rev-celda-score   { grid-area: 1 / 2; }
+  .rev-fila-nueva .rev-celda-min     { grid-area: 1 / 3; }
+  .rev-fila-nueva .rev-celda-include { grid-area: 1 / 4; }
+  .rev-fila-nueva .rev-celda-nombre  { grid-area: 2 / 1 / 3 / -1; }
+  .rev-fila-nueva .rev-sub, .rev-fila-duda .rev-sub { grid-area: 3 / 1 / 4 / -1; }
+  /* En DUDAS el desplegable ocupa la línea 1 entera y todo lo demás baja una línea. */
+  .rev-fila-duda .rev-celda-variante { grid-area: 1 / 1 / 2 / -1; }
+  .rev-fila-duda .rev-celda-qty     { grid-area: 2 / 1; }
+  .rev-fila-duda .rev-celda-score   { grid-area: 2 / 2; }
+  .rev-fila-duda .rev-celda-min     { grid-area: 2 / 3; }
+  .rev-fila-duda .rev-celda-include { grid-area: 2 / 4; }
+  .rev-fila-duda .rev-celda-nombre  { grid-area: 3 / 1 / 4 / -1; }
   .rev-etiqueta { display: block; font-size: 0.68rem; color: var(--muted); text-align: center; }
-  .rev-fila-nueva .rev-sub, .rev-fila-duda .rev-sub { grid-column: 1 / -1; grid-row: auto; }
+  /* Las etiquetas de los campos A TODO LO ANCHO abrazan a la izquierda (un "Mínimo" centrado
+     en toda la anchura despista de qué campo nombra). */
+  .rev-celda-nombre .rev-etiqueta, .rev-celda-variante .rev-etiqueta { text-align: left; }
+
+  /* Exacto (flex): campos PRIMERO — order −1 saca cantidad+incluir a la línea 1 y el nombre
+     (basis 100%) queda debajo; en las retículas grid no toca (la colocación explícita manda). */
+  .ocr-item .rev-celda-qty, .ocr-item .rev-celda-include { order: -1; }
 }
 
 /* ========== 11. TARJETAS DE ALERTA Y LA COMPRA ========== */

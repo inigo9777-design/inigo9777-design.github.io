@@ -440,9 +440,14 @@ italiana" (see `modules/origen-recetas.js` below).
   (desplegable/cantidad/importancia/mínimo/incluir, clases `.rev-campo-nombre/qty/score/min/
   include/variante`) comparten su misma línea horizontal — y la 2ª lleva la etiqueta de tipo +
   la línea del ticket (`.rev-sub`) SOLO bajo la columna del alimento (en Dudas la columna 2 del
-  desplegable aparta los campos una posición). En ≤640px las áreas se reordenan: alimento
-  línea completa, campos debajo y el sub al final (en Dudas el desplegable también línea
-  completa). La escritura final es el módulo puro `confirmarRevision`
+  desplegable aparta los campos una posición). **En ≤640px (bugfix 2026-10-23) las grid-areas
+  del escritorio se SOBREESCRIBEN línea a línea** — una propiedad móvil sin redeclararlas
+  no las vence (especificidad igual, sólo el orden gana) y el PWA instalado aplastaba el
+  nombre a 1 letra por línea — con el orden PEDIDO por el usuario: línea 1 CAMPOS
+  (cantidad/importancia/mínimo/incluir, con su micro-etiqueta encima), línea 2 el NOMBRE a
+  línea completa y el sub al final; en Dudas el desplegable va en SU línea completa ANTES de
+  los campos. En el diálogo 1 el swap sale por `order: -1` del flex (fields arriba, nombre
+  debajo). La escritura final es el módulo puro `confirmarRevision`
   (alta con criterio definido, datos raros desinfectados qty≥0/score 1–10 clamp/min≥0, DUPLICADO
   evitado: nombre que ya existe en casa → suma en vez de alta). reduce-motion desactiva la
   animación (auto en scrollTo).
