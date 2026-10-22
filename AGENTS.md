@@ -456,8 +456,9 @@ italiana" (see `modules/origen-recetas.js` below).
   no las vence (especificidad igual, sólo el orden gana) y el PWA instalado aplastaba el
   nombre a 1 letra por línea — con el orden PEDIDO por el usuario: línea 1 CAMPOS
   (cantidad/importancia/mínimo/incluir, con su micro-etiqueta encima), línea 2 el NOMBRE a
-  línea completa y el sub al final; en Dudas el desplegable va en SU línea completa ANTES de
-  los campos. En el diálogo 1 el swap sale por `order: -1` del flex (fields arriba, nombre
+  línea completa y el sub al final; en DUDAS el nombre va PRIMERO (línea 1 — intercambio
+  con el desplegable del 2026-10-23: nombre → campos → tipo → desplegable «De tu despensa»
+  → sub, petición del usuario). En el diálogo 1 el swap sale por `order: -1` del flex (fields arriba, nombre
   debajo). La escritura final es el módulo puro `confirmarRevision`
   (alta con criterio definido, datos raros desinfectados qty≥0/score 1–10 clamp/min≥0, DUPLICADO
   evitado: nombre que ya existe en casa → suma en vez de alta). reduce-motion desactiva la
