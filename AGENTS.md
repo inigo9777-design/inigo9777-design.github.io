@@ -23,7 +23,7 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
   merge-identidad, sync-crypto, diff-merge, ocr-despensa, ocr-foto) +
   integration specs (app, cook-today, recipe-edit, suggest-card1, suggest-rotation, suggest-weeklymenu,
   buscador-catalogo, e2e-flow-receta-a-alerta-compra, sync-protocol, sync-ui, ocr-ticket, ocr-foto) + harness scaffolding (`boot.js` / `setup.js`). As of the last
-  run on 2026-10-20 the whole suite is green (**539 tests across 37 suites**) — verify with a fresh
+  run on 2026-10-22 the whole suite is green (**650 tests across 45 suites**) — verify with a fresh
   run before trusting it.
 - **.gitignore** (since 2026-10-18) covers `node_modules/`, `webapp/coverage/*`, `reports/ui-brave/*`
   and `.DS_Store` (macOS metadata, also ignored via `~/.gitignore_global`). Never `git add -A`
@@ -165,13 +165,30 @@ italiana" (see `modules/origen-recetas.js` below).
   por hover/foco/activo. La agarra la auditoría `e2e/pwa-accesibilidad.mjs` (check 6).
   (9) **Tutorial interactivo de entrada** (feature 2026-10-20, epic `tutorial-interactivo`):
   visita guiada POR DENTRO de la app para la primera vez (la app nace vacía y sin pistas): el
-  guion (16 pasos: bienvenida+cabecera, 3 por cada vista principal —Alimentos/Recetas/Sugerencias
-  y menú—, 2 para Innovación y Temporada, cierre) vive en el módulo PURO `modules/tutorial.js`
+  guion (17 pasos: bienvenida+cabecera, 4 en Alimentos —anotar, importancia, inventario y la
+  DEMO del escáner—, 3 por cada otra vista principal —Recetas/Sugerencias y menú—, 2 para
+  Innovación y Temporada, cierre) vive en el módulo PURO `modules/tutorial.js`
   (PASOS por grupos + máquina de sesión; contrato `pasoValido`; pasos con `vista`/`selector`/
   `accionable`/`titulo`/`texto`/`cta`). El wiring está en app.js (sección TUTORIAL): velo
   semitransparente de 4 rectángulos + "foco" con aro de marca sobre el elemento del paso +
   tarjeta explicativa; los pasos accionables avanzan TOCANDO el elemento REAL (el toque ejecuta
-  su función: generar ideas/lote/plan…) y los informativos muestran botón. **Silencio de campos
+  su función: generar ideas/lote/plan…) y los informativos muestran botón. **DEMO del escáner
+  del ticket (petición 2026-10-22, paso `alimentos-escaner-demo`, 4º de Alimentos):** el guion
+  enseña el OCR con los DOS diálogos de confirmación REALES y DATOS DE PRUEBA que NO se escriben
+  en el inventario — "es sólo explicativo". El paso lleva el campo opcional `demo: "escaner"`
+  (pasoValido lo valida: sólo "escaner") y apunta a `#btn-ocr-foto` (visible en escritorio y
+  móvil); su click va por el listener de captura con `stopPropagation()*preventDefault()` — el
+  gesto NO abre el file-picker real — y llama `lanzarDemoEscaner()`: datos de juguete en la
+  pública `ocr.datosDemoEscaner()` (ticket `"2 LECHE ENTERA 1,29 / 2 YOGUR 1,15 / 1 GEL HIGIEN
+  2,90"` + despensa demo "Leche entera" y "Yogur natural") tal que el reparto real saca el EXACTO
+  (diálogo 1, "Ya tienes 1"), la DUDA (desplegable "Yogur natural · tienes 2") y el NUEVO de
+  HOGAR (conmutador 🏠 preseleccionado) → `pasosDeConfirmacion = ["despensa","revisar"]`, los dos
+  diálogos. `abrirConfirmarOcr(candidatos, textoCrudo, { demo: true, foods })` corre el flujo
+  sobre la despensa inyectada (`despensaVista`) con un banner `.ocr-demo-banner` (tono de marca)
+  en ambas pantallas y las DOS confirmaciones SIN persistir (sólo conducen el flujo visual);
+  el avance del paso lo manda `closeModal` — la bandera `demoEscanerAbierta` hace que CUALQUIER
+  vía de cierre (✕, fondo, Escape y footer) devuelva el control al paso del tutorial. El paso
+  nunca se escribe en `mrcheff.foods` ni destella la lista. **Silencio de campos
   (petición 2026-10-21):** en los accionables que apuntan a un form-control (input/textarea/
   select: `#food-name`, `#recipe-desc`, `#recipe-catalog-search`, `#season-month`, `#food-score`)
   el wiring hace `preventDefault` en `pointerdown`/`mousedown` de su diana — se cancela el
@@ -198,12 +215,15 @@ italiana" (see `modules/origen-recetas.js` below).
   modal; container `pointer-events:none` con auto en velos/tarjeta — el click DEL FOCO tiene que
   llegar al elemento real) y `modules/tutorial.js` añadido al shell del sw (caché v5).
   Accesibilidad: role dialog + anuncio sr-only "Paso X de N", Escape cierra y marca visto.
-  Verificación: unit `tests/tutorial.test.js` (contrato/grupos/sesión ~13), integración jsdom
+  Verificación: unit `tests/tutorial.test.js` (contrato/grupos/sesión ~15, incluye demo "escaner"),
+  integración jsdom
   `tests/tutorial-ui.integration.test.js` (auto-apertura, X/Escape/Terminar, reabrir, flujo
   accionable con GUION INYECTADO en la ventana = desacoplado del contenido que crece la épica,
-  silencio de campos y del select, recorrido completo 16 pasos) y e2e Brave real
-  `e2e/tutorial.mjs` (34 checks: auto-apertura, segunda visita silenciosa, 🎓, recorrido
-  completo con mouse+coords, campos silenciados sin focus, geometría de las tres zonas en los
+  silencio de campos y del select, los dos diálogos de la demo con asertos de "nada escrito",
+  recorrido completo 17 pasos) y e2e Brave real
+  `e2e/tutorial.mjs` (42 checks: auto-apertura, segunda visita silenciosa, 🎓, recorrido
+  completo con mouse+coords, campos silenciados sin focus, la demo del escáner con banner +
+  inventario intacto + capturas 76-77, geometría de las tres zonas en los
   cuatro pasos altos, swipe inmóvil; sirviendo por http://localhost:8617 con python3
   porque file:// no auto-abre).
   (10) **Botón flotante "subir al principio"** (feature 2026-10-21, petición del usuario): con
@@ -528,9 +548,12 @@ italiana" (see `modules/origen-recetas.js` below).
   palabra perfecta; captura además el texto de PRODUCCIÓN en reports/OCR/texto/PRODUCCION-*.txt
   — descartable — para recalibrar). `e2e/ocr-tickets-reales.mjs` reescrito a la era parser-first
   (nombres literales del ticket, dudas por palabra compartida, mismo-nombre suma; config por
-  NOMBRE de fichero — los dos tickets son .HEIC). Suite: 640 tests / 45 suites verdes (parser
-  19, categoria 8, parser-first en integración). Capturas 40-43. sw.js caché v7 (precachea ambos
-  módulos). NOTA de plataforma: heic2any@0.0.4 NO decodifica las HEIC del corpus (HEVC): en
+  NOMBRE de fichero — los dos tickets son .HEIC). Suite: 650 tests / 45 suites verdes (parser
+  19, categoria 8, parser-first en integración; +2 de la DEMO del escáner en ocr-despensa). Capturas
+  40-43. sw.js caché v7 (precachea ambos módulos). La DEMO del tutorial reutiliza ESTA
+  maquinaria con datos de juguete (`ocr.datosDemoEscaner()`, ver el bullet #9 del tutorial: los
+  dos diálogos se enseñan con NADA escrito). NOTA de plataforma: heic2any@0.0.4 NO decodifica
+  las HEIC del corpus (HEVC): en
   iPhone real la decodificación nativa de WebKit lo hace — mejora pendiente: probar la nativa
   ANTES de forzar el conversor en `ocr-foto.prepararFoto` (convertir sólo si el sondeo falla).
 - Foods: restock alert when `qty <= min`; urgency color from `score` (1–10) via `urgencyLevel` —

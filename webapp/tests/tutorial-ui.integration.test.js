@@ -123,12 +123,12 @@ describe("tutorial interactivo — pantalla ALIMENTOS (pasos accionables)", () =
     conGuionDeAlimentos(app.window.MRCheff.tutorial);
     app.document.getElementById("tutorial-avanzar").click();     // bienvenida → alimento #1 (#food-name, accionable)
     await dormir(60);
-    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 2 de 5");
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 2 de 6");
     expect(app.document.getElementById("tutorial-pista").classList.contains("hidden")).toBe(false);
     expect(app.document.getElementById("tutorial-avanzar").classList.contains("hidden")).toBe(true);
     app.document.getElementById("food-name").click();            // el toque REAL + avance del paso (la visita silencia el foco: el campo no enfoca — lo fija el test de silencio y el e2e de Brave)
     await dormir(60);
-    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 3 de 5");
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 3 de 6");
   });
 
   it("la visita SILENCIA los campos del guion: pointerdown en el target no puede enfocar (teclado del PWA fuera)", async () => {
@@ -142,7 +142,7 @@ describe("tutorial interactivo — pantalla ALIMENTOS (pasos accionables)", () =
     campo.dispatchEvent(pd);
     expect(pd.defaultPrevented).toBe(true);                      // el focus se cancela: sin teclado en el PWA instalable
     // el pointerdown por sí SOLO no avanza (el paso continúa con su click)
-    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 2 de 5");
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 2 de 6");
     // fuera de la visita la app queda tal cual: el mismo gesto SIN tutorial no se cancela
     app.document.getElementById("tutorial-cerrar").click();
     const pdFuera = new app.window.MouseEvent("pointerdown", { bubbles: true, cancelable: true });
@@ -150,7 +150,7 @@ describe("tutorial interactivo — pantalla ALIMENTOS (pasos accionables)", () =
     expect(pdFuera.defaultPrevented).toBe(false);
   });
 
-  it("tercer paso informativo: botón Siguiente vuelve; 'Terminar' graba la visita", async () => {
+  it("tercer paso informativo y cuarto DEMO: avanzar llega al escáner; confirmado el pase, Terminar graba la visita", async () => {
     const app = bootApp({ tutorialAuto: true });
     await dormir(700);
     conGuionDeAlimentos(app.window.MRCheff.tutorial);
@@ -161,12 +161,44 @@ describe("tutorial interactivo — pantalla ALIMENTOS (pasos accionables)", () =
     expect(app.document.getElementById("tutorial-titulo").textContent).toContain("Inventario");
     expect(app.document.getElementById("tutorial-pista").classList.contains("hidden")).toBe(true);
     expect(avanzar.classList.contains("hidden")).toBe(false);
-    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 4 de 5");
-    avanzar.click();                                             // → listo
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 4 de 6");
+    avanzar.click();                                             // inventario → DEMO del escáner (paso 5, accionable)
+    expect(app.document.getElementById("tutorial-titulo").textContent).toContain("Escanea el ticket");
+    // La demo se recorre con SUS diálogos: nada se escribe (aserto fino en el describe propio de abajo)
+    app.document.getElementById("btn-ocr-foto").click();
+    await dormir(60);
+    expect(app.document.getElementById("modal").classList.contains("hidden")).toBe(false);
+    app.document.querySelector("[data-confirmar-exactos]").click();   // diálogo 1 → diálogo 2
+    app.document.querySelector("[data-revision-guardar]").click();    // fin de la demo: cierra y avanza
+    await dormir(60);
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 6 de 6");
     expect(avanzar.textContent).toBe("Terminar");
     avanzar.click();                                             // cierre + visto
     expect(app.document.getElementById("tutorial").classList.contains("hidden")).toBe(true);
     expect(JSON.parse(app.window.localStorage.getItem("mrcheff.tutorial")).visto).toBe(true);
+  });
+
+  it("el paso DEMO del escáner detiene el gesto real: NO se abre el file-picker y sus diálogos salen con banner", async () => {
+    const app = bootApp({ tutorialAuto: true });
+    await dormir(700);
+    conGuionDeAlimentos(app.window.MRCheff.tutorial);
+    const avanzar = app.document.getElementById("tutorial-avanzar");
+    avanzar.click();
+    app.document.getElementById("food-name").click();
+    app.document.getElementById("food-score").click();
+    avanzar.click();                                             // inventario → demo del escáner
+    await dormir(40);
+    // Espía del open del file input: si el click REAL llegara al botón, lo abriría (regresión del stopPropagation)
+    let abrirFichero = 0;
+    const fileInput = app.document.getElementById("ocr-file");
+    const nativoAbrir = fileInput.click.bind(fileInput);
+    fileInput.click = () => { abrirFichero += 1; nativoAbrir(); };
+    app.document.getElementById("btn-ocr-foto").click();
+    await dormir(60);
+    expect(abrirFichero).toBe(0);                                // el gesture no llega al botón real
+    expect(app.document.getElementById("modal").classList.contains("hidden")).toBe(false);
+    expect(app.document.querySelector(".ocr-demo-banner").textContent).toContain("nada se guarda");
+    expect(app.document.querySelector(".exact-qty")).toBeTruthy();      // el diálogo 1 (filas exactas)
   });
 });
 
@@ -318,9 +350,10 @@ describe("tutorial interactivo — pantalla TEMPORADA (cierre del tour por 5 vis
     const app = bootApp({ tutorialAuto: true });
     await dormir(700);
     const avanzar = app.document.getElementById("tutorial-avanzar");
-    // El guion real ya está completo: bienvenida → cabecera → Alimentos×3 → Recetas×3 →
-    // Innovación×2 → Menú×3 → Temporada×2 → listo (Terminar) = 16 pasos.
-    expect(app.window.MRCheff.tutorial.totalPasos()).toBe(16);
+    // El guion real ya está completo: bienvenida → cabecera → Alimentos×4 (anotar, importancia,
+    // inventario y la DEMO del escáner) → Recetas×3 → Innovación×2 → Menú×3 → Temporada×2 →
+    // listo (Terminar) = 17 pasos.
+    expect(app.window.MRCheff.tutorial.totalPasos()).toBe(17);
     // bienvenida: tarjeta centrada sin foco (estado del molde por defecto)
     expect(app.document.getElementById("tutorial-tarjeta").classList.contains("tutorial-centrado")).toBe(true);
     // Cabecera
@@ -333,7 +366,18 @@ describe("tutorial interactivo — pantalla TEMPORADA (cierre del tour por 5 vis
     app.document.getElementById("food-score").click();
     avanzar.click();                                             // inventario (informativo)
     await dormir(70);
-    // Recetas×3 (2 accionables): al entrar en el primer paso ya cambió la vista
+    // Alimentos#4 — la DEMO del escáner: se abre con sus dos diálogos y SIN escribir nada;
+    // confirmados ambos, el paso sigue su curso (asertos finos en el describe propio).
+    app.document.getElementById("btn-ocr-foto").click();
+    await dormir(70);
+    expect(app.document.getElementById("modal").classList.contains("hidden")).toBe(false);
+    app.document.querySelector("[data-confirmar-exactos]").click();   // diálogo 1 → diálogo 2
+    app.document.querySelector("[data-revision-guardar]").click();    // fin del pase: cierra y avanza
+    await dormir(70);
+    expect(app.document.getElementById("modal").classList.contains("hidden")).toBe(true);
+    expect(JSON.parse(app.window.localStorage.getItem("mrcheff.foods") || "[]")).toEqual([]);   // la demo NADA escribió
+    // Recetas×3 (2 accionables): al cerrarse la demo ya avanzó al paso de Recetas (la vista cambió
+    // con el paso; el click en el textarea sigue aquí para completar el recorrido).
     app.document.getElementById("recipe-desc").click();
     await dormir(70);
     expect(app.document.getElementById("view-recipes").classList.contains("active")).toBe(true);
@@ -362,5 +406,86 @@ describe("tutorial interactivo — pantalla TEMPORADA (cierre del tour por 5 vis
     avanzar.click();                                             // cierre + visto
     expect(app.document.getElementById("tutorial").classList.contains("hidden")).toBe(true);
     expect(JSON.parse(app.window.localStorage.getItem("mrcheff.tutorial")).visto).toBe(true);
+  });
+});
+
+describe("tutorial — la DEMO del escáner (dos diálogos reales, datos de prueba, nada escrito)", () => {
+  const dormir = (ms) => new Promise(r => setTimeout(r, ms));
+
+  const irAlPasoDemo = async (app) => {
+    // Guion corto: bienvenida + el BLOQUE REAL de Alimentos (4 pasos, con la demo) + cierre.
+    const tut = app.window.MRCheff.tutorial;
+    const bienvenida = tut.PASOS[0];
+    const alimentos = tut.pasosDeVista("foods");
+    const listo = tut.PASOS[tut.PASOS.length - 1];
+    tut.PASOS.splice(0, tut.PASOS.length, bienvenida, ...alimentos, listo);
+    app.document.getElementById("tutorial-avanzar").click();     // → #food-name (accionable)
+    app.document.getElementById("food-name").click();            // → #food-score (accionable)
+    app.document.getElementById("food-score").click();           // → inventario (informativo)
+    app.document.getElementById("tutorial-avanzar").click();     // → DEMO del escáner
+    await dormir(60);
+    return alimentos.find(p => p.demo === "escaner");
+  };
+  const despensaGuardada = (app) => JSON.parse(app.window.localStorage.getItem("mrcheff.foods") || "[]");
+
+  it("el pase muestra el diálogo 1 con el alimento EXACTO de la despensa de juguete y el banner de demo; nada se escribe", async () => {
+    const app = bootApp({ tutorialAuto: true });
+    await dormir(700);
+    await irAlPasoDemo(app);
+    // Diálogo 1: banner + fila exacta LECHE ENTERA — "Ya tienes 1 en el inventario" LEÍDO de la despensa de juguete
+    app.document.getElementById("btn-ocr-foto").click();          // el click lanza los diálogos de ejemplo
+    await dormir(60);
+    expect(app.document.getElementById("modal").classList.contains("hidden")).toBe(false);
+    expect(app.document.querySelector(".ocr-demo-banner").textContent).toContain("Demo del tutorial");
+    expect(app.document.querySelector(".ocr-demo-banner").textContent).toContain("nada se guarda");
+    const filaExacta = app.document.querySelector(".ocr-item .ocr-nombre");
+    expect(filaExacta.textContent).toContain("LECHE ENTERA");
+    expect(filaExacta.textContent).toContain("Ya tienes 1 en el inventario");
+    expect(despensaGuardada(app)).toEqual([]);                   // el flujo demo no toca la persistencia
+    // Confirmar exactos → conduce a la revisión SIN tocar la despensa
+    app.document.querySelector("[data-confirmar-exactos]").click();
+    await dormir(60);
+    expect(app.document.getElementById("modal").classList.contains("hidden")).toBe(false);
+    expect(app.document.querySelector(".rev-seccion h3").textContent).toContain("Nuevos");
+    const secciones = [...app.document.querySelectorAll(".rev-seccion h3")].map(h => h.textContent);
+    expect(secciones).toEqual(["Nuevos", "Dudas"]);              // los dos apartados del diálogo 2
+    // El nombre de cada fila vive en el VALUE del input (no es texto del nodo): el nuevo sale
+    // del ticket literal y la duda trae su desplegable con la variante de la despensa de juguete.
+    expect(app.document.querySelector(".rev-fila-nueva .rev-campo-nombre").value).toContain("GEL HIGIEN");
+    const duda = app.document.querySelector(".rev-fila-duda");
+    expect(duda.querySelector(".rev-campo-nombre").value).toContain("YOGUR");
+    expect([...duda.querySelectorAll(".rev-campo-variante option")].some(o => o.textContent.includes("Yogur natural · tienes 2"))).toBe(true);
+    expect(despensaGuardada(app)).toEqual([]);
+  });
+
+  it("confirmada la revisión de la demo: modal cerrado, inventario intacto y el paso del tutorial avanza", async () => {
+    const app = bootApp({ tutorialAuto: true });
+    await dormir(700);
+    await irAlPasoDemo(app);
+    app.document.getElementById("btn-ocr-foto").click();
+    await dormir(60);
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 5 de 6");
+    app.document.querySelector("[data-confirmar-exactos]").click();   // → revisión (demo)
+    app.document.querySelector("[data-revision-guardar]").click();    // fin del pase
+    await dormir(60);
+    expect(app.document.getElementById("modal").classList.contains("hidden")).toBe(true);
+    expect(despensaGuardada(app)).toEqual([]);
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 6 de 6");   // avanzó al cierre
+    expect(app.document.getElementById("tutorial-titulo").textContent).toContain("Ya sabes moverte");   // el paso listo
+  });
+
+  it("Cancelado el pase del diálogo 2: mismo desenlace — cierra, no escribe y avanza el paso", async () => {
+    const app = bootApp({ tutorialAuto: true });
+    await dormir(700);
+    await irAlPasoDemo(app);
+    app.document.getElementById("btn-ocr-foto").click();
+    await dormir(60);
+    app.document.querySelector("[data-confirmar-exactos]").click();   // → revisión (demo)
+    const cancelar = [...app.document.querySelectorAll("[data-close]")].find(b => b.textContent.trim() === "Cancelar");
+    cancelar.click();
+    await dormir(60);
+    expect(app.document.getElementById("modal").classList.contains("hidden")).toBe(true);
+    expect(despensaGuardada(app)).toEqual([]);
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 6 de 6");
   });
 });

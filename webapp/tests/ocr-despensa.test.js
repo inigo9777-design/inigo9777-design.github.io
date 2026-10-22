@@ -397,3 +397,48 @@ describe("ocr-despensa — confirmarRevision (el 2º diálogo escribe la revisi�
   });
 });
 
+
+describe("ocr-despensa — datosDemoEscaner (la demo del escáner en el tutorial, 2026-10-22)", () => {
+  const ticketParser = require("../modules/ocr-ticket-parser.js");
+  const categoria = require("../modules/categoria-producto.js");
+  const menuSemanal = require("../modules/menu-semanal.js");
+
+  const CANDIDATOS = (demo) => {
+    const parseo = ticketParser.parsearTicket(demo.texto);
+    return parseo.items.map(it => ({
+      nombre: it.nombre,
+      qty: it.qty,
+      tipo: (classify.classifyFood(it.nombre)) || null,
+      hogar: !!categoria.esProductoHogar(it.nombre)
+    }));
+  };
+
+  test("la despensa de juguete no se muta entre llamadas (clones frescos del mismo molde)", () => {
+    const a = ocrDespensa.datosDemoEscaner();
+    a.despensa[0].qty = 99;
+    a.despensa.pop();
+    const b = ocrDespensa.datosDemoEscaner();
+    expect(b.despensa.length).toBe(2);
+    expect(b.despensa[0].qty).toBe(1);
+    expect(b.texto.split("\n").length).toBe(3);
+    expect(b.texto).toContain("LECHE ENTERA");
+  });
+
+  test("el reparto real sobre los datos demo saca los DOS diálogos: un exacto, una duda y un nuevo hogar", () => {
+    const demo = ocrDespensa.datosDemoEscaner();
+    const previo = ocrDespensa.guardarCandidatos(demo.despensa, CANDIDATOS(demo).map(c => ({
+      nombre: c.nombre, qty: c.qty, tipo: c.tipo, hogar: c.hogar
+    })), {
+      uid: () => "uid-demo", ahora: 0,
+      candidatosDespensa: (nombre, despensa) => menuSemanal.candidatosDespensa(nombre, despensa)
+    });
+    expect(previo.directos.map(d => d.nombre)).toEqual(["LECHE ENTERA"]);   // diálogo 1 (exacto)
+    expect(previo.dudosos.map(d => d.nombre)).toEqual(["YOGUR"]);           // desplegable de variantes
+    expect(previo.nuevos.map(d => d.nombre)).toEqual(["GEL HIGIEN"]);       // conmutador 🍎/🏠 preseleccionado a hogar
+    expect(ocrDespensa.pasosDeConfirmacion(previo)).toEqual(["despensa", "revisar"]);
+    // Las VARIANTES de la duda no viajan en la fila: el diálogo las saca al vuelo con el casador
+    // (misma máquina del "🛒 Despensa?" de la lista) — con la despensa demo sale "Yogur natural".
+    expect(menuSemanal.candidatosDespensa("YOGUR", demo.despensa).map(v => `${v.name} · tienes ${v.qty}`))
+      .toEqual(["Yogur natural · tienes 2"]);
+  });
+});
