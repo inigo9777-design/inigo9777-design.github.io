@@ -110,6 +110,11 @@ const d2 = await page.evaluate(() => {
       return fila.querySelector(".rev-celda-nombre").getBoundingClientRect().top
         < fila.querySelector(".rev-celda-qty").getBoundingClientRect().top;
     })(),
+    nombrePrimeroEnNueva: (() => {
+      const fila = document.querySelector(".rev-fila-nueva");
+      return fila.querySelector(".rev-celda-nombre").getBoundingClientRect().top
+        < fila.querySelector(".rev-celda-qty").getBoundingClientRect().top;
+    })(),
     subUltimo: (() => {
       const fila = document.querySelector(".rev-fila-duda");
       const sub = fila.querySelector(".rev-sub");
@@ -124,32 +129,45 @@ const d2 = await page.evaluate(() => {
 });
 ok(d2.titulo.includes("Añade lo nuevo"), "diálogo 2 de revisión abierto");
 ok(d2.nueva.pistas === 4, `revisión NUEVOS: 4 columnas de verdad (${d2.nueva.pistas} pistas — nada de los 6 fantasma del bug)`);
-ok(d2.nueva.camposArriba, "revisión NUEVOS: cantidad/importancia/mínimo/incluir ENCIMA del nombre");
+ok(d2.nombrePrimeroEnNueva, "revisión NUEVOS: el NOMBRE del alimento ES LO PRIMERO (petición 2026-10-23, como en Dudas)");
 ok(d2.nueva.nombreLlena && d2.nueva.altoNombre < 80, `revisión NUEVOS: nombre en su línea completa (${Math.round(d2.nueva.nombreAncho || 0)}px de ${Math.round(d2.nueva.anchoFila)}px de fila — nada de 1 letra por línea)`);
 ok(d2.nueva.subAbajo, "revisión NUEVOS: tag + línea del ticket al final");
 ok(!d2.nueva.ph, "revisión NUEVOS: sin desborde horizontal");
-ok(d2.duda.nombreLlena, "revisión DUDAS: nombre en su línea completa");
-ok(d2.nombrePrimeroEnDuda, "revisión DUDAS: el NOMBRE ES LO PRIMERO (intercambio 2026-10-23 con el desplegable)");
+ok(d2.nombrePrimeroEnDuda, "revisión DUDAS: el NOMBRE de la compra es lo primero");
 ok(d2.varianteAbajo, "revisión DUDAS: el desplegable «De tu despensa» baja DEBAJO del conmutador de tipo");
 ok(d2.subUltimo && d2.duda.subAbajo, "revisión DUDAS: tag de categoría + línea del ticket quedan lo ÚLTIMO");
 ok(d2.varianteAncho >= d2.duda.anchoFila - 40, `revisión DUDAS: desplegable aprovecha la línea (${Math.round(d2.varianteAncho)}px de ${Math.round(d2.duda.anchoFila)}px)`);
 ok(d2.duda.nombreLlena, "revisión DUDAS: nombre también en su línea completa");
 
-// el conmutador 🍎/🏠 del alta vive debajo de los campos y encima del nombre
+// La etiqueta «Incluir» alinea su ARRANQUE con los otros tres títulos (petición 2026-10-23, en
+// LAS DOS secciones): el centrado vertical de la celda la colgaba unos píxeles por su checkbox
+// más bajo — la fila ahora alinea al ARRIBA y el check recupera su centrado con un respiro.
+const incluirAlineado = await page.evaluate(() => {
+  const topDe = fila => Math.round(fila.querySelector(".rev-celda-qty .rev-etiqueta").getBoundingClientRect().top);
+  const incluirTop = fila => Math.round(fila.querySelector(".rev-celda-include .rev-etiqueta").getBoundingClientRect().top);
+  return {
+    nueva: Math.abs(topDe(document.querySelector(".rev-fila-nueva")) - incluirTop(document.querySelector(".rev-fila-nueva"))),
+    duda: Math.abs(topDe(document.querySelector(".rev-fila-duda")) - incluirTop(document.querySelector(".rev-fila-duda")))
+  };
+});
+ok(incluirAlineado.nueva <= 3, `revisión NUEVOS: «Incluir» alineado con Cantidad/Importancia/Mínimo (Δ ${incluirAlineado.nueva}px)`);
+ok(incluirAlineado.duda <= 3, `revisión DUDAS: «Incluir» alineado con Cantidad/Importancia/Mínimo (Δ ${incluirAlineado.duda}px)`);
+
+// el conmutador 🍎/🏠 del alta: debajo de los campos y antes del sub (el nombre manda arriba)
 const conmutador = await page.evaluate(() => {
   const fila = document.querySelector(".rev-fila-nueva");
   const cat = fila.querySelector(".rev-celda-cat");
-  const nombre = fila.querySelector(".rev-celda-nombre");
+  const sub = fila.querySelector(".rev-sub");
   const campos = fila.querySelector(".rev-celda-qty");
   if (!cat) return null;
   return {
     presente: true,
-    entreCamposYnombre: cat.getBoundingClientRect().top > campos.getBoundingClientRect().bottom - 2
-      && cat.getBoundingClientRect().top < nombre.getBoundingClientRect().top
+    entreCamposYsub: cat.getBoundingClientRect().top > campos.getBoundingClientRect().bottom - 2
+      && cat.getBoundingClientRect().top < sub.getBoundingClientRect().top
   };
 });
-ok(conmutador && conmutador.presente && conmutador.entreCamposYnombre,
-  "el conmutador 🍎/🏠 del alta lleva su línea completa ENTRE los campos y el nombre");
+ok(conmutador && conmutador.presente && conmutador.entreCamposYsub,
+  "el conmutador 🍎/🏠 del alta lleva su línea completa DEBAJO de los campos y antes del sub");
 await page.screenshot({ path: path.join(OUT, "52-dialogo2-movil-reticula.png"), fullPage: false });
 
 await browser.close();
