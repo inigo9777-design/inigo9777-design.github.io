@@ -9,6 +9,7 @@ describe("esProductoHogar sobre los NOMBRES reales del ticket", () => {
   test("los de la compra real (Mercadona/ALDI) caen en hogar", () => {
     for (const nombre of [
       "HIGIÉNICO DOBLE ROLL",           // papel higiénico — Mercadona
+      "GEL HIGIENE",                    // palabra del diccionario añadida 2026-10-22 (demo del tutorial)
       "PAÑUELO",                        // Mercadona
       "Detergente Líquido", "Papel Aluminio", "LEJÍA CONCENTRADA", "Champú", "Bolsas de basura",
       "Papel camilla"                   // prefijo de palabra larga ✓

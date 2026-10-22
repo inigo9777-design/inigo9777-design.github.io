@@ -247,15 +247,16 @@
   // ─── Datos de la DEMO del escáner dentro del tutorial (petición 2026-10-22): un ticket de
   // ejemplo con tres casos — UN EXACTO (¿"Leche entera" ya en casa?: diálogo 1), UNA DUDA
   // ("YOGUR" casa con "Yogur natural" por tokens: desplegable de variantes) y UN NUEVO de
-  // HOGAR ("GEL HIGIEN": el conmutador 🍎/🏠 sale preseleccionado). La despensa es de juguete
-  // y vive AQUI porque es data del dominio, testeado: el reparto real sobre ella sale
-  // ["despensa", "revisar"] — los DOS diálogos que enseña la visita guiada. Cada llamada
-  // devuelve clones frescos: la app de demo no puede mutar esta fuente.
+  // HOGAR ("GEL HIGIENE": el conmutador 🍎/🏠 sale preseleccionado — "higiene" es palabra del
+  // diccionario de hogar, petición del usuario). La despensa es de juguete y vive AQUI porque
+  // es data del dominio, testeado: el reparto real sobre ella sale ["despensa", "revisar"] —
+  // los DOS diálogos que enseña la visita guiada. Cada llamada devuelve clones frescos: la
+  // app de demo no puede mutar esta fuente.
   const DESPENSA_DEMO = [
     { id: "demo-leche", name: "Leche entera", score: 6, qty: 1, min: 2, checked: false, createdAt: 0 },
     { id: "demo-yogur", name: "Yogur natural", score: 7, qty: 2, min: 3, checked: false, createdAt: 0 },
   ];
-  const TEXTO_DEMO = "2 LECHE ENTERA 1,29\n2 YOGUR 1,15\n1 GEL HIGIEN 2,90";
+  const TEXTO_DEMO = "2 LECHE ENTERA 1,29\n2 YOGUR 1,15\n1 GEL HIGIENE 2,90";
 
   function datosDemoEscaner() {
     return { texto: TEXTO_DEMO, despensa: DESPENSA_DEMO.map(f => ({ ...f })) };

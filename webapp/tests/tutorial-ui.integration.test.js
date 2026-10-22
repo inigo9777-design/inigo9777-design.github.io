@@ -443,6 +443,8 @@ describe("tutorial — la DEMO del escáner (dos diálogos reales, datos de prue
     expect(filaExacta.textContent).toContain("Ya tienes 1 en el inventario");
     expect(despensaGuardada(app)).toEqual([]);                   // el flujo demo no toca la persistencia
     // Confirmar exactos → conduce a la revisión SIN tocar la despensa
+    expect(app.document.querySelector("#modal-content .muted").textContent).toContain("toca Confirmar y revisar el resto");   // guía del paso en el intro
+    expect(app.document.querySelector(".btn-demo-senal")).toBeTruthy();        // el botón del pase lleva la señal visual
     app.document.querySelector("[data-confirmar-exactos]").click();
     await dormir(60);
     expect(app.document.getElementById("modal").classList.contains("hidden")).toBe(false);
@@ -451,10 +453,18 @@ describe("tutorial — la DEMO del escáner (dos diálogos reales, datos de prue
     expect(secciones).toEqual(["Nuevos", "Dudas"]);              // los dos apartados del diálogo 2
     // El nombre de cada fila vive en el VALUE del input (no es texto del nodo): el nuevo sale
     // del ticket literal y la duda trae su desplegable con la variante de la despensa de juguete.
-    expect(app.document.querySelector(".rev-fila-nueva .rev-campo-nombre").value).toContain("GEL HIGIEN");
+    expect(app.document.querySelector(".rev-fila-nueva .rev-campo-nombre").value).toContain("GEL HIGIENE");
+    // GEL HIGIENE es producto de HOGAR: el conmutador nace preseleccionado en 🏠 (diccionario).
+    const filaNueva = app.document.querySelector(".rev-fila-nueva");
+    expect(filaNueva.querySelector(".rev-cat-btn[data-cat='hogar']").getAttribute("aria-pressed")).toBe("true");
+    expect(filaNueva.querySelector(".rev-cat-btn[data-cat='alimento']").getAttribute("aria-pressed")).toBe("false");
     const duda = app.document.querySelector(".rev-fila-duda");
     expect(duda.querySelector(".rev-campo-nombre").value).toContain("YOGUR");
     expect([...duda.querySelectorAll(".rev-campo-variante option")].some(o => o.textContent.includes("Yogur natural · tienes 2"))).toBe(true);
+    // Guía de cierre del pase: texto en el intro y señal pulsante en el botón final.
+    const introsRevisar = [...app.document.querySelectorAll("#modal-content > p.muted")].map(p => p.textContent).join(" ");
+    expect(introsRevisar).toContain("toca Añadir a la despensa");
+    expect(app.document.querySelector("[data-revision-guardar]").classList.contains("btn-demo-senal")).toBe(true);
     expect(despensaGuardada(app)).toEqual([]);
   });
 
