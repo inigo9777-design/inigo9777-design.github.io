@@ -1165,7 +1165,8 @@ document.addEventListener("DOMContentLoaded", () => {
     function filaRevisionHTML(c, esDuda) {
       const o = candidatos.indexOf(c);
       const d = decision[o];
-      const lineaContexto = `<span class="ocr-linea" title="Primera línea que ha leído el OCR (sólo contexto)">“${escapeHTML(String(c.linea || "").trim().slice(0, 60))}”${c.veces > 1 ? ` · aparece ×${c.veces}` : ""}</span>`;
+      const linea = escapeHTML(String(c.linea || "").trim().slice(0, 60));
+      const lineaContexto = linea ? `<span class="ocr-linea" title="Primera línea que ha leído el OCR (sólo contexto)">“${linea}”${c.veces > 1 ? ` · aparece ×${c.veces}` : ""}</span>` : "";
       const etqNombre = d.hogar ? "Producto" : "Alimento";
       const etqFila = d.hogar ? "🏠 Producto de hogar" : (etqTipo[d.tipo] || "Otro");
       // PRODUCTO DE HOGAR: sin criterio de alerta pedido (petición del usuario) — sus celdas van
