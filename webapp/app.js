@@ -1565,6 +1565,7 @@ document.addEventListener("DOMContentLoaded", () => {
       card.className = "recipe-card";
       card.dataset.id = r.id;
       card.innerHTML = `
+        ${fotoRecetaHTML(r)}
         <h3>${escapeHTML(r.title)}</h3>
         <div class="recipe-meta">
           <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
@@ -1689,6 +1690,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <button data-cook="${r.id}" title="Cocinar hoy" aria-label="Cocinar hoy">🍳</button>
           <button data-del="${r.id}" title="Eliminar" aria-label="Eliminar receta">🗑</button>
         </div>
+        ${fotoRecetaHTML(r)}
         <h3>${escapeHTML(r.title)}</h3>
         <div class="recipe-meta">
           <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
@@ -2061,6 +2063,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const sello = m.origenAlGuardar(rec);          // string 'italiana'|'espanola' (o null sin datos)
     return sello ? { origen: sello } : {};
   }
+  // FOTO de la card (feature imagenes-recetas-cards, petición 2026-10-22): foto real del catálogo
+  // por id/título (modules/fotos-recetas.js) o el placeholder del diseño — inicial del plato sobre
+  // papel. El <img> es decorativo (el título ya nombra el plato): alt vacío + aria-hidden.
+  function fotoRecetaHTML(rec) {
+    const fr = window.MRCheff.fotosRecetasApi;
+    const ruta = (fr && fr.fotoDe) ? fr.fotoDe(rec) : null;
+    if (!ruta) {
+      const letra = String((rec && rec.title) || "?").charAt(0).toUpperCase();
+      return `<div class="recipe-photo recipe-foto-falta" data-letra="${escapeHTML(letra)}" aria-hidden="true"></div>`;
+    }
+    return `<img class="recipe-photo" src="${escapeHTML(ruta)}" alt="" loading="lazy" decoding="async" aria-hidden="true">`;
+  }
 
   const innovApi = window.MRCheff.innovations;   // módulo puro del generador + conciliación (modules/innovations.js)
 
@@ -2138,6 +2152,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <button data-save="${i.id}" title="Guardar en Mis Recetas" aria-label="Guardar en Mis Recetas">⭐</button>
           <button data-del="${i.id}" title="Eliminar" aria-label="Eliminar idea">🗑</button>
         </div>
+        ${fotoRecetaHTML(i)}
         <h3>${escapeHTML(i.title)}</h3>
         <div class="recipe-meta">
           <span class="tag meal-${i.meal}">${mealLabels[i.meal]}</span>
@@ -2219,6 +2234,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <button data-edit="${idea.id}" title="Editar y guardar en Mis Recetas" aria-label="Editar y guardar en Mis Recetas">✏️</button>
           <button data-cook="${idea.id}" title="Cocinar hoy" aria-label="Cocinar hoy">🍳 Cocinar hoy</button>
         </div>
+        ${fotoRecetaHTML(idea)}
         <h3>${escapeHTML(idea.title)}</h3>
         <div class="recipe-meta">
           <span class="tag meal-${idea.meal}">${mealLabels[idea.meal] || ""}</span>

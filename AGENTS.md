@@ -33,7 +33,7 @@ Compact guide for AI agents, now the single canonical in-repo reference (its for
 Single-page, six-tab app loaded via `index.html`. Script order (order matters): inline `<script>`
 → `data.js` → `app.js` (registers the one `DOMContentLoaded` closure; module `<script>`s load after
 it but still before the DOM-ready event fires) → `modules/…` (`priority`, `classify`,
-`recipe-analysis`, catalog data, `origen-recetas`, `innovations`, `util`, `backup`,
+`recipe-analysis`, catalog data, `origen-recetas`, `fotos-recetas` + su data, `innovations`, `util`, `backup`,
 `ingredient-matching`, `sync-crypto`, `diff-merge`, `sync`, `planner`, `menu-semanal`, `recipe-missing`,
 `recipe-editor`, `swipe-tabs`). `app.js`
 is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
@@ -79,6 +79,41 @@ italiana" (see `modules/origen-recetas.js` below).
   It also attaches `dataset.idsItalianas` (list of the 20 Italian ids, consumed by `origen-recetas.js`) as
   a PROPERTY of the exported array — `module.exports` stays a plain array for tests/e2e. New Italian
   recipe ⇒ also add its id to `idsItalianas`.
+- **Fotos reales en las cards (feature `imagenes-recetas-cards`, petición 2026-10-22):** las cards de
+  receta de las vistas **Recetas** (lista + resultados del buscador del catálogo), **Innovación** y
+  **Cocinar hoy** (Card 1 de Sugerencias y menú) llevan una banda de FOTO superior (16/10,
+  `object-fit: cover`, redondeo arriba con el radio del card) y las recetas SIN foto del catálogo un
+  PLACEHOLDER del diseño (inicial del plato en serif sobre papel, `.recipe-foto-falta`):
+  - **Pipeline de assets (sólo dev):** `node webapp/scripts/imagenes-recetas.mjs` recorre el catálogo,
+    busca en Wikimedia Commons (título limpio de qualifiers → menos tokens, con pausa y retroceso ante
+    429; reanudable — salta las existentes), normaliza con `sips` (JPEG q70, lado máx. 900px) a
+    `webapp/img/recetas/<id>.jpg` y al terminar REESCRIBE el índice `data/fotos-recetas-data.js` (lista
+    de ids con foto; NO editar a mano — se regenera). Las que Commons no acierta quedan con placeholder
+    (y el mapa `MANUALES` del script permite parchear búsquedas a mano id → consulta). Calidad: el
+    script PUNTÚA los candidatos por solape de tokens con la búsqueda (la 1ª pasada a ciegas bautizaba
+    platos con iglesias y libros) y la auditoría a ojo es la plancha de contacto
+    `node webapp/scripts/plancha-fotos.mjs` (PNGs en reports/ui-brave/78-plancha-fotos-N.png);
+    los ids con acento se comparan normalizados (APFS es normalización-insensible, byte a byte no).
+  - **Módulo puro `modules/fotos-recetas.js`**: `fotoDe(receta, ctx)` (única pública) — 1) id directo,
+    pero SOLO si el id pertenece al catálogo (los uids propios no pueden colar); 2) TÍTULO normalizado
+    (copias ⭐/ideas/sugerencias nacen con uid nuevo — mismo espíritu que `origen-recetas.js`); 3) null
+    → placeholder. El namespace default sale de `window.MRCheff` (índice + catálogo), ctx inyectable en
+    tests (junto a `origen-recetas.js` en el orden de carga).
+  - **Wiring en app.js**: molde `fotoRecetaHTML(rec)` — `<img alt="" loading="lazy" decoding="async"
+    aria-hidden>` (decorativa: el título nombra el plato) o `<div .recipe-foto-falta data-letra>` con
+    escapeHTML de la inicial — insertada en los CUATRO molde `.recipe-card`.
+  - **Orden visual por flex `order`**: el DOM conserva las `.recipe-actions` delante como siempre;
+    style.css pinta la foto como PRIMERA banda (`.recipe-photo { order: -1 }`, sangra al borde con los
+    vars locales `--pad-arriba/--pad-costados` del propio card) y las acciones como PIE (`order: 5`).
+    El acolchado del card vive ahora en esas dos variables locales — si cambia el padding, la banda calza.
+  - **Alcance cerrado**: modal de detalle y huecos del plan semanal SIN foto (decisión del usuario).
+  - **PWA**: `modules/fotos-recetas.js` + `data/fotos-recetas-data.js` en el SHELL → caché **v8**; los
+    JPG viajan Network-first y el respaldo offline los cachea al primer acierto (cargan en la app
+    offline tras la primera vista).
+  - Mis Recetas: id no coincide → título; RENOMBRADA por el usuario → placeholder.
+  - Verificación: unit `tests/fotos-recetas.test.js` (9), integración jsdom
+    `tests/fotos-recetas.integration.test.js` (5), e2e Brave real `e2e/fotos-recetas.mjs`
+    (capturas reports/ui-brave/78).
 - **Comportamiento móvil (PWA, feature 2026-10-18):** (1) **Viewpager**: deslizar horizontal DENTRO
   de `.content` cambia a la vista vecina (wrap entre las 5 del nav; el tab lateral de backup NO
   entra en el carrusel) — decisión en el módulo puro `modules/swipe-tabs.js`, wiring touch +
@@ -604,6 +639,19 @@ italiana" (see `modules/origen-recetas.js` below).
 - `.continue/` (Continue.dev) still exists and holds cross-tool rules/prompts — e.g.
   `.continue/prompts/unit-tests.md` encodes the team's test workflow (write specs → run with
   coverage → iterate until all pass). It is not auto-loaded by OpenCode; check it when intent across tools matters rather than assuming Claude-only config still drives agent behavior in this repo.
+- **Skill `git_worktree_multi_agent`** (`.opencode/skills/git_worktree_multi_agent/SKILL.md`) —
+  orquesta N tareas de implementación EN PARALELO con aislamiento git real. Pregunta nº de tareas y
+  descripción de cada una (`question`), nombra cada rama con la skill `git-flow-branch-creator`
+  (SOLO análisis/nomenclatura: sus `git checkout -b` NO se ejecutan en el checkout principal),
+  corta SIEMPRE desde develop y crea un **git worktree hermano por tarea**
+  (`git worktree add -b <rama> ../<carpeta> develop`; ⚠️ `node_modules/` no viaja a los worktrees —
+  cada trabajadora hace `cd webapp && npm install` antes de los tests jest). Lanza dentro de cada
+  worktree una **sesión nueva de OpenCode** (`cd ../<carpeta> && opencode run "$(cat prompt)" --format
+  json` en segundo plano; sessionID vía `grep ses_`) cuyo prompt manda leer AGENTS.md +
+  CODING_STANDARDS.md antes de nada, leer ficheros SIEMPRE por terminal durante toda la sesión,
+  implementar SOLO su tarea en su rama (commits sí, push/merges no). La sesión que corre la skill
+  queda como coordinadora (vigila e informa); la fusión a develop es SECUENCIAL en el checkout
+  principal y epic→develop sigue siendo manual del usuario (regla de git-flow).
 - **Claude Code config was removed**: both `CLAUDE.md` and the whole `.claude/` folder are gone, after first migrating the two useful artifacts into OpenCode's own folders so nothing is lost — these are now auto-discovered by OpenCode:
   - `/unittest` command → `.opencode/commands/unittest.md` (was `.claude/commands/unittest.md`; Claude-only frontmatter fields `argument-hint`/`allowed-tools` were dropped as unsupported by OpenCode, body kept 1:1)
   - `code-reviewer` skill → `.opencode/skills/code-reviewer/SKILL.md` (only change vs source: `CLAUDE.md` reference inside it now points at this file / `AGENTS.md`)
