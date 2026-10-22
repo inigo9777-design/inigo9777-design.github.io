@@ -233,3 +233,16 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   DUDA (su retícula tiene UNA línea más: desplegable + conmutador). **Arreglo:** regla propia
   `.rev-fila-duda .rev-sub { grid-area: 5 / 1 / 6 / -1 }` tras las áreas de Dudas. La guardia
   e2e sólo asertaba el sub bajo el nombre en NUEVOS — añadió el aserto de Dudas (14 checks).
+
+---
+
+- `2026-10-23 · @usuario · #bugfix-ocr-opciones-dudas-en-situ (REVERTIDO) · síntoma reportado:` el
+  desplegable «es nuevo: se define aquí» de la sección DUDAS desplegaba sus opciones en OTRO punto
+  de la pantalla con el modal desplazado. **Intento de arreglo (merge `76e6626`):** options EN
+  FLUJO con radios nativos en la fila (`fieldset.rev-opciones`). **Resolución final:** el
+  síntoma SÓLO se reproduce en ESCRITORIO con la vista emulada a móvil (DevTools) — en el móvil
+  real el popup nativo del `<select>` sale SIEMPRE bien (Brave y Safari en la PWA instalada), y
+  la persona prefería la implementación anterior → se REVIERTO el merge entero
+  (`git revert -m 1`, commit `882a4ff`): desplegable restaurado, doc y e2e de vuelta a la era
+  select, suite 643/643 verde. Si algún día urge posponer el popup en desktop-emulación,
+  re-aplicar revirtiendo el revert (los radios nacen baratos de ahí).
