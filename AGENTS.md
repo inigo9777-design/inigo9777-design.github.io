@@ -281,7 +281,18 @@ italiana" (see `modules/origen-recetas.js` below).
   de la lista del plan) → `dudosos` para el diálogo de revisión; nuevo → `nuevos`; pasosDeConfirmacion
   (["despensa","revisar"], el paso sin filas no sale) y confirmarRevision — la escritura FINAL
   del 2º diálogo: fila con `varianteId` → SUMA en-situ (criterios intactos), sin ella → ALTA con
-  {nombre, qty, score, min} definidos EN el diálogo; nombre que ya existe → suma en vez de duplicar) ·
+  {nombre, qty, score, min} definidos EN el diálogo; nombre que ya existe → suma en vez de
+  duplicar). **Fila nueva con conmutador 🍎/🏠 (2026-10-22, petición del usuario):** para el
+  producto que NACE en la revisión, la etiqueta alimento/hogar la DECIDE LA PERSONA — el
+  autodiagnóstico del vocabulario sólo PRESELECCIONA (celda `.rev-celda-cat` con las mismas
+  voces `.food-cat-btn` del alta manual; en escritorio su columna "Tipo" calza con la cabecera,
+  en móvil lleva su línea completa ENTRE los campos y el nombre). Al pasar a Hogar el criterio
+  queda fijo 5/0 deshabilitado y la fila se renombra ("Producto", tag 🏠); al volver a Alimento
+  se restauran los valores escritos. En DUDAS el conmutador duerme mientras la compra va a un
+  alimento de la despensa (variante = su categoría ya está decidida en casa). La cosecha lee la
+  categoría del CONMUTADOR (estado vivo del diálogo, no la preselección) y `d.hogar` viaja al
+  alta del módulo, que escribe `categoria: "hogar"`. El orden objetivo del móvil (campos encima
+  del nombre, bugfix 2026-10-23) está en bugfix.md) ·
   **`ocr-foto.js`** (la MÁQUINA DE LA FOTO
   del escáner, refactor desde app.js 2026-10-20: prepararFoto — HEIC declara conversión directa
   y el sondeo con el decodificador REAL manda el HEIC camuflado de ".png" al conversor —,

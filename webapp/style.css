@@ -695,8 +695,8 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   padding: 0 14px 6px;
   font-size: 0.72rem; color: var(--muted);
 }
-.rev-cab-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
-.rev-cab-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
+.rev-cab-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 72px 62px; }
+.rev-cab-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 72px 62px; }
 .rev-cab-nueva > span, .rev-cab-duda > span { grid-row: 1; }   /* UNA línea de etiquetas, por orden */
 .rev-cab-nueva span:not(:first-child), .rev-cab-duda span:not(:first-child) { text-align: center; }
 .rev-fila-nueva, .rev-fila-duda {
@@ -707,15 +707,18 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   background: var(--card);
   margin-bottom: 8px;
 }
-.rev-fila-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
-.rev-fila-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
+.rev-fila-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 72px 62px; }
+.rev-fila-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 72px 62px; }
 /* Celda envuelta (bugfix 2026-10-21): cada control va DENTRO de su propio <label> con un
    micro-etiqueta encima (.rev-etiqueta). En escritorio la etiqueta va OCULTA — el nombre de la
    columna lo pone la cabecera compartida, que calza con el ancho de la celda; en móvil (≤640px)
    la cabecera se esconde y la etiqueta sale PEGADA a su campo (las propiedades ya no quedan
    lejos de los inputs). */
 .rev-celda { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.rev-celda-include, .rev-celda-variante { align-items: center; }
+.rev-celda-include, .rev-celda-variante, .rev-celda-cat { align-items: center; }
+/* Conmutador 🍎/🏠 de las filas nuevas (2026-10-22): los mini-botones son la MISMA voz del
+   conmutador del alta manual (.food-cat-btn) — relleno de marca en el estado pulsado. */
+.rev-celda-cat .food-cat-group { justify-content: center; }
 .rev-etiqueta { display: none; }
 /* Línea 1 = la del NOMBRE: la celda del input y TODAS las celdas de campos comparten su misma
    línea horizontal (centros alineados — nada «colgado» a media altura). Línea 2 = etiqueta +
@@ -725,8 +728,9 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .rev-fila-nueva .rev-celda-qty,     .rev-fila-duda .rev-celda-variante { grid-area: 1 / 2; }
 .rev-fila-nueva .rev-celda-score,   .rev-fila-duda .rev-celda-qty      { grid-area: 1 / 3; }
 .rev-fila-nueva .rev-celda-min,     .rev-fila-duda .rev-celda-score    { grid-area: 1 / 4; }
-.rev-fila-nueva .rev-celda-include, .rev-fila-duda .rev-celda-min      { grid-area: 1 / 5; }
-.rev-fila-duda .rev-celda-include { grid-area: 1 / 6; }
+.rev-fila-nueva .rev-celda-cat,     .rev-fila-duda .rev-celda-min      { grid-area: 1 / 5; }
+.rev-fila-nueva .rev-celda-include, .rev-fila-duda .rev-celda-cat      { grid-area: 1 / 6; }
+.rev-fila-duda .rev-celda-include { grid-area: 1 / 7; }
 .rev-fila-nueva .rev-sub, .rev-fila-duda .rev-sub {
   grid-area: 2 / 1;
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -757,9 +761,10 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
    a cualquier propiedad móvil que no las redeclare, así que aquí se Sobreescriben UNA A UNA.
    Vuelve la retícula del primer diseño de los dos diálogos (nada aplastado) con el cambio
    pedido: los campos de cantidad/importancia/mínimo/incluir ENCIMA del campo del nombre —
-   línea 1 de campos (cada uno con su etiqueta encima), línea 2 el nombre a línea completa y
-   al final el sub (tag + línea del ticket). En Dudas el desplegable va en SU línea completa,
-   antes que los campos. La cabecera compartida sigue escondida: nombrada por micro-etiqueta. */
+   línea 1 de campos (cada uno con su etiqueta encima), línea 2 el conmutador 🍎/🏠, línea 3 el
+   nombre a línea completa y al final el sub (tag + línea del ticket). En Dudas el desplegable
+   va en SU línea completa, antes que los campos. La cabecera compartida sigue escondida:
+   nombrada por micro-etiqueta. */
 @media (max-width: 640px) {
   .ocr-item { flex-wrap: wrap; row-gap: 8px; }
   .ocr-item .ocr-nombre { flex-basis: 100%; }
@@ -771,15 +776,18 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   .rev-fila-nueva .rev-celda-score   { grid-area: 1 / 2; }
   .rev-fila-nueva .rev-celda-min     { grid-area: 1 / 3; }
   .rev-fila-nueva .rev-celda-include { grid-area: 1 / 4; }
-  .rev-fila-nueva .rev-celda-nombre  { grid-area: 2 / 1 / 3 / -1; }
-  .rev-fila-nueva .rev-sub, .rev-fila-duda .rev-sub { grid-area: 3 / 1 / 4 / -1; }
+  /* El conmutador 🍎/🏠 lleva su línea completa antes del nombre: los 4 campos no se apretan. */
+  .rev-fila-nueva .rev-celda-cat     { grid-area: 2 / 1 / 3 / -1; }
+  .rev-fila-nueva .rev-celda-nombre  { grid-area: 3 / 1 / 4 / -1; }
+  .rev-fila-nueva .rev-sub, .rev-fila-duda .rev-sub { grid-area: 4 / 1 / 5 / -1; }
   /* En DUDAS el desplegable ocupa la línea 1 entera y todo lo demás baja una línea. */
   .rev-fila-duda .rev-celda-variante { grid-area: 1 / 1 / 2 / -1; }
   .rev-fila-duda .rev-celda-qty     { grid-area: 2 / 1; }
   .rev-fila-duda .rev-celda-score   { grid-area: 2 / 2; }
   .rev-fila-duda .rev-celda-min     { grid-area: 2 / 3; }
   .rev-fila-duda .rev-celda-include { grid-area: 2 / 4; }
-  .rev-fila-duda .rev-celda-nombre  { grid-area: 3 / 1 / 4 / -1; }
+  .rev-fila-duda .rev-celda-cat     { grid-area: 3 / 1 / 4 / -1; }
+  .rev-fila-duda .rev-celda-nombre  { grid-area: 4 / 1 / 5 / -1; }
   .rev-etiqueta { display: block; font-size: 0.68rem; color: var(--muted); text-align: center; }
   /* Las etiquetas de los campos A TODO LO ANCHO abrazan a la izquierda (un "Mínimo" centrado
      en toda la anchura despista de qué campo nombra). */

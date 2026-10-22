@@ -363,6 +363,85 @@ describe("Escáner parser-first (requisito 95%): el ticket completo llega a la r
     expect(document.getElementById("hogar-seccion").classList.contains("hidden")).toBe(false);
   });
 
+  it("las filas NUEVAS llevan el conmutador 🍎/🏠: el autodiagnóstico sólo PRESELECCIONA y el alta usa la categoría elegida", () => {
+    const TEXTO = [
+      "TICKET SUPER 20/10/2026",
+      "2 PAÑUELO 4,05",        // el vocabulario lo dará por 🏠 (petición: la persona decide encima)
+      "3 LECHUGA 1,80",        // → 🍎
+      "TOTAL 5,85 €",
+      "GRACIAS POR SU VISITA"
+    ].join("\n");
+    const { document, window } = appConDespensa();
+    window.__mrcheffProcesarTextoOcr(TEXTO);
+    // sin exactos: la revisión ES el primer diálogo
+    const filaHogar = document.querySelector(".rev-fila-nueva[data-o='0']");
+    const filaComida = document.querySelector(".rev-fila-nueva[data-o='1']");
+
+    // PRESELECCIÓN del autodiagnóstico: PAÑUELO nace 🏠 (criterio fijo 5/0 deshabilitado) y
+    // LECHUGA nace 🍎 (criterio editable)
+    expect(filaHogar.querySelector(".rev-cat-btn[data-cat='hogar']").getAttribute("aria-pressed")).toBe("true");
+    expect(filaHogar.querySelector(".rev-cat-btn[data-cat='alimento']").getAttribute("aria-pressed")).toBe("false");
+    expect(filaHogar.querySelector(".rev-campo-score").disabled).toBe(true);
+    expect(filaHogar.querySelector(".rev-campo-min").disabled).toBe(true);
+    expect(filaHogar.querySelector(".rev-campo-min").value).toBe("0");
+    expect(filaHogar.querySelector(".rev-celda-nombre .rev-etiqueta").textContent).toBe("Producto");
+    expect(filaComida.querySelector(".rev-cat-btn[data-cat='alimento']").getAttribute("aria-pressed")).toBe("true");
+    expect(filaComida.querySelector(".rev-campo-score").disabled).toBe(false);
+
+    // LA PERSONA MANDA: LECHUGA pasa a 🏠 (criterio fijo, fila renombrada) y vuelve a 🍎
+    filaComida.querySelector(".rev-cat-btn[data-cat='hogar']").click();
+    expect(filaComida.querySelector(".rev-cat-btn[data-cat='hogar']").getAttribute("aria-pressed")).toBe("true");
+    expect(filaComida.querySelector(".rev-campo-score").disabled).toBe(true);
+    expect(filaComida.querySelector(".rev-campo-min").value).toBe("0");
+    expect(filaComida.querySelector(".rev-celda-nombre .rev-etiqueta").textContent).toBe("Producto");
+    expect(filaComida.querySelector(".rev-sub .ocr-tipo").textContent).toContain("Producto de hogar");
+    filaComida.querySelector(".rev-cat-btn[data-cat='alimento']").click();
+    expect(filaComida.querySelector(".rev-campo-score").disabled).toBe(false);
+    expect(filaComida.querySelector(".rev-celda-nombre .rev-etiqueta").textContent).toBe("Alimento");
+
+    // el ALTA usa la categoría del conmutador: la persona deja la LECHUGA en hogar
+    filaComida.querySelector(".rev-cat-btn[data-cat='hogar']").click();
+    document.querySelector("[data-revision-guardar]").click();
+    const foods = lsFoods(window);
+    expect(foods.find(f => f.name === "PAÑUELO").categoria).toBe("hogar");
+    const lechuga = foods.find(f => f.name === "LECHUGA");
+    expect(lechuga.categoria).toBe("hogar");                 // elegido EN el diálogo, no el autodiagnóstico
+    expect(lechuga.min).toBe(0);
+    expect(lechuga.score).toBe(5);
+  });
+
+  it("en DUDAS el conmutador 🍎/🏠 duerme con la variante resuelta y despierta al volver a 'es nuevo'", () => {
+    const { document, window } = appConDespensa();
+    window.__mrcheffProcesarTextoOcr(TICKET);                    // "2 Yogur 1,35" → duda con la despensa
+    document.querySelector("[data-confirmar-exactos]").click();  // exactos → revisión
+    const duda = document.querySelector(".rev-fila-duda");
+    const btnHogar = duda.querySelector(".rev-cat-btn[data-cat='hogar']");
+    expect(btnHogar.disabled).toBe(false);                       // 'es nuevo': la etiqueta se decide
+
+    // resuelta con casa: la compra va a ESE alimento, su categoría ya está decidida en casa
+    const sel = document.getElementById("rev-variante-1");
+    sel.value = "a1";
+    sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+    expect(btnHogar.disabled).toBe(true);
+    expect(duda.querySelector(".rev-cat-btn[data-cat='alimento']").disabled).toBe(true);
+    // vuelta a 'es nuevo': el conmutador despierta y decide la categoría del ALTA
+    sel.value = "";
+    sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+    expect(btnHogar.disabled).toBe(false);
+    btnHogar.click();
+    expect(btnHogar.getAttribute("aria-pressed")).toBe("true");
+    document.querySelector("[data-revision-guardar]").click();
+    const alta = lsFoods(window).find(f => f.name === "Yogur");
+    expect(alta.categoria).toBe("hogar");
+    expect(alta.min).toBe(0);
+  });
+
+  it("el diálogo 1 (exactos) no lleva conmutador — los ya-en-casa no cambian de categoría", () => {
+    const { document, window } = appConDespensa();
+    window.__mrcheffProcesarTextoOcr(TICKET);
+    expect(document.querySelector(".ocr-item .rev-cat-btn")).toBeNull();
+  });
+
   function foodFormSubmit(document) {
     document.getElementById("food-form").dispatchEvent(new document.defaultView.Event("submit", { bubbles: true, cancelable: true }));
   }
