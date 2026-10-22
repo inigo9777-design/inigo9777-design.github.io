@@ -639,19 +639,27 @@ italiana" (see `modules/origen-recetas.js` below).
 - `.continue/` (Continue.dev) still exists and holds cross-tool rules/prompts — e.g.
   `.continue/prompts/unit-tests.md` encodes the team's test workflow (write specs → run with
   coverage → iterate until all pass). It is not auto-loaded by OpenCode; check it when intent across tools matters rather than assuming Claude-only config still drives agent behavior in this repo.
-- **Skill `git_worktree_multi_agent`** (`.opencode/skills/git_worktree_multi_agent/SKILL.md`) —
+- **Skill `git-worktree-multi-agent`** (`.opencode/skills/git-worktree-multi-agent/SKILL.md`; GENÉRICA,
+  sin asunciones del repo) —
   orquesta N tareas de implementación EN PARALELO con aislamiento git real. Pregunta nº de tareas y
   descripción de cada una (`question`), nombra cada rama con la skill `git-flow-branch-creator`
   (SOLO análisis/nomenclatura: sus `git checkout -b` NO se ejecutan en el checkout principal),
-  corta SIEMPRE desde develop y crea un **git worktree hermano por tarea**
-  (`git worktree add -b <rama> ../<carpeta> develop`; ⚠️ `node_modules/` no viaja a los worktrees —
-  cada trabajadora hace `cd webapp && npm install` antes de los tests jest). Lanza dentro de cada
+  corta SIEMPRE desde develop (si el repo no tuviera develop, pregunta por su trunk) y crea un
+  **git worktree hermano por tarea**
+  (`git worktree add -b <rama> ../<carpeta> develop`; ⚠️ los ficheros IGNORADOS no viajan
+  a los worktrees). Lanza dentro de cada
   worktree una **sesión nueva de OpenCode** (`cd ../<carpeta> && opencode run "$(cat prompt)" --format
-  json` en segundo plano; sessionID vía `grep ses_`) cuyo prompt manda leer AGENTS.md +
-  CODING_STANDARDS.md antes de nada, leer ficheros SIEMPRE por terminal durante toda la sesión,
-  implementar SOLO su tarea en su rama (commits sí, push/merges no). La sesión que corre la skill
-  queda como coordinadora (vigila e informa); la fusión a develop es SECUENCIAL en el checkout
-  principal y epic→develop sigue siendo manual del usuario (regla de git-flow).
+  json` en segundo plano; sessionID vía `grep ses_`) cuyo prompt manda leer las convenciones del
+  repo (AGENTS.md, reglas `.opencode/`, README) antes de nada, leer ficheros SIEMPRE por terminal
+  durante toda la sesión, instalar las dependencias si faltan (aquí: `cd webapp && npm install`
+  antes de los tests jest), correr la suite del repo e implementar SOLO su tarea en su rama
+  (commits sí, push/merges no). La sesión que corre la skill queda como coordinadora (vigila e
+  informa). Cierre: fusión a develop SECUENCIAL con `--no-ff` en el checkout principal; la CARPETA
+  de cada worktree se borra SIEMPRE tras fusionar (`git worktree remove` primero — `rm -rf` a mano
+  deja metadatos huérfanos en `.git/worktrees/`; `--force` solo con confirmación si el árbol
+  está sucio); el borrado de cada rama sigue su regla git-flow POR TIPO, después de quitar el
+  worktree: `bugfix/` y `tasks/` → `git branch -d` tras el merge; `feature/` y `release-` → SE
+  CONSERVAN; `epic/` → ni merge ni borrado por agente (manual del usuario).
 - **Claude Code config was removed**: both `CLAUDE.md` and the whole `.claude/` folder are gone, after first migrating the two useful artifacts into OpenCode's own folders so nothing is lost — these are now auto-discovered by OpenCode:
   - `/unittest` command → `.opencode/commands/unittest.md` (was `.claude/commands/unittest.md`; Claude-only frontmatter fields `argument-hint`/`allowed-tools` were dropped as unsupported by OpenCode, body kept 1:1)
   - `code-reviewer` skill → `.opencode/skills/code-reviewer/SKILL.md` (only change vs source: `CLAUDE.md` reference inside it now points at this file / `AGENTS.md`)
