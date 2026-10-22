@@ -78,7 +78,14 @@ italiana" (see `modules/origen-recetas.js` below).
   minimal: `{ id, title, meal: "desayuno"|"comida"|"cena", ingredients[], method[] }` (5-field schema).
   It also attaches `dataset.idsItalianas` (list of the 20 Italian ids, consumed by `origen-recetas.js`) as
   a PROPERTY of the exported array — `module.exports` stays a plain array for tests/e2e. New Italian
-  recipe ⇒ also add its id to `idsItalianas`.
+  recipe ⇒ also add its id to `idsItalianas`. **Estilo editorial de los `method` (2026-10-22, épica
+  `metodos-recetas-descriptivos`):** los 200 registros llevan pasos descriptivos y ejecutables al patrón de
+  `patatas-a-la-riojana` (intacta, es la referencia) — tiempos reales, nivel de fuego (suave/medio/fuerte),
+  señales sensoriales ("hasta que ceda", "brille de aceite"), el PORQUÉ de la técnica y ajuste de
+  sal/reposo donde toca; sin jerga, en imperativo natural español. Platos de cocina 5-8 pasos ricos;
+  montajes/tostadas 3-5 pasos con tips. Sólo se editó `method` (schema de 5 campos y `ingredients` intactos,
+  con sus typos históricos "Peito"/"Zucchini"/"Fabes" duplicado documentados FUERA de alcance; el id real del
+  pisto es `pisto-manchez`). NINGÚN test aserta el contenido de `method` (sólo shapes) — suite 666 verde.
 - **Fotos reales en las cards (feature `imagenes-recetas-cards`, petición 2026-10-22):** las cards de
   receta de las vistas **Recetas** (lista + resultados del buscador del catálogo), **Innovación** y
   **Cocinar hoy** (Card 1 de Sugerencias y menú) llevan una banda de FOTO superior (16/10,

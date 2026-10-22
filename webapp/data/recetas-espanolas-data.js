@@ -43,10 +43,10 @@ return [
     "meal": "desayuno",
     "ingredients": ["Pan", "Tomates maduros", "Ajos", "Aceite de oliva virgen extra", "Sal"],
     "method": [
-      "Calienta una sartén con un chorrito de aceite de oliva.",
-      "Saltea 1-2 dientes de ajo picado fino hasta que queden dorados sin quemar.",
-      "Tuesta el pan y frota su superficie caliente con un tomate maduro cortado por la mitad.",
-      "Coloca los ajos salteados encima, pincela con un poco más de aceite y una pizca de sal."
+      "Tuesta las rebanadas de pan hasta que queden bien crujientes: van a recibir el jugo del tomate y no deben ablandarse por dentro.",
+      "Mientras, pela un diente de ajo y córtalo en láminas. Fríelo en un chorrito de aceite a fuego suave 1-2 minutos, hasta que dore sin llegar a oscurecerse (se amarga si se quema).",
+      "Frota la cara caliente de cada tostada con la mitad de un tomate maduro, hasta que su jugo penetre en la miga.",
+      "Reparte las láminas de ajo dorado, riega con el aceite de freírlas, termina con una pizca de sal y sirve al momento."
     ]
   },
   {
@@ -55,10 +55,10 @@ return [
     "meal": "desayuno",
     "ingredients": ["Pan de barra", "Tomates rojos", "Aceite de oliva", "Sal", "Jamón serrano opcional"],
     "method": [
-      "Tuesta rebanadas gruesas de pan hasta que estén crujientes.",
-      "Corta tomates por la mitad y frota sobre el pan tostado.",
-      "Rocía generosamente con aceite de oliva virgen extra.",
-      "Añade sal al gusto y jamón serrano si deseas."
+      "Corta rebanadas gruesas de pan de barra y tuéstalas hasta que la corteza cruja.",
+      "Frota cada rebanada caliente con la mitad cortada de un tomate maduro — de pera si lo tienes: lo que importa es su jugo, no arrastrar la pulpa entera.",
+      "Riega con un buen chorro de aceite de oliva virgen extra al final, así la tostada mantiene su crujiente.",
+      "Echa sal fina o en escamas y si quieres, corona con una loncha de jamón serrano al momento de servir."
     ]
   },
   {
@@ -67,10 +67,12 @@ return [
     "meal": "desayuno",
     "ingredients": ["Huevos", "Patatas", "Chorizo", "Cebolla", "Aceite de oliva", "Sal"],
     "method": [
-      "Pica las patatas y el chorizo en trozos pequeños.",
-      "Sofríe las patatas y el chorizo hasta que estén dorados.",
-      "Bate los huevos y viértelos sobre la mezcla.",
-      "Revuelve todo junto hasta que los huevos cuajen."
+      "Pela las patatas y córtalas en dados pequeños; pica también el chorizo en trozos parecidos para que se reparta bien.",
+      "Sofríe las patatas en un poco de aceite a fuego medio 10-12 minutos, hasta que estén tiernas y doradas.",
+      "Añade el chorizo (y la cebolla picada si usas) y cocina 3-4 minutos más, hasta que suelte su grasa y tintine: esa grasa sazona el revuelto.",
+      "Bate los huevos con poca sal — el chorizo ya la aporta —.",
+      "Vuelca los huevos sobre la sartén a fuego medio-bajo y remueve suave hasta que cuajen cremosos, retirándolos antes de que sequen.",
+      "Sirve enseguida, bien caliente."
     ]
   },
   {
@@ -79,10 +81,10 @@ return [
     "meal": "desayuno",
     "ingredients": ["Leche", "Yogur natural", "Plátanos", "Fresas", "Miel", "Granola"],
     "method": [
-      "Lava y corta las frutas en trozos.",
-      "Coloca las frutas, leche y yogur en la batidora.",
-      "Mezcla hasta obtener una textura cremosa.",
-      "Sirve con miel y granola por encima."
+      "Pela el plátano y lava las fresas; córtalas en trozos para que la batidora no se esfuerce.",
+      "Echa en el vaso la fruta, el yogur y la leche bien fría; añade miel al gusto.",
+      "Tritura 30-40 segundos a velocidad alta hasta que quede cremoso y sin trozos; si queda espeso, alarga con un poco más de leche.",
+      "Sirve enseguida y termina con un hilo de miel y la granola por encima, justo al momento para que conserve su crujiente."
     ]
   },
   {
@@ -91,10 +93,11 @@ return [
     "meal": "desayuno",
     "ingredients": ["Harina de avena", "Huevos", "Leche", "Miel", "Polvo de hornear", "Frutos rojos"],
     "method": [
-      "Mezcla avena, huevos, leche y polvo de hornear.",
-      "Calienta una sartén antiadherente sin aceite.",
-      "Vierte la masa y cocina 2 minutos por lado.",
-      "Sirve con miel y frutos rojos frescos."
+      "Mezcla en un bol la harina de avena, los huevos, la leche y el polvo de hornear sin excederte al batir; si la masa reposa 5 minutos, las tortitas quedan más esponjosas.",
+      "Calienta una sartén antiadherente a fuego medio-bajo sin aceite; deja caer una gota de masa: si sacude apenas burbujitas, está en su punto.",
+      "Vierte porciones de unas tres cucharadas por tortita y cocina 2 minutos, hasta que asomen burbujas por la superficie y el borde se fije.",
+      "Dales la vuelta con cuidado y cocina 1-2 minutos más, hasta que se doren.",
+      "Sirve en caliente con miel por encima y frutos rojos frescos."
     ]
   },
   {
@@ -103,10 +106,10 @@ return [
     "meal": "desayuno",
     "ingredients": ["Yogur griego", "Granola casera", "Miel", "Semillas de chía", "Fruta fresca"],
     "method": [
-      "Coloca el yogur en un bol.",
-      "Añade granola generosamente.",
-      "Decora con fruta fresca picada y semillas.",
-      "Termina con un hilo de miel."
+      "Reparte el yogur griego en el fondo del bol, bien frío.",
+      "Si usas semillas de chía, déjalas hincharse 5 minutos en el yogur (o en un poco de leche) para que no queden secas al cuchar.",
+      "Añade la granola justo al momento de comer, así conserva su crujiente en vez de quedar dura embebida.",
+      "Corona con la fruta fresca picada y termina con un hilo de miel."
     ]
   },
   {
@@ -115,10 +118,10 @@ return [
     "meal": "desayuno",
     "ingredients": ["Molletes de Antequera", "Huevos", "Aceite de oliva", "Sal", "Queso fresco"],
     "method": [
-      "Tuesta los molletes ligeramente.",
-      "Haz huevos fritos o pochados.",
-      "Coloca el huevo sobre cada mollete.",
-      "Añade queso fresco y rocía con aceite."
+      "Abre los molletes por la mitad y tuéstalos en plancha o tostadora hasta que queden tostados por fuera y blandos dentro.",
+      "Prepara los huevos al gusto: escalfados 3 minutos en agua a borbotones suaves con un chorrito de vinagre, o fritos con la yema jugosa.",
+      "Reparte queso fresco en láminas sobre cada mollete y coloca el huevo encima.",
+      "Riega con aceite de oliva virgen extra, un punto de sal sobre el huevo, y sirve enseguida mientras la yema corre sobre el pan."
     ]
   },
   {
@@ -127,10 +130,12 @@ return [
     "meal": "desayuno",
     "ingredients": ["Pan del día anterior", "Leche", "Miel", "Canela", "Huevo", "Aceite"],
     "method": [
-      "Remoja el pan en leche con miel y canela.",
-      "Pasa por huevo batido.",
-      "Freír rápidamente en aceite caliente.",
-      "Escurre y sirve tibio."
+      "Corta el pan del día anterior en rebanadas gruesas, de unos dos dedos: aguantan el remojo sin deshacerse.",
+      "Calienta la leche con la miel y la canela (un trozo de piel de limón le va bien) sin que llegue a hervir, hasta que la miel se disuelva; déjala templar.",
+      "Empapa las rebanadas en la leche por ambos lados un buen rato, hasta saturarlas, y déjalas escurrir unos segundos.",
+      "Ándaselas por huevo batido cubriendo toda la superficie.",
+      "Fríelas en aceite no demasiado caliente, 1-2 minutos por lado, hasta que se doren sin quemarse.",
+      "Escúrrelas sobre papel de cocina, espolvorea canela y sirve tibias: del día siguiente también están buenas (mejor aún, frías)."
     ]
   },
   {
@@ -151,10 +156,12 @@ return [
     "meal": "comida",
     "ingredients": ["Patatas", "Zanahorias", "Guisantes", "Atún", "Huevos duros", "Mayonesa", "Aceitunas"],
     "method": [
-      "Hierve patatas y zanahorias hasta que estén tiernas.",
-      "Corta en dados uniformes.",
-      "Mezcla con guisantes, atún y huevos picados.",
-      "Añade mayonesa y decora con aceitunas."
+      "Lava patatas y zanahorias y hiérvelas ENTERAS en agua con sal 20-25 minutos, hasta que atraviesen con facilidad; enteras no absorben agua y dan dados limpios.",
+      "Cuece los huevos 10 minutos, enfríalos en agua fría y pélalos.",
+      "Deja templar las verduras (mejor aún, un rato en la nevera) antes de trocearlas en dados del mismo tamaño.",
+      "Mezcla en un bol las patatas, la zanahoria, los guisantes (escaldados 3 minutos si son frescos), el atún escurrido y los huevos picados.",
+      "Añade mayonesa poco a poco hasta alcanzar la textura que te gusta; prueba y rectifica de sal.",
+      "Refrigera tapado mínimo 1 hora y sirve con aceitunas encima."
     ]
   },
   {
@@ -163,10 +170,13 @@ return [
     "meal": "comida",
     "ingredients": ["Garbanzos", "Espinacas", "Morcilla", "Chorizo", "Costilla cerdo", "Verduras", "Pan"],
     "method": [
-      "Deja remojando los garbanzos 12 horas antes.",
-      "Cocina el caldo con carnes durante 2 horas.",
-      "Añade verduras y garbanzos.",
-      "Sirve primero el caldo, luego garbanzos y carnes."
+      "Deja los garbanzos en remojo 12 horas antes, en abundante agua fría.",
+      "En una olla grande, cubre las carnes con agua fría, lleva apenas al hervor, desespuma y cocina a fuego manso 1 hora.",
+      "Añade los garbanzos escurridos, el chorizo y la morcilla, y sigue 1 hora más: el caldo debe apenas borbollar, nunca hervir fuerte.",
+      "Los últimos 20-25 minutos incorpora las verduras (espinacas y lo que tengas: zanahoria, puerro, repollo) hasta que estén tiernas.",
+      "Saca un buen cazo de caldo y cuécelo ahí con fideos: ese es el primer vuelco, la sopa.",
+      "Segundo vuelco: los garbanzos con las verduras por encima (aquí encaja alguna fritura de pan y ajo para el sabor).",
+      "Tercer vuelco: las carnes del compango con la morcilla al centro. Al final, pan para untar con la morcilla."
     ]
   },
   {
@@ -175,10 +185,13 @@ return [
     "meal": "comida",
     "ingredients": ["Arroz bomba", "Pollo", "Conejo", "Judías verdes", "Garrofó", "Azafrán", "Caldo"],
     "method": [
-      "Sofríe carne troceada en paellera.",
-      "Añade verduras y sofríe junto.",
-      "Incorpora arroz y caldos hirviendo con azafrán.",
-      "Cocina 18 minutos sin remover."
+      "Dora el pollo y el conejo troceados en aceite caliente en la paellera, sin remover, 8-10 minutos hasta que queden bien dorados: ahí nace el sabor.",
+      "Añade las judías verdes troceadas, el garrofó y sofríelos un par de minutos.",
+      "Incorpora el arroz en cruz, remueve un minuto para que el grano se impregne del aceite sin que se dore en exceso.",
+      "Vierte el caldo hirviendo con el azafrán — el doble de volumen que el arroz —, repártelo de una vez y no lo toques ya.",
+      "Cocina a fuego fuerte 8 minutos; baja a suave 10 más, hasta que el arroz asome sobre el punto del líquido.",
+      "Si quieres socarrat, da un golpe de fuego fuerte los últimos 30-60 segundos hasta notar el tostado.",
+      "Deja reposar 5 minutos con un trapo encima antes de servir."
     ]
   },
   {
@@ -187,10 +200,12 @@ return [
     "meal": "comida",
     "ingredients": ["Tomates", "Pimientos", "Pepino", "Cebolla", "Ajo", "Aceite", "Vinagre", "Pan"],
     "method": [
-      "Lava y trocea todas las verduras.",
-      "Tritura todo junto en batidora potente.",
-      "Cuela para eliminar皮ñas y semillas.",
-      "Refrigera mínimo 4 horas antes de servir."
+      "Lava los tomates maduros y córtalos en trozos; pela pepino, cebolla, ajo y pimiento.",
+      "Tritura todo junto con la mitad del pan remojado, sal y un chorro de vinagre, hasta que quede fino.",
+      "Añade el resto del pan remojado y vuelve a batir: queda algo más espeso y con cuerpo.",
+      "Cuela con un colador fino para eliminar pieles y semillas: el gazpacho gana sedosidad.",
+      "Con la batidora en marcha, añade el aceite en hilo fino: así emulsiona y no se corta.",
+      "Prueba y ajusta de vinagre y sal; refrigera mínimo 4 horas y sirve muy frío con menudito de tomate y pepino encima."
     ]
   },
   {
@@ -199,10 +214,13 @@ return [
     "meal": "comida",
     "ingredients": ["Fabes asturianas", "Fabes", "Morcilla", "Chorizo", "Peladillas", "Aceite", "Sal"],
     "method": [
-      "Remoja las fabes toda la noche.",
-      "Cocina en olla con agua fría y sal.",
-      "Añade morcilla y chorizo cuando hierva.",
-      "Deja reposar antes de servir."
+      "Deja las fabes en remojo la noche anterior, 12 horas mínimo, en agua fría.",
+      "Ponlas en la olla con agua fría que las cubra dos dedos y añade el chorizo y la morcilla lavados.",
+      "Lleva apenas al hervor, baja el fuego al mínimo: deben quedar como si apenas se movieran, unas 2 horas.",
+      "Comprueba de vez en cuando que el agua siga cubriendo; si baja, añade SIEMPRE agua caliente, nunca fría.",
+      "No remuevas con cuchara: sacude la olla de vez en cuando; así las fabes no se rompen.",
+      "Al final, si quieres espesar la salsa, machaca unas fabes contra la pared y mézclalas: engomarán el caldo natural.",
+      "Apaga, rectifica de sal al final (el compango ya aporta) y deja reposar 10 minutos antes de servir."
     ]
   },
   {
@@ -211,10 +229,13 @@ return [
     "meal": "comida",
     "ingredients": ["Jamón serrano", "Leche", "Manteca", "Harina", "Huevo", "Pan rallado", "Aceite"],
     "method": [
-      "Haz un bechamel con manteca y harina.",
-      "Añade leche poco a poco sin parar de remover.",
-      "Incorpora jamón picado finamente.",
-      "Forma croquetas, empana y fríe."
+      "Derrite la manteca a fuego medio, añade la harina y remueve 2 minutos para que se cueza: es la base de la bechamel.",
+      "Añade la leche caliente poco a poco, sin parar de remover, durante unos 10 minutos, hasta una bechamel ESPESA que se vea el fondo de la sartén.",
+      "Incorpora el jamón picado fino, prueba la sal (con cuidado, el jamón ya sala), y pasa la masa a una fuente.",
+      "Refrigera tapada 3-4 horas (mejor de un día para otro): sólo así la masa forma croquetas limpias.",
+      "Forma croquetas con dos cucharas húmedas y empáñalas: huevo batido primero, pan rallado después.",
+      "Fríe en tandas pequeñas en aceite a 180 °C (un trozo de pan debe hacer burbujas al caer) 2-3 minutos, hasta que estén doradas por igual.",
+      "Escrurre sobre papel de cocina y sirve enseguida, estallando calor."
     ]
   },
   {
@@ -223,10 +244,12 @@ return [
     "meal": "comida",
     "ingredients": ["Patatas", "Tomate", "Pimentón picante", "Harina", "Ajo", "Aceite", "Vinagre"],
     "method": [
-      "Corta patatas en cubos irregulares y fríe.",
-      "Para la salsa, sofríe ajo y añade tomate.",
-      "Espesa con harina y condimenta con pimentón.",
-      "Sirve las patatas bañadas en salsa."
+      "Pela las patatas y córtalas en cubos grandes e irregulares; sécalos bien con papel para que se doren en vez de hervirse.",
+      "Fríe en aceite caliente — o ásalos al horno con un hilo de aceite a 200 °C unos 35 minutos — hasta que queden dorados fuera y blandos dentro; sala ya fuera del aceite.",
+      "Para la salsa, sofríe el ajo picado un minuto en un hilo de aceite, sin que tome color fuerte.",
+      "Añade el tomate triturado y cocina 10 minutos, hasta que pierda su agua cruda.",
+      "Fuera del fuego, añade el pimentón picante (se amarga si se quema) y una cucharada de harina removiendo; vuelve al fuego 2-3 minutos y termina con un chorro de vinagre.",
+      "Sirve las patatas bañadas en salsa — o la salsa salpicando encima — al momento."
     ]
   },
   {
@@ -235,10 +258,12 @@ return [
     "meal": "comida",
     "ingredients": ["Pulpo fresco", "Patatas", "Pimentón dulce", "Pimentón picante", "Aceite", "Sal gorda"],
     "method": [
-      "Hierve el pulpo 20-30 minutos según tamaño.",
-      "Cuece patatas aparte hasta que estén tiernas.",
-      "Trocea el pulpo y coloca sobre patatas.",
-      "Espolvorea pimentón y aceite caliente."
+      "Si el pulpo es fresco, congélalo 24-48 horas: ablanda su carne; descongélalo luego en la nevera.",
+      "Lleva un cazo grande con agua (sin sal) y dos hojas de laurel a hervor.",
+      "Sumerge el pulpo tres veces, sosteniéndolo unos segundos y retirándolo: así no se destroza la piel al hervir.",
+      "Cocina 25-40 minutos según tamaño; pincha con una punta de cuchillo: cuando entre con facilidad, ya está.",
+      "Deja que repose 10 minutos en su propio agua antes de trocearlo: descansado queda más jugoso.",
+      "Cuece las patatas en ese mismo agua y sirve el pulpo sobre ellas, rociado con aceite caliente, espolvoreado de los dos pimentones y sal gorda."
     ]
   },
   {
@@ -247,10 +272,12 @@ return [
     "meal": "comida",
     "ingredients": ["Lomos de bacalao", "Aceite de oliva", "Ajos", "Perejil"],
     "method": [
-      "Desala el bacalao 24 horas cambiando agua.",
-      "Dora los ajos en aceite suave.",
-      "Añade bacalao piel hacia abajo.",
-      "Agita la cazuela hasta formar emulsión."
+      "Desala el bacalao 24 horas cambiando el agua tres veces y sécalo muy bien con papel.",
+      "Calienta el aceite frío con los ajos laminados a fuego suave hasta que tomen color; retíralos antes de que oscurezcan.",
+      "Coloca los lomos en su aceite con la PIEL ARRIBA y manten el fuego mínimo, apenamente burbujeando, unos 6-8 minutos: la gelatina sale de la piel.",
+      "Retira del fuego, saca el bacalao con cuidado y menea la cazuela en movimientos circulares hasta que el aceite se convierta en una emulsión blanca y espesa: eso es el pil-pil.",
+      "Si cuesta ligar, añade una cucharadita de agua fría y sigue agitando: jamás a fuego fuerte, se cortaría.",
+      "Reparte la salsa por encima, recupera los ajos dorados, espolvorea perejil y sirve enseguida."
     ]
   },
   {
@@ -259,10 +286,11 @@ return [
     "meal": "comida",
     "ingredients": ["Patatas", "Huevos", "Cebolla opcional", "Aceite de oliva", "Sal"],
     "method": [
-      "Filetea patatas y cebolla finamente.",
-      "Fríe en abundante aceite hasta dorar.",
-      "Escurre y mezcla con huevos batidos.",
-      "Cuaja en sartén 5 minutos por lado."
+      "Lamina las patatas finas (3 mm) y pica la cebolla si la usas; sala la patata.",
+      "Fríe a fuego medio en aceite abundante sin que humee, 15-20 minutos, hasta que las patatas quebracen fáciles al pinchar; añade la cebolla a mitad de camino.",
+      "Escurre muy bien y mezcla con los huevos batidos y salados; deja reposar la mezcla 5 minutos para integrarla.",
+      "Vuelca en una sartén limpia con un hilo de aceite a fuego medio-bajo y cuaja 4-6 minutos, limpiando los bordes con espátula.",
+      "Dale la vuelta con ayuda de un plato grande y cuaja 3-4 minutos más, al punto que prefieras: mejor jugos que seca."
     ]
   },
   {
@@ -271,10 +299,13 @@ return [
     "meal": "comida",
     "ingredients": ["Rabo de toro", "Vino tinto", "Cebolla", "Zanahoria", "Tomate", "Caldo"],
     "method": [
-      "Sella el rabo sellado a fuego fuerte.",
-      "Dora verduras picadas aparte.",
-      "Cocina todo junto con vino y caldo 3 horas.",
-      "Deja reducir hasta espesar."
+      "Sazona el rabo en trozos y séllalo por todas sus caras a fuego fuerte, 2-3 minutos por cara, hasta que tome color tostado; reserva.",
+      "Sofríe en el mismo aceite cebolla, zanahoria y ajo picados 8-10 minutos, hasta que se ablanden.",
+      "Añade el tomate rallado o triturado y cocina 5 minutos para perder el crudo.",
+      "Devuelve el rabo, moja con el vino tinto y deja evaporar un minuto rasparando el fondo.",
+      "Cubre con caldo hasta rozar la carne, tapa y cocina a fuego manso 2,5-3 horas (en olla exprés, 60-70 minutos).",
+      "Al final, destapa y reduce la salsa 10-15 minutos hasta que caiga con densidad de jarabe.",
+      "Deja reposar 10 minutos antes de servir; si puedes, hazlo el día antes: mejora en su jugo."
     ]
   },
   {
@@ -283,10 +314,11 @@ return [
     "meal": "comida",
     "ingredients": ["Anillas de calamar", "Harina", "Limón", "Sal", "Aceite", "Ajo opcional"],
     "method": [
-      "Lava y seca bien las anillas de calamar.",
-      "Pásalas por harina mezclada con sal.",
-      "Fríe en aceite muy caliente 2 minutos.",
-      "Sirve inmediatamente con rodajas de limón."
+      "Seca muy bien las anillas con papel de cocina: la humedad rompe la fritura.",
+      "Mezcla la harina con sal (y ajo en polvo si te gusta) y pasa las anillas una a una, sacudiendo el exceso para una bola de harina fina y ligera.",
+      "Calienta abundante aceite a 180 °C, hasta que un trozo de pan chispee al caer.",
+      "Fríe en tandas pequeñas 90 segundos-2 minutos, hasta que tomen color dorado; si apañas en tandas el aceite no baja de temperatura.",
+      "Escurre sobre papel, alterna con sal fina y sirve al momento con rodajas de limón: apenas salen es cuando están en su punto."
     ]
   },
   {
@@ -295,10 +327,11 @@ return [
     "meal": "cena",
     "ingredients": ["Gambas peladas", "Ajos", "Pimiento rojo", "Aceite", "Vino blanco", "Perejil"],
     "method": [
-      "Calienta aceite en cazuela de barro.",
-      "Dora los ajos laminados sin quemar.",
-      "Añade gambas y saltea 3 minutos.",
-      "Finaliza con vino, perejil y pimiento."
+      "Calienta el aceite en una cazuela de barro con los ajos laminados a fuego medio-suave; dora 1-2 minutos hasta que levanten aroma, sin que se oscurezcan.",
+      "Añade el pimiento rojo picado y, si te gustan, una guindilla.",
+      "Incorpora las gambas secas y saladas; saltea 1-2 minutos por lado, hasta que cambien de color justo: màs tiempo seca.",
+      "Moja con el vino blanco y deja evaporar 30-45 segundos.",
+      "Fuera del fuego, mezcla con perejil picado y sirve en la propia cazuela con pan para mojar."
     ]
   },
   {
@@ -307,10 +340,11 @@ return [
     "meal": "cena",
     "ingredients": ["Espinacas", "Garbanzos cocidos", "Ajos", "Pimentón", "Comino", "Aceite"],
     "method": [
-      "Saltea ajos hasta dorar suavemente.",
-      "Añade espinacas y sofríe 5 minutos.",
-      "Mezcla con garbanzos calientes.",
-      "Condimenta con pimentón y cominos."
+      "Lava y escurre las espinacas; corta los tallos más gruesos.",
+      "Dora los ajos laminados en aceite hasta que toquen el dorado; añade el comino machacado un minuto y, FUERA del fuego, el pimentón para que no se queme.",
+      "Vierte las espinacas de golpe y saltea 4-5 minutos, hasta que se marchiten y suelten su agua.",
+      "Incorpora los garbanzos escurridos y un medio vaso de agua; cuece tapado 10 minutos a fuego suave hasta que liguen.",
+      "Prueba de sal al final y deja reposar 5 minutos tapado: las espinacas absorben los aromas."
     ]
   },
   {
@@ -319,10 +353,11 @@ return [
     "meal": "cena",
     "ingredients": ["Lomos de merluza", "Perejil", "Ajos", "Vino blanco", "Caldo", "Harina"],
     "method": [
-      "Pasa la merluza por harina ligera.",
-      "Dora los ajos en aceite de oliva.",
-      "Añade vino y caldo con perejil.",
-      "Cocina la merluza 10 minutos en salsa."
+      "Seca los lomos de merluza y sálalos; pásalos por harina ligera sacudiendo el exceso.",
+      "Dora el ajo picado en aceite de oliva a fuego medio, hasta que suelte aromas sin tomar color.",
+      "Coloca la merluza PIEL ABAJO (si la lleva) y séllala 2 minutos sin moverla; dale la vuelta con cuidado.",
+      "Moja con el vino blanco y el caldo, añade el perejil picado abundante y deja reducir a fuego suave 6-8 minutos, moviendo la sartén en círculos: así la salsa verde se liga sin batir nada.",
+      "Rectifica de sal al final y sirve la merluza bañada con su salsa templada."
     ]
   },
   {
@@ -331,10 +366,12 @@ return [
     "meal": "cena",
     "ingredients": ["Calabaza", "Puerro", "Patata", "Nata líquida", "Aceite", "Sal"],
     "method": [
-      "Trocea calabaza, puerro y patata.",
-      "Sofríe ligeramente el puerro.",
-      "Añade verduras y cubre con agua.",
-      "Tritura, añade nata y rectifica."
+      "Trocea la calabaza en cubos; pica el puerro y pela la patata (da cuerpo a la crema).",
+      "Sofríe el puerro en un hilo de aceite 5 minutos a fuego medio, hasta que se ablande sin tomar color.",
+      "Añade la calabaza y la patata, cubre con agua o caldo hasta casi cubrir y cuece a fuego suave 20-25 minutos, hasta que cedan al pinchar.",
+      "Tritura hasta que quede una crema lisa, sin grumos de calabaza.",
+      "Regresa al fuego, añade la nata y rectifica de sal y pimienta; si queda espesa, alarga con un poco de agua caliente.",
+      "Sirve con un hilo de aceite crudo por encima."
     ]
   },
   {
@@ -343,10 +380,12 @@ return [
     "meal": "cena",
     "ingredients": ["Sepia fresca", "Guisantes", "Cebolla", "Ajo", "Tomate", "Caldo"],
     "method": [
-      "Trocea la sepia en dados.",
-      "Dora cebolla y ajo picados.",
-      "Añade sepia y guisantes.",
-      "Cocina con tomate y caldo 15 minutos."
+      "Trocea la sepia limpia en dados generosos: se encogen al guisar.",
+      "Sofríe la cebolla y el ajo picados en aceite 6-8 minutos, hasta que queden traslúcidos.",
+      "Añade la sepia, sube un poco el fuego y saltea 2-3 minutos para sellarla.",
+      "Echa el tomate rallado y cocina 5 minutos, hasta que pierda el agua cruda.",
+      "Agrega los guisantes y cubre casi con caldo; guisa a fuego suave 15 minutos, hasta que la sepia esté blanda.",
+      "Rectifica de sal y deja reposar 5 minutos antes de servir; si quieres salsa más ligada, tritúrale un pedazo de cebolla del guiso."
     ]
   },
   {
@@ -355,10 +394,11 @@ return [
     "meal": "cena",
     "ingredients": ["Boquerones frescos", "Vinagre", "Ajos", "Perejil", "Aceite", "Sal"],
     "method": [
-      "Limpia y abre los boquerones.",
-      "Marina en vinagre con sal 3 horas.",
-      "Escurre y aliña con ajo picado.",
-      "Rocía con aceite y perejil fresco."
+      "Abre los boquerones quitando cabeza, espina y tripas, y acláralos brevemente bajo el grifo.",
+      "Mezcla vinagre, agua fría y sal generosa en un cuenco y sumerge los filetes hasta que queden cubiertos.",
+      "Refrigera 3 horas mínimo: verás cómo la carne pasa a blanca — si prefieres más suaves, hasta 24 horas.",
+      "Escurre y aclara un poco con agua para rebajar el ácido; sécalos sin machacarlos.",
+      "Añade ajos picados y perejil y cubre con aceite de oliva; conserva refrigerado y consume pronto."
     ]
   },
   {
@@ -367,10 +407,11 @@ return [
     "meal": "cena",
     "ingredients": ["Pimientos rojos grandes", "Carne picada", "Arroz", "Tomate", "Queso gratinar"],
     "method": [
-      "Asa los pimientos y pélalos.",
-      "Saltea carne picada con arroz y tomate.",
-      "Rellena los pimientos.",
-      "Gratina con queso al horno."
+      "Asa los pimientos enteros al horno a 200 °C durante 25-30 minutos, dándoles media vuelta a mitad de tiempo, hasta que la piel se arrugue.",
+      "Mételos tapados 10 minutos al salir (se pelan mejor), pela con cuidado conservando la forma y quita las semillas.",
+      "Para el relleno, sofríe cebolla picada, dora la carne picada 5 minutos, añade tomate y cocina 10-15 minutos hasta que ligue; mezcla con arroz ya cocido (así no te quedará crudo dentro).",
+      "Rellena los pimientos con la mezcla tibia y colócalos en una fuente.",
+      "Cubre con queso rallado y gratina en el horno fuerte 8-10 minutos, hasta que se haga una costra dorada; sirve enseguida."
     ]
   },
   {
@@ -379,10 +420,11 @@ return [
     "meal": "cena",
     "ingredients": ["Setas variadas", "Gambas peladas", "Huevos", "Ajo", "Aceite", "Sal"],
     "method": [
-      "Saltea las setas con ajo hasta dorar.",
-      "Añade gambas y cocina 3 minutos más.",
-      "Incorpora huevos batidos.",
-      "Revuelve hasta cuajar los huevos."
+      "Limpia las setas con papel húmedo — no las mojes de golpe: se empapan — y trocea las grandes.",
+      "Sofríe el ajo picado 30 segundos en aceite y añade las setas a fuego fuerte: así sueltan su agua y se doran en vez de hervirse; cocina 5-6 minutos y sala.",
+      "Añade las gambas secas y saltea 2 minutos, hasta que cambien de color apenas.",
+      "Bate los huevos con sal y viértelos FUERA del fuego, removiendo suave hasta cuajar cremosos y con cuerpo.",
+      "Sirve al momento, con pan tostado si te apetece."
     ]
   },
   {
@@ -403,10 +445,12 @@ return [
     "meal": "comida",
     "ingredients": ["Arroz", "Sepia", "Tinta de sepia", "Caldo", "Ajo", "Perejil", "Azafrán"],
     "method": [
-      "Sofríe sepia troceada con ajo.",
-      "Añade arroz y caldos con tinta.",
-      "Cocina 18 minutos sin remover.",
-      "Deja reposar 2 minutos antes."
+      "Sofríe la sepia troceada con el ajo picado en la paellera 3-4 minutos, hasta que cambie de color.",
+      "Disuelve la tinta de sepia en un cazo de caldo caliente y añádela: verás cómo se tiñe todo de negro.",
+      "Agrega el arroz, remueve un minuto para tostar al grano y vierte el resto del caldo caliente — el doble de volumen — repartido por toda la paellera.",
+      "Cocina a fuego fuerte 8 minutos y a suave 10 más, SIN remover más ni mover la paellera.",
+      "Al final debe quedar apenas caldoso, no sopa; si te faltase líquido, moja un poco más por los cantos.",
+      "Deja reposar 2 minutos tapado y sirve con perejil picado por encima."
     ]
   },
   {
@@ -415,10 +459,12 @@ return [
     "meal": "comida",
     "ingredients": ["Pollo troceado", "Zanahoria", "Cebolla", "Vinagre", "Vino blanco", " Laurel"],
     "method": [
-      "Dora el pollo en todas sus caras.",
-      "Sofríe verduras en la misma cazuela.",
-      "Añade vinagre, vino y especias.",
-      "Cocina lento 1 hora reposa 24h."
+      "Seca el pollo troceado y dóralo por todas sus caras en aceite de oliva, 6-8 minutos; sácalo y reserva.",
+      "Sofríe la cebolla y la zanahoria en rodajitas 8 minutos en ese aceite; añade el ajo picado los últimos minutos junto al laurel.",
+      "Vuelve el pollo, moja con el vino y un buen chorro de vinagre, y completa con agua casi cubriéndolo.",
+      "Cocina a fuego manso 45-60 minutos, tapado, hasta que la carne ceda del hueso.",
+      "Rectifica de sal al final (el escabeche se afina frio).",
+      "Enfría completo y refrigera mínimo 24 horas: se sirve FRÍO y mejora cada día que pasa."
     ]
   },
   {
@@ -427,10 +473,13 @@ return [
     "meal": "comida",
     "ingredients": ["Caracoles", "Cordero picado", "Pimentón", "Perejil", "Caldo", "Laurel"],
     "method": [
-      "Lava y purga los caracoles 2 días.",
-      "Precocínalos en agua con hierbas.",
-      "Sofríe carne y añade caracoles.",
-      "Cocina con caldo y pimentón."
+      "Purga los caracoles 2 días en agua con sal, cambiando el agua cada día: sueltan la tierra.",
+      "Escáldalos 20 minutos en agua hirviendo con laurel; escúrrelos y reserva un poco de ese agua.",
+      "Sofríe el cordero picado en aceite a fuego fuerte 6-8 minutos, hasta que dore bien.",
+      "Añade el pimentón FUERA del fuego — se quema fácil — y remueve rápido; junta el laurel y el perejil.",
+      "Incorpora los caracoles y moja con caldo (o con su agua de cocción) hasta cubrir.",
+      "Guisa tapado a fuego bajo 45-60 minutos, hasta que la salsa tome cuerpo sin secarse.",
+      "Rectifica de sal y deja reposar 10 minutos antes de servir: los caracoles ganan con el reposo."
     ]
   },
   {
@@ -439,10 +488,12 @@ return [
     "meal": "comida",
     "ingredients": ["Zucchini", "Pimiento rojo", "Pimiento verde", "Tomate", "Cebolla", "Huevos"],
     "method": [
-      "Trocea todas las verduras.",
-      "Sofríe cebolla y pimientos primero.",
-      "Añade zucchini y finalmente tomate.",
-      "Cocina lento 30 minutos y sirve con huevo."
+      "Trocea a dados iguales la cebolla, los pimientos y el calabacín, para que todo alcance su punto a la vez.",
+      "Sofríe la cebolla en aceite a fuego medio 8-10 minutos, hasta que quede transparente.",
+      "Añade los pimientos y cocina 5 minutos más.",
+      "Echa el calabacín, sala apenas — suelta agua — y cocina 10 minutos.",
+      "Agrega el tomate rallado, tapa y baja a fuego suave 20-25 minutos, removiendo de vez en cuando: el pisto debe quedar denso, brillante de aceite y sin caldo.",
+      "Sirve tapado con huevos fritos encima (yema jugosa) o revuelto integrando los huevos batidos al final."
     ]
   },
   {
@@ -451,10 +502,12 @@ return [
     "meal": "comida",
     "ingredients": ["Carne ternera", "Gallina", "Patatas", "Boniatos", "Verduras", "Garbanzos"],
     "method": [
-      "Cocina carnes en abundante agua.",
-      "Añade garbanzos después de 1 hora.",
-      "Incorpora verduras y tubérculos.",
-      "Sirve el caldo primero y luego sólidos."
+      "Deja los garbanzos en remojo la noche anterior (o usa precocidos igualmente).",
+      "Cuece las carnes (ternera y gallina) cubiertas de agua fría; desespuma en cuanto burbujea y cocina 1 hora y media a fuego manso.",
+      "Añade los garbanzos escurridos y sigue 1 hora a fuego manso.",
+      "Los últimos 30-40 minutos añade las patatas, los boniatos y las verduras (col, calabacín, cebolla entera).",
+      "Saca un buen cazo de caldo para el primer vuelco (si te gusta, con fideos o gofio).",
+      "Segundo vuelco: los tubérculos, las verduras y la carne repartidos con mojo picón y mojo verde para untar."
     ]
   },
   {
@@ -463,10 +516,12 @@ return [
     "meal": "comida",
     "ingredients": ["Carne mixta", "Leche", "Harina", "Almendras", "Vino", "Caldo", "Ajos"],
     "method": [
-      "Forma albóndigas y fríe ligeramente.",
-      "Hace la salsa con almendras fritas.",
-      "Añade vino, caldo y especias.",
-      "Cocina albóndigas 30 minutos en salsa."
+      "Mezcla la carne con el ajo picado, perejil y un chorrito de leche; forma albóndigas pequeñas y refrigera 20 minutos para que se compacten.",
+      "Pásalas por harina fina sacudiendo el exceso y dóralas en aceite caliente 2-3 minutos: nada de cocerlas del todo, sólo sellarlas; reserva en su aceite.",
+      "En la misma cazuela, sofríe unas almendras (o tostadas previamente) con un diente de ajo y tritúralas con un poca de caldo hasta lograr salsa acristalada.",
+      "Vuelca la crema en la cazuela, moja con vino (deja evaporar 1 minuto) y el resto del caldo; lleva a burbujear suavemente.",
+      "Introduce las albóndigas y cocínalas TAPADAS 25-30 minutos a fuego suave, hasta que la salsa esté ligada y las albóndigas tiernas.",
+      "Rectifica de sal y sirve; si puedes, hazlo el día antes: la salsa se intensifica."
     ]
   },
   {
@@ -475,10 +530,12 @@ return [
     "meal": "comida",
     "ingredients": ["Cordero lechal entero", "Romero", "Tomillo", "Ajos", "Aceite", "Sal gorda"],
     "method": [
-      "Adorna el cordero con hierbas y ajo.",
-      "Prepara horno a 200°C.",
-      "Asa 2-3 horas según tamaño.",
-      "Bañalo con jugos periódicamente."
+      "Sazona el cordero con sal gorda por toda la piel y la carne; pinta con aceite y reparte los ajos laminados, el romero y el tomillo por encima.",
+      "Colócalo en una fuente baja con UN DEDO de agua (o vino blanco) en el fondo del plato: evita que se seque y aporta jugo para bañar.",
+      "Precalienta el horno a 200 °C y asa a media altura.",
+      "Cuenta unos 60-90 minutos (2 horas si la pieza es grande): deteniendo cada 20 minutos para repasar jugos, y si baja el fondo, añade agua caliente.",
+      "Al final, sube a 220 °C o gratína 10 minutos para que la piel quede crocante.",
+      "Deja reposar tapado 10 minutos antes de cortar: los jugos se recolocan y la carne queda más ternosa."
     ]
   },
   {
@@ -487,10 +544,11 @@ return [
     "meal": "comida",
     "ingredients": ["Sardinas frescas", "Sal", "Limón", "Aceite"],
     "method": [
-      "Limpia y sazona las sardinas.",
-      "Calienta plancha hasta muy caliente.",
-      "Cocina 3 minutos por lado.",
-      "Sirve con rodajas de limón."
+      "Lava las sardinas y quita la tripa sacándola por la abertura; sécalas por fuera con papel.",
+      "Espolvorea sal por la piel.",
+      "Calienta la plancha hasta verla humear: muy caliente, para que no se peguen.",
+      "Colócalas una al lado de la otra sin amontonar y cocina 2-3 minutos; dales la vuelta apenas.",
+      "Retira al punto, rocía con aceite crudo y sirve con limón al momento."
     ]
   },
   {
@@ -511,10 +569,11 @@ return [
     "meal": "comida",
     "ingredients": ["Tortilla de trigo", "Atún", "Maíz", "Lechuga", "Tomate", "Yogur"],
     "method": [
-      "Mezcla atún con yogurt y maíz.",
-      "Extiende sobre tortilla.",
-      "Añade vegetales frescos.",
-      " enrolla y corta en porciones."
+      "Escurre muy bien el atún — el aceite reblandece el wrap — y mezcla en un bol con el yogur, el maíz, sal y pimienta.",
+      "Pica el tomate en dados pequeños y añádelos al final, para que su jugo no moje la tortilla.",
+      "Calienta cada tortilla 10-15 segundos por lado en plancha (o unos segundos al microondas): así se flexiona sin romperse.",
+      "Reparte la mezcla de atún en el centro de cada tortilla y coloca encima las hojas de lechuga.",
+      "Enrolla apretando los extremos, corta en porciones diagonales y sirve fresquito."
     ]
   },
   {
@@ -523,10 +582,11 @@ return [
     "meal": "comida",
     "ingredients": ["Quinoa", "Tomate", "Pepino", "Cebolla morada", "Aceitunas", "Aceite"],
     "method": [
-      "Cuece quinoa y deja enfriar.",
-      "Picar todos los vegetales finos.",
-      "Mezcla todo junto.",
-      "Aliña con aceite y limón."
+      "Enjuaga la quinoa bajo el grifo y escúrrela: así desaparece el sabor amargo.",
+      "Cuece con el doble de agua ya salada 12-15 minutos, hasta que el grano pierda su punto crudo; escurre y deja que se enfríe sin tapar.",
+      "Mientras, pica el tomate, el pepino y la cebolla morada en dados pequeños; añade las aceitunas en rodajas.",
+      "Une todo en un bol y aliña con aceite de oliva, zumo de limón, sal y pimienta.",
+      "Refrigera un rato para servir fresca: el sabor se asienta mejor de lo que parece."
     ]
   },
   {
@@ -535,10 +595,11 @@ return [
     "meal": "comida",
     "ingredients": ["Pan de molde integral", "Tomate", "Mozzarella", "Orégano", "Aceite"],
     "method": [
-      "Coloca tomate y mozzarella entre panes.",
-      "Añade orégano y aceite.",
-      "Tuesta en sandwichera hasta fundir.",
-      "Sirve caliente inmediatamente."
+      "Corta las rodajas de tomate y déjalas escurrir 5 minutos sobre papel: si van muy jugosas, el pan se blanquea.",
+      "Coloca tomate y láminas de mozzarella entre dos rebanadas de pan.",
+      "Añade con un toque de orégano, un chorro de aceite y una pizca de sal.",
+      "Tuesta en sandwichera 5-7 minutos, hasta que el queso funda y el pan hornee un poco.",
+      "Corta en diagonal y come al momento: en cuanto sale, es cuando está en su punto."
     ]
   },
   {
@@ -547,10 +608,11 @@ return [
     "meal": "comida",
     "ingredients": ["Patatas", "Calamares", "Mayonesa", "Ajo", "Aceite", "Perejil"],
     "method": [
-      "Cuece patatas hasta tiernas.",
-      "Saltea calamares rápidamente.",
-      "Emulsiona con mayonesa y ajo.",
-      "Mezcla todo y sirve frío."
+      "Pela y corta las patatas en dados y cuece 15-20 minutos en agua con sal, hasta que estén tiernas; deja que sigan en su caldo.",
+      "Saltea los calamares limpios 2-3 minutos con el ajo picado en un hilo de aceite y añádelos al caldo de las patatas.",
+      "En un cuenco, desliza la mayonesa con medio vaso del mismo caldo CALIENTE, removiendo desde el fondo hasta diluirla sin grumos.",
+      "Vierte esa mezcla al caldo y da 5 minutos a fuego bajo removiendo SIEMPRE: espesa sin cortarse; no dejes que hierva de golpe.",
+      "Rectifica de sal y sirve BIEN CALIENTE en platos hondos, con perejil picado por encima y pan aparte."
     ]
   },
   {
@@ -559,10 +621,11 @@ return [
     "meal": "comida",
     "ingredients": ["Peito de pollo", "Tortilla wrap", "Lechuga", "Tomate seco", "Queso"],
     "method": [
-      "Marina pechuga con especias.",
-      "Cocina a la plancha hasta dorar.",
-      "Filetea y coloca sobre tortilla.",
-      "Agrega vegetales y enrolla."
+      "Marina la pechuga 30 minutos con sal, pimienta, pimentón y un poco de aceite: gana sabor y queda más tierna.",
+      "Hazla a la plancha bien caliente, 3-4 minutos por lado, hasta que se dore sin secarse.",
+      "Filetea a favor de la fibra — las tiras quedan más blandas al masticar.",
+      "Calienta cada tortilla 10-15 segundos por lado para que se flexione.",
+      "Reparte las tiras de pollo y las hojas de lechuga, el tomate seco troceado y el queso; enrolla con los extremos metidos y sirve."
     ]
   },
   {
@@ -571,10 +634,11 @@ return [
     "meal": "comida",
     "ingredients": ["Solomillo ternera", "Pimientas negras", "Coñac", "Crema", "Mantequilla"],
     "method": [
-      "Sella solomillo a fuego fuerte.",
-      "Añade pimientas machacadas.",
-      "Desglasa con coñac y crema.",
-      "Reduce salsa y sirva."
+      "Seca el solomillo y márcalo por todas sus caras en mantequilla con aceite, 2 minutos por cara (5-6 en total); resérvalo si lo quieres rosado al centro.",
+      "En la misma sartén añade las pimientas machacadas y espera 30 segundos a que suelten su aroma.",
+      "Desglasa con el coñac, rasparando el fondo para el dorado.",
+      "Añade la nata y reduce 3-4 minutos a fuego suave, hasta que la salsa cubra la cuchara.",
+      "Deja reposar el solomillo 5 minutos antes de cortar; corta medallones y baña con la salsa de coñac y pimienta."
     ]
   },
   {
@@ -583,10 +647,11 @@ return [
     "meal": "comida",
     "ingredients": ["Muslos pollo", "Patatas", "Ajos", "Limón", "Romero", "Aceite"],
     "method": [
-      "Marina pollo con ajo y limón.",
-      "Coloca con patatas en bandeja.",
-      "Hornea 45 minutos a 200°C.",
-      "Bañar con jugos constantemente."
+      "Pon los muslos en un bol con zumo de limón, ajos machacados, romero, sal y un hilo de aceite; marina 30 minutos si puedes.",
+      "Reparte las patatas en cuñas en la bandeja con un hilo de aceite; coloca el pollo encima.",
+      "Hornea a 200 °C 45-50 minutos; baña con la propia línea cada 15 minutos y, si anda secándose, moja un poco más el fondo.",
+      "Comprueba levantando un muslo: la carne cede y el jugo sale claro, no rosado.",
+      "Deja reposar 5 minutos antes de llevar a la mesa, para que los jugos se asientan."
     ]
   },
   {
@@ -595,10 +660,11 @@ return [
     "meal": "comida",
     "ingredients": ["Lenguado o rape", "Limón", "Cebolla", "Cilantro", "Jengibre", "Pimiento"],
     "method": [
-      "Fileta pescado en tiras finas.",
-      "Marina en zumo de limón 15 min.",
-      "Añade cebolla y cilantro.",
-      "Sirve muy frío inmediatamente."
+      "Corta el pescado — muy fresco, mejor del día — en dados de 1 cm, sin espinas, y sécalos con papel.",
+      "Marínalos en la nevera con zumo de limón recién exprimido, justo hasta cubrir, 15-20 minutos: más tiempo lo vuelve gomoso.",
+      "Añade la cebolla roja en pluma bien fina, el cilantro picado, el jengibre rallado y el pimiento en daditos; sal y un hilo de aceite.",
+      "Mezcla bien y deja asentar 5 minutos.",
+      "Sirve EN EL MOMENTO, muy frío, con un poco más de zumo por encima si te gusta el ácido."
     ]
   },
   {
@@ -607,10 +673,11 @@ return [
     "meal": "comida",
     "ingredients": ["Lomo atún", "Sésamo", "Aceite", "Soja", "Jengibre", "Huevo"],
     "method": [
-      "Seca el lomo de atún bien.",
-      "Píntalo y pasa por sésamo.",
-      "Sella 1 minuto por lado.",
-      "Corta y acompaña con salsa."
+      "Seque el lomo de atún con papel; úntalo de soja y presiona el sésamo por los lados para que se pegue.",
+      "Calienta la sartén hasta que humee ligeramente; un hilo de aceite neutro ayuda a marcar.",
+      "Sella 1 minuto por las dos caras y unos segundos por los bordes: el sésamo tostará sin que el interior cocine.",
+      "Deja reposar 2 minutos antes de cortar: interior rojo y jugoso.",
+      "Corta en láminas gruesas y sirve con soja y jengibre rallado; wasabi aparte si quieres el punto de atún."
     ]
   },
   {
@@ -619,10 +686,10 @@ return [
     "meal": "comida",
     "ingredients": ["Huevos", "Espinacas", "Bacon", "Queso", "Sal", "Pimienta"],
     "method": [
-      "Dora el bacon hasta crujiente.",
-      "Saltea espinacas rápidamente.",
-      "Añade huevos y cocina.",
-      "Termina con queso fundido."
+      "Dora el bacon troceado hasta que quede crujiente y saca del sartén; deja su grasa.",
+      "Saltea las espinacas en esa grasa 2-3 minutos, hasta que se marchiten; sala apenas (el bacon ya aporta).",
+      "Bate los huevos con poca sal y pimienta; revuélvelos a fuego SUAVE, retirando cuando brillen y queden apenas cuajados.",
+      "Mezcla con el bacon y termina con el queso rallado por encima para que funda con el calor residual."
     ]
   },
   {
@@ -631,10 +698,12 @@ return [
     "meal": "comida",
     "ingredients": ["Queso crema", "Huevos", "Azúcar", "Nata", "Base galleta", "Mermelada"],
     "method": [
-      "Prepara base de galleta y mantequilla.",
-      "Mezcla queso, huevos y azúcar.",
-      "Cuece al baño maría 1 hora.",
-      "Refrigera y sirve con mermelada."
+      "Prepara una base: las galletas molidas mezcladas con mantequilla fundida, prensándolas en el molde desmontable; hornea 10 minutos a 180 °C y deja enfriar.",
+      "Mezcla el queso crema con el azúcar y la nata; añade los huevos uno a uno, envolviendo sin batir en exceso (demasiado aire agrieta la tarta).",
+      "Vierte sobre la base y hornea a 160 °C AL BAÑO MARÍA 60-70 minutos: el centro debe seguir temblando, es su punto exacto.",
+      "Apaga el horno con la puerta entreabierta y deja la tarta 1 hora dentro: baja enfriándose sin rajarse.",
+      "Refrigera mínimo 4 horas (mejor toda la noche): la crema se asienta.",
+      "Corona con la mermelada calentita y sirve fría."
     ]
   },
   {
@@ -643,10 +712,11 @@ return [
     "meal": "comida",
     "ingredients": ["Leche", "Yemas", "Azúcar", "Maicena", "Canela", "Limón"],
     "method": [
-      "Infusiona leche con canela y limón.",
-      "Mezcla yemas con azúcar y maicena.",
-      "Cuece espesando sin parar.",
-      "Sirve con azúcar caramelizado."
+      "Infusiona la leche con canela en rama y piel de limón (sólo lo amarillo) 10 minutos a fuego suave; cuela y deja templar.",
+      "Bate las yemas con el azúcar y la maicena.",
+      "Agrega la leche infusionada poco a poco, ya tibia, y vuelve al fuego bajo removiendo SIEMPRE: espesará en 5-8 minutos; no dejes que hierva fuerte (se corta).",
+      "Reparte en cazuelas de barro y refrigera mínimo 2 horas.",
+      "Al momento de servir, espolvorea azúcar y quémala con paleta o hierro caliente hasta formar costra fina: hay que quemarla justamente antes de llevarla a la mesa, si no se humedece."
     ]
   },
   {
@@ -655,10 +725,12 @@ return [
     "meal": "comida",
     "ingredients": ["Huevos", "Leche condensada", "Leche entera", "Azúcar caramelo", "Vanilla"],
     "method": [
-      "Prepara caramelo líquido en molde.",
-      "Mezcla huevos y lácteos.",
-      "Cuece al baño maría 50 minutos.",
-      "Desmolda y sirve frío."
+      "Carameliza el azúcar con un chorro de agua a fuego medio, hasta que tome color ámbar; repártelo cubriendo el molde con cuidado (se quema).",
+      "Bate los huevos con la leche condensada, la leche entera y unas gotas de vainilla, sin sobre-batir.",
+      "Vierte el batido sobre el caramelo.",
+      "Hornea al BAÑO MARÍA a 170 °C 45-50 minutos, hasta que el centro apenas tiemble.",
+      "Enfría a temperatura ambiente y refrigera mínimo 4 horas: el flan gana consistencia.",
+      "Desmolda pasando un cuchillo por el borde y sacudiendo con suavidad; sirve frío, con el caramelo por encima."
     ]
   },
   {
@@ -667,10 +739,11 @@ return [
     "meal": "comida",
     "ingredients": ["Arroz redondo", "Leche", "Azúcar", "Canela", "Limón", "Nuez moscada"],
     "method": [
-      "Lava el arroz varias veces.",
-      "Cuece con leche, cáscara de limón.",
-      "Añade azúcar y canela en rama.",
-      "Servir caliente o frío con canela."
+      "Remoja el arroz 5 minutos y escurre.",
+      "Calienta la leche con cáscara de limón (solo lo amarillo) y canela en rama; cuando apenas burbujea, añade el arroz.",
+      "Cocina a fuego muy suave 20-25 minutos removiendo CONSTANTE (el arroz con leche se agarra), añade azúcar al final.",
+      "Cuando el arroz quede tierno y el conjunto denso, retira la canela y el limón.",
+      "Refrigera si lo comes frío; sirve con canela molida y un toque de nuez moscada por encima."
     ]
   },
   {
@@ -679,10 +752,11 @@ return [
     "meal": "comida",
     "ingredients": ["Harina", "Agua", "Sal", "Azúcar", "Chocolate tableta", "Leche"],
     "method": [
-      "Prepara masa con agua hirviendo.",
-      "Extruye churros y fríe dorados.",
-      "Para chocolate, cuece leche con chocolate.",
-      "Sirve junto con churros espolvoreados."
+      "Hierve el agua con la sal; FUERA DEL FUEGO añade la harina y mezcla hasta una masa lisa y pegajosa (trabaja con cuchara de palo).",
+      "Introduce la masa en una churrera (o manga con boquilla rizada).",
+      "Fríe tiras en aceite a 180-190 °C hasta que queden doradas y escúrrelas sobre papel.",
+      "Para el chocolate: calienta la leche con la tableta troceada, removiendo hasta fundir y espesar.",
+      "Sirve los churros espolvoreados de azúcar junto a las tazas del chocolate para mojar."
     ]
   },
   {
@@ -691,10 +765,11 @@ return [
     "meal": "comida",
     "ingredients": ["Yemas", "Azúcar", "Agua", "Caramelo"],
     "method": [
-      "Haz caramelo y recubre moldes.",
-      "Mezcla yemas con almíbar templado.",
-      "Cuece al baño maría lentamente.",
-      "Desmolda y refrigera."
+      "Haz el caramelo y recubre los moldes.",
+      "Prepara un almíbar con el azúcar y el agua hasta punto de bola blanda (115-120 °C; sin termómetro, una gota en agua fría forma una bola que cede); deja templar.",
+      "Bate las yemas y añade el almíbar tibio en hilo, removiendo siempre: llegado caliente, cuajaría la yema.",
+      "Vierte en los moldes con caramelo y hornea al BAÑO MARÍA 30-40 minutos a 160-170 °C.",
+      "Enfría, refrigera mínimo 4 horas y desmolda al momento de servir, con el caramelo por encima."
     ]
   },
   {
@@ -703,10 +778,11 @@ return [
     "meal": "comida",
     "ingredients": ["Harina", "Agua", "Mantequilla", "Huevos", "Azúcar glass", "Canela"],
     "method": [
-      "Hervir agua con mantequilla.",
-      "Añade harina y mezcla.",
-      "Incorpora huevos uno a uno.",
-      "Fríe y espolvorea azúcar glass."
+      "Hierve el agua con la mantequilla y una pizca de sal; añade la harina de golpe y mezcla fuera del fuego hasta que la masa se despegue del recipiente (2-3 minutos): es una masa tipo choux.",
+      "Retira del fuego y añade los huevos uno a uno, mezclando con energía hasta que cada absorba el anterior.",
+      "Deja reposar la masa 20 minutos tapada: gana volumen al freír.",
+      "Fríe montones tomados con dos cucharas en aceite a 180 °C, en tandas pequeñas, hasta que doren por igual.",
+      "Escurre sobre papel y espolvorea azúcar glass con canela."
     ]
   },
   {
@@ -739,10 +815,9 @@ return [
     "meal": "comida",
     "ingredients": ["Piña", "Mango", "Papaya", "Kiwi", "Miel", "Limón"],
     "method": [
-      "Pelar y cortar todas las frutas.",
-      "Mezclar en bowl grande.",
-      "Rocía con limón y miel.",
-      "Refrigera 1 hora antes."
+      "Pela y corta las frutas en cubos uniformes, retirando bien las pieles duras (piña, mango, papaya) y los huesos del kiwi.",
+      "Mezcla en un bowl grande con un hilo de miel y un chorrito de limón: el limón viva la mezcla y retarda la oxidación.",
+      "Refrigera tapado mínimo 1 hora y sirve fría; con helado de vainilla si quieres un postre de más continente."
     ]
   },
   {
@@ -751,10 +826,11 @@ return [
     "meal": "comida",
     "ingredients": ["Gelatina neutra", "Agua", "Frutas variadas", "Azúcar", "Zumos naturales"],
     "method": [
-      "Hidrata gelatina en agua fría.",
-      "Calienta jugos con azúcar.",
-      "Mezcla gelatina y líquidos.",
-      "Añade frutas y refrigera."
+      "Hidrata la gelatina en agua fría 8-10 minutos, hasta que opaque.",
+      "Calienta los zumos con el azúcar SIN hervir fuerte: el hervido debilita la gelatina.",
+      "Disuelve la gelatina hidratada en los zumos templados fuera del fuego, revolvendo hasta que no quede rastro.",
+      "Reparte las frutas en trozos en el molde o copas y vierte el líquido encima.",
+      "Refrigera mínimo 3-4 horas; para desmoldar, moja el molde en agua tibia unos segundos, pasa un cuchillo por el borde y da la vuelta."
     ]
   },
   {
@@ -763,10 +839,11 @@ return [
     "meal": "comida",
     "ingredients": ["Peras", "Vino tinto", "Azúcar", "Canela", "Clavos", "Cáscara limón"],
     "method": [
-      "Pela las peras dejando tallo.",
-      "Cuece en vino con especias.",
-      "Reduce líquido hasta jarabe.",
-      "Sirve frío con el jarabe."
+      "Pela las peras dejando el tallo, para que queden elegantes al servir.",
+      "Colócalas de pie en la olla, lo más juntas posible; cubre con el vino hasta rozar el tallo y añade el azúcar, la canela, los clavos y la cáscara de limón.",
+      "Lleva a hervor, baja a fuego suave TAPADAS y cuece 30-40 minutos, girando a mitad de tiempo para que se coloquen por igual; están listas cuando ceden con aguja suave.",
+      "Retira las peras y deja el vino a fuego fuerte 10-15 minutos hasta reducir a jarabe espeso.",
+      "Sirve las peras frías bañadas de su jarabe — mejor ahora que se han reposado en él unas horas."
     ]
   },
   {
@@ -787,10 +864,11 @@ return [
     "meal": "comida",
     "ingredients": ["Atún rojo fresco", "Aguacate", "Sésamo", "Soya", "Wasabi", "Cebollino"],
     "method": [
-      "Fileta atún en dados perfectos.",
-      "Mezcla con aguacate y sésamo.",
-      "Saona con soya y wasabi.",
-      "Sirve inmediatamente decorado."
+      "Corta el atún muy frío en dados de 1 cm con cuchillo bien afilado — nada de troceado mecánico.",
+      "En un bowl frío, une el atún con el aguacate en daditos, el sésamo, la soja y una punta de wasabi.",
+      "Mezcla suave con espátula: los dados deben quedarse enteros.",
+      "Prueba y ajusta de soja antes de servir.",
+      "Moldea con aro en el plato, corona con cebollino y sirve al momento — el tartar no espera."
     ]
   },
   {
@@ -799,10 +877,11 @@ return [
     "meal": "comida",
     "ingredients": ["Ventresca atún", "Cebolla morada", "Limón", "Aceite", "Eneldo"],
     "method": [
-      "Sella ventresca a fuego alto.",
-      "Prepara ensalada de cebolla.",
-      "Coloca ventresca encima.",
-      "Aliña con limón y aceite."
+      "Marca la ventresca en plancha muy caliente, 30-40 segundos por cara: por fuera dorada y por dentro rosada.",
+      "Mientras, corta la cebolla morada en pluma fina y déjala macar 10 minutos con zumo de limón y una pizca de sal.",
+      "Reparte la cebolla al fondo del plato y coloca la ventresca encima.",
+      "Aliña con el zumo del macerado, aceite de oliva y eneldo picado.",
+      "Sirve templada, sin esperar: pierde punto en minutos."
     ]
   },
   {
@@ -811,10 +890,11 @@ return [
     "meal": "comida",
     "ingredients": ["Langostinos vivos", "Ajos", "Pimentón", "Aceite", "Perifollo", "Pimienta"],
     "method": [
-      "Limpia los langostinos.",
-      "Sofríe ajos en aceite.",
-      "Añade langostinos y saltea.",
-      "Termina con perifollo fresco."
+      "Limpia los langostinos: retira el aparato digestivo y sécalos bien.",
+      "Sofríe los ajos laminados en aceite a fuego medio, 2 minutos, hasta que suelten aroma sin quemarse.",
+      "Añade los langostinos secos y saltea 1-2 minutos por lado.",
+      "Fuera del fuego, espolvorea el pimentón y el perifollo picado; remueve rápido para aprovechar el calor.",
+      "Sirve al momento en cazuela pequeña, con pan y limón al lado."
     ]
   },
   {
@@ -823,10 +903,11 @@ return [
     "meal": "comida",
     "ingredients": ["Lomo cerdo", "Sal", "Pimienta", "Ajo", "Tripa natural"],
     "method": [
-      "Sala el lomo curar 3 días.",
-      "Embute en tripa limpia.",
-      "Ahuma ligeramente según preferencia.",
-      "Cura 3 semanas mínimo."
+      "Pesa el lomo: la cura lleva 2,5-3 % de sal (25-30 g por kg), mezclada con pimienta molida y ajo picado.",
+      "Emboza el lomo con la mezcla por toda la superficie, densa; refrigera tapado 3 días, girando una vez al día para que la sal reparta bien.",
+      "Lava el exceso de sal, sécalo y embute en la tripa natural (limpia y previamente remojada), apretando bien; ata las puntas.",
+      "CURA mínimo 3-4 semanas en un sitio frío, seco y ventilado: al presionar debe ceder sin quebrarse.",
+      "Si tienes ahumador, añádele un humo suave; guarda envuelto en papel perforado y refrigerado."
     ]
   },
   {
@@ -860,10 +941,13 @@ return [
     "meal": "comida",
     "ingredients": ["Boletus edulis", "Leche", "Mantequilla", "Harina", "Huevo", "Pan rallado"],
     "method": [
-      "Limpia y trocea boletus.",
-      "Hace bechamel con mantequilla.",
-      "Mezcla hongos con bechamel.",
-      "Forma, empana y fríe."
+      "Limpia los boletus sin mojarlos (papel húmedo para la tierra); trocea y saltea a fuego fuerte 4-5 minutos hasta que pierdan su agua y doren; reserva con su jugo colado.",
+      "Prepara una bechamel ESPESA con la mantequilla y la harina, cocinando en crudo 2 minutos antes de añadir la leche caliente poco a poco; remueve unos 10 minutos.",
+      "Incorpora los boletus (y su jugo colado) a la bechamel; prueba la sal.",
+      "Deja refrigerar la masa 3-4 horas tapada (mejor toda la noche).",
+      "Forma croquetas con dos cucharas húmedas y empáñalas en huevo batido y pan rallado.",
+      "Fríe en tandas pequeñas en aceite a 180 °C, 2-3 minutos, hasta que queden doradas.",
+      "Escurre sobre papel y sirve enseguida calientes."
     ]
   },
   {
@@ -872,10 +956,11 @@ return [
     "meal": "comida",
     "ingredients": ["Merluza", "Hinojo bulboso", "Vino blanco", "Ajos", "Nata", "Perejil"],
     "method": [
-      "Filetea hinojo en juliana.",
-      "Saltea hasta ablandar.",
-      "Coloca merluza encima.",
-      "Cuece con vino y nata."
+      "Filetea el hinojo en juliana fina (hasta con los tallos verdes).",
+      "Sofríelo con el ajo picado 5-8 minutos a fuego medio, hasta que quede blando; sala apenas.",
+      "Coloca los lomos de merluza encima, salados.",
+      "Moja con el vino blanco, tapa y cuece a fuego suave 6-8 minutos.",
+      "Añade la nata, deja reducir un minuto y sirve con perejil picado: el aroma del hinojo acomaña la merluza de manera suave."
     ]
   },
   {
@@ -884,10 +969,11 @@ return [
     "meal": "comida",
     "ingredients": ["Berenjena", "Pimiento", "Tomate", "Cebolla", "Aceite", "Huevo"],
     "method": [
-      "Filetea berenjena y saltea.",
-      "Sofríe pimiento y cebolla.",
-      "Añade tomate y cocina.",
-      "Sirve con huevo frito."
+      "Corta la berenjena en dados y sala; déjala sudar 15 minutos y sécala bien — así absorbe menos aceite.",
+      "Sofríe la cebolla y el pimiento picados 8-10 minutos a fuego medio.",
+      "Incorpora la berenjena y saltea 8 minutos, hasta que quede tierna.",
+      "Añade el tomate rallado, tapa y baja a fuego suave 15 minutos, hasta que todo se funda y brille de aceite.",
+      "Sirve con huevo frito encima, yema jugosa, y pan para mojar."
     ]
   },
   {
@@ -896,10 +982,11 @@ return [
     "meal": "comida",
     "ingredients": ["Patatas", "Papa bonita", "Pepino", "Yuca", "Carne", "Gofio"],
     "method": [
-      "Cuece carnes y tubérculos.",
-      "Añade papas diferentes.",
-      "Espesa con gofio.",
-      "Sirve con mojo picón."
+      "Cuece la carne cubierta de agua fría; desespuma al hervir y cocina 30 minutos a fuego medio.",
+      "Añade los tubérculos — las patatas con la papa bonita, que conserva mejor su forma —, la yuca y el pepino o calabaza en trozos; sigue 25-30 minutos.",
+      "Disuelve el gofio en un poco de caldo ya templado, sin grumos.",
+      "Vierte el gofio en la olla removiendo y cuece 10 minutos más: debe quedar un guiso denso, casi de masa.",
+      "Rectifica sal y sirve caliente, con mojo picón para acompañar."
     ]
   },
   {
@@ -908,10 +995,11 @@ return [
     "meal": "comida",
     "ingredients": ["Mojarra entera", "Harina", "Sal", "Aceite", "Limón"],
     "method": [
-      "Limpia la mojarra completamente.",
-      "Pasa por harina y sal.",
-      "Fríe en aceite caliente.",
-      "Sirve caliente con limón."
+      "Limpia la mojarra por completo (escamas, tripas y agalla) y hazle dos cortes diagonales por los lados; sécala.",
+      "Sala por dentro y por fuera 10 minutos antes.",
+      "Pasa por harina sacudiendo el exceso: una capa fina y ligera.",
+      "Fríe en aceite caliente — unas burbujas al caer — 3-4 minutos por lado, sin voltearla antes de tiempo: es alto el riesgo de que se rompa.",
+      "Escurre sobre papel y sirve con limón, calientita."
     ]
   },
   {
@@ -920,10 +1008,11 @@ return [
     "meal": "comida",
     "ingredients": ["Lechón", "Sal", "Comino", "Ajos", "Limón", "Romero"],
     "method": [
-      "Adoba lechón 24 horas.",
-      "Asa lentamente 4 horas.",
-      "Bañar con jugos frecuentemente.",
-      "Descansa antes de servir."
+      "Adoba el lechón la noche antes: machaca los ajos con el comino, la sal, el zumo de limón, un hilo de aceite y el romero, y pinta así toda la pieza.",
+      "Precalienta el horno a 140-150 °C; coloca la pieza en una bandeja con un dedo de agua.",
+      "Asa a esa temperatura suave 3 horas, humedeciendo con sus jugos cada 30 minutos.",
+      "Sube a 200 °C, destapa y dora los últimos 30-40 minutos hasta que el cuero quede crocante (cruje al tocar).",
+      "Deja descansar 15 minutos tapado antes de trocear: los jugos se reparten."
     ]
   },
   {
@@ -932,10 +1021,11 @@ return [
     "meal": "cena",
     "ingredients": ["Gofio", "Caldo pescado", "Pescado", "Patatas", "Aceite", "Sal"],
     "method": [
-      "Cuece pescado y patatas.",
-      "Disuelve gofio en caldo.",
-      "Añade trozos de pescado.",
-      "Sirve caliente inmediatamente."
+      "Cuece el pescado y las patatas en el caldo hasta que estén tiernos; sácalos y guarda el caldo caliente.",
+      "En un lebrillo o bol, vierte el gofio en montículo.",
+      "Escalda añadiendo el caldo caliente poco a poco sobre el gofio, removiendo con una cuchara de palo con fuerza, hasta que quede una masa densa y homogénea.",
+      "Incorpora el pescado desmenuzado, remata con aceite crudo y rectifica de sal.",
+      "Sirve caliente, para comer con cuchara."
     ]
   },
   {
@@ -944,10 +1034,11 @@ return [
     "meal": "comida",
     "ingredients": ["Mermelada", "Miel", "Almendras", "Huevo", "Coco", "Zumo limón"],
     "method": [
-      "Tuesta y muele almendras.",
-      "Mezcla con miel y mermelada.",
-      "Añade huevo y coco.",
-      "Refrigerar 4 horas mínimo."
+      "Tuesta las almendras en el horno a 180 °C unos 8-10 minutos; muélelas finas sin que suelten aceite.",
+      "Haz un almíbar con agua y azúcar, cociendo 5-8 minutos hasta punto de hilo flojo; incorpora la miel y la mermelada fuera del fuego.",
+      "Añade el huevo batido al almíbar templado, a fuego suave, removiendo SIEMPRE sin dejar que hierva fuerte: debe espesar como crema.",
+      "Añade las almendras molidas y el zumo de limón; deja templar por completo.",
+      "Refrigera mínimo 4 horas tapado; sirve en copas con coco espolvoreado y bizcocho o helado de acompañante."
     ]
   },
   {
@@ -956,10 +1047,12 @@ return [
     "meal": "comida",
     "ingredients": ["Lengua de ternera", "Cebolla", "Tomate triturado", "Vino blanco", "Caldo", "Pimienta"],
     "method": [
-      "Cuece la lengua 2 horas hasta tierna.",
-      "Pela y corta en tiras.",
-      "Dora cebolla en cazuela.",
-      "Añade lengua, tomate y vino."
+      "Cuece la lengua en agua con sal y pimienta 2 horas a fuego medio, hasta que la piel ceda; añade agua caliente si hace falta.",
+      "Cuando esté tierna, pásala por agua fría unos minutos: pélala tibia, cuando la piel sale entera con facilidad.",
+      "Corta en tiras gruesas.",
+      "Dora la cebolla picada en aceite 8-10 minutos; añade el tomate triturado y cocina 5 minutos.",
+      "Incorpora la lengua, moja con vino blanco y caldo hasta rozar, y deja reducir a fuego suave 20-30 minutos, hasta que la salsa espese.",
+      "Rectifica sal y sirve templada."
     ]
   },
   {
@@ -968,10 +1061,11 @@ return [
     "meal": "comida",
     "ingredients": ["Solomillo cerdo", "Leche", "Amarillos huevo", "Almendras tostadas", "Azafrán", "Pan frito"],
     "method": [
-      "Dora el solomillo troceado.",
-      "Tritura almendras con pan frito.",
-      "Mezcla con leche caliente.",
-      "Incorpora yemas y azafrán."
+      "Dora el solomillo troceado en aceite caliente, por todas sus caras; retíralo apenas dorado (terminará de cocinarse en la salsa).",
+      "Con mortero, machaca las almendras tostadas y la rebanada de pan frito hasta pasta; disuélvela con un poco de leche caliente.",
+      "Vuelva la pasta a la cazuela con el jugo del dorado; moja con el resto de la leche y el azafrán; cuece a fuego suave removiendo hasta que levante la salsa.",
+      "Aparte, bate las yemas con un cazo de la salsa; vuelve al guiso FUERA DEL FUEGO removiendo — las yemas ligan sin cuajarse.",
+      "Regresa el solomillo, cocina 3-5 minutos y sirve templado."
     ]
   },
   {
@@ -980,10 +1074,10 @@ return [
     "meal": "comida",
     "ingredients": ["Carne vacuno picada", "Huevo", "Pan rallado", "Ajo", "Perejil", "Aceite oliva"],
     "method": [
-      "Mezcla carne con huevo y especias.",
-      "Forma hamburguesas a mano.",
-      "Fríe 4 minutos por lado.",
-      "Sirve con patatas alioli."
+      "Mezcla apenas con las manos: carne, huevo, pan rallado, ajo y perejil picados y sal. Trabaja poco: demasiada pasta endurece la carne.",
+      "Forma hamburguesas con las manos humedecidas y haz un hueco al centro con el pulgar (evita que se infle).",
+      "Fríe en sartén con un hilo de aceite a fuego fuerte SIN tocarlas los primeros 3-4 minutos, hasta que asome su costra tostada; da la vuelta y repite.",
+      "Reposa 2 minutos tapadas y sirve al momento."
     ]
   },
   {
@@ -992,10 +1086,11 @@ return [
     "meal": "cena",
     "ingredients": ["Truchas frescas", "Limones", "Ajos", "Perejil", "Vino blanco", "Aceite"],
     "method": [
-      "Limpia y sazona las truchas.",
-      "Coloca rodajas de limón encima.",
-      "Rocía con aceite y ajo picado.",
-      "Hornear 20 minutos a 180°C."
+      "Limpia las truchas (tripa y escamas fuera) y sécalas; sala.",
+      "Rellena el interior con rodajas de limón, pinta con aceite y espolvorea ajos y perejil; moja la bandeja con un chorro de vino blanco.",
+      "Hornea a 180 °C unos 15-20 minutos, según tamaño.",
+      "Comprueba con una punta: la carne se desprende del hueso con facilidad.",
+      "Sirve con el jugo de la bandeja y limón al lado."
     ]
   },
   {
@@ -1004,10 +1099,11 @@ return [
     "meal": "comida",
     "ingredients": ["Conejo troceado", "Zanahorias", "Cebolla", "Vino tinto", "Tomate", "Laurel"],
     "method": [
-      "Sella el conejo en todas sus caras.",
-      "Dora cebolla y zanahorias.",
-      "Añade vino y tomate triturado.",
-      "Cocina lento 1 hora y media."
+      "Sazona el conejo y dóralo por todas sus caras en aceite, 5-6 minutos por cara; sácalo a un plato.",
+      "Sofríe la cebolla y las zanahorias picadas 8 minutos en ese aceite; junta el laurel los últimos minutos.",
+      "Devuelve el conejo, moja con el vino tinto (deja evaporar un minuto raspar del fondo) y añade el tomate triturado.",
+      "Cubre casi del todo con caldo, tapa y cocina a fuego manso 1 hora-1 y cuarto, hasta que la carne se desprenda del hueso.",
+      "Rectifica de sal y sirve; si puedes, hazlo el día antes: mejora en su salsa."
     ]
   },
   {
@@ -1016,10 +1112,11 @@ return [
     "meal": "cena",
     "ingredients": ["Lubina filetes", "Pimiento rojo", "Pimiento verde", "Cebolla", "Limón", "Eneldo"],
     "method": [
-      "Filetea la lubina sin piel.",
-      "Trocea vegetales finamente.",
-      "Envuelve en papel aluminio.",
-      "Hornea 15 minutos a 200°C."
+      "Corta los pimientos y la cebolla en juliana fina; reparte el lecho sobre el papel de aluminio, en bandejas individuales o un único paquete grande.",
+      "Coloca los filetes de lubina encima, sala, añade rodajitas de limón y eneldo.",
+      "Cierra el paquete doblando los bordes con pliegues firmes, hermético pero con aire: se cocina a vapor.",
+      "Hornea a 200 °C unos 12-15 minutos.",
+      "Abre cada paquete en la mesa con cuidado (saldrá vapor) y sirve en su papel."
     ]
   },
   {
@@ -1028,10 +1125,10 @@ return [
     "meal": "comida",
     "ingredients": ["Patatas", "Huevos", "Jamón serrano", "Aceite oliva", "Sal"],
     "method": [
-      "Frié patatas en láminas finas.",
-      "Fry dos huevos aparte.",
-      "Coloca patatas en plato.",
-      "Rompe huevos encima y añade jamón."
+      "Pela las patatas y córtalas en láminas de 3-4 mm; fríe a fuego medio en aceite 15-20 minutos hasta que queden doradas con los bordes crujientes; escurre.",
+      "Fríe los huevos en aceite caliente hasta que los bordes de la Clara burbujen y se doren, sin cuajar la yema: debe quedar líquida dentro.",
+      "Reparte las patatas en el plato, coloca los huevos encima y sala.",
+      "Cubre con taquitos de jamón serrano y rompe todo con tenedor en la mesa: mezclar es parte del plato."
     ]
   },
   {
@@ -1040,10 +1137,11 @@ return [
     "meal": "cena",
     "ingredients": ["Lomos bacalao", "Tomates maduros", "Albahaca fresca", "Ajo", "Aceite", "Vinagre"],
     "method": [
-      "Desala bacalao 24 horas.",
-      "Tuesta tomates al fuego.",
-      "Pelea tomates y tritura.",
-      "Cocina bacalao con salsa 10 min."
+      "Desala el bacalao 24 horas cambiando el agua tres veces; sécalo bien.",
+      "Tuesta los tomates enteros en aceite a fuego medio 10-15 minutos, hasta que se arruguen; pégalos y tritúralos.",
+      "Vierte la salsa de tomate en la sartén con el ajo picado y un punto de vinagre; cocina 5 minutos.",
+      "Coloca los lomos de bacalao PIEL ARRIBA, moja con un poco de agua o caldo caliente y cuece a fuego suave 8-10 minutos sin que hierva, moviendo la sartén en círculos: la gelatina liga la salsa.",
+      "Fuera del fuego, espolvorea albahaca fresca troceada y sirve."
     ]
   },
   {
@@ -1052,10 +1150,12 @@ return [
     "meal": "comida",
     "ingredients": ["Filetes ternera", "Vino marsala", "Setas", "Mantequilla", "Perejil", "Harina"],
     "method": [
-      "Pasa filetes por harina.",
-      "Sella a fuego fuerte.",
-      "Añade setas y vino.",
-      "Reduce y termina con mantequilla."
+      "Pasa los filetes por harina sacudiendo el exceso.",
+      "Dóralos en mantequilla 1-2 minutos por cara — son finos, se sellan rápido — y resérvalos.",
+      "En la misma sartén saltea las setas 4-5 minutos, hasta que pierdan el agua.",
+      "Desglasa con el marsala y deja reducir 2-3 minutos.",
+      "Devuelve los filetes 2 minutos para impregnarse y termina fuera del fuego con una nuez de mantequilla fría que ligará la salsa.",
+      "Sirve con perejil picado por encima."
     ]
   },
   {
@@ -1064,10 +1164,11 @@ return [
     "meal": "cena",
     "ingredients": ["Filetes salmón", "Mantequilla", "Limón", "Eneldo", "Pimienta negra", "Sal"],
     "method": [
-      "Sazona salmón por ambos lados.",
-      "Sella piel abajo primero.",
-      "Gira y cocina 3 minutos más.",
-      "Termina con mantequilla derretida."
+      "Seca el salmón con papel y sala 10 minutos antes de cocinarlo: retiene mejor su jugo.",
+      "Calienta una plancha o sartén a fuego medio-fuerte, hasta que casi humee.",
+      "Coloca el salmón PIEL ABAJO y no lo muevas 4 minutos: la piel se dora y suelta sola de la sartén.",
+      "Gira con espátula y cocina 2-3 minutos más, según el grosor.",
+      "Deja reposar 2 minutos fuera del fuego y termina con mantequilla derretida con limón, una pizca de pimienta y eneldo."
     ]
   },
   {
@@ -1076,10 +1177,11 @@ return [
     "meal": "comida",
     "ingredients": ["Pollo troceado", "Pimientos", "Zanahoria", "Cebolla", "Vino blanco", "Tomate"],
     "method": [
-      "Dora pollo en cazuela.",
-      "Sofríe verduras picadas.",
-      "Añade vino y tomate.",
-      "Cocina lento 45 minutos."
+      "Seca y sala el pollo troceado; dóralo por todas sus caras en aceite, 5-7 minutos en total dando vueltas, y resérvalo.",
+      "Sofríe la cebolla picada 6 minutos, añade los pimientos 5 más y, al final, el ajo picado un minuto.",
+      "Devuelve el pollo, moja con el vino blanco y deja evaporar 1-2 minutos; incorpora el tomate rallado.",
+      "Cubre apenas con agua o caldo, tapa y guisa a fuego suave 40-45 minutos, hasta que la carne quede tierna.",
+      "Rectifica de sal y sirve; si puedes, hazlo el día antes: mejora en su salsa."
     ]
   },
   {
@@ -1088,10 +1190,11 @@ return [
     "meal": "cena",
     "ingredients": ["Huevos duros", "Atún en conserva", "Mayonesa", "Cebolleta", "Pimentón", "Aceite"],
     "method": [
-      "Cuece huevos 10 minutos.",
-      "Partir y quitar yemas.",
-      "Mezcla yemas con atún.",
-      "Rellena y pica cebolleta."
+      "Cuece los huevos 10 minutos y enfríalos de golpe en agua fría: así se pelen en un momento.",
+      "Córtalos por la mitad, saca las yemas y aplástalas con un tenedor.",
+      "Mezcla las yemas con el atún escurrido, mayonesa, la cebolleta picada y un punto de sal; la pasta debe quedar cremosa, no reseca.",
+      "Rellena las claras con la pasta y corona espolvoreando pimentón y un hilo de aceite.",
+      "Sirve fríos; también quedan bien hechos el día antes."
     ]
   },
   {
@@ -1100,10 +1203,11 @@ return [
     "meal": "comida",
     "ingredients": ["Costillar cerdo", "Romero", "Tomillo", "Ajo", "Sal gorda", "Aceite"],
     "method": [
-      "Marina carne 2 horas con hierbas.",
-      "Precalienta parrilla muy caliente.",
-      "Asa 20 minutos girando.",
-      "Deja reposar antes cortar."
+      "Marina el costillar 2 horas con las hierbas, el ajo machacado, la sal gorda y un hilo de aceite; gira a mitad de tiempo.",
+      "Sácalo del marinado y sécalo por fuera: la brasa carameliza mejor con la superficie seca.",
+      "Precalienta la parrilla muy caliente; si el corte es grueso, termina con brasa indirecta: mueve la pieza a la zona sin llama y deja que acabe tranquila.",
+      "Asa 20-25 minutos girando cada pocos minutos; comprueba el punto apretando con los dedos — sin pinchar, que pierde jugo.",
+      "Deja reposar 5-10 minutos envuelto en papel antes de cortar."
     ]
   },
   {
@@ -1112,10 +1216,12 @@ return [
     "meal": "cena",
     "ingredients": ["Mejillones vivos", "Vino blanco", "Cebolla", "Ajos", "Perejil", "Tomates"],
     "method": [
-      "Lava mejillones bajo agua fría.",
-      "Dora cebolla y ajo en olla.",
-      "Añade vino y coloca mejillones.",
-      "Cocina tapado 5 minutos."
+      "Raspa y lava los mejillones bien fríos; quita las barbas; descarta el que esté abierto y no se cierre al tocarlo.",
+      "Dora la cebolla picada y los ajos laminados en una olla con aceite, 5-6 minutos a fuego medio.",
+      "Moja con el vino blanco y deja hervir 1 minuto para evaporar el alcohol.",
+      "Echa los mejillones, tapa y cocina a fuego fuerte 4-6 minutos, sacudiendo la olla: ya basta cuando se van abriendo.",
+      "Saca los abiertos con una espumadera y filtra el caldo que dejaron; sirve los mejillones rociados con ese caldo, aceite crudo y perejil picado.",
+      "Los pocos que no se hayan abierto, descártalos: cerrados no se comen."
     ]
   },
   {
@@ -1124,10 +1230,11 @@ return [
     "meal": "comida",
     "ingredients": ["Cigalas", "Vino blanco", "Cebolla", "Tomate", "Ajos", "Perejil"],
     "method": [
-      "Sofríe cebolla y ajo.",
-      "Añade tomate y reduce.",
-      "Introduce cigalas vivas.",
-      "Cocina 8 minutos removiendo."
+      "Sofríe la cebolla y el ajo picados en aceite 6-8 minutos a fuego medio, sin que tomen color fuerte.",
+      "Añade el tomate rallado y cocina 10 minutos, hasta que pierda el agua cruda.",
+      "Moja con el vino blanco y deja evaporar 1-2 minutos.",
+      "Incorpora las cigalas secas y cocina en la salsa 6-8 minutos: retíralas apenas la carne quede firme y roja.",
+      "Rectifica de sal, espolvorea perejil picado y deja reposar 5 minutos antes de servir."
     ]
   },
   {
@@ -1136,10 +1243,11 @@ return [
     "meal": "comida",
     "ingredients": ["Lomo cerdo entero", "Mostaza antigua", "Vino blanco", "Nata", "Pimienta negra"],
     "method": [
-      "Sella lomo en todas caras.",
-      "Mezcla mostaza con vino.",
-      "Cuece lomo 40 minutos.",
-      "Termina salsa con nata."
+      "Sella el lomo por todas sus caras a fuego fuerte, 2 minutos por cara, sin que se queme; reserva.",
+      "En la misma sartén, fuera del fuego, disuelve la mostaza con el vino blanco, raspando el fondo para recoger los jugos del dorado.",
+      "Devuelve el lomo, tapa y cuece a fuego suave 40 minutos (menos si es una pieza pequeña), girando de vez en cuando.",
+      "Saca el lomo y deja la salsa reducir 5 minutos; añade la nata a fuego mínimo SIN volver a hervir, para que no se corte.",
+      "Deja reposar el lomo 5 minutos, corta medallones y sirve bañado con la salsa."
     ]
   },
   {
@@ -1148,10 +1256,11 @@ return [
     "meal": "comida",
     "ingredients": ["Huevos", "Jamón york", "Queso fundir", "Pimiento", "Cebolla", "Aceite"],
     "method": [
-      "Saltea pimiento y cebolla.",
-      "Añade jamón cortado.",
-      "Incorpora huevos batidos.",
-      "Gratina queso hasta dorar."
+      "Saltea el pimiento y la cebolla en dados con un hilo de aceite 8-10 minutos a fuego medio, hasta que queden tiernos y con algún punto dorado.",
+      "Añade el jamón York en tiras y cocina 2 minutos.",
+      "Fuera del fuego, incorpora los huevos batidos y salpimentados; remueve hasta que cuajen cremosos.",
+      "Reparte la mezcla en cazuelitas individuales (o en una única fuente) y cubre con el queso de fundir.",
+      "Gratina con el horno fuerte o el grill, 3-5 minutos, hasta costra dorada; sirve enseguida."
     ]
   },
   {
@@ -1160,10 +1269,11 @@ return [
     "meal": "cena",
     "ingredients": ["Doradas enteras", "Tomates cherry", "Aceitunas negras", "Orégano", "Limón", "Aceite"],
     "method": [
-      "Limpia y haz cortes en dorada.",
-      "Rellena con rodajas limón.",
-      "Coloca tomates y aceitunas.",
-      "Hornear 25 minutos a 190°C."
+      "Limpia las doradas — tripa y escamas fuera — y haz 2-3 cortes diagonales por cada lado: el calor llega mejor al hueso.",
+      "Sala por dentro y por fuera y rellena el vientre con rodajas de limón.",
+      "Colócalas en la bandeja rodeadas de tomates cherry y aceitunas; riega con aceite y espolvorea orégano.",
+      "Hornea a 190 °C unos 25 minutos según el tamaño, regando con su propio jugo a mitad de cocción.",
+      "Están listas cuando la carne se separa del hueso con facilidad; deja reposar 5 minutos antes de servir."
     ]
   },
   {
@@ -1172,10 +1282,11 @@ return [
     "meal": "cena",
     "ingredients": ["Huevos", "Morcilla asturiana", "Pan casero", "Cebolla", "Aceite", "Sal"],
     "method": [
-      "Freír pan hasta crujiente.",
-      "Saltea morcilla sin piel.",
-      "Añade cebolla caramelizada.",
-      "Cubre con huevos pochados."
+      "Corta el pan casero en dados y fríelos en aceite hasta que queden crujientes; escurre sobre papel.",
+      "Saltea la cebolla picada a fuego medio 10 minutos, hasta que caramelice.",
+      "Añade la morcilla sin piel y desmíguala 3-4 minutos: se funde con su propia grasa y se une a la cebolla.",
+      "Poche los huevos 3 minutos en agua a borbotones suaves con un chorrito de vinagre: clara cuajada, yema que corre.",
+      "Monta al momento: los dados de pan, la mezcla de morcilla encima y el huevo pochado como corona; sala."
     ]
   },
   {
@@ -1184,10 +1295,11 @@ return [
     "meal": "desayuno",
     "ingredients": ["Huevos", "Salmón ahumado", "Queso crema", "Cebollino", "Mantequilla", "Pimienta"],
     "method": [
-      "Bate huevos con sal.",
-      "Cocina tortilla en mantequilla.",
-      "Rellena con salmón y queso.",
-      "Decora con cebollino picado."
+      "Bate los huevos con sal y una pizca de pimienta.",
+      "Funde la mantequilla en una sartén antiadherente a fuego medio-bajo, sin que llegue a tomar color.",
+      "Vierte los huevos y empuja los bordes con una espátula: cuando apenas cuaje el exterior y el centro siga brillante, es el momento.",
+      "Reparte el salmón ahumado en tiras y el queso crema sobre la mitad de la tortilla, dobla la otra mitad encima y apaga el fuego.",
+      "Desliza al plato y corona con cebollino picado."
     ]
   },
   {
@@ -1565,9 +1677,11 @@ return [
   { id: "rosquillas-anis", title: "Rosquillas caseras de anís", meal: "desayuno",
     ingredients: ["Harina", "Huevos", "Azúcar", "Anís (licor)", "Aceite de oliva para freír"],
     method: [
-      "Amasa harina, huevos, azúcar y un chorro de anís.",
-      "Forma rosquillas con la masa.",
-      "Fríelas en aceite caliente y pásalas por azúcar."
+      "Mezcla harina, huevos, azúcar y el anís hasta una masa blanda; deja que repose 30 minutos tapada: la masa más reposada es más manejable.",
+      "Forma las rosquillas dándoles anillo con los dedos — o corta tiras de masa y únelas por el extremo.",
+      "Calienta el aceite a unos 175-180 °C: ni humo ni burbujas lentas; un trozo de masa debe subir dorado al caer.",
+      "Fríe en tandas pequeñas 1-2 minutos por lado, hasta que se inflen y doren parejas.",
+      "Escúrrelos sobre papel y pásalos por azúcar mientras estén calientes: así se les pega bien."
     ]
   },
   { id: "fartons-horchata", title: "Fartons con horchata", meal: "desayuno",
@@ -1758,28 +1872,33 @@ return [
   { id: "arroz-a-banda", title: "Arroz a banda", meal: "comida",
     ingredients: ["Arroz", "Calamares", "Fondo de pescado", "Ajos", "Pimentón dulce", "Azafrán"],
     method: [
-      "Sofríe los calamares con los ajos picados.",
-      "Añade el pimentón fuera del fuego y el arroz.",
-      "Cubre con el doble de fondo de pescado bien caliente.",
-      "Añade el azafrán y deja reposar 5 minutos al final."
+      "Sofríe los calamares en dados con los ajos picados en la paellera 3-4 minutos, hasta que cambien de color.",
+      "Fuera del fuego, añade el pimentón — se quema rápido — y remueve de golpe.",
+      "Incorpora el arroz y dale un minuto de tostado en el aceite.",
+      "Vierte el doble de fondo de pescado BIEN CALIENTE con el azafrán disuelto; reparte por toda la paellera y ya no la toques.",
+      "Cocina a fuego fuerte los primeros 8 minutos y a suave 8-10 más, siempre sin remover.",
+      "Reposa 5 minutos tapado con un trapo y sirve con los calamares repartidos por encima."
     ]
   },
   { id: "arroz-negro-calamares", title: "Arroz negro con calamares", meal: "comida",
     ingredients: ["Arroz", "Calamares", "Tinta de calamar", "Fondo de pescado", "Cebolla", "Alioli"],
     method: [
-      "Sofríe cebolla y calamares en la paella.",
-      "Añade la tinta de calamar y el arroz.",
-      "Cubre con el doble de fondo de pescado.",
-      "Sirve con un buen alioli aparte."
+      "Sofríe la cebolla picada 8 minutos hasta que quede transparente; añade los calamares en dados y saltéalos 3 minutos.",
+      "Disuelve la tinta en un cazo de fondo caliente y viértela: verás cómo todo se tiñe de negro.",
+      "Añade el arroz, remueve 1 minuto para tostarlo y cubre con el doble de fondo CALIENTE.",
+      "Cocina a fuego fuerte 8 minutos y a suave 10 más, sin remover más.",
+      "Reposa 2-3 minutos tapado y sirve con alioli por encima, que es obligatorio al arroz negro."
     ]
   },
   { id: "fideua-marisco", title: "Fideuà de marisco", meal: "comida",
     ingredients: ["Fideos gordos", "Gambas", "Almejas", "Calamares", "Fondo de pescado", "Tomates"],
     method: [
-      "Sofríe el marisco en la fideuera con tomate.",
-      "Añade los fideos tostados un minuto.",
-      "Cubre con el doble de fondo de pescado.",
-      "Cuece 10 minutos sin remover y repasa."
+      "Sofríe las gambas y las almejas limpias en la fideuera con un hilo de aceite; sácalas en cuanto se abren y reserva.",
+      "Saltea los calamares en dados 2-3 minutos, añade el tomate triturado y cocina 3 minutos más.",
+      "Incorpora los fideos GORDOS y tóstalos moviendo 1 minuto, hasta que suelten su aroma a tostado.",
+      "Cubre con el doble de fondo caliente, reparte, devuelve el marisco por encima y ya no toques la fideuera.",
+      "Cuece a fuego fuerte 3 minutos y a suave 6-7 más, siempre sin remover: los cuidados de una fideuà van por ahí.",
+      "Reposa 2-3 minutos tapada y sirve con alioli aparte."
     ]
   },
   { id: "marmitako-bonito", title: "Marmitako de bonito", meal: "comida",
@@ -2031,10 +2150,11 @@ return [
   { id: "lasana-carne", title: "Lasaña de carne clásica", meal: "comida",
     ingredients: ["Láminas de lasaña", "Carne picada", "Tomates", "Bechamel", "Queso rallado"],
     method: [
-      "Prepara el ragú con carne picada y tomate.",
-      "Monta las láminas de pasta alternando ragú y bechamel.",
-      "Termina con bechamel y queso rallado.",
-      "Hornea 40 minutos a 200°C."
+      "Para el ragú, dora la carne picada en aceite 5-6 minutos hasta que pierda el rosa; añade el tomate triturado y cocina a fuego suave 20 minutos, hasta que espese y pierda el ácido.",
+      "Monta alternando capas: láminas de lasaña, ragú (capa fina, no un río) y bechamel; remata con bechamel abundante y queso rallado.",
+      "Si el paquete lo pide, escáldalas un minuto primero; las láminas para horno seco van tal cual.",
+      "Hornea a 200 °C 35-40 minutos, hasta que burbujee por los bordes y se gratine el queso.",
+      "Deja reposar 10 minutos antes de cortar: cortará limpio y sostendrá la ración."
     ]
   },
   { id: "pizza-margarita", title: "Pizza margarita casera", meal: "comida",
@@ -2093,10 +2213,12 @@ return [
   { id: "berenjena-parmigiana", title: "Berenjena a la parmigiana", meal: "cena",
     ingredients: ["Berenjenas", "Tomates", "Mozzarella", "Parmesano", "Albahaca"],
     method: [
-      "Fríe o asa láminas de berenjena.",
-      "Pon capas alternas de berenjena, salsa de tomate y mozzarella.",
-      "Cubre con parmesano.",
-      "Hornea 30 minutos a 180°C y repasa en frío."
+      "Corta las berenjenas en láminas de medio centímetro, sal, déjalas sudar 30 minutos en un colador y sécalas: soltarán la amargura.",
+      "Ásalas en el horno a 200 °C con un hilo de aceite, 10-12 minutos por lado — menos aceite que la fritura y salen igualmente sedosas.",
+      "Mientras, cocina el tomate triturado con ajo y un chorrito de aceite 15 minutos, hasta que espese y no cunda ácido.",
+      "Monta capas alternas en una fuente: tomate, berenjena, mozzarella troceada y parmesano; alarga 2-3 pisos y remata con parmesano.",
+      "Hornea a 180 °C 30-35 minutos, hasta que burbujee y se gratine.",
+      "Deja reposar 15 minutos antes de cortar: los sabores se asientan y no se derrama al servir."
     ]
   },
   { id: "ossobuco-milan", title: "Osso buco a la milanesa", meal: "cena",
