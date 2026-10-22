@@ -696,7 +696,11 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   font-size: 0.72rem; color: var(--muted);
 }
 .rev-cab-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 72px 62px; }
-.rev-cab-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 72px 62px; }
+/* DESKTOP (petición 2026-10-23): el desplegable estrecha su columna (170→104px) para que el
+   NOMBRE del producto respire — con la fija de 170 el nombre quedaba exprimido a ~70px. El
+   popup nativo del select se abre al ancho de la opción MÁS LARGA (capa del navegador), así
+   que la opción entera se lee igual al desplegar. Móvil no lo usa: redefine su plantilla. */
+.rev-cab-duda  { grid-template-columns: minmax(0, 1fr) 104px 84px 64px 64px 72px 62px; }
 .rev-cab-nueva > span, .rev-cab-duda > span { grid-row: 1; }   /* UNA línea de etiquetas, por orden */
 .rev-cab-nueva span:not(:first-child), .rev-cab-duda span:not(:first-child) { text-align: center; }
 .rev-fila-nueva, .rev-fila-duda {
@@ -708,7 +712,7 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   margin-bottom: 8px;
 }
 .rev-fila-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 72px 62px; }
-.rev-fila-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 72px 62px; }
+.rev-fila-duda  { grid-template-columns: minmax(0, 1fr) 104px 84px 64px 64px 72px 62px; }
 /* Celda envuelta (bugfix 2026-10-21): cada control va DENTRO de su propio <label> con un
    micro-etiqueta encima (.rev-etiqueta). En escritorio la etiqueta va OCULTA — el nombre de la
    columna lo pone la cabecera compartida, que calza con el ancho de la celda; en móvil (≤640px)

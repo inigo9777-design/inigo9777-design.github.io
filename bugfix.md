@@ -246,3 +246,18 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   (`git revert -m 1`, commit `882a4ff`): desplegable restaurado, doc y e2e de vuelta a la era
   select, suite 643/643 verde. Si algún día urge posponer el popup en desktop-emulación,
   re-aplicar revirtiendo el revert (los radios nacen baratos de ahí).
+
+---
+
+- `2026-10-23 · @AI-agent · #bugfix-ocr-duda-desktop-nombre-ancho · síntoma reportado:` en DESKTOP,
+  en la fila de DUDAS el nombre del producto quedaba exprimido (~74px) porque la columna fija del
+  desplegable devoraba 170px del ancho. **Arreglo:** el desplegable estrecha su columna a 104px —
+  el nombre (columna flexible `1fr`) pasa a 140px — y el POPUP nativo del `<select>` conserva su
+  tamaño al desplegar (se abre al ancho de la opción más larga, capa del navegador: la opción
+  entera se lee igual; el popup no es capturable por el harness, comportamiento nativo asumido).
+  De paso: `lineaContexto` ya no pinta comillas `“”` vacías cuando la línea del ticket no llega,
+  y el bloque (D) de `e2e/ocr-despensa.mjs` se moderniza a la era parser-first SOBRE EL
+  DESPLEGABLE (el revert del 2026-10-23 lo había devuelto al estancamiento pre-parser: llevaba
+  rojo desde el rework del 22). **Verificación:** suite 643/643, e2e
+  `dialogos-movil-reticula.mjs` (móvil intacto) y `ocr-despensa.mjs` completos en verde; capturas
+  57-58 (escritorio 1280/1000px).

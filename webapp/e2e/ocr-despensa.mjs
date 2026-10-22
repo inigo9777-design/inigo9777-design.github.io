@@ -219,21 +219,23 @@ try {
     "(E) al arrancar: la lista muestra los DOS pendientes — «Yogur» sigue en fila (2 de su min 3, nada comprado)");
 
   await pageT.evaluate(t => window.__mrcheffProcesarTextoOcr(t),
-    ["3 Leche entera 1,29 €", "2 x Yogur", "1 Pan de pueblo", "TOTAL 12,40 €. GRACIAS"].join("\n"));
+    ["3 LECHE ENTERA 1,29", "2 YOGUR 1,15", "1 PAN DE PUEBLO 0,95", "TOTAL 12,40 €. GRACIAS"].join("\n"));
   ok((await pageT.locator(".rev-seccion h3").allTextContents()).join() === "Nuevos,Dudas",
     "(D) nada exacto en casa: el primer diálogo es YA la revisión con Nuevos ENCIMA de Dudas");
-  ok((await pageT.inputValue("#rev-qty-0")) === "3", "(D) la CANTIDAD la fija la línea del ticket ('3 Leche' → 3)");
-  ok((await pageT.inputValue("#rev-qty-1")) === "2", "(D) '2 x Yogur' → 2");
-  ok((await pageT.inputValue("#rev-qty-2")) === "1", "(D) '1 Pan de pueblo' → 1 (nuevo: se define en la propia fila)");
+  ok((await pageT.inputValue("#rev-qty-0")) === "3", "(D) la CANTIDAD la fija la línea del ticket ('3 LECHE ENTERA' → 3)");
+  ok((await pageT.inputValue("#rev-qty-1")) === "2", "(D) '2 YOGUR' → 2");
+  ok((await pageT.inputValue("#rev-qty-2")) === "1", "(D) '1 PAN DE PUEBLO' → 1 (nuevo: se define en la propia fila)");
   ok((await pageT.locator("option", { hasText: "Yogur natural" }).count()) >= 1,
     "(D) la duda trae el desplegable con la variante de despensa disponible ('Yogur natural')");
 
   // RETíCULA alineada: cada etiqueta de la cabecera queda sobre el campo de su columna (±6px).
-  // La guardia vive aquí porque es geometría real del navegador (jsdom no puede).
+  // La guardia vive aquí porque es geometría real del navegador (jsdom no puede). El control de
+  // la columna «Tipo» es el conmutador 🍎/🏠 (botones, no inputs) — fuera del paralelo.
   const columnas = await pageT.evaluate(() => {
     const centro = el => { const r = el.getBoundingClientRect(); return Math.round(r.left + r.width / 2); };
     return [...document.querySelectorAll(".rev-seccion")].map(sec => {
-      const etiquetas = [...sec.querySelectorAll(".rev-cab-nueva span:not(.rev-col-alimento), .rev-cab-duda span:not(.rev-col-alimento)")];
+      const etiquetas = [...sec.querySelectorAll(".rev-cab-nueva span:not(.rev-col-alimento), .rev-cab-duda span:not(.rev-col-alimento)")]
+        .filter(etq => etq.textContent.trim() !== "Tipo");
       const campos = [...sec.querySelector(".ocr-item").querySelectorAll("select, input[type=number], input[type=checkbox]")];
       return etiquetas.map((etq, i) => ({ texto: etq.textContent.trim(), delta: Math.abs(centro(etq) - (campos[i] ? centro(campos[i]) : -999)) }));
     });
@@ -280,9 +282,10 @@ try {
     foods: JSON.parse(localStorage.getItem("mrcheff.foods") || "[]")
   }));
   ok(d.compraTicket === null, "(D) la lista de la compra NUNCA recibe el ticket (clave de pendientes retirada)");
-  ok(!!d.foods.find(f => f.name === "Leche" && f.qty === 3 && f.score === 7),
-    "(D) el NUEVO 'Leche' entra en la despensa con qty del ticket + su IMPORTANCIA definida en la fila (7)");
-  ok(!!d.foods.find(f => f.name === "Pan" && f.qty === 1), "(D) el NUEVO 'Pan' entra con los criterios por defecto de la fila");
+  ok(!!d.foods.find(f => f.name === "LECHE ENTERA" && f.qty === 3 && f.score === 7),
+    "(D) el NUEVO 'LECHE ENTERA' entra en la despensa con qty del ticket + su IMPORTANCIA definida en la fila (7)");
+  ok(!!d.foods.find(f => f.name === "PAN DE PUEBLO" && f.qty === 1), "(D) el NUEVO 'PAN DE PUEBLO' entra con los criterios por defecto de la fila");
+  ok(!!d.foods.find(f => f.name === "PAN DE PUEBLO" && f.qty === 1), "(D) el NUEVO 'PAN DE PUEBLO' entra con los criterios por defecto de la fila");
   const yo = d.foods.find(f => f.name === "Yogur natural");
   ok(!!yo && yo.qty === 4 && yo.score === 7 && yo.min === 3,
     "(D) la DUDA resuelta con variante SUMA a 'Yogur natural' (2 en casa + 2 del ticket) y su alerta queda 7/3, sin pisar");
