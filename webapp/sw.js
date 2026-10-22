@@ -19,7 +19,7 @@
 // CACHE v6 (2026-10-21, botón flotante "subir encima"): entra modules/scroll-arriba.js al shell.
 // CACHE v7 (2026-10-22, parser del ticket + hogar): entran ocr-ticket-parser.js y
 // categoria-producto.js al shell (requisito 95% de ítems + etiqueta alimento/no-alimentario).
-const CACHE = "mrcheff-v7";
+const CACHE = "mrcheff-v8";
 
 const SHELL = [
   "./",
@@ -30,10 +30,12 @@ const SHELL = [
   "manifest.webmanifest",
   "data/data.js",
   "data/recetas-espanolas-data.js",
+  "data/fotos-recetas-data.js",
   "modules/priority.js",
   "modules/classify.js",
   "modules/recipe-analysis.js",
   "modules/origen-recetas.js",
+  "modules/fotos-recetas.js",
   "modules/innovations.js",
   "modules/util.js",
   "modules/backup.js",

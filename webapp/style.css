@@ -935,6 +935,10 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 
 .recipe-card {
+  /* Acolchado como variables locales: la banda de foto (ver abajo) SANGRA hasta el borde del
+     card con estos mismos números — si un día cambia el acolchado, la foto sigue calzando. */
+  --pad-arriba: 16px;
+  --pad-costados: 18px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -942,12 +946,49 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-l);
-  padding: 16px 18px 18px;
+  padding: var(--pad-arriba) var(--pad-costados) 18px;
   box-shadow: var(--shadow-1);
   cursor: pointer;
   transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
 }
 .recipe-card:hover { box-shadow: var(--shadow-2); border-color: var(--border-strong); }
+
+/* La banda de FOTO (feature imagenes-recetas-cards, 2026-10-22) es el primer ancho completo del
+   card: sangra hasta el borde interior y redondea sólo arriba con el radio del card menos el
+   filete. Altura fija 16/10 con object-fit: cover — cada foto del catálogo encuadra su plato
+   dentro de un marco común para que la rejilla respire pareja. En tres de las cuatro superficies
+   el DOM nace con .recipe-actions delante del todo: el ORDEN visual lo restaura flexbox — foto
+   arriba, acciones abajo-derecha como pie del card (la foto siempre primer plato). */
+.recipe-photo {
+  order: -1;
+  display: block;
+  width: calc(100% + 2 * var(--pad-costados));
+  margin: calc(-1 * var(--pad-arriba)) calc(-1 * var(--pad-costados)) 0;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  background: var(--card-soft);          /* papel mientras llega el jpg (y soporte de la banda) */
+  border-bottom: 1px solid var(--border);
+  border-radius: calc(var(--radius-l) - 1px) calc(var(--radius-l) - 1px) 0 0;
+}
+.recipe-card .recipe-actions { order: 5; }
+
+/* Placeholder de las cards SIN foto del catálogo (recetas de usuario): nada de material calco —
+   la INICIAL del plato en la serif editorial sobre papel, un solo gesto. */
+.recipe-photo.recipe-foto-falta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.recipe-photo.recipe-foto-falta::before {
+  content: attr(data-letra);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 2.6rem;
+  color: var(--brand);
+  line-height: 1;
+  opacity: 0.75;
+}
 
 @media (prefers-reduced-motion: no-preference) {
   .recipe-card:hover { transform: translateY(-2px); }
