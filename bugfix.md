@@ -222,3 +222,14 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   e2e real en `e2e/dialogos-movil-reticula.mjs` (12 checks de geometría a 390px: 4 pistas
   reales, campos encima del nombre, desplegable línea completa, sin desborde — capturas 51-52)
   + suite completa verde (640/640).
+
+---
+
+- `2026-10-23 · @AI-agent · #bugfix-ocr-sub-movil-sobre-nombre · síntoma reportado:` en el PWA
+  móvil (≤640px), en las filas de DUDAS del diálogo 2 el tag de tipo («Cereal», «Verdura»,
+  «🏠 Producto de hogar»…) salía ENCIMA del campo del nombre — solapado con el input. **Causa:**
+  al añadir la línea propia del conmutador 🍎/🏠 (2026-10-22), la regla combinada del sub (`{ grid-area: 4 / 1 / 5 / -1 }` para
+  NUEVOS y DUDAS por igual) quedó en la línea 4 — la MISMA en la que vive el nombre de la fila
+  DUDA (su retícula tiene UNA línea más: desplegable + conmutador). **Arreglo:** regla propia
+  `.rev-fila-duda .rev-sub { grid-area: 5 / 1 / 6 / -1 }` tras las áreas de Dudas. La guardia
+  e2e sólo asertaba el sub bajo el nombre en NUEVOS — añadió el aserto de Dudas (14 checks).
