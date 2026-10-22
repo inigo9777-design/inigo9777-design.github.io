@@ -788,6 +788,10 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   .rev-fila-duda .rev-celda-include { grid-area: 2 / 4; }
   .rev-fila-duda .rev-celda-cat     { grid-area: 3 / 1 / 4 / -1; }
   .rev-fila-duda .rev-celda-nombre  { grid-area: 4 / 1 / 5 / -1; }
+  /* El SUB de DUDAS baja UNA MÁS: la regla combinada lo dejó en la línea 4 — la MISMA del
+     nombre — y el tag («Cereal», «🏠 Producto de hogar»…) salía ENCIMA del input (bugfix
+     2026-10-23). Su retícula tiene UNA línea más que la de NUEVOS: desplegable + conmutador. */
+  .rev-fila-duda .rev-sub { grid-area: 5 / 1 / 6 / -1; }
   .rev-etiqueta { display: block; font-size: 0.68rem; color: var(--muted); text-align: center; }
   /* Las etiquetas de los campos A TODO LO ANCHO abrazan a la izquierda (un "Mínimo" centrado
      en toda la anchura despista de qué campo nombra). */

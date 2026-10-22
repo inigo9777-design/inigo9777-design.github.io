@@ -119,6 +119,7 @@ ok(!d2.nueva.ph, "revisión NUEVOS: sin desborde horizontal");
 ok(d2.duda.pistas === 4 && d2.varianteArriba, "revisión DUDAS: desplegable en su línea completa ENCIMA de los campos y del nombre");
 ok(d2.varianteAncho >= d2.duda.anchoFila - 40, `revisión DUDAS: desplegable aprovecha la línea (${Math.round(d2.varianteAncho)}px de ${Math.round(d2.duda.anchoFila)}px)`);
 ok(d2.duda.nombreLlena, "revisión DUDAS: nombre también en su línea completa");
+ok(d2.duda.subAbajo, "revisión DUDAS: tag + línea del ticket DEBAJO del nombre — nada de solapamiento");
 
 // el conmutador 🍎/🏠 del alta vive debajo de los campos y encima del nombre
 const conmutador = await page.evaluate(() => {
