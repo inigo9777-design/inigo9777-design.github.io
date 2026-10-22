@@ -273,3 +273,16 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   desktop con su plantilla propia). **Verificación:** e2e
   `dialogos-movil-reticula.mjs` actualizado (asertos del nuevo orden + `nombrePrimeroEnDuda`) y
   en verde, suite 643/643; capturas 51-52 + 59.
+
+---
+
+- `2026-10-23 · @AI-agent · #bugfix-ocr-nuevos-movil-nombre-primero · petición del usuario:` la
+  fila de NUEVOS mantenia el nombre abajo (campos arriba) — al revés del patrón de Dudas del
+  mismo día — y la etiqueta «Incluir» colgaba unos píxeles por debajo de
+  Cantidad/Importancia/Mínimo en LAS DOS secciones. **Arreglo:** mismo rostro que Dudas: el
+  NOMBRE sube a la línea 1 (campos → conmutador → sub detrás) y la FILA alinea al ARRIBA
+  (`align-items: start`) — el centrado vertical de la celda «Incluir» era el hueso (checkbox
+  de 24px vs inputs más altos): el check recupera su centrado frente a los campos con
+  `margin-top: 6px` y las 4 etiquetas quedan a la misma altura (Δ 0px medido). **Verificación:**
+  e2e `dialogos-movil-reticula.mjs` actualizado (nombrePrimero/enNueva, conmutador bajo los
+  campos, «Incluir» alineado ≤3px en ambas secciones), suite 643/643; capturas 51-52.
