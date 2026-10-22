@@ -665,6 +665,21 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 .ocr-demo-banner strong { color: inherit; }
 
+/* Señal del PASE de la demo (2026-10-22): el botón que conduce la demo (Confirmar y revisar
+   el resto / Añadir a la despensa) pulsa con un aro de la marca — el mismo tono del aro del
+   foco del tutorial, para que "el elemento a tocar" se lea igual en los pasos que en los
+   diálogos. El texto-guía va en el párrafo intro de cada diálogo (sólo en modo demo). */
+.btn-demo-senal {
+  animation: pulso-demo-senal 1.5s ease-in-out infinite;
+}
+@keyframes pulso-demo-senal {
+  0%, 100% { box-shadow: 0 0 0 0 transparent, 0 0 0 3px var(--brand-soft); }
+  50%      { box-shadow: 0 0 0 0 transparent, 0 0 0 7px var(--brand-soft); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-demo-senal { animation: none; box-shadow: 0 0 0 4px var(--brand-soft); }   /* estático: sin pulso */
+}
+
 .ocr-cabecera {
   display: flex; gap: 10px; align-items: center;
   font-size: 0.78rem; color: var(--muted);

@@ -1340,7 +1340,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <h2>🎫 ${pasos.length > 1 ? "1 de 2 · " : ""}Ya lo tienes en el inventario</h2>
           <p class="muted">Del ticket, estos ya estaban en tu Inventario actual. La cantidad es la que
               leí del ticket: ajústala si hace falta y confirma — la compra <strong>suma</strong> a lo
-              que había y la alerta de cada alimento queda como estaba.</p>
+              que había y la alerta de cada alimento queda como estaba.${demoDeTutorial ? " Para continuar, toca <strong>Confirmar y revisar el resto</strong>." : ""}</p>
           <div class="ocr-cabecera" aria-hidden="true">
             <span>Alimento</span><span>Cantidad</span><span>Incluir</span>
           </div>
@@ -1379,7 +1379,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : "";
         cuerpo = `
           <h2>🎫 ${pasos.length > 1 ? "2 de 2 · " : ""}Añade lo nuevo y resuelve las dudas</h2>
-          <p class="muted">Todo lo confirmado aquí acaba en tu Inventario actual (sin pasar por la lista de la compra).</p>
+          <p class="muted">Todo lo confirmado aquí acaba en tu Inventario actual (sin pasar por la lista de la compra).${demoDeTutorial ? " Para continuar, toca <strong>Añadir a la despensa</strong>." : ""}</p>
           ${seccionNuevos}${seccionDudas}`;
       }
       const esFaseExactos = pasoNombre === "despensa";
@@ -1395,8 +1395,8 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="modal-footer">
           <button class="btn ghost" data-close>Cancelar</button>
           ${esFaseExactos
-            ? `<button class="btn primary" data-confirmar-exactos>${pasos.length === 2 ? "Confirmar y revisar el resto →" : "Añadir a la despensa"}</button>`
-            : `<button class="btn primary" data-revision-guardar>Añadir a la despensa</button>`}
+            ? `<button class="btn primary${demoDeTutorial ? " btn-demo-senal" : ""}" data-confirmar-exactos>${pasos.length === 2 ? "Confirmar y revisar el resto →" : "Añadir a la despensa"}</button>`
+            : `<button class="btn primary${demoDeTutorial ? " btn-demo-senal" : ""}" data-revision-guardar>Añadir a la despensa</button>`}
         </div>`;
       abrirModal(esFaseExactos ? "Confirmar la compra de los alimentos ya en casa" : "Añade lo nuevo y resuelve las dudas de la foto");
       const primero = esFaseExactos ? $(".exact-qty", modalContent) : ($(".ocr-nombre input, .rev-campo-nombre", modalContent));

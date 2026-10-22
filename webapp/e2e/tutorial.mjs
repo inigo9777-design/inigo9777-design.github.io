@@ -136,8 +136,11 @@ try {
   await page.waitForSelector("#modal:not(.hidden)", { timeout: 3000 });
   const bannerDemo = await page.$eval(".ocr-demo-banner", el => el.textContent);
   ok(bannerDemo.includes("nada se guarda"), "(4d1) el banner dice que la demo no guarda nada");
+  const intro1 = await page.$eval("#modal-content .muted", el => el.textContent);
+  ok(intro1.includes("toca Confirmar y revisar el resto"), "(4d1b) el intro guía el click para continuar");
   const filaExacta = await page.$eval(".ocr-item .ocr-nombre", el => el.textContent);
   ok(filaExacta.includes("LECHE ENTERA"), "(4d2) diálogo 1: el exacto del ticket de ejemplo (\"Ya tienes 1\")");
+  ok(await page.$eval("[data-confirmar-exactos]", el => el.classList.contains("btn-demo-senal")), "(4d2b) el botón del pase lleva la señal visual (aro que pulsa)");
   await page.screenshot({ path: path.join(OUT, "76-tutorial-demo-dialogo1.png") });
   await page.evaluate(() => document.querySelector("[data-confirmar-exactos]").click());
   await page.waitForSelector(".rev-seccion", { timeout: 2000 });
@@ -145,6 +148,14 @@ try {
   ok(secciones.join(",") === "Nuevos,Dudas", "(4d3) diálogo 2: secciones Nuevos y Dudas");
   const opcionesDuda = await page.$$eval(".rev-campo-variante option", els => els.map(e => e.textContent));
   ok(opcionesDuda.some(t => t.includes("Yogur natural · tienes 2")), "(4d4) la duda ofrece la variante de la despensa de juguete");
+  // GEL HIGIENE es producto de HOGAR: nace preseleccionado en 🏠 y el intro guía el cierre.
+  const hogarPresel = await page.$eval(".rev-fila-nueva .rev-cat-btn[data-cat='hogar']", el => el.getAttribute("aria-pressed"));
+  ok(hogarPresel === "true", "(4d4b) GEL HIGIENE es hogar: conmutador nace en 🏠");
+  const nombreNuevo = await page.$eval(".rev-fila-nueva .rev-campo-nombre", el => el.value);
+  ok(nombreNuevo.includes("GEL HIGIENE"), "(4d4c) la fila nueva es GEL HIGIENE (del ticket de ejemplo)");
+  const intro2 = await page.$eval("#modal-content > p.muted", el => el.textContent);
+  ok(intro2.includes("toca Añadir a la despensa"), "(4d4d) el intro del diálogo 2 guía el click final");
+  ok(await page.$eval("[data-revision-guardar]", el => el.classList.contains("btn-demo-senal")), "(4d4e) el botón final también lleva la señal visual");
   await page.screenshot({ path: path.join(OUT, "77-tutorial-demo-dialogo2.png") });
   await page.evaluate(() => document.querySelector("[data-revision-guardar]").click());
   await page.waitForSelector("#modal.hidden", { timeout: 2000, state: "attached" });

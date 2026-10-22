@@ -21,7 +21,7 @@
   // norma, prefijo con palabra ≥5 letras igual que el matcher compartido — "papeles"→"papel",
   // "detergentes"→"detergente"; "gel" (3) sólo exacto para no tragar "gelatina" ni "gelificante").
   const PALABRAS_HOGAR = [
-    "papel", "pañuelo", "panuelo", "higienico", "higiénico", "detergente", "lejia", "lejía",
+    "papel", "pañuelo", "panuelo", "higienico", "higiénico", "higiene", "detergente", "lejia", "lejía",
     "suavizante", "amoniaco", "limpiador", "fregasuelos", "fregonas", "fregona", "bayeta",
     "esponja", "champu", "champú", "jabon", "jabón", "acondicionador", "crema dental",
     "cepillo", "desodorante", "colonia", "pañal", "panal", "toallita", "compresa", "tapon",

@@ -179,14 +179,21 @@ italiana" (see `modules/origen-recetas.js` below).
   (pasoValido lo valida: sólo "escaner") y apunta a `#btn-ocr-foto` (visible en escritorio y
   móvil); su click va por el listener de captura con `stopPropagation()*preventDefault()` — el
   gesto NO abre el file-picker real — y llama `lanzarDemoEscaner()`: datos de juguete en la
-  pública `ocr.datosDemoEscaner()` (ticket `"2 LECHE ENTERA 1,29 / 2 YOGUR 1,15 / 1 GEL HIGIEN
+  pública `ocr.datosDemoEscaner()` (ticket `"2 LECHE ENTERA 1,29 / 2 YOGUR 1,15 / 1 GEL HIGIENE
   2,90"` + despensa demo "Leche entera" y "Yogur natural") tal que el reparto real saca el EXACTO
   (diálogo 1, "Ya tienes 1"), la DUDA (desplegable "Yogur natural · tienes 2") y el NUEVO de
-  HOGAR (conmutador 🏠 preseleccionado) → `pasosDeConfirmacion = ["despensa","revisar"]`, los dos
+  HOGAR (conmutador 🏠 preseleccionado — "higiene" entró en el diccionario de
+  `categoria-producto.js` con esta petición: los tickets dicen "GEL HIGIENE" y el matcher exige
+  que el token empiece/termine por la palabra del diccionario, así que "higienico" no cubría el
+  token "higiene") → `pasosDeConfirmacion = ["despensa","revisar"]`, los dos
   diálogos. `abrirConfirmarOcr(candidatos, textoCrudo, { demo: true, foods })` corre el flujo
   sobre la despensa inyectada (`despensaVista`) con un banner `.ocr-demo-banner` (tono de marca)
-  en ambas pantallas y las DOS confirmaciones SIN persistir (sólo conducen el flujo visual);
-  el avance del paso lo manda `closeModal` — la bandera `demoEscanerAbierta` hace que CUALQUIER
+  en ambas pantallas y las DOS confirmaciones SIN persistir (sólo conducen el flujo visual). En
+  la demo los intros de cada diálogo AÑADEN la guía ("Para continuar, toca Confirmar y revisar
+  el resto" / "…Añadir a la despensa") y el botón que conduce el pase lleva la SEÑAL VISUAL
+  `.btn-demo-senal` (aro `--brand-soft` que pulsa, reduce-motion → estático: el mismo lenguaje
+  del aro del foco, sobre el botón); el avance del paso lo manda `closeModal` — la bandera
+  `demoEscanerAbierta` hace que CUALQUIER
   vía de cierre (✕, fondo, Escape y footer) devuelva el control al paso del tutorial. El paso
   nunca se escribe en `mrcheff.foods` ni destella la lista. **Silencio de campos
   (petición 2026-10-21):** en los accionables que apuntan a un form-control (input/textarea/

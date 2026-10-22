@@ -434,7 +434,8 @@ describe("ocr-despensa — datosDemoEscaner (la demo del escáner en el tutorial
     });
     expect(previo.directos.map(d => d.nombre)).toEqual(["LECHE ENTERA"]);   // diálogo 1 (exacto)
     expect(previo.dudosos.map(d => d.nombre)).toEqual(["YOGUR"]);           // desplegable de variantes
-    expect(previo.nuevos.map(d => d.nombre)).toEqual(["GEL HIGIEN"]);       // conmutador 🍎/🏠 preseleccionado a hogar
+    expect(previo.nuevos.map(d => d.nombre)).toEqual(["GEL HIGIENE"]);      // conmutador 🍎/🏠 preseleccionado a hogar
+    expect(CANDIDATOS(demo).find(c => c.nombre === "GEL HIGIENE").hogar).toBe(true);   // "higiene" ∈ diccionario de hogar
     expect(ocrDespensa.pasosDeConfirmacion(previo)).toEqual(["despensa", "revisar"]);
     // Las VARIANTES de la duda no viajan en la fila: el diálogo las saca al vuelo con el casador
     // (misma máquina del "🛒 Despensa?" de la lista) — con la despensa demo sale "Yogur natural".
