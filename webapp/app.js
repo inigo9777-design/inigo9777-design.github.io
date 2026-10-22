@@ -1184,6 +1184,17 @@ document.addEventListener("DOMContentLoaded", () => {
            <label class="rev-celda rev-celda-min" for="rev-min-${o}"><span class="rev-etiqueta">Mínimo</span>
              <input type="number" id="rev-min-${o}" class="rev-num rev-campo-min" min="0" step="1" value="${d.min}" aria-label="Cantidad mínima para avisarte de ${escapeHTML(d.nombre)}">
            </label>`;
+      // CONMUTADOR 🍎/🏠 (petición 2026-10-22): para el producto que NACE en esta fila, la
+      // etiqueta alimento/hogar la decide la persona — el autodiagnóstico del vocabulario sólo
+      // PRESELECCIONA (los íconos son la misma voz del conmutador del alta manual).
+      const celdaCategoria = `
+        <div class="rev-celda rev-celda-cat" role="group" aria-label="¿Es alimento o producto de hogar?">
+          <span class="rev-etiqueta">Tipo</span>
+          <div class="food-cat-group">
+            <button type="button" class="btn ghost small food-cat-btn rev-cat-btn" data-cat="alimento" aria-pressed="${d.hogar ? "false" : "true"}" aria-label="Alimento">🍎</button>
+            <button type="button" class="btn ghost small food-cat-btn rev-cat-btn" data-cat="hogar" aria-pressed="${d.hogar ? "true" : "false"}" aria-label="Producto de hogar">🏠</button>
+          </div>
+        </div>`;
       if (!esDuda) {
         return `
         <div class="ocr-item rev-fila-nueva" data-o="${o}">
@@ -1195,6 +1206,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <input type="number" id="rev-qty-${o}" class="rev-campo-qty" min="0" step="1" value="${d.qty}" aria-label="Cantidad comprada de ${escapeHTML(d.nombre)}">
           </label>
           ${celdasCriterio}
+          ${celdaCategoria}
           <label class="rev-celda rev-celda-include"><span class="rev-etiqueta">Incluir</span>
             <input type="checkbox" class="ocr-include rev-campo-include" ${d.incluir ? "checked" : ""} aria-label="Incluir ${escapeHTML(d.nombre)}">
           </label>
@@ -1217,6 +1229,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <input type="number" id="rev-qty-${o}" class="rev-campo-qty" min="0" step="1" value="${d.qty}" aria-label="Cantidad comprada de ${escapeHTML(d.nombre)}">
           </label>
           ${celdasCriterio}
+          ${celdaCategoria}
           <label class="rev-celda rev-celda-include"><span class="rev-etiqueta">Incluir</span>
             <input type="checkbox" class="ocr-include rev-campo-include" ${d.incluir ? "checked" : ""} aria-label="Incluir ${escapeHTML(d.nombre)}">
           </label>
@@ -1228,17 +1241,21 @@ document.addEventListener("DOMContentLoaded", () => {
     // deshabilitan — la alerta de un alimento ya vivido no se redefine desde el ticket; sólo la
     // CANTIDAD sigue siendo de la persona. Antes de resolver, los campos propios (por defecto
     // 5/1) salen y se editan; al volver a "es nuevo" se restauran los valores que hubiera
-    // escrito (snapshot al primer cambio de variante).
+    // escrito (snapshot al primer cambio de variante). La máquina consulta la etiqueta EN VIVO
+    // (d.hogar): si la persona conmuta la fila a hogar, el criterio vuelve al fijo 5/0 y el
+    // conmutador compra/venta duerme junto a la despensa (su variante ya no decide nada).
     function conectaVariante(fila) {
       const selector = $("select", fila);
       if (!selector) return;
       const d = decision[Number(fila.dataset.o)];
-      if (d && d.hogar) return;                    // hogar: sin máquina de alerta — sus celdas quedan fijas
+      if (!d) return;
+      const catBtns = $$(".rev-cat-btn", fila);
       const camposAlerta = [`#rev-score-${fila.dataset.o}`, `#rev-min-${fila.dataset.o}`].map(sel => $(sel, modalContent));
       let propio = null;                                    // lo suyo, para restaurar si deshace la variante
       const aplicaAlerta = () => {
         const enCasa = selector.value ? foods.find(f => String(f.id) === selector.value) : null;
-        camposAlerta.forEach(campo => { if (campo) campo.disabled = !!enCasa; });
+        catBtns.forEach(b => { b.disabled = !!enCasa; });   // resuelta con casa: la categoría ya no decide nada
+        camposAlerta.forEach(campo => { if (campo) campo.disabled = !!enCasa || d.hogar; });
         if (enCasa) {
           if (!propio) propio = {
             score: camposAlerta[0] ? camposAlerta[0].value : "",
@@ -1246,6 +1263,9 @@ document.addEventListener("DOMContentLoaded", () => {
           };
           if (camposAlerta[0]) camposAlerta[0].value = Number.isFinite(enCasa.score) ? String(enCasa.score) : "5";
           if (camposAlerta[1]) camposAlerta[1].value = Number.isFinite(enCasa.min) ? String(enCasa.min) : "0";
+        } else if (d.hogar) {
+          if (camposAlerta[0]) camposAlerta[0].value = "5";    // hogar: criterio fijo (avisa al agotarse)
+          if (camposAlerta[1]) camposAlerta[1].value = "0";
         } else if (propio) {
           if (camposAlerta[0] && propio.score !== "") camposAlerta[0].value = propio.score;
           if (camposAlerta[1] && propio.min !== "") camposAlerta[1].value = propio.min;
@@ -1253,6 +1273,44 @@ document.addEventListener("DOMContentLoaded", () => {
       };
       aplicaAlerta();
       selector.addEventListener("change", aplicaAlerta);
+    }
+
+    // ── Conmutador 🍎/🏠 de las filas NUEVAS (petición 2026-10-22): el autodiagnóstico del
+    // vocabulario manda SÓLO como preselección — la etiqueta del producto que nace aquí la
+    // decide la persona. Al pasar a Hogar el criterio queda fijo (importancia 5 neutra /
+    // mínimo 0: avisa al agotarse) deshabilitado y la fila se renombra ("Producto", tag 🏠);
+    // al volver a Alimento se restauran los valores que hubiera escrito. Guardar lee d.hogar.
+    function conectaCategoria(fila) {
+      const grupo = $(".rev-celda-cat", fila);
+      if (!grupo) return;                              // filas del diálogo 1: sin conmutador
+      const d = decision[Number(fila.dataset.o)];
+      if (!d) return;
+      const btnAlimento = $(".rev-cat-btn[data-cat='alimento']", grupo);
+      const btnHogar = $(".rev-cat-btn[data-cat='hogar']", grupo);
+      if (!btnAlimento || !btnHogar) return;
+      const camposAlerta = [`#rev-score-${fila.dataset.o}`, `#rev-min-${fila.dataset.o}`].map(sel => $(sel, modalContent));
+      const etqNombre = $(".rev-celda-nombre .rev-etiqueta", fila);
+      const etiquetaFila = $(".rev-sub .ocr-tipo", fila);
+      const propio = {                                  // lo escrito, para restaurar si vuelve a Alimento
+        score: camposAlerta[0] ? camposAlerta[0].value : "",
+        min: camposAlerta[1] ? camposAlerta[1].value : ""
+      };
+      const pinta = hogar => {
+        btnAlimento.setAttribute("aria-pressed", String(!hogar));
+        btnHogar.setAttribute("aria-pressed", String(!!hogar));
+        if (etqNombre) etqNombre.textContent = hogar ? "Producto" : "Alimento";
+        if (etiquetaFila) etiquetaFila.textContent = hogar ? "🏠 Producto de hogar" : (etqTipo[d.tipo] || "Otro");
+      };
+      const setHogar = hogar => {
+        if (hogar === d.hogar) return;
+        if (camposAlerta[0]) { camposAlerta[0].value = hogar ? "5" : propio.score; camposAlerta[0].disabled = !!hogar; camposAlerta[0].title = hogar ? "Producto de hogar: no lleva importancia" : ""; }
+        if (camposAlerta[1]) { camposAlerta[1].value = hogar ? "0" : propio.min; camposAlerta[1].disabled = !!hogar; camposAlerta[1].title = hogar ? "Producto de hogar: avisa cuando se agote" : ""; }
+        d.hogar = hogar;
+        pinta(hogar);
+      };
+      pinta(d.hogar);
+      btnAlimento.addEventListener("click", () => setHogar(false));
+      btnHogar.addEventListener("click", () => setHogar(true));
     }
 
     function renderDialogo() {
@@ -1274,12 +1332,13 @@ document.addEventListener("DOMContentLoaded", () => {
               <h3>Nuevos</h3>
               <p class="muted">Nada de esto está en tu Inventario actual: define en cada fila su IMPORTANCIA
                   (prioridad para avisarte) y su MÍNIMO, junto al nombre y la cantidad — al confirmar
-                  entran en la despensa con esa alerta. Los productos de 🏠 HOGAR (detergente, papel…)
-                  no piden criterio: entran tal cual y avisan cuando se agoten.</p>
+                  entran en la despensa con esa alerta. El conmutador TIPO decide si la compra es
+                  comida (🍎) o un producto de 🏠 HOGAR (detergente, papel…): los de hogar no piden
+                  criterio, avisan cuando se agoten.</p>
               <div class="rev-cab-nueva" aria-hidden="true">
                 <span class="rev-col-alimento">Alimento</span>
                 <span>Cantidad</span><span>Importancia</span>
-                <span>Mínimo</span><span>Incluir</span>
+                <span>Mínimo</span><span>Tipo</span><span>Incluir</span>
               </div>
               ${filasDelPaso("revisar").filter(c => previo.nuevos.some(n => nombreDePago(n) === nombreDePago(c))).map(c => filaRevisionHTML(c, false)).join("")}
             </div>`
@@ -1294,7 +1353,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <span class="rev-col-alimento">Alimento</span>
                 <span>De tu despensa</span>
                 <span>Cantidad</span><span>Importancia</span>
-                <span>Mínimo</span><span>Incluir</span>
+                <span>Mínimo</span><span>Tipo</span><span>Incluir</span>
               </div>
               ${filasDelPaso("revisar").filter(c => previo.dudosos.some(n => nombreDePago(n) === nombreDePago(c))).map(c => filaRevisionHTML(c, true)).join("")}
             </div>`
@@ -1318,7 +1377,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const primero = esFaseExactos ? $(".exact-qty", modalContent) : ($(".ocr-nombre input, .rev-campo-nombre", modalContent));
       if (primero) primero.select();
       $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
-      $$(".ocr-item", modalContent).forEach(fila => conectaVariante(fila));
+      $$(".ocr-item", modalContent).forEach(fila => { conectaVariante(fila); conectaCategoria(fila); });
       const botonExactos = $("[data-confirmar-exactos]", modalContent);
       if (botonExactos) botonExactos.addEventListener("click", confirmarExactos);
       const botonRevision = $("[data-revision-guardar]", modalContent);
@@ -1357,11 +1416,15 @@ document.addEventListener("DOMContentLoaded", () => {
     function confirmarRevision() {
       // Cosecha del diálogo 2: nombre/cantidad/importancia/mínimo/variante — con variante elegida
       // esos campos no mandan (la alerta es la del alimento ya en casa) y el módulo los ignora.
+      // La etiqueta se cosecha del CONMUTADOR (el estado en vivo del diálogo es la verdad, no la
+      // preselección del autodiagnóstico con la que nació la fila).
       $$(".ocr-item", modalContent).forEach(fila => {
         const o = Number(fila.dataset.o);
         const d = decision[o];
         d.incluir = $(".ocr-include", fila).checked;
         if (!d.incluir) return;
+        const catHogar = $(".rev-cat-btn[data-cat='hogar']", fila);
+        if (catHogar) d.hogar = catHogar.getAttribute("aria-pressed") === "true";
         d.nombre = $("#rev-nombre-" + o, fila).value.trim();
         const qty = parseInt($("#rev-qty-" + o, fila).value, 10);
         if (Number.isFinite(qty) && qty >= 0) d.qty = qty;
