@@ -85,6 +85,7 @@ describe("🛒 Lista de la compra DINÁMICA — Card 3 repinta al cambiar el Inv
     const app = mkApp([{ ...despensaBase[0], qty: 4 }, despensaBase[1]]);        // cubierta al arrancar
     expect(nombresDe(app)).toEqual(["Merluza"]);
     app.document.querySelector('[data-del="y1"]').click();
+    app.document.querySelector("[data-eliminar-confirmar]").click();   // sierra el diálogo de confirmación
     expect(nombresDe(app)).toEqual(["Yogur", "Merluza"]);
     const guardado = JSON.parse(app.localStorage.getItem("mrcheff.foods"));
     expect(guardado.some(f => f.id === "y1")).toBe(false);                      // borrado persistido
