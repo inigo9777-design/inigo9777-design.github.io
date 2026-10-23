@@ -623,17 +623,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const level = urgencyLevel(f.score);
     const li = document.createElement("li");
     li.className = "food-item" + (f.checked ? " checked" : "") + " urg-" + level + (low ? " low" : "") + (esHogar ? " cat-hogar" : "");
+    // El id también llega por backup/sync (se preserva tal cual) — se escapa como cualquier otro campo de usuario.
+    const idSeguro = escapeHTML(f.id);
     li.innerHTML = `
-      <input type="checkbox" data-id="${f.id}" ${f.checked ? "checked" : ""} aria-label="Hoy está en casa: ${escapeHTML(f.name)}">
+      <input type="checkbox" data-id="${idSeguro}" ${f.checked ? "checked" : ""} aria-label="Hoy está en casa: ${escapeHTML(f.name)}">
       <span class="food-name">${escapeHTML(f.name)}</span>
-      <span class="food-qty" title="En casa / mínimo para avisar">${qty} / ${min}</span>
+      <span class="food-qty" title="En casa / mínimo para avisar">${escapeHTML(qty)} / ${escapeHTML(min)}</span>
       ${esHogar
         ? `<span class="food-score cat-hogar" title="Producto de hogar">🏠</span>`
-        : `<span class="food-score urg-${level}" title="Importancia">${f.score}</span>`}
+        : `<span class="food-score urg-${level}" title="Importancia">${escapeHTML(f.score)}</span>`}
       <span class="food-actions">
-        <button class="btn ghost small" data-inc="${f.id}" title="Sumar 1" data-step="1" aria-label="Sumar 1 a ${escapeHTML(f.name)}">➕</button>
-        <button class="btn ghost small" data-inc="${f.id}" title="Restar 1" data-step="-1" aria-label="Restar 1 a ${escapeHTML(f.name)}">➖</button>
-        <button class="btn ghost small" data-del="${f.id}" title="Eliminar" aria-label="Eliminar ${escapeHTML(f.name)}">🗑</button>
+        <button class="btn ghost small" data-inc="${idSeguro}" title="Sumar 1" data-step="1" aria-label="Sumar 1 a ${escapeHTML(f.name)}">➕</button>
+        <button class="btn ghost small" data-inc="${idSeguro}" title="Restar 1" data-step="-1" aria-label="Restar 1 a ${escapeHTML(f.name)}">➖</button>
+        <button class="btn ghost small" data-del="${idSeguro}" title="Eliminar" aria-label="Eliminar ${escapeHTML(f.name)}">🗑</button>
       </span>`;
     lista.appendChild(li);
   }
@@ -733,7 +735,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ${m.items.map(f => `
             <li class="alert-row urg-${urgencyLevel(f.score)}">
               <span class="alert-name"><strong>${escapeHTML(f.name)}</strong></span>
-              <span class="alert-meta">tienes <b>${f.qty ?? 0}</b> · mínimo <b>${f.min ?? 0}</b> · importancia <b>${f.score}/10</b></span>
+              <span class="alert-meta">tienes <b>${escapeHTML(f.qty ?? 0)}</b> · mínimo <b>${escapeHTML(f.min ?? 0)}</b> · importancia <b>${escapeHTML(f.score)}/10</b></span>
             </li>`).join("")}
         </ul>
       </div>`;
@@ -806,6 +808,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const ocrBtnFoto = $("#btn-ocr-foto");
   const ocrFile = $("#ocr-file");
   const TESSERACT_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+  // SRI (audit security 2026-10-23): hash SHA-384 del fichero exacto fijado, verificado contra
+  // jsdelivr y unpkg (mismo byte→mismo hash). Un CDN comprometido no puede ejecutar código aquí.
+  const TESSERACT_SRI = "sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F";
   let tesseractPromesa = null;
 
   // Motor del OCR con carga PEREZOSA: cero coste mientras no se use la función (un <script> del CDN
@@ -817,6 +822,8 @@ document.addEventListener("DOMContentLoaded", () => {
       tesseractPromesa = new Promise((resolve, reject) => {
         const s = document.createElement("script");
         s.src = TESSERACT_CDN;
+        s.integrity = TESSERACT_SRI;          // el navegador rechaza el script si el CDN sirve otro byte
+        s.crossOrigin = "anonymous";          // SRI exige modo CORS
         s.async = true;
         s.onload = () => resolve(window.Tesseract);
         s.onerror = () => {
@@ -837,6 +844,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // perezosa que Tesseract y SÓLO si la foto lo necesita) y dar al OCR el resultado. La conversión
   // también es local: la foto sigue sin salir del dispositivo.
   const HEIC_CDN = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
+  const HEIC_SRI = "sha384-OTofQ0MEeiSgh62havBcemCIK0gqj809wX6UA0uPISNMRnR6NZyCdGzX3SbLrgwL";   // SRI, misma verificación doble que Tesseract
   const HEIC_CargaMaxima = 90000;              // un CDN caído debe FALLAR con su toast, no congelar el modal
   let heicPromesa = null;
 
@@ -864,6 +872,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }, HEIC_CargaMaxima);
         const s = document.createElement("script");
         s.src = HEIC_CDN;
+        s.integrity = HEIC_SRI;               // SRI: un CDN alterado no llega a convertir la foto
+        s.crossOrigin = "anonymous";          // SRI exige modo CORS
         s.async = true;
         s.onload = () => {
           const fn = funcionHeic2any();
@@ -1568,7 +1578,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ${fotoRecetaHTML(r)}
         <h3>${escapeHTML(r.title)}</h3>
         <div class="recipe-meta">
-          <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
+          <span class="tag meal-${escapeHTML(r.meal)}">${mealLabels[r.meal]}</span>
           ${badgeOrigenHTML(r)}
           ${badgeSyncHTML(r)}
         </div>`;
@@ -1686,17 +1696,17 @@ document.addEventListener("DOMContentLoaded", () => {
       card.dataset.id = r.id;
       card.innerHTML = `
         <div class="recipe-actions">
-          <button data-edit="${r.id}" title="Editar título, ingredientes o pasos" aria-label="Editar receta">✏️</button>
-          <button data-cook="${r.id}" title="Cocinar hoy" aria-label="Cocinar hoy">🍳</button>
-          <button data-del="${r.id}" title="Eliminar" aria-label="Eliminar receta">🗑</button>
+          <button data-edit="${escapeHTML(r.id)}" title="Editar título, ingredientes o pasos" aria-label="Editar receta">✏️</button>
+          <button data-cook="${escapeHTML(r.id)}" title="Cocinar hoy" aria-label="Cocinar hoy">🍳</button>
+          <button data-del="${escapeHTML(r.id)}" title="Eliminar" aria-label="Eliminar receta">🗑</button>
         </div>
         ${fotoRecetaHTML(r)}
         <h3>${escapeHTML(r.title)}</h3>
         <div class="recipe-meta">
-          <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
+          <span class="tag meal-${escapeHTML(r.meal)}">${mealLabels[r.meal]}</span>
           ${badgeOrigenHTML(r)}
           ${badgeSyncHTML(r)}
-          <span class="muted" style="font-size:.8rem">${r.ingredients.length} ingr.</span>
+          <span class="muted" style="font-size:.8rem">${Array.isArray(r.ingredients) ? r.ingredients.length : 0} ingr.</span>
         </div>`;
       // Abrir detalle al hacer click en la tarjeta (el lápiz abre el EDITOR directamente: para eso está;
       // el 🍳 registra "cocinado hoy" sin abrir el modal — ni edita ni borra)
@@ -1882,13 +1892,13 @@ document.addEventListener("DOMContentLoaded", () => {
       <h2>${escapeHTML(r.title)}</h2>
       <div class="receta-linea" aria-hidden="true"></div>
       <div class="recipe-meta">
-        <span class="tag meal-${r.meal}">${mealLabels[r.meal]}</span>
+        <span class="tag meal-${escapeHTML(r.meal)}">${mealLabels[r.meal]}</span>
         ${badgeOrigenHTML(r)}
         ${badgeSyncHTML(r)}
         ${ocultarSugerencia ? tagMenuSlotHTML(r) : tagClasicoHTML(r, "Idea")}
       </div>
       ${r.from ? `<p class="muted">Base: ${escapeHTML(r.from)}</p>` : ""}
-      ${r.uses && r.uses.length ? `<p class="muted">🥣 Usa de tu casa: ${r.uses.map(escapeHTML).join(", ")}</p>` : ""}
+      ${Array.isArray(r.uses) && r.uses.length ? `<p class="muted">🥣 Usa de tu casa: ${r.uses.map(escapeHTML).join(", ")}</p>` : ""}
       <h4>🧾 Ingredientes</h4>
       <ul>${Array.isArray(r.ingredients) ? r.ingredients.map((i, idx) => {
         // Cada ingrediente se evalúa con su índice para NO reordenar ni dedup la lista original del plato (§ Liskov: form/shape idéntico al de hoy SIN flag).
@@ -1898,7 +1908,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : `<li>${escapeHTML(i)}</li>`;   // IDÉNTICO al render actual SIN la bandera → Recetas/Innovación no se ROMPEN en sus vistas ya probadas (§ guard total de regresión, § "no romper vistas ya probadas").
       }).join("") : ""}</ul>
       <h4>👨‍🍳 Método</h4>
-      <ol>${r.method.map(m => `<li>${escapeHTML(limpiarPaso(m))}</li>`).join("")}</ol>
+      <ol>${Array.isArray(r.method) ? r.method.map(m => `<li>${escapeHTML(limpiarPaso(m))}</li>`).join("") : ""}</ol>
       <div class="modal-footer">
         <button class="btn ghost" data-close>Cerrar</button>
         <button class="btn ghost" data-edit>${enMisRecetas ? "✏️ Editar" : "✏️ Editar y guardar"}</button>
@@ -1916,7 +1926,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnCook = $("[data-cook]", modalContent);
     if (btnCook) btnCook.addEventListener("click", () => registrarCocinado(r));
     $("[data-copy]", modalContent).addEventListener("click", () => {
-      const text = `${r.title}\n\nIngredientes:\n${r.ingredients.map(i => "- " + i).join("\n")}\n\nMétodo:\n${r.method.map(m => limpiarPaso(m)).join("\n")}`;
+      const ingredientes = Array.isArray(r.ingredients) ? r.ingredients : [];
+      const pasos = Array.isArray(r.method) ? r.method : [];
+      const text = `${r.title}\n\nIngredientes:\n${ingredientes.map(i => "- " + i).join("\n")}\n\nMétodo:\n${pasos.map(m => limpiarPaso(m)).join("\n")}`;
       navigator.clipboard?.writeText(text).then(
         () => toast("Copiado al portapapeles"),
         () => toast("No se pudo copiar", "error")
@@ -1944,10 +1956,10 @@ document.addEventListener("DOMContentLoaded", () => {
           </select>
         </label>
         <label for="edit-ingredients">Ingredientes (uno por línea)
-          <textarea id="edit-ingredients" rows="7">${escapeHTML((r.ingredients || []).join("\n"))}</textarea>
+          <textarea id="edit-ingredients" rows="7">${escapeHTML((Array.isArray(r.ingredients) ? r.ingredients : []).join("\n"))}</textarea>
         </label>
         <label for="edit-method">Pasos (uno por paso)
-          <textarea id="edit-method" rows="8">${escapeHTML((r.method || []).join("\n"))}</textarea>
+          <textarea id="edit-method" rows="8">${escapeHTML((Array.isArray(r.method) ? r.method : []).join("\n"))}</textarea>
         </label>
       </div>
       <div class="modal-footer">
@@ -2043,7 +2055,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function tagClasicoHTML(rec, fallback) {
     const m = window.MRCheff.origenRecetas;
     const texto = (m && m.etiquetaClasicaVisible) ? m.etiquetaClasicaVisible(rec, SOURCE_LABEL, { fallback }) : (rec && rec.source ? (SOURCE_LABEL[rec.source] || fallback) : null);
-    return texto ? `<span class="tag tag-${String(rec.source)}">${texto.toString()}</span>` : "";
+    return texto ? `<span class="tag tag-${escapeHTML(String(rec.source))}">${texto.toString()}</span>` : "";
   }
   // Tag clásico del PLAN semanal (2026-10-21, petición del usuario): en la semana cada hueco YA es
   // una sugerencia del lote — la etiqueta "Sugerencia de hoy" no aporta nada y repetida en las 21
@@ -2148,19 +2160,19 @@ document.addEventListener("DOMContentLoaded", () => {
       card.dataset.id = i.id;
       card.innerHTML = `
         <div class="recipe-actions">
-          <button data-edit="${i.id}" title="Editar y guardar en Mis Recetas" aria-label="Editar y guardar en Mis Recetas">✏️</button>
-          <button data-save="${i.id}" title="Guardar en Mis Recetas" aria-label="Guardar en Mis Recetas">⭐</button>
-          <button data-del="${i.id}" title="Eliminar" aria-label="Eliminar idea">🗑</button>
+          <button data-edit="${escapeHTML(i.id)}" title="Editar y guardar en Mis Recetas" aria-label="Editar y guardar en Mis Recetas">✏️</button>
+          <button data-save="${escapeHTML(i.id)}" title="Guardar en Mis Recetas" aria-label="Guardar en Mis Recetas">⭐</button>
+          <button data-del="${escapeHTML(i.id)}" title="Eliminar" aria-label="Eliminar idea">🗑</button>
         </div>
         ${fotoRecetaHTML(i)}
         <h3>${escapeHTML(i.title)}</h3>
         <div class="recipe-meta">
-          <span class="tag meal-${i.meal}">${mealLabels[i.meal]}</span>
+          <span class="tag meal-${escapeHTML(i.meal)}">${mealLabels[i.meal]}</span>
           ${badgeOrigenHTML(i)}
           ${badgeSyncHTML(i)}
-          ${i.source === "curada" ? "" : `<span class="tag tag-${i.source}">${SOURCE_LABEL[i.source] || "Nueva"}</span>`}
+          ${i.source === "curada" ? "" : `<span class="tag tag-${escapeHTML(String(i.source))}">${SOURCE_LABEL[i.source] || "Nueva"}</span>`}
         </div>
-        ${i.uses && i.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${i.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
+        ${Array.isArray(i.uses) && i.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${i.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
       card.addEventListener("click", (e) => {
         if (e.target.closest("[data-del], [data-save], [data-edit]")) return;
         openRecipeModal(i);
@@ -2231,18 +2243,18 @@ document.addEventListener("DOMContentLoaded", () => {
       card.dataset.id = idea.id;
       card.innerHTML = `
         <div class="recipe-actions">
-          <button data-edit="${idea.id}" title="Editar y guardar en Mis Recetas" aria-label="Editar y guardar en Mis Recetas">✏️</button>
-          <button data-cook="${idea.id}" title="Cocinar hoy" aria-label="Cocinar hoy">🍳 Cocinar hoy</button>
+          <button data-edit="${escapeHTML(idea.id)}" title="Editar y guardar en Mis Recetas" aria-label="Editar y guardar en Mis Recetas">✏️</button>
+          <button data-cook="${escapeHTML(idea.id)}" title="Cocinar hoy" aria-label="Cocinar hoy">🍳 Cocinar hoy</button>
         </div>
         ${fotoRecetaHTML(idea)}
         <h3>${escapeHTML(idea.title)}</h3>
         <div class="recipe-meta">
-          <span class="tag meal-${idea.meal}">${mealLabels[idea.meal] || ""}</span>
+          <span class="tag meal-${escapeHTML(idea.meal)}">${mealLabels[idea.meal] || ""}</span>
           ${badgeOrigenHTML(idea)}
           ${badgeSyncHTML(idea)}
         ${tagClasicoHTML(idea, SOURCE_LABEL.sugerenciaHoy)}
         </div>
-        ${idea.uses && idea.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${idea.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
+        ${Array.isArray(idea.uses) && idea.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${idea.uses.map(escapeHTML).join(" · ")}</div>` : ""}`;
       card.addEventListener("click", (e) => {
         if (e.target.closest("[data-cook], [data-edit]")) return;
         openRecipeModal(idea, { highlightMissing: true });
@@ -2374,9 +2386,9 @@ document.addEventListener("DOMContentLoaded", () => {
           ${badgeOrigenHTML(rec)}
           ${badgeSyncHTML(rec)}
           ${tagMenuSlotHTML(rec)}
-          <span class="muted" style="font-size:.8rem">${rec.ingredients.length} ingr.</span>
+          <span class="muted" style="font-size:.8rem">${Array.isArray(rec.ingredients) ? rec.ingredients.length : 0} ingr.</span>
         </div>
-        ${rec.uses && rec.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${rec.uses.map(escapeHTML).join(" · ")}</div>` : ""}
+        ${Array.isArray(rec.uses) && rec.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${rec.uses.map(escapeHTML).join(" · ")}</div>` : ""}
         ${missing.length ? `<div class="innov-uses" style="color:var(--danger);">⚠️ Falta: ${missing.map(escapeHTML).join(", ")}</div>` : `<div class="innov-uses" style="color:var(--accent);">✅ Todos los ingredientes en casa</div>`}
       </div>
       <div class="recipe-actions">
@@ -2517,7 +2529,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return `
       <li class="alert-row urg-${urg}">
         <span class="alert-name"><strong>${escapeHTML(item.name)}</strong></span>
-        <span class="alert-meta">qty <b>${item.qty}</b> · mínimo <b>${item.min}</b> · importante <b>${item.score}/10</b> ${escapeHTML(cuando)}</span>
+        <span class="alert-meta">qty <b>${escapeHTML(item.qty)}</b> · mínimo <b>${escapeHTML(item.min)}</b> · importante <b>${escapeHTML(item.score)}/10</b> ${escapeHTML(cuando)}</span>
         <span class="alert-acciones">
           ${(menuSemanal.candidatosDespensa(item.name, despensaCocina())).length
             ? `<button class="btn ghost small" data-despensa="${escapeHTML(item.name)}" title="¿Ya lo tienes en la despensa con otro nombre?">🛒 Despensa?</button>`
@@ -2575,7 +2587,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <p class="muted">Posible alimento identificado en tu despensa — confirma si "<strong>${escapeHTML(itemName)}</strong>" es alguno de estos:</p>
         <div class="despensa-elegir">
           ${candidatos.map(c => `
-            <button class="btn ghost" data-despensa-elegir="${escapeHTML(c.name)}">${escapeHTML(c.name)} <span class="muted">· tienes ${c.qty ?? 0}</span></button>`).join("")}
+            <button class="btn ghost" data-despensa-elegir="${escapeHTML(c.name)}">${escapeHTML(c.name)} <span class="muted">· tienes ${escapeHTML(c.qty ?? 0)}</span></button>`).join("")}
         </div>
         <div class="modal-footer">
           <button class="btn ghost" data-close>Cancelar (nada cambia)</button>
