@@ -37,8 +37,55 @@ describe("fotoDe: la COPIA con uid se resuelve por TÍTULO normalizado", () => {
       .toBe("img/recetas/tiramisu-casero.jpg");
   });
 
-  test("título renombrado por el usuario → null (no hay foto para un plato bautizado a mano)", () => {
-    expect(fr.fotoDe({ id: "r-1", title: "Mis croquetas de la abuela" }, ctx)).toBeNull();
+  test("título bautizado a mano pero RECONOCIBLE («Mis croquetas de la abuela») hereda la foto del primo", () => {
+    // Peticición del usuario: si no hay foto exacta, una PARECIDA manda — un token propio
+    // del plato («croquetas», 9 letras) casa la copia renombrada con su primo visual.
+    expect(fr.fotoDe({ id: "r-1", title: "Mis croquetas de la abuela" }, ctx))
+      .toBe("img/recetas/croquetas-jamon.jpg");
+  });
+
+  test("copia renombrada CON el turno de comida pegado («· Comida») casa igual con el catálogo", () => {
+    // Copia de Mis Recetas guardada con el turno pegado al título: se recorta antes de comparar.
+    expect(fr.fotoDe({ id: "copia-1", title: "Croquetas de jamón ibérico · Comida" }, ctx))
+      .toBe("img/recetas/croquetas-jamon.jpg");
+  });
+});
+
+describe("fotoDe: renombre del usuario que NO calca el título (candidata por tokens)", () => {
+  const CAT2 = [
+    { id: "pulpo-gallaecia", title: "Pulpo à la gallega" },
+    { id: "arroz-a-banda", title: "Arroz a banda" },
+  ];
+  const FOTOS2 = ["pulpo-gallaecia", "arroz-a-banda"];
+
+  test("un token compartido PROPIO del plato (5+ letras) basta para casar el primo visual", () => {
+    // "Pulpo á feira" no calca "Pulpo à la gallega", pero sí comparte "pulpo".
+    expect(fr.fotoDe({ id: "uid-p", title: "Pulpo á feira" }, { fotos: FOTOS2, catalogo: CAT2 }))
+      .toBe("img/recetas/pulpo-gallaecia.jpg");
+  });
+
+  test("dos o más tokens compartidos mandan (p. ej. costilla renombrada «…antigua»)", () => {
+    const cat3 = [
+      { id: "costilla-miel-mostaza", title: "Costilla de cerdo con miel y mostaza antigua" },
+      { id: "croquetas-jamon", title: "Croquetas de jamón ibérico" },
+    ];
+    expect(fr.fotoDe({ id: "uid-c", title: "Costilla de cerdo con Miel y mostaza · Comida" },
+      { fotos: ["costilla-miel-mostaza"], catalogo: cat3 }))
+      .toBe("img/recetas/costilla-miel-mostaza.jpg");
+  });
+
+  test("empate de tokens entre dos candidatos → null (se no se atina a una distorsionada)", () => {
+    const empate = [
+      { id: "arroz-negro", title: "Arroz negro" },
+      { id: "arroz-banda", title: "Arroz a banda" },
+    ];
+    expect(fr.fotoDe({ id: "uid-a", title: "Arroz de la abuela" },
+      { fotos: ["arroz-negro", "arroz-banda"], catalogo: empate }))
+      .toBeNull();
+  });
+
+  test("sin tokens de 3+ letras no se intenta el fuzzy", () => {
+    expect(fr.fotoDe({ id: "uid-x", title: "De la abuela" }, { fotos: FOTOS2, catalogo: CAT2 })).toBeNull();
   });
 });
 

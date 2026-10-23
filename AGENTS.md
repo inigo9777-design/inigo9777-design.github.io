@@ -117,7 +117,16 @@ italiana" (see `modules/origen-recetas.js` below).
   - **PWA**: `modules/fotos-recetas.js` + `data/fotos-recetas-data.js` en el SHELL → caché **v8**; los
     JPG viajan Network-first y el respaldo offline los cachea al primer acierto (cargan en la app
     offline tras la primera vista).
-  - Mis Recetas: id no coincide → título; RENOMBRADA por el usuario → placeholder.
+  - Mis Recetas: id no coincide → título; RENOMBRADA por el usuario → placeholder. El matching
+    de título tolera renombres del usuario (2026-10-23): se recorta el turno pegado («·
+    Comida/Cena/Desayuno») antes de comparar y, si el título no calca ninguna entrada del
+    catálogo, nombra la candidata que MÁS tokens comparte (≥3 letras, margen 1 sobre el 2º;
+    un token único manda sólo con 5+ letras, p. ej. "Pulpo á feira" → "Pulpo à la gallega";
+    empate → placeholder). Reposición de assets del pipeline ese mismo día: 4 ids huérfanos
+    (huevos-guanciale, pure-calabacin, pizza-jamon-queso + sopa-ajiaco SIN foto — no acierta
+    Commons) y 4 jpg corruptos ~1 KB (HTML de error de Commons guardado como jpg:
+    albondigas-vino-tinto, costilla-miel-mostaza, lentejas-chorizo, pizza-jamon-queso) vueltos
+    a buscar con consultas de platos primos en el mapa MANUALES del script.
   - Verificación: unit `tests/fotos-recetas.test.js` (9), integración jsdom
     `tests/fotos-recetas.integration.test.js` (5), e2e Brave real `e2e/fotos-recetas.mjs`
     (capturas reports/ui-brave/78).

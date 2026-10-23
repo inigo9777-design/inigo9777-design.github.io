@@ -127,6 +127,17 @@ const MANUALES = {
   "tostada-cabra-miel": ["goat cheese toast honey"],
   "ajo-blanco-uvas": ["white gazpacho", "gazpacho blanco"],
   "pasta-amatriciana": ["spaghetti al pomodoro", "spaghetti tomato"],
+  // Placeholder temporal (crema-calabaza, misma familia calabazas): en la próxima pasada del
+  // pipeline este id rebusca una foto real de crema/puré de calabacín sobre el stand-in.
+  "pure-calabacin": ["zucchini soup", "courgette cream", "calabacin sopa"],
+  // Reposición 2026-10-23: la 1ª pasada dejó el jpg CORRUPTO (~1 KB, HTML de error de Commons
+  // guardado como jpg) o sin foto — rebuscar con platos primos que Commons palpa mejor.
+  "albondigas-vino-tinto": ["swedish meatballs", "meatballs sauce plate", "albóndigas salsa"],
+  "costilla-miel-mostaza": ["barbecue spare ribs", "ribs barbecue sauce", "glazed spare ribs"],
+  "lentejas-chorizo": ["lentils chorizo stew", "lentejas guiso"],
+  "pizza-jamon-queso": ["ham and cheese pizza", "pizza prosciutto"],
+  "huevos-guanciale": ["bacon and eggs", "eggs bacon breakfast", "huevos fritos"],
+  "sopa-ajiaco": ["ajiaco cubano", "ajiaco"],
 };
 
 function pedir(url, opciones = {}, reintento = 0) {
