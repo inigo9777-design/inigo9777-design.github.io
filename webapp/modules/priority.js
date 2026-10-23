@@ -30,8 +30,9 @@
   // Devuelve SIEMPRE la lista COMPLETA — el límite es ahora FÍSICO en la vista: a partir de 8 items, la lista se cap a
   // 8 filas de alto y scrollea dentro de sí (ver renderWeeklyAlert en app.js + CSS .alert-scroll/.candado).
   const buildWeeklyAlert = function (foods) {
-    // Sale en la alerta si NO está marcado y necesita reponer; ordenamos desc por importancia para que el más urgente mande color/título.
-    const toRestock = foods.filter(f => !f.checked && needsRestock(f)).slice().sort((a, b) => b.score - a.score);
+    // Sale en la alerta si necesita reponer; ordenamos desc por importancia para que el más urgente mande color/título.
+    // (2026-10-23: el viejo check "hoy está en casa" se retiró de la UI — la cuenta pendiente la manda qty vs min.)
+    const toRestock = foods.filter(f => needsRestock(f)).slice().sort((a, b) => b.score - a.score);
     if (!toRestock.length) return { show: false };
     // El color de la alerta lo marca la importancia del alimento MÁS URGENTE (el primero tras el sort por score).
     const level = urgencyLevel(toRestock[0].score);

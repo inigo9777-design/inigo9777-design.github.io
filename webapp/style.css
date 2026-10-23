@@ -607,7 +607,7 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .food-item.low.urg-orange { background: var(--amber-soft); }
 .food-item.low.urg-green  { background: var(--ok-soft); }
 
-.food-item input[type="checkbox"] { width: 24px; height: 24px; cursor: pointer; flex: 0 0 auto; }
+.food-item .food-edit { flex: 0 0 auto; }
 /* El nombre ocupa el ancho disponible en UNA sola línea: si no cabe, se lee con scroll
    horizontal silencioso (title encima como atajo) — así qty y prioridad nunca
    saltan a otra línea y todas las filas miden lo mismo. */
@@ -622,8 +622,6 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .food-item .food-name::-webkit-scrollbar { display: none; }
 .food-item .food-qty,
 .food-item .food-score { flex: 0 0 auto; } /* píldoras siempre en su línea, jamás encogen */
-.food-item.checked { opacity: 0.55; }
-.food-item.checked .food-name { text-decoration: line-through; }
 .food-item .food-qty {
   font-size: 0.84rem;
   font-weight: 600;
