@@ -69,6 +69,8 @@ describe("alerta semanal — cap físico a 8 filas + candado de scroll (integrac
     const del1 = app.document.querySelector("#food-list [data-del]");
     expect(del1).toBeTruthy();
     del1.click();
+    // el 🗑 pasa por el diálogo de confirmación (2026-10-23): el borrado ocurre al confirmar
+    app.document.querySelector("[data-eliminar-confirmar]").click();
     expect(app.window.document.documentElement.classList.contains("scroll-candado")).toBe(true);
     const candado = app.document.getElementById("candado-alerta");
     expect(candado.getAttribute("aria-pressed")).toBe("true");
@@ -84,8 +86,10 @@ describe("alerta semanal — cap físico a 8 filas + candado de scroll (integrac
     const dels = app.document.querySelectorAll("#food-list [data-del]");
     expect(dels.length).toBe(9);
     dels[0].click();   // 8 pendientes: sigue con candado
+    app.document.querySelector("[data-eliminar-confirmar]").click();   // confirmar el borrado
     expect(app.window.document.documentElement.classList.contains("scroll-candado")).toBe(true);
     app.document.querySelectorAll("#food-list [data-del]")[0].click();   // 7 pendientes: fuera candado
+    app.document.querySelector("[data-eliminar-confirmar]").click();
     expect(app.document.querySelector("#candado-alerta")).toBeNull();
   });
 });

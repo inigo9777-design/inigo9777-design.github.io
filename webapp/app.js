@@ -652,14 +652,34 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
     lista.querySelectorAll("[data-del]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        foods = foods.filter(x => x.id !== btn.dataset.del);
-        save(LS.foods, foods);
-        renderFoods();
-        renderWeeklyAlert();
-        renderShoppingListTrasDespensa();
-        toast(`${nombreTipo} eliminado`);
-      });
+      // 2026-10-23: el 🗑 YA no borra a la primera — abre el diálogo de confirmación
+      // (petición del usuario: evitar borrados por error).
+      btn.addEventListener("click", () => abrirModalEliminarAlimento(btn.dataset.del, nombreTipo));
+    });
+  }
+
+  // Diálogo de confirmación del borrado (🗑 en la fila): mismo modal #modal-content. Nada se
+  // quita hasta el "Eliminar" — Cancelar/Escape/✕ dejan el inventario exactamente como estaba.
+  function abrirModalEliminarAlimento(id, nombreTipo) {
+    const f = foods.find(x => x.id === id);
+    if (!f) return;                                   // id perdido tras un repintado: NADA se borra
+    modalContent.innerHTML = `
+      <h2>🗑 ¿Eliminar "${escapeHTML(f.name)}"?</h2>
+      <p class="muted">Se quita de tu inventario y de sus alertas. Esta acción no se puede deshacer.</p>
+      <div class="modal-footer">
+        <button class="btn ghost" data-close>Cancelar</button>
+        <button class="btn danger" data-eliminar-confirmar>Eliminar</button>
+      </div>`;
+    abrirModal("¿Eliminar " + f.name + "?");
+    $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+    $("[data-eliminar-confirmar]", modalContent).addEventListener("click", () => {
+      foods = foods.filter(x => x.id !== id);
+      save(LS.foods, foods);
+      renderFoods();
+      renderWeeklyAlert();
+      renderShoppingListTrasDespensa();
+      closeModal();
+      toast(`${nombreTipo} eliminado`);
     });
   }
 
