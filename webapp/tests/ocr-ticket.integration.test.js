@@ -279,16 +279,16 @@ describe("Escáner parser-first (requisito 95%): el ticket completo llega a la r
     expect(filas).toHaveLength(5);
     const nombreDe = f => f.querySelector(".rev-campo-nombre").value;         // textContent NO lee los value
 
-    const deCoco = filas.find(f => nombreDe(f) === "BEBIDA COCO");
+    const deCoco = filas.find(f => nombreDe(f) === "Bebida coco");
     expect(deCoco.querySelector(".rev-campo-qty").value).toBe("4");          // la columna de cantidad del ticket
-    const deLeche = filas.find(f => nombreDe(f) === "LECHE FRESCA");
+    const deLeche = filas.find(f => nombreDe(f) === "Leche fresca");
     expect(deLeche.querySelector(".rev-campo-qty").value).toBe("2");         // sin precio, la qty de la columna basta
     const deDuda = [...document.querySelectorAll(".rev-fila-duda")];
     expect(deDuda).toHaveLength(1);
-    expect(nombreDe(deDuda[0])).toBe("SALMON NATURAL");
+    expect(nombreDe(deDuda[0])).toBe("Salmon natural");
 
     // HOGAR: la pinta de la fila cambia — etiqueta "Producto" y las celdas de criterio fijas
-    const dePaniuelo = filas.find(f => nombreDe(f) === "PAÑUELO");
+    const dePaniuelo = filas.find(f => nombreDe(f) === "Pañuelo");
     expect(dePaniuelo.querySelector(".rev-etiqueta").textContent).toBe("Producto");
     expect(dePaniuelo.querySelector(".rev-sub .ocr-tipo").textContent).toBe("🏠 Producto de hogar");
     expect(dePaniuelo.querySelector(".rev-campo-score").disabled).toBe(true);
@@ -304,10 +304,10 @@ describe("Escáner parser-first (requisito 95%): el ticket completo llega a la r
     document.querySelector("[data-revision-guardar]").click();
     const foods = lsFoods(window);
     expect(foods).toHaveLength(8);                                           // 2 sembrados + 6 del ticket (duda = alta por defecto)
-    expect(foods.find(f => f.name === "BEBIDA COCO").qty).toBe(4);
+    expect(foods.find(f => f.name === "Bebida coco").qty).toBe(4);
     const hogar = foods.filter(f => f.categoria === "hogar");
     expect(hogar.map(f => f.name)).toEqual(
-      expect.arrayContaining([expect.stringContaining("PAÑUELO"), expect.stringContaining("HIGIÉNICO DOBLE ROLL")])
+      expect.arrayContaining([expect.stringContaining("Pañuelo"), expect.stringContaining("Higiénico doble roll")])
     );
     hogar.forEach(h => {
       expect(h.min).toBe(0);                                                 // avisan al agotarse
@@ -331,15 +331,15 @@ describe("Escáner parser-first (requisito 95%): el ticket completo llega a la r
     const filas = [...document.querySelectorAll(".rev-fila-nueva")];
     expect(filas).toHaveLength(2);                                   // el peso ("0,680…") y el "4x" NO son filas
     const nombreDe = f => f.querySelector(".rev-campo-nombre").value;
-    const costillar = filas.find(f => nombreDe(f).includes("SPECIAL COSTILLAR"));
+    const costillar = filas.find(f => nombreDe(f).includes("Special costillar"));
     expect(costillar.querySelector(".rev-campo-nombre").value).toContain("(500gr)");
     expect(costillar.querySelector(".rev-campo-qty").value).toBe("1");
-    const huevos = filas.find(f => nombreDe(f).includes("ECO HUEVOS"));
+    const huevos = filas.find(f => nombreDe(f).includes("Eco huevos"));
     expect(huevos.querySelector(".rev-campo-qty").value).toBe("4");
 
     document.querySelector("[data-revision-guardar]").click();
     const foods = lsFoods(window);
-    expect(foods.find(f => f.name.includes("SPECIAL COSTILLAR (500gr)"))).toBeTruthy();
+    expect(foods.find(f => f.name.includes("Special costillar (500gr)"))).toBeTruthy();
   });
 
   it("el conmutador del formulario: productos de hogar sin pedir importancia/mínimo (grupo oculto y alta con el tag)", () => {
@@ -403,8 +403,8 @@ describe("Escáner parser-first (requisito 95%): el ticket completo llega a la r
     filaComida.querySelector(".rev-cat-btn[data-cat='hogar']").click();
     document.querySelector("[data-revision-guardar]").click();
     const foods = lsFoods(window);
-    expect(foods.find(f => f.name === "PAÑUELO").categoria).toBe("hogar");
-    const lechuga = foods.find(f => f.name === "LECHUGA");
+    expect(foods.find(f => f.name === "Pañuelo").categoria).toBe("hogar");
+    const lechuga = foods.find(f => f.name === "Lechuga");
     expect(lechuga.categoria).toBe("hogar");                 // elegido EN el diálogo, no el autodiagnóstico
     expect(lechuga.min).toBe(0);
     expect(lechuga.score).toBe(5);

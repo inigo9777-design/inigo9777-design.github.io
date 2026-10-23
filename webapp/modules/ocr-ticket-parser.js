@@ -226,11 +226,14 @@
         descartadas.push({ linea, motivo: "sin nombre legible" });
         return;
       }
+      // El ticket se imprime EN MAYÚSCULAS: el nombre viaja al diálogo y al inventario en
+      // su forma de siempre (primera letra en mayúscula, resto en minúscula) — 2026-10-23.
+      const nombrePropio = tituloPropio(nombreLeido);
       // CANTIDAD: la línea inicial manda; en su falta, la auxiliar del pack; con granel, el peso
       // convertido a lotes de 500 g; si ni eso, la pareja unit×total del propio talón.
       let qty = qtyInicialDeLinea;
       let pesoKg = null;
-      let nombre = nombreLeido;
+      let nombre = nombrePropio;
       if (aux && aux.pesoKg != null) {
         pesoKg = aux.pesoKg;
         qty = unidadesDePeso(pesoKg);
@@ -272,5 +275,13 @@
     return tokensDe(String(s || "")).filter(t => /[A-ZÁÉÍÓÚÑÜ]{2,}|[a-záéíóúñü]{2,}/i.test(t)).length >= 2;
   }
 
-  return { parsearTicket, detectarOrigen, unidadesDePeso, nombreDePrefijo, precioDeTalon, qtyInicial, RESERVADAS, LOTE_GR };
+  // Título propio: todo el nombre del ticket llega EN MAYÚSCULAS ("GEL HIGIENE"); el
+  // inventario y los diálogos lo lucen como "Gel higiene" — primera letra en mayúscula y el
+  // resto en minúscula, sin tocar los espacios ni el sufijo de granel que se compone después.
+  function tituloPropio(nombre) {
+    const t = String(nombre || "").trim();
+    return t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : t;
+  }
+
+  return { parsearTicket, detectarOrigen, unidadesDePeso, nombreDePrefijo, precioDeTalon, qtyInicial, tituloPropio, RESERVADAS, LOTE_GR };
 });

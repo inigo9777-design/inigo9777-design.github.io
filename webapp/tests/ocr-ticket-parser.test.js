@@ -7,8 +7,13 @@ const { parsearTicket, detectarOrigen, unidadesDePeso, precioDeTalon, qtyInicial
 const nombre = it => it.nombre;
 // El OCR mete ruido PEGADO al nombre (columnas fantasma: "BEBIDA AVELLANAS MZA", "LOBICHA…"):
 // la review por diálogos trabaja sobre nombres EDITABLES, así que los tests fijan el comportamiento
+// por FRAGMENTO — lo que el requisito 95% pide es el ÍTEM en la revisión, no la palabra perfecta
+// (cido-insens_buscado: los nombres ahora salen en título propio, "Leche entera" ≠ "LECHE ENTERA").
+const deNombre = (items, frag) => items.find(i => nombre(i).toLowerCase().includes(frag.toLowerCase()));
+// El OCR mete ruido PEGADO al nombre (columnas fantasma: "BEBIDA AVELLANAS MZA", "LOBICHA…"):
+// la review por diálogos trabaja sobre nombres EDITABLES, así que los tests fijan el comportamiento
 // por FRAGMENTO — lo que el requisito 95% pide es el ÍTEM en la revisión, no la palabra perfecta.
-const contiene = (items, frag) => items.some(i => nombre(i).includes(frag));
+const contiene = (items, frag) => items.some(i => nombre(i).toLowerCase().includes(frag.toLowerCase()));
 
 // ─── Texto del ticket MERCADONA REAL (reports/OCR/IMG_0162.HEIC, variante B del corpus) ───
 const MERCADONA = `
@@ -149,15 +154,15 @@ describe("MERCADONA real: casi todo el ticket se convierte en ítems", () => {
     expect(r.items).toHaveLength(21);
   });
   test("las CANTIDADES del ticket viajan (la columna inicial)", () => {
-    const de = frag => r.items.find(i => nombre(i).includes(frag));
+    const de = frag => deNombre(r.items, frag);
     expect(de("BEBIDA AVELLANAS").qty).toBe(2);
     expect(de("BEBIDA COCO").qty).toBe(4);
     expect(de("PAÑUELO").qty).toBe(3);
     expect(de("CORDERO AL ROMERO").qty).toBe(1);
   });
   test("el total de dos columnas es el ÚLTIMO precio (no la unidad)", () => {
-    expect(r.items.find(i => nombre(i).includes("BEBIDA COCO")).precio).toBe(6.4);
-    expect(r.items.find(i => nombre(i).includes("SALMON NATURAL")).precio).toBe(3.55);
+    expect(deNombre(r.items, "BEBIDA COCO").precio).toBe(6.4);
+    expect(deNombre(r.items, "SALMON NATURAL").precio).toBe(3.55);
   });
   test("la cabecera, el pie y los resúmenes de IVA NO son ítems", () => {
     const nombres = r.items.map(nombre).join(" | ");
@@ -171,21 +176,20 @@ describe("ALDI real: auxiliares emparejadas y lotes de 500 g", () => {
   const r = parsearTicket(ALDI);
   test("origen aldi", () => expect(r.origen).toBe("aldi"));
   test("los productos con peso entran en lotes de 500 g con el sufijo (500gr)", () => {
-    const de = frag => r.items.find(i => nombre(i).includes(frag));
-    const costillar = de("SPECIAL COSTILLAR");
+    const costillar = deNombre(r.items, "SPECIAL COSTILLAR");
     expect(costillar.nombre).toContain("(500gr)");
     expect(costillar.qty).toBe(1);                      // 0,680 kg → 1,36 → 1 lote
     expect(costillar.pesoKg).toBeCloseTo(0.68, 3);
-    expect(de("PECH.POLLO FILETEADA").qty).toBe(1);     // 0,506 kg → 1,01 → 1
+    expect(deNombre(r.items, "PECH.POLLO FILETEADA").qty).toBe(1);     // 0,506 kg → 1,01 → 1
     // el redondeo NO infla pequeños; 1,5 kg → 3 se cubre en unidadesDePeso
     expect(parser.unidadesDePeso(1.5)).toBe(3);
   });
   test("las líneas '4x …' dan la CANTIDAD del pack al producto siguiente", () => {
-    expect(r.items.find(i => nombre(i).includes("ECO HUEVOS")).qty).toBe(4);
-    expect(r.items.find(i => nombre(i).includes("PATATAS FRITAS AC OLI")).qty).toBe(2);
+    expect(deNombre(r.items, "ECO HUEVOS").qty).toBe(4);
+    expect(deNombre(r.items, "PATATAS FRITAS AC OLI").qty).toBe(2);
     // "2 XADO? €" (mangle de "2x 1,5?" — el OCR comió el precio del pack): la cifra y la x BASTAN
     // (PACK_FLOJO, sólo ALDI) → va a MINI CHAPATA, el producto que la precede en el ticket
-    expect(r.items.find(i => nombre(i).includes("MINI CHAPATA CRISTAL")).qty).toBe(2);
+    expect(deNombre(r.items, "MINI CHAPATA CRISTAL").qty).toBe(2);
   });
 
   test("PACK_FLOJO exige letra X y respeta la basura larga: '4 x EXTRA' NO es auxiliar de nadie", () => {
@@ -196,7 +200,7 @@ describe("ALDI real: auxiliares emparejadas y lotes de 500 g", () => {
       "2 XADO? €"                  // sí es pack flojo: se apunta para el producto de abajo
     ].join("\n"));
     expect(rf.origen).toBe("aldi");
-    const aceite = rf.items.find(i => nombre(i).includes("SPECIAL ACEITE"));
+    const aceite = deNombre(rf.items, "SPECIAL ACEITE");
     expect(aceite.qty).toBe(1);    // el "4 x EXTRA…" murió CON su auxiliar (no viaja)
   });
   test("el resto de productos ALDI salen aunque su IVA-code mangle el precio", () => {
@@ -218,6 +222,35 @@ describe("ALDI real: auxiliares emparejadas y lotes de 500 g", () => {
     // aunque su precio el OCR lo muerda — se rescata con el peso) + el eco anulado; el descuento
     // ni el pie cuentan
     expect(r.items).toHaveLength(21);
+  });
+});
+
+describe("título propio: el ticket impreso EN MAYÚSCULAS sale como 'Gel higiene' (2026-10-23)", () => {
+  test("primera letra en mayúscula y el resto en minúscula, nombre completo", () => {
+    const r = parsearTicket([
+      "MERCADONA",
+      "1 GEL HIGIENE 2,90",
+      "2 YOGUR NATURAL 1,15"
+    ].join("\n"));
+    expect(r.items.map(i => i.nombre)).toEqual(["Gel higiene", "Yogur natural"]);
+  });
+
+  test("el sufijo de granel se compone DESPUÉS del título ('… (500gr)' en minúscula también)", () => {
+    const r = parsearTicket([
+      "ALDI",
+      "0,680 kg x 13,99 €/kg",
+      "SPECIAL COSTILLAR 9,51 €3"
+    ].join("\n"));
+    expect(deNombre(r.items, "Special costillar").nombre).toMatch(/\(500gr\)$/);
+  });
+
+  test("el eco del OCR sigue deduplicando por LÍNEA CRUDA (mayúsculas o no)", () => {
+    const r = parsearTicket([
+      "1 LOMO ADOBADO 6,21",
+      "1 LOMO ADOBADO 6,21"
+    ].join("\n"));
+    expect(r.items).toHaveLength(1);
+    expect(r.items[0].nombre).toBe("Lomo adobado");
   });
 });
 

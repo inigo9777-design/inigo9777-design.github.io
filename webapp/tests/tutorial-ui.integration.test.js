@@ -432,14 +432,14 @@ describe("tutorial — la DEMO del escáner (dos diálogos reales, datos de prue
     const app = bootApp({ tutorialAuto: true });
     await dormir(700);
     await irAlPasoDemo(app);
-    // Diálogo 1: banner + fila exacta LECHE ENTERA — "Ya tienes 1 en el inventario" LEÍDO de la despensa de juguete
+    // Diálogo 1: banner + fila exacta LECHE ENTERA (título propio: "Leche entera") — "Ya tienes 1 en el inventario" LEÍDO de la despensa de juguete
     app.document.getElementById("btn-ocr-foto").click();          // el click lanza los diálogos de ejemplo
     await dormir(60);
     expect(app.document.getElementById("modal").classList.contains("hidden")).toBe(false);
     expect(app.document.querySelector(".ocr-demo-banner").textContent).toContain("Demo del tutorial");
     expect(app.document.querySelector(".ocr-demo-banner").textContent).toContain("nada se guarda");
     const filaExacta = app.document.querySelector(".ocr-item .ocr-nombre");
-    expect(filaExacta.textContent).toContain("LECHE ENTERA");
+    expect(filaExacta.textContent).toContain("Leche entera");
     expect(filaExacta.textContent).toContain("Ya tienes 1 en el inventario");
     expect(despensaGuardada(app)).toEqual([]);                   // el flujo demo no toca la persistencia
     // Confirmar exactos → conduce a la revisión SIN tocar la despensa
@@ -453,13 +453,13 @@ describe("tutorial — la DEMO del escáner (dos diálogos reales, datos de prue
     expect(secciones).toEqual(["Nuevos", "Dudas"]);              // los dos apartados del diálogo 2
     // El nombre de cada fila vive en el VALUE del input (no es texto del nodo): el nuevo sale
     // del ticket literal y la duda trae su desplegable con la variante de la despensa de juguete.
-    expect(app.document.querySelector(".rev-fila-nueva .rev-campo-nombre").value).toContain("GEL HIGIENE");
+    expect(app.document.querySelector(".rev-fila-nueva .rev-campo-nombre").value).toContain("Gel higiene");
     // GEL HIGIENE es producto de HOGAR: el conmutador nace preseleccionado en 🏠 (diccionario).
     const filaNueva = app.document.querySelector(".rev-fila-nueva");
     expect(filaNueva.querySelector(".rev-cat-btn[data-cat='hogar']").getAttribute("aria-pressed")).toBe("true");
     expect(filaNueva.querySelector(".rev-cat-btn[data-cat='alimento']").getAttribute("aria-pressed")).toBe("false");
     const duda = app.document.querySelector(".rev-fila-duda");
-    expect(duda.querySelector(".rev-campo-nombre").value).toContain("YOGUR");
+    expect(duda.querySelector(".rev-campo-nombre").value).toContain("Yogur");
     expect([...duda.querySelectorAll(".rev-campo-variante option")].some(o => o.textContent.includes("Yogur natural · tienes 2"))).toBe(true);
     // Guía de cierre del pase: texto en el intro y señal pulsante en el botón final.
     const introsRevisar = [...app.document.querySelectorAll("#modal-content > p.muted")].map(p => p.textContent).join(" ");
