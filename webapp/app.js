@@ -627,7 +627,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const idSeguro = escapeHTML(f.id);
     li.innerHTML = `
       <input type="checkbox" data-id="${idSeguro}" ${f.checked ? "checked" : ""} aria-label="Hoy está en casa: ${escapeHTML(f.name)}">
-      <span class="food-name">${escapeHTML(f.name)}</span>
+      <span class="food-name" title="${escapeHTML(f.name)}">${escapeHTML(f.name)}</span>
       <span class="food-qty" title="En casa / mínimo para avisar">${escapeHTML(qty)} / ${escapeHTML(min)}</span>
       ${esHogar
         ? `<span class="food-score cat-hogar" title="Producto de hogar">🏠</span>`

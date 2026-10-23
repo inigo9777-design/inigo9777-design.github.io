@@ -608,7 +608,20 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .food-item.low.urg-green  { background: var(--ok-soft); }
 
 .food-item input[type="checkbox"] { width: 24px; height: 24px; cursor: pointer; flex: 0 0 auto; }
-.food-item .food-name { flex: 1; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+/* El nombre ocupa el ancho disponible en UNA sola línea: si no cabe, se lee con scroll
+   horizontal silencioso (title encima como atajo) — así qty y prioridad nunca
+   saltan a otra línea y todas las filas miden lo mismo. */
+.food-item .food-name {
+  flex: 1 1 0;
+  min-width: 0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.food-item .food-name::-webkit-scrollbar { display: none; }
+.food-item .food-qty,
+.food-item .food-score { flex: 0 0 auto; } /* píldoras siempre en su línea, jamás encogen */
 .food-item.checked { opacity: 0.55; }
 .food-item.checked .food-name { text-decoration: line-through; }
 .food-item .food-qty {
@@ -638,12 +651,11 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .food-item .food-score.urg-orange { background: var(--amber-soft); color: var(--amber); }
 .food-item .food-actions { display: flex; gap: 6px; flex: 0 0 auto; }
 
-/* Móvil estrecho: la fila del inventario pasa a 2 líneas para que el NOMBRE no se parta en
-   vertical (le quedaban ~60px y `overflow-wrap: anywhere` lo rompía carácter a carácter).
-   Línea 1: check + nombre (ancho de verdad) + qty + urgencia; línea 2: acciones a la derecha. */
+/* Móvil estrecho: la fila pasa a 2 líneas SÓLO para las acciones (a la derecha en su línea
+   propia). El nombre cabe siempre — scrollea en línea — y qty/prioridad no saltan. */
 @media (max-width: 600px) {
   .food-item { flex-wrap: wrap; row-gap: 8px; }
-  .food-item .food-name { flex: 1 1 auto; }
+  .food-item .food-name { flex: 1 1 0; }
   .food-item .food-actions { flex-basis: 100%; justify-content: flex-end; }
 }
 
