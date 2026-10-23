@@ -1594,6 +1594,17 @@ html.scroll-candado { overflow: hidden; }
 .season-card .season-type.fruta  { background: var(--amber-soft); color: var(--amber); }
 .season-card .season-type.verdura { background: var(--ok-soft); color: var(--ok); }
 
+/* Móvil estrecho: visión de conjunto a un vistazo — al menos 3 productos por fila
+   (petición 2026-10-23) con la misma anatomía de card en versión compacta
+   (emoji menor, nombre pencils, píldora de tipo mínima). Desktop igual de ancho. */
+@media (max-width: 600px) {
+  .season-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .season-card { padding: 10px 6px; border-radius: var(--radius-m); min-width: 0; }
+  .season-card .season-emoji { font-size: 1.6rem; margin-bottom: 4px; }
+  .season-card .season-name { font-size: 0.84rem; line-height: 1.25; }
+  .season-card .season-type { margin-top: 5px; font-size: 0.62rem; padding: 1px 7px; }
+}
+
 /* ========== 16. UTILIDADES ========== */
 .hidden { display: none !important; }
 
