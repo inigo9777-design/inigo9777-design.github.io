@@ -516,7 +516,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const foodList = $("#food-list");
   const foodEmpty = $("#food-empty");
   const foodFilter = $("#food-filter");
-  const toggleCheck = $("#toggle-check");
   const weeklyAlert = $("#weekly-alert");
 
   foodScore.addEventListener("input", () => foodScoreVal.textContent = foodScore.value);
@@ -575,13 +574,6 @@ document.addEventListener("DOMContentLoaded", () => {
   pintaCatAlta();
 
   foodFilter.addEventListener("input", renderFoods);
-  toggleCheck.addEventListener("click", () => {
-    const all = foods.every(f => f.checked);
-    foods.forEach(f => f.checked = !all);
-    save(LS.foods, foods);
-    renderFoods();
-    renderWeeklyAlert();
-  });
 
   // Lógica de urgencia/reposición extraída al módulo puro modules/priority.js (sin DOM ni localStorage). Se consume para que el
   // resto de la app se comporte idénticamente. Ver CODING_STANDARDS.md §3 option A / DIP y §5 "alimentos/alerta semanal":
@@ -622,11 +614,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const low = qty <= min;
     const level = urgencyLevel(f.score);
     const li = document.createElement("li");
-    li.className = "food-item" + (f.checked ? " checked" : "") + " urg-" + level + (low ? " low" : "") + (esHogar ? " cat-hogar" : "");
+    li.className = "food-item urg-" + level + (low ? " low" : "") + (esHogar ? " cat-hogar" : "");
     // El id también llega por backup/sync (se preserva tal cual) — se escapa como cualquier otro campo de usuario.
     const idSeguro = escapeHTML(f.id);
     li.innerHTML = `
-      <input type="checkbox" data-id="${idSeguro}" ${f.checked ? "checked" : ""} aria-label="Hoy está en casa: ${escapeHTML(f.name)}">
+      <button type="button" class="btn ghost small food-edit" data-edit="${idSeguro}" aria-label="Editar ${escapeHTML(f.name)}" title="Editar">✏️</button>
       <span class="food-name" title="${escapeHTML(f.name)}">${escapeHTML(f.name)}</span>
       <span class="food-qty" title="En casa / mínimo para avisar">${escapeHTML(qty)} / ${escapeHTML(min)}</span>
       ${esHogar
@@ -641,12 +633,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Los listeners de la lista de inventario (uno por sección — cada lista lleva su etiqueta al borrar).
+  // El checkbox "hoy está en casa" se retiró (2026-10-23): la re-greenía por cantidad + mínimo manda,
+  // y el ✏️ de la fila abre el editor del alimento en el modal.
   function conectarFilasInventario(lista, nombreTipo) {
-    lista.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener("change", () => {
-        const f = foods.find(x => x.id === cb.dataset.id);
-        if (f) { f.checked = cb.checked; save(LS.foods, foods); renderFoods(); renderWeeklyAlert(); }
-      });
+    lista.querySelectorAll("[data-edit]").forEach(btn => {
+      btn.addEventListener("click", () => abrirModalEditarAlimento(btn.dataset.edit));
     });
     lista.querySelectorAll("[data-inc]").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -669,6 +660,58 @@ document.addEventListener("DOMContentLoaded", () => {
         renderShoppingListTrasDespensa();
         toast(`${nombreTipo} eliminado`);
       });
+    });
+  }
+
+  // Editor del alimento/producto (✏️ en la fila): reutiliza el MISMO modal (#modal-content) que
+  // "✅ Comprado". Los productos de hogar no piden criterio (fijos en su alta: score 5 / min 0).
+  function abrirModalEditarAlimento(id) {
+    const f = foods.find(x => x.id === id);
+    if (!f) return;                                   // id perdido tras un repintado: NADA se edita
+    const hogar = categoria.esHogar(f);
+    modalContent.innerHTML = `
+      <h2>✏️ Editar ${hogar ? "producto" : "alimento"}</h2>
+      <p class="muted">Los cambios se guardan en el inventario y en sus alertas.</p>
+      <div class="recipe-edit">
+        <label for="edit-food-nombre">Nombre
+          <input type="text" id="edit-food-nombre" value="${escapeHTML(f.name)}">
+        </label>
+        <label for="edit-food-qty">Cantidad en casa
+          <input type="number" id="edit-food-qty" min="0" step="1" value="${f.qty ?? 0}">
+        </label>
+        ${hogar ? "" : `
+        <label for="edit-food-min">Cantidad mínima para la alerta de reponer
+          <input type="number" id="edit-food-min" min="0" step="1" value="${f.min ?? 0}" title="Cuando baje de aquí te avisamos">
+        </label>
+        <label for="edit-food-score">Importancia (1–10)
+          <input type="number" id="edit-food-score" min="1" max="10" step="1" value="${f.score ?? 5}">
+        </label>`}
+      </div>
+      <div class="modal-footer">
+        <button class="btn ghost" data-close>Cancelar</button>
+        <button class="btn primary" data-edit-food-guardar>Guardar cambios</button>
+      </div>`;
+    abrirModal("Editar: " + f.name);
+    $$("[data-close]", modalContent).forEach(el => el.addEventListener("click", closeModal));
+    $("#edit-food-nombre", modalContent).focus();
+    $("#edit-food-nombre", modalContent).select();
+    $("[data-edit-food-guardar]", modalContent).addEventListener("click", () => {
+      const nombre = $("#edit-food-nombre", modalContent).value.trim();
+      if (!nombre) { toast("Ponle un nombre al alimento", "error"); return; }
+      const duplicado = foods.find(x => x.id !== id && x.name.toLowerCase() === nombre.toLowerCase());
+      if (duplicado) { toast("Ese nombre ya está en tu inventario", "error"); return; }
+      f.name = nombre;
+      f.qty = Math.max(0, parseInt($("#edit-food-qty", modalContent).value, 10) || 0);
+      if (!hogar) {
+        f.min = Math.max(0, parseInt($("#edit-food-min", modalContent).value, 10) || 0);
+        f.score = Math.min(10, Math.max(1, parseInt($("#edit-food-score", modalContent).value, 10) || 5));
+      }
+      save(LS.foods, foods);
+      renderFoods();
+      renderWeeklyAlert();
+      renderShoppingListTrasDespensa();
+      closeModal();
+      toast("Cambios guardados");
     });
   }
 

@@ -53,8 +53,14 @@ describe("priority — buildWeeklyAlert(foods): lista COMPLETA sin cap (rediseñ
 
   it("sin pendientes no muestra la alerta", () => {
     expect(priority.buildWeeklyAlert([])).toEqual({ show: false });
-    // todo suficiente y/o marcado de un tirón: nada que avisar
-    expect(priority.buildWeeklyAlert([mk("arroz", 5, 4, 1), mk("leche", 9, 3, 1, true)])).toEqual({ show: false });
+    // todo suficiente: nada que avisar
+    expect(priority.buildWeeklyAlert([mk("arroz", 5, 4, 1)])).toEqual({ show: false });
+  });
+
+  it("el antiguo check 'hoy está en casa' ya NO saca nada de la alerta (la cuenta pendiente la manda qty vs min)", () => {
+    const m = priority.buildWeeklyAlert([mk("leche", 9, 0, 1, true)]);
+    expect(m.show).toBe(true);
+    expect(m.items.map(x => x.name)).toEqual(["leche"]);
   });
 
   it("devuelve TODOS los pendientes (antes el slice(0, 8) escondía del 9º en adelante)", () => {
@@ -80,9 +86,9 @@ describe("priority — buildWeeklyAlert(foods): lista COMPLETA sin cap (rediseñ
     expect(m.title).toBe("Repuestos urgentes esta semana");
   });
 
-  it("excluye los marcados en casa y los que no necesitan reponer", () => {
+  it("incluye TODO lo pendiente — marcados y no — y deja fuera sólo lo suficiente", () => {
+    // los que SÍ necesitan reponer (marcados o no — el check fue retirado de la UI, 2026-10-23)
     const m = priority.buildWeeklyAlert([mk("ok", 5, 5, 1), mk("marcado", 5, 0, 1, true), mk("falta", 5, 0, 1)]);
-    expect(m.items).toHaveLength(1);
-    expect(m.items[0].name).toBe("falta");
+    expect(m.items.map(x => x.name)).toEqual(["marcado", "falta"]);
   });
 });
