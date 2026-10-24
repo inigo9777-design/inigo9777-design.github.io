@@ -54,7 +54,7 @@
       id: "cabecera",
       vista: null, selector: ".topbar-actions", accionable: false,
       titulo: "La cabecera",
-      texto: "A la derecha viven tres botones redondos: el 🎓 reabre este tutorial cuando te haga falta, la 🗄️ copia de seguridad y el 🌙 modo claro u oscuro. Las pestañas del centro cambian de vista (en móvil también deslizando a los lados).",
+      texto: "A la derecha viven tres botones: el 🎓 reabre este tutorial cuando te haga falta, la 🗄️ copia de seguridad y el 🌙 modo claro u oscuro. Las pestañas del centro cambian de vista (en móvil también deslizando a los lados).",
       cta: "Empecemos",
     },
   ];
@@ -112,13 +112,13 @@
       id: "recetas-catalogo",
       vista: "recipes", selector: "#recipe-catalog-search", accionable: true,
       titulo: "El catálogo te hace el trabajo",
-      texto: "200 recetas curadas de cocina española e italiana por título, y vale con escribir pocas letras: con \"gamb\" ya salen las gambas al ajillo. Toca el buscador para seguir.",
+      texto: "200 recetas curadas de cocina española e italiana por título. Toca el buscador para seguir.",
     },
     {
       id: "recetas-mis-recetas",
       vista: "recipes", selector: "#recipe-list", accionable: false, tarjeta: "arriba",
       titulo: "Mis recetas y su origen",
-      texto: "Lo que guardes (⭐ desde Innovación, o lo que edites) vive aquí: todas editables, con su sello de origen — española o italiana — y con el detalle de qué te falta para cocinarla.",
+      texto: "Lo que guardes (⭐ desde Innovación, o lo que edites y guardes) vive aquí: todas editables, con su sello de origen — española o italiana — y con el detalle de qué te falta para cocinarla.",
       cta: "Siguiente",
     },
   ];
