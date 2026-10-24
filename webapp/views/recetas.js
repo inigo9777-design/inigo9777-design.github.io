@@ -61,7 +61,8 @@
           <span class="tag meal-${ctx.escapeHTML(r.meal)}">${mealLabels[r.meal]}</span>
           ${ctx.badgeOrigenHTML(r)}
           ${ctx.badgeSyncHTML(r)}
-        </div>`;
+        </div>
+        ${ctx.faltanEnCasaHTML(r)}`;
       card.setAttribute("role", "button");
       card.setAttribute("aria-label", "Ver detalles de " + r.title);
       card.addEventListener("click", () => openRecipeModal(r));
@@ -187,7 +188,8 @@
           ${ctx.badgeOrigenHTML(r)}
           ${ctx.badgeSyncHTML(r)}
           <span class="muted" style="font-size:.8rem">${Array.isArray(r.ingredients) ? r.ingredients.length : 0} ingr.</span>
-        </div>`;
+        </div>
+        ${ctx.faltanEnCasaHTML(r)}`;
       // Abrir detalle al hacer click en la tarjeta (el lápiz abre el EDITOR directamente: para eso está;
       // el 🍳 registra "cocinado hoy" sin abrir el modal — ni edita ni borra)
       card.addEventListener("click", (e) => {
@@ -355,18 +357,19 @@
       }
     });
   }
-  // Modal de detalle. Se extiende para el flujo Sugerencias/Menú (§ plan Feature §2): la 2ª arg opcional { highlightMissing:true }
-  // hace que los ingredientes NO disponibles en aforo (stock qty=0 o ausente) se marquen visualmente con .meal-missing + "⚠️ No lo tienes".
-  // SIN esa bandera el render del modal queda IDENTICO al de siempre: Recetas/Innovación no la pasan → no se rompe ninguna vista ya probada.
+  // Modal de detalle: los "⚠️ No lo tienes" por ingrediente salen desde TODAS las vistas
+  // (2026-10-24, petición del usuario: el menú semanal ya los marcaba al abrirla desde los
+  // huecos — ahora Recetas, Innovación y el catálogo lo hacen igual). La decisión de qué
+  // falta vive en el módulo puro (§ "un solo lugar calcula bien"); el parámetro opts se
+  // conserva por compatibilidad con las llamadas existentes de Sugerencias/Menú.
   function openRecipeModal(r, opts) {
-    const resaltarFaltantes = !!(opts && opts.highlightMissing);           // guard estricto § plan §2 "no activa sin que la UI lo pida".
     // Etiqueta "Sugerencia de hoy" oculta cuando el modal se abre desde el PLAN semanal (petición
     // 2026-10-21); Card 1 y el resto de vistas la siguen mostrando (tests de Card-1 la fijan).
     const ocultarSugerencia = !!(opts && opts.ocultarEtiquetaSugerencia);
-    let faltantesPorIndice = null;                                          // boolean[] paralelo a r.ingredients, sólo calculado SI la vista lo pide (sin bandera → nulo → idéntico).
-    if (resaltarFaltantes && window.MRCheff.recipeMissing) {               // el match estricto vive en un módulo puro testable (DIP §6), no se reinventa aquí (§ "un solo lugar calcula bien").
-      const moduloFaltantes = window.MRCheff.recipeMissing;
-      faltantesPorIndice = typeof moduloFaltantes.marcarFaltantes === "function" ? moduloFaltantes.marcarFaltantes(r, ctx.foods) : null; // fallback débil: si el módulo se perdiera NO romperíamos nada.
+    let faltantesPorIndice = null;                                          // boolean[] paralelo a r.ingredients — of en la despensa viva: dónde falta algo lo dice el módulo puro.
+    if (window.MRCheff.recipeMissing && typeof window.MRCheff.recipeMissing.marcarFaltantes === "function") {
+      const aforo = typeof ctx.despensaCocina === "function" ? ctx.despensaCocina() : ctx.foods;
+      faltantesPorIndice = window.MRCheff.recipeMissing.marcarFaltantes(r, aforo);   // fallback débil: si el módulo se perdiera NO romperíamos nada.
     }
     // ¿Editable? Si la receta ya vive en Mis Recetas → se edita IN-SITU; si no (plato del catálogo curado o del
     // menú generado), la edición guarda una COPIA editable en Mis Recetas sin tocar el original, que es de sólo lectura.

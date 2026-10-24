@@ -4,7 +4,7 @@
 // determinista, en Node/Jest directo. Nunca toca localStorage ni la vista.
 // ---------------------------------------------------------------------------
 
-const { marcarFaltantes, ingredienteFalta } = require("../modules/recipe-missing.js");
+const { marcarFaltantes, ingredienteFalta, nombresFaltantes } = require("../modules/recipe-missing.js");
 
 describe("modules/recipe-missing.js", () => {
 
@@ -91,6 +91,32 @@ describe("modules/recipe-missing.js", () => {
       expect(ingredienteFalta("", [{ name: "Huevos", qty: 5 }])).toBe(false);
       expect(ingredienteFalta("   ", [{ name: "Huevos", qty: 5 }])).toBe(false);
       expect(ingredienteFalta("x", [{ name: "Huevos", qty: 5 }])).toBe(false);   // <2 caracteres normalizados → guard
+    });
+  });
+
+  describe("nombresFaltantes — los NOMBRES en el orden del array (los pinta la línea de la card, 2026-10-24)", () => {
+    it("mecla presentes y ausentes → lista SÓLO con los ausentes y SIN reordenar (con qty=0 contando como falta, regla estricta)", () => {
+      const receta = { ingredients: ["Ajos", "Espinacas", "Aceite de oliva", "Guindilla"] };
+      const aforo = [
+        { name: "Ajos", qty: 2 },
+        { name: "Aceite de oliva", qty: 1 },
+        { name: "Espinacas", qty: 0 }          // en la lista pero SIN stock → falta
+      ];
+      expect(nombresFaltantes(receta, aforo)).toEqual(["Espinacas", "Guindilla"]);
+    });
+
+    it("TODO disponible → [] (la card enseña la línea verde ✅)", () => {
+      const receta = { ingredients: ["Huevos", "Sal"] };
+      expect(nombresFaltantes(receta, [{ name: "Huevos", qty: 3 }, { name: "Sal", qty: 1 }])).toEqual([]);
+    });
+
+    it("nombre corto o vacío NO entra en la lista de faltantes (guard: no fabricar faltantes de la nada)", () => {
+      expect(nombresFaltantes({ ingredients: ["", "x", "Ajos"] }, [])).toEqual(["Ajos"]);
+    });
+
+    it("receta sin array de ingredientes → [] sin lanzar (guard defensivo idéntico al resto del módulo)", () => {
+      expect(nombresFaltantes(null, [])).toEqual([]);
+      expect(nombresFaltantes({}, undefined)).toEqual([]);
     });
   });
 

@@ -1,15 +1,18 @@
 // modules/recipe-missing.js — Lógica PURa (sin DOM ni localStorage) para "¿qué ingredientes de esta receta faltan en casa?"
 // -----------------------------------------------------------------------------
 // Vista que la consume: el modal de detalle (§ plan webapp/feature-plans/planFeatureRecetasSugerdasYPlanSemana.md §2,
-// modal mejorado `openRecipeModal(r, { highlightMissing })`). Solo las vistas de Sugerencias/Menú pasan esa bandera; el
-// resto (Recetas / Innovación de hoy) NO la pasa → su render del modal queda IDENTICO al de siempre ("no romper vistas ya
-// probadas"). Aquí vive UN SOLO lugar para "¿falta?" (§3/§4 plan "un solo lugar calcula bien"): tanto el modal como, más adelante,
-// la lista de la compra (Card-3) reutilizan `marcarFaltantes`, NUNCA re-imprimiendo la lógica a mano en cada llamada.
+// modal con los "⚠️ No lo tienes" por ingrediente — desde 2026-10-24 se marcan desde TODAS las vistas, petición del
+// usuario). Aquí vive UN SOLO lugar para "¿falta?" (§3/§4 plan "un solo lugar calcula bien"): tanto el modal como
+// las tarjetas de Recetas/Innovación/Sugerencias y la lista de la compra (Card-3) reutilizan `marcarFaltantes`,
+// NUNCA re-imprimiendo la lógica a mano en cada llamada.
 //
-// API PÚBLICA CERRADA (= 2 funciones, mismo estilo estricto que `return { generate }` de innovaciones.js y el contrato del
-// resto de módulos §5: no se filtran helpers internos como `_normForMatch`/`_bidirectionalIncludes`):
+// API PÚBLICA CERRADA (= 3 funciones, mismo estilo estricto que `return { generate }` de innovaciones.js y el contrato del
+// resto de módulos §5: no se filtran helpers internos como `_normForMatch`/`_bidirectionalIncludes`. La 3ª llega el 2026-10-24,
+// petición del usuario: la línea "⚠️ Falta: … / ✅ Todos los ingredientes en casa" de las tarjetas de Recetas, Innovación y
+// Sugerencias reutiliza LA MISMA decisión que el modal — un solo lugar calcula bien):
 //   marcarFaltantes(receta, aforo)         → boolean[] paralelo a receta.ingredients; true = "⚠️ No lo tienes" (va a la compra).
 //   ingredienteFalta(ingrediente, aforo)  → boolean para un único nombre; coherencia con la regla estricta de §4 del plan.
+//   nombresFaltantes(receta, aforo)       → NOMBRES de los ingredientes que faltan, en el ORDEN del array (los pinta la card).
 //
 // Coherencia cross-módulo: el gate estricto `qty>0` (NO basta estar en la lista) igual que ya lo hace planner.suggestToday/
 // pantryMatchDetails (ver su nota § "cantidad real disponible"); y la coincidencia NORMALIZADA bidireccional idénica a la de
@@ -71,9 +74,18 @@
     return ingredientes.map(ing => _ingredienteFalta(ing, aforo));                                // alineado 1:1 por índice con el input (§ "un solo lugar", sin reordenar/dedup del array de ingredientes).
   }
 
-  // API PÚBLICA CERRADA (§5/§8 del plan: sólo estas 2; igual de estricta que todos los módulos vecinos `return { … }` — SIN fugas de helpers internos).
+  // (3) nombresFaltantes — los NOMBRES que faltan, en el orden del array (la card los pinta tal cual). Misma
+  //     regla estricta que marcarFaltantes (qty>0 real); vacío = "en casa todo" → la card enseña la línea verde ✅.
+  function nombresFaltantes(receta, aforo) {
+    const marcas = marcarFaltantes(receta, aforo);
+    const ingredientes = (receta && Array.isArray(receta.ingredients)) ? receta.ingredients : [];
+    return ingredientes.filter((_, idx) => marcas[idx] === true);
+  }
+
+  // API PÚBLICA CERRADA (§5/§8 del plan: sólo estas 3; igual de estricta que todos los módulos vecinos `return { … }` — SIN fugas de helpers internos).
   return {
     marcarFaltantes,        // usada por openRecipeModal cuando llega { highlightMissing:true } (zippea índice → clase .meal-missing + badge "⚠️ No lo tienes").
     ingredienteFalta,       // predicate PURe para un solo nombre (test directo §6 Capa-1; coherencia para su posible futuro reuso en el punto de auto-añadir Card-3).
+    nombresFaltantes,       // usados por la línea "⚠️ Falta: …" de las cards de Recetas/Innovación/Sugerencias (2026-10-24) y por el molde faltanEnCasaHTML del core.
   };
 });
