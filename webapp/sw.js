@@ -17,7 +17,11 @@
 // del worker aunque el fichero byte-idéntico y el respaldo offline ya los traiga.
 // CACHE v5 (2026-10-20, tutorial interactivo): entra modules/tutorial.js al shell.
 // CACHE v6 (2026-10-21, botón flotante "subir encima"): entra modules/scroll-arriba.js al shell.
-const CACHE = "mrcheff-v6";
+// CACHE v7 (2026-10-22, parser del ticket + hogar): entran ocr-ticket-parser.js y
+// categoria-producto.js al shell (requisito 95% de ítems + etiqueta alimento/no-alimentario).
+// CACHE v9 (2026-10-23, refactor final app.js→views): los 4 módulos de vista entran al shell
+// (views/recetas|escaner|innovacion|copias.js); el nombre SUBE +1 para re-instalar el worker.
+const CACHE = "mrcheff-v9";
 
 const SHELL = [
   "./",
@@ -28,10 +32,12 @@ const SHELL = [
   "manifest.webmanifest",
   "data/data.js",
   "data/recetas-espanolas-data.js",
+  "data/fotos-recetas-data.js",
   "modules/priority.js",
   "modules/classify.js",
   "modules/recipe-analysis.js",
   "modules/origen-recetas.js",
+  "modules/fotos-recetas.js",
   "modules/innovations.js",
   "modules/util.js",
   "modules/backup.js",
@@ -44,9 +50,15 @@ const SHELL = [
   "modules/swipe-tabs.js",
   "modules/scroll-arriba.js",
   "modules/tutorial.js",
+  "modules/ocr-ticket-parser.js",
+  "modules/categoria-producto.js",
   "modules/sync-crypto.js",
   "modules/diff-merge.js",
   "modules/sync.js",
+  "views/recetas.js",
+  "views/escaner.js",
+  "views/innovacion.js",
+  "views/copias.js",
   "icons/icon-192.png",
   "icons/icon-512.png"
 ];

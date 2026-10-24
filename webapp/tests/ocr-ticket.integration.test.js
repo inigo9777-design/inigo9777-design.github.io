@@ -18,11 +18,15 @@
 
 const { bootApp } = require("./boot");
 
+// El TEXTO es lo que el PARSER ESTRUCTURAL (modules/ocr-ticket-parser.js) ve del ticket real —
+// líneas ancladas a precios. El "2 x Yogur" de la era vocabulario ya no miente producto (sin
+// precio no hay línea), así que la DUDA se ejercita con "2 Yogur 1,35": el desplegable de
+// variantes (port del casador de menu-semanal) es quien la conecta con «Yogur natural» de casa.
 const TICKET = [
   "TICKET SUPER 20/10/2026",
-  "3 Leche entera · 1,29 €",
-  "2 x Yogur",
-  "1 Pan de pueblo",
+  "3 Leche entera 1,29",
+  "2 Yogur 1,35",
+  "1 Pan 1,10",
   "TOTAL 12,40 €",
   "GRACIAS POR SU VISITA"
 ].join("\n");
@@ -201,7 +205,7 @@ describe("Escáner del ticket → los dos diálogos dentro de Alimentos (integra
         recipes: [], innov: [], cooked: []
       }
     });
-    window.__mrcheffProcesarTextoOcr("2 Pan\n1 Yogur natural\nTOTAL 4,10 €");
+    window.__mrcheffProcesarTextoOcr("2 Pan 0,60\n1 Yogur 0,95\nTOTAL 4,10 €");
 
     // DIÁLOGO ÚNICO (fase exactos): el botón del pie YA es el final, no hay revisión que abrir
     expect(document.querySelector(".modal-content h2").textContent).toContain("Ya lo tienes en el inventario");
@@ -221,14 +225,14 @@ describe("Escáner del ticket → los dos diálogos dentro de Alimentos (integra
 
   it("ticket SIN nada exacto → la revisión ES el primer diálogo (sin paso de exactos)", () => {
     const { document, window } = appConDespensa();
-    window.__mrcheffProcesarTextoOcr("3 Leche entera\n2 x Yogur\nTOTAL 6,90 €");
+    window.__mrcheffProcesarTextoOcr("3 Leche entera 1,29\n2 Yogur 1,45\nTOTAL 6,90 €");
     expect(document.querySelector(".modal-content h2").textContent).toContain("Añade lo nuevo");
     expect([...document.querySelectorAll(".rev-seccion h3")].map(h => h.textContent)).toEqual(["Nuevos", "Dudas"]);
     expect(document.querySelector("[data-confirmar-exactos]")).toBeNull();
     // confirmar sin tocar nada: los valores que la fila trae (qty del ticket, criterio 5/1)
     document.querySelector("[data-revision-guardar]").click();
     const foods = lsFoods(window);
-    expect(foods.find(f => f.name === "Leche")).toEqual(expect.objectContaining({ qty: 3, score: 5, min: 1 }));
+    expect(foods.find(f => f.name === "Leche entera")).toEqual(expect.objectContaining({ qty: 3, score: 5, min: 1 }));
     expect(foods.find(f => f.name === "Yogur")).toEqual(expect.objectContaining({ qty: 2, score: 5, min: 1 }));
     expect(foods.find(f => f.name === "Yogur natural").qty).toBe(2);         // sin variante: nada sumó ahí
   });
@@ -241,6 +245,206 @@ describe("Escáner del ticket → los dos diálogos dentro de Alimentos (integra
     expect(lsFoods(window)).toHaveLength(2);
     expect(window.localStorage.getItem("mrcheff.compraTicket")).toBe(null);
   });
+});
+
+// REQUISITO 95% (2026-10-22): el PARSER ESTRUCTURAL del ticket (modules/ocr-ticket-parser.js) manda
+// en la extracción — CADA línea-producto llega a la revisión (se conoce o no su nombre), la
+// cantidad viene de la columna de Mercadona o de las auxiliares de ALDI, el granel va en lotes de
+// 500 g con su sufijo "(500gr)" y los productos de hogar (etiqueta alimento/no-alimentario) NO
+// piden importancia ni mínimo: alta fija madre casa → sección aparte del Inventario.
+describe("Escáner parser-first (requisito 95%): el ticket completo llega a la revisión", () => {
+  // Bloque de líneas del TICKET REAL de Mercadona (reports/OCR/IMG_0162.HEIC vía e2e/ocr-inspeccion.mjs)
+  const REAL_MERCADONA = [
+    "MERCADONA S.A.",
+    "FACTURA SIMPLIFICADA: 3931-017-372431",
+    "2 BEBIDA AVELLANAS 2,50",
+    "4 BEBIDA COCO 1,60 6,40",
+    "1 SALMON NATURAL 3,55",
+    "2 LECHE FRESCA",                      // línea con el precio comido por el OCR: la columna de qty sobrevive
+    "3 PAÑUELO 4,05",                      // producto de hogar: sin importancia ni mínimo
+    "1 HIGIÉNICO DOBLE ROLL 4,60",         // producto de hogar (papel higiénico)
+    "TOTAL 72,45",
+    "TARJETA BANCARIA"
+  ].join("\n");
+
+  it("todo el ticket entra: cantidades de la columna, línea sin precio sobrevive y los HOGAREÑOS van sin criterio", () => {
+    const { document, window } = appConDespensa();
+    window.__mrcheffProcesarTextoOcr(REAL_MERCADONA);
+
+    // Sin un nombre exacto de despensa: la revisión ES el primer diálogo, con TODO el ítem
+    expect(document.querySelector(".modal-content h2").textContent).toContain("Añade lo nuevo");
+    const filas = [...document.querySelectorAll(".rev-fila-nueva")];
+    // 5 en NUEVOS: "SALMON NATURAL" cae en DUDAS — comparte la palabra "natural" con
+    // «Yogur natural» de la despensa sembrada (el mis mo casador de tokens de siempre)
+    expect(filas).toHaveLength(5);
+    const nombreDe = f => f.querySelector(".rev-campo-nombre").value;         // textContent NO lee los value
+
+    const deCoco = filas.find(f => nombreDe(f) === "Bebida coco");
+    expect(deCoco.querySelector(".rev-campo-qty").value).toBe("4");          // la columna de cantidad del ticket
+    const deLeche = filas.find(f => nombreDe(f) === "Leche fresca");
+    expect(deLeche.querySelector(".rev-campo-qty").value).toBe("2");         // sin precio, la qty de la columna basta
+    const deDuda = [...document.querySelectorAll(".rev-fila-duda")];
+    expect(deDuda).toHaveLength(1);
+    expect(nombreDe(deDuda[0])).toBe("Salmon natural");
+
+    // HOGAR: la pinta de la fila cambia — etiqueta "Producto" y las celdas de criterio fijas
+    const dePaniuelo = filas.find(f => nombreDe(f) === "Pañuelo");
+    expect(dePaniuelo.querySelector(".rev-etiqueta").textContent).toBe("Producto");
+    expect(dePaniuelo.querySelector(".rev-sub .ocr-tipo").textContent).toBe("🏠 Producto de hogar");
+    expect(dePaniuelo.querySelector(".rev-campo-score").disabled).toBe(true);
+    expect(dePaniuelo.querySelector(".rev-campo-score").value).toBe("5");
+    expect(dePaniuelo.querySelector(".rev-campo-min").disabled).toBe(true);
+    expect(dePaniuelo.querySelector(".rev-campo-min").value).toBe("0");
+
+    // El TEXTO RECONOCIDO queda a la vista (diagnóstico del requisito 95%)
+    const crudo = document.querySelector(".ocr-crudo pre");
+    expect(crudo).not.toBeNull();
+    expect(crudo.textContent).toContain("FACTURA SIMPLIFICADA");
+
+    document.querySelector("[data-revision-guardar]").click();
+    const foods = lsFoods(window);
+    expect(foods).toHaveLength(8);                                           // 2 sembrados + 6 del ticket (duda = alta por defecto)
+    expect(foods.find(f => f.name === "Bebida coco").qty).toBe(4);
+    const hogar = foods.filter(f => f.categoria === "hogar");
+    expect(hogar.map(f => f.name)).toEqual(
+      expect.arrayContaining([expect.stringContaining("Pañuelo"), expect.stringContaining("Higiénico doble roll")])
+    );
+    hogar.forEach(h => {
+      expect(h.min).toBe(0);                                                 // avisan al agotarse
+      expect(h.score).toBe(5);                                               // urgencia neutra
+    });
+  });
+
+  it("ALDI: el granel va en LOTES de 500 g — '(500gr)' en el nombre y la auxiliar '4x' alimenta la cantidad", () => {
+    const { document, window } = appConDespensa();
+    const ALDI = [
+      "ALDI",
+      "Horario de apertura:",
+      "0,680 kg x 13,99 €/kg",
+      "SPECIAL COSTILLAR 9,51",        // 0,680 kg → 1 lote de 500 g
+      "4x 1,73",
+      "ECO HUEVOS 11,00",              // la línea auxiliar "4x" da SU cantidad al producto de abajo
+      "TOTAL 71,34"
+    ].join("\n");
+    window.__mrcheffProcesarTextoOcr(ALDI);
+
+    const filas = [...document.querySelectorAll(".rev-fila-nueva")];
+    expect(filas).toHaveLength(2);                                   // el peso ("0,680…") y el "4x" NO son filas
+    const nombreDe = f => f.querySelector(".rev-campo-nombre").value;
+    const costillar = filas.find(f => nombreDe(f).includes("Special costillar"));
+    expect(costillar.querySelector(".rev-campo-nombre").value).toContain("(500gr)");
+    expect(costillar.querySelector(".rev-campo-qty").value).toBe("1");
+    const huevos = filas.find(f => nombreDe(f).includes("Eco huevos"));
+    expect(huevos.querySelector(".rev-campo-qty").value).toBe("4");
+
+    document.querySelector("[data-revision-guardar]").click();
+    const foods = lsFoods(window);
+    expect(foods.find(f => f.name.includes("Special costillar (500gr)"))).toBeTruthy();
+  });
+
+  it("el conmutador del formulario: productos de hogar sin pedir importancia/mínimo (grupo oculto y alta con el tag)", () => {
+    const { document, window } = appConDespensa();
+    document.getElementById("food-cat-hogar").click();
+    const food = document.getElementById("food-name");
+    food.value = "Detergente líquido";
+    document.getElementById("food-qty").value = "1";
+    // al activar HOGAR los grupos de mínimo/importancia se OSCultan (no se piden)
+    expect(document.getElementById("food-min").closest(".qty-group").classList.contains("hidden")).toBe(true);
+    foodFormSubmit(document);
+    const foods = lsFoods(window);
+    const det = foods.find(f => f.name === "Detergente líquido");
+    expect(det.categoria).toBe("hogar");
+    expect(det.min).toBe(0);
+    expect(det.score).toBe(5);
+    // su fila vive en la SECCIÓN de hogar, no en la lista de alimentos
+    expect([...document.querySelectorAll("#hogar-list .food-name")].map(e => e.textContent)).toContain("Detergente líquido");
+    expect([...document.querySelectorAll("#food-list .food-name")].map(e => e.textContent)).not.toContain("Detergente líquido");
+    // y la sección de hogar se destapa (antes estaba vacía y oculta)
+    expect(document.getElementById("hogar-seccion").classList.contains("hidden")).toBe(false);
+  });
+
+  it("las filas NUEVAS llevan el conmutador 🍎/🏠: el autodiagnóstico sólo PRESELECCIONA y el alta usa la categoría elegida", () => {
+    const TEXTO = [
+      "TICKET SUPER 20/10/2026",
+      "2 PAÑUELO 4,05",        // el vocabulario lo dará por 🏠 (petición: la persona decide encima)
+      "3 LECHUGA 1,80",        // → 🍎
+      "TOTAL 5,85 €",
+      "GRACIAS POR SU VISITA"
+    ].join("\n");
+    const { document, window } = appConDespensa();
+    window.__mrcheffProcesarTextoOcr(TEXTO);
+    // sin exactos: la revisión ES el primer diálogo
+    const filaHogar = document.querySelector(".rev-fila-nueva[data-o='0']");
+    const filaComida = document.querySelector(".rev-fila-nueva[data-o='1']");
+
+    // PRESELECCIÓN del autodiagnóstico: PAÑUELO nace 🏠 (criterio fijo 5/0 deshabilitado) y
+    // LECHUGA nace 🍎 (criterio editable)
+    expect(filaHogar.querySelector(".rev-cat-btn[data-cat='hogar']").getAttribute("aria-pressed")).toBe("true");
+    expect(filaHogar.querySelector(".rev-cat-btn[data-cat='alimento']").getAttribute("aria-pressed")).toBe("false");
+    expect(filaHogar.querySelector(".rev-campo-score").disabled).toBe(true);
+    expect(filaHogar.querySelector(".rev-campo-min").disabled).toBe(true);
+    expect(filaHogar.querySelector(".rev-campo-min").value).toBe("0");
+    expect(filaHogar.querySelector(".rev-celda-nombre .rev-etiqueta").textContent).toBe("Producto");
+    expect(filaComida.querySelector(".rev-cat-btn[data-cat='alimento']").getAttribute("aria-pressed")).toBe("true");
+    expect(filaComida.querySelector(".rev-campo-score").disabled).toBe(false);
+
+    // LA PERSONA MANDA: LECHUGA pasa a 🏠 (criterio fijo, fila renombrada) y vuelve a 🍎
+    filaComida.querySelector(".rev-cat-btn[data-cat='hogar']").click();
+    expect(filaComida.querySelector(".rev-cat-btn[data-cat='hogar']").getAttribute("aria-pressed")).toBe("true");
+    expect(filaComida.querySelector(".rev-campo-score").disabled).toBe(true);
+    expect(filaComida.querySelector(".rev-campo-min").value).toBe("0");
+    expect(filaComida.querySelector(".rev-celda-nombre .rev-etiqueta").textContent).toBe("Producto");
+    expect(filaComida.querySelector(".rev-sub .ocr-tipo").textContent).toContain("Producto de hogar");
+    filaComida.querySelector(".rev-cat-btn[data-cat='alimento']").click();
+    expect(filaComida.querySelector(".rev-campo-score").disabled).toBe(false);
+    expect(filaComida.querySelector(".rev-celda-nombre .rev-etiqueta").textContent).toBe("Alimento");
+
+    // el ALTA usa la categoría del conmutador: la persona deja la LECHUGA en hogar
+    filaComida.querySelector(".rev-cat-btn[data-cat='hogar']").click();
+    document.querySelector("[data-revision-guardar]").click();
+    const foods = lsFoods(window);
+    expect(foods.find(f => f.name === "Pañuelo").categoria).toBe("hogar");
+    const lechuga = foods.find(f => f.name === "Lechuga");
+    expect(lechuga.categoria).toBe("hogar");                 // elegido EN el diálogo, no el autodiagnóstico
+    expect(lechuga.min).toBe(0);
+    expect(lechuga.score).toBe(5);
+  });
+
+  it("en DUDAS el conmutador 🍎/🏠 duerme con la variante resuelta y despierta al volver a 'es nuevo'", () => {
+    const { document, window } = appConDespensa();
+    window.__mrcheffProcesarTextoOcr(TICKET);                    // "2 Yogur 1,35" → duda con la despensa
+    document.querySelector("[data-confirmar-exactos]").click();  // exactos → revisión
+    const duda = document.querySelector(".rev-fila-duda");
+    const btnHogar = duda.querySelector(".rev-cat-btn[data-cat='hogar']");
+    expect(btnHogar.disabled).toBe(false);                       // 'es nuevo': la etiqueta se decide
+
+    // resuelta con casa: la compra va a ESE alimento, su categoría ya está decidida en casa
+    const sel = document.getElementById("rev-variante-1");
+    sel.value = "a1";
+    sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+    expect(btnHogar.disabled).toBe(true);
+    expect(duda.querySelector(".rev-cat-btn[data-cat='alimento']").disabled).toBe(true);
+    // vuelta a 'es nuevo': el conmutador despierta y decide la categoría del ALTA
+    sel.value = "";
+    sel.dispatchEvent(new window.Event("change", { bubbles: true }));
+    expect(btnHogar.disabled).toBe(false);
+    btnHogar.click();
+    expect(btnHogar.getAttribute("aria-pressed")).toBe("true");
+    document.querySelector("[data-revision-guardar]").click();
+    const alta = lsFoods(window).find(f => f.name === "Yogur");
+    expect(alta.categoria).toBe("hogar");
+    expect(alta.min).toBe(0);
+  });
+
+  it("el diálogo 1 (exactos) no lleva conmutador — los ya-en-casa no cambian de categoría", () => {
+    const { document, window } = appConDespensa();
+    window.__mrcheffProcesarTextoOcr(TICKET);
+    expect(document.querySelector(".ocr-item .rev-cat-btn")).toBeNull();
+  });
+
+  function foodFormSubmit(document) {
+    document.getElementById("food-form").dispatchEvent(new document.defaultView.Event("submit", { bubbles: true, cancelable: true }));
+  }
 });
 
 // FEATURE 2026-10-21 (lista de la compra DINÁMICA): las dos confirmaciones del escáner (exactos
@@ -269,7 +473,9 @@ describe("Escáner → la lista de la compra DINÁMICA se repinta en cada confir
   it("antes de confirmar: las 3 filas pendientes; tras los EXACTOS «Pan» sale (2 > su min 1); tras la REVISIÓN «Yogur» sale (4 > min 3) y «Semillas» sigue sin comprarla", async () => {
     const { document, window } = conPlanAprobado();
     window.__mrcheffProcesarTextoOcr(TICKET);
-    expect(filas(document)).toEqual(["Pan", "Yogur", "Semillas de calabaza"]);   // aún sin comprar
+    // Orden por PRIORIDAD (bugfix 2026-10-21): Yogur (score 7 → naranja), Pan (score 3 → verde)
+    // y «Semillas» SIN registro en el Inventario → neutra, SIEMPRE al final.
+    expect(filas(document)).toEqual(["Yogur", "Pan", "Semillas de calabaza"]);   // aún sin comprar
 
     document.querySelector("[data-confirmar-exactos]").click();             // diálogo 1: Pan +1 (qty 1 → 2)
     expect(filas(document)).toEqual(["Yogur", "Semillas de calabaza"]);     // Pan: 2 > su min 1 → SALE ya

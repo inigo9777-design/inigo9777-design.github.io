@@ -95,12 +95,31 @@ function bootApp(opts = {}) {
   if (typeof window.TextEncoder !== "function") window.TextEncoder = TE;
   if (typeof window.TextDecoder !== "function") window.TextDecoder = TD;
 
+  // ── GUARDIA de UN SOLO boot (defecto del arnés, descubierto 2026-10-22 con la demo del
+  // escáner del tutorial): jsdom — incluso con runScripts:"outside-only" — dispara SU
+  // DOMContentLoaded natural cuando el documento termina de parsearse, ASÍNCRONO tras el
+  // constructor. Sumado al disparo manual de abajo, el closure de DOMContentLoaded de app.js
+  // corría DOS veces en cada boot: doble sesión del tutorial, cada botón con su listener
+  // duplicado, dobles renders (los recorridos que no atravesaban el final del guion no lo
+  // notaban). La guardia CAPTURA los listeners de DOMContentLoaded que registren los scripts
+  // y el disparo manual de abajo los invoca UNA sola vez; el natural de jsdom ya no encuentra
+  // oyentes. Sólo el document de jsdom: la app no registra este evento en ningún otro sitio.
+  const dclListeners = [];
+  const documentAddEventListenerOriginal = window.document.addEventListener.bind(window.document);
+  window.document.addEventListener = (type, listener, ...rest) => {
+    if (type === "DOMContentLoaded") { dclListeners.push(listener); return undefined; }
+    return documentAddEventListenerOriginal(type, listener, ...rest);
+  };
+
   const srcScripts = [...html.matchAll(/<script\s+src="([^"]+)"><\/script>/g)].map(m => m[1]);
   if (srcScripts.length === 0) throw new Error("[boot.js] index.html no declara ningún <script src> — parseo roto");
   for (const src of srcScripts) runScriptInWindow(window, read(src));   // read lanza si el path no existe → falla ruidoso en CI
 
-  // Fire DOMContentLoaded so app.js' big callback runs.
-  fireEvent(window, "DOMContentLoaded");
+  // Fire DOMContentLoaded so app.js' big callback runs — UNA sola vez y sincrónico (los
+  // listeners venían capturados por la guardia de arriba; el natural de jsdom queda mudo).
+  for (const listener of dclListeners) {
+    listener.call(window.document, new window.Event("DOMContentLoaded", { bubbles: true }));
+  }
 
   return {
     window,
@@ -136,11 +155,6 @@ function seedState(seed, window) {
 function runScriptInWindow(window, code) {
   const fn = new window.Function(code);
   fn.call(window);
-}
-
-function fireEvent(window, type) {
-  const evt = new window.Event(type, { bubbles: true });
-  window.document.dispatchEvent(evt);
 }
 
 module.exports = { bootApp };

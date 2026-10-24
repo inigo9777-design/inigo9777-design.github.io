@@ -134,3 +134,209 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   consecutivo repite set) + repro e2e con el estado real del backup (4 tarjetas, click a
   click cambia el excluido) + suite completa verde (588/588) + e2e plegado 12/12 + a11y OK;
   captura 81.
+- `2026-10-21 · @AI-agent · #bugfix/lista-compra-color-prioridad · Síntoma (bug reportado por el
+  usuario):` en la lista de la compra (Card 3 de "Sugerencias y menú") muchos ítems SIN registro
+  en el Inventario (defaults: qty 0 / min 0 / score 5) salían UNOS en verde y OTROS en rojo, sin
+  sentido; y los que SÍ tenían prioridad definida en casa no pintaban con ella. **Causa:** el
+  color de la fila lo mandaba `urgenciaPorDias` — el semáforo por FECHA DE PREPARACIÓN del plan
+  (hoy/mañana rojo, 2-3 días naranja, ≥4 verde) — desconectado por completo de la prioridad
+  (score) del alimento en el Inventario. **Arreglo (SEMÁFORO DE LA COMPRA POR PRIORIDAD):**
+  en `shoppingListFor` (módulo puro) cada fila busca SU alimento en el Inventario COMPLETO
+  (registro ≠ stock — el matcher de tokens casa aunque la qty siga ≤ min, que es lo que MANTIENE
+  la fila en la lista; si casan varios manda el de MAYOR prioridad): registrado → `urgencyLevel`
+  de `priority.js` (rojo 8–10 · naranja 6–7 · verde 1–5) y la fila muestra su qty/min/score
+  REALES (ya no los ceros de defecto); sin registro → urgencia NUEVA **"neutral"**, el color del
+  propio texto de la app (`.alert-card li.urg-neutral { border-left-color: var(--text) }` — token
+  existente en ambos temas, ningún hex suelto) y SIEMPRE AL FINAL del orden (peso neutral = 3).
+  `onDay/daysUntil` se siguen calculando: el metadato "se usa el …" queda informativo y como
+  desempate del orden. `app.js` (filaCompra) sólo cambia el default a "neutral". Se retira el
+  helper muerto `urgenciaPorDias`. **Verificación:** unit `tests/menu-semanal.test.js`
+  recontratado (registrado por score, sin registro neutro, varios casan → mayor score, neutro al
+  final, onDay intacto) + integración NUEVA `tests/lista-compra-prioridad.integration.test.js`
+  (DOM real vía bootApp: clases urg-* y datos reales en las tres clases de fila) + ajustes de
+  expectativa de orden en `tests/ocr-ticket.integration.test.js` + suite completa verde
+  (607 tests / 42 suites).
+- `2026-10-21 · @AI-agent · #bugfix/compra-titulo-blanco-dialogo-ocr-movil · Síntoma (DOS
+  reportados en pantallazos por el usuario):` (1) el título "🛒 Lista de la compra" salía VERDE —
+  heredaba el tinte `--ok` de `.alert-card.alert-green h3` porque la tarjeta lleva `alert-green`;
+  y (2) en MÓVIL, el diálogo de revisión del escáner ("Añade lo nuevo y resuelve las dudas")
+  ponía la cabecera de columnas (Cantidad/Importancia/Mínimo/Incluir) AÑOS lejos de los inputs
+  de cada fila: la retícula se reordenaba en estrecho y las etiquetas quedaban desconectadas de
+  lo que nombran. **Arreglo (1):** regla específica
+  `#shopping-list.alert-green h3 { color: var(--text) }` — el título va del color del TEXTO (el
+  mismo blanco de los items sin prioridad, bugfix anterior); el verde queda en el borde de la
+  tarjeta. **Arreglo (2):** cada control va DENTRO de su propio `<label class="rev-celda">` con
+  un micro-etiqueta `.rev-etiqueta` encima (módulo HTML en `app.js`, ambos diálogos y también el
+  desplegable "De tu despensa" en Dudas); en escritorio la etiqueta interna sigue OCULTA (la
+  cabecera compartida nombra las columnas y calza con el ancho de la celda) y en ≤640px la
+  CABECERA se esconde (ya no calzaba con nada) y el micro-etiqueta sale PEGADO a su campo, en
+  retícula de 2 columnas (alimento/contexto a línea completa, campos en parejas) — clic en la
+  etiqueta = foco en su campo (asociación implícita del label). Colocación de la retícula ahora
+  por CELDA (wrapper), no por el input; se retiraron las reglas duplicadas de `.rev-cab-*`.
+  **Verificación:** integración NUEVA `tests/ocr-dialogo-etiquetas.integration.test.js` (DOM
+  real vía bootApp: label↦SU control en las tres clases de fila, `for` correcto, conectaVariante
+  sigue deshabilitando tras el re-molde y la escritura final lee por id) + suite completa verde
+  (610 tests / 43 suites).
+
+---
+
+- `2026-10-22 · @AI-agent · #epic-ocr-despensa-camara · síntoma reportado:` la métrica del corpus
+  real (`e2e/ocr-precision.mjs`) medía Mercadona 20/21 ítems: el 2º "LOMO CEBO IBÉRICO" (compra
+  REAL de dos veces al mismo precio, el OCR leyó "1 LoMO…" y "1 LOMO…") no salía en la revisión.
+  **Causa:** el eco del OCR se deduplicaba por `nombre-normalizado|qty|precio` — dos compras del
+  mismo producto al mismo precio colapsaban en una. **Arreglo:** el eco se deduplica por LÍNEA
+  CRUDA EXACTA (el ítem del parser lleva su `linea` original: sólo el duplicado byte a byte es
+  eco); el mismo-nombre del ticket acaba SUMANDO en un alimento al alta (regla anti-duplicado).
+  **Verificación:** métrica Mercadona 100%/100% + spec de parser con las dos líneas crudas
+  distintas del corpus (tests/ocr-ticket-parser.test.js, 19 tests).
+- `2026-10-22 · @AI-agent · #epic-ocr-despensa-camara · síntoma reportado:` la generalización del
+  rescate sin precio dejaba entrar LÍNEAS QUE NO SON PRODUCTOS como ítems: la cabecera ESPEJO de
+  ALDI (el papel casi volteado se lee invertido: "09 oj9EjUOO ElJUO OLUJO9 JSP…", con qty 9
+  fantasma del "09" de la fecha) y la DIRECCIÓN de Mercadona ("CL ALBERT EINSTEIN, 13", 100%
+  mayúsculas). **Causa:** el rescate de mayúsculas (≥3 tokens, ≥2 full-caps) era demasiado
+  generoso cuando se le quitaron los guardas `!qtyInicial`/`!aux`/`origen!==mercadona` para
+  recuperar el granel cuyo precio el OCR comió. **Arreglo triple:** un token con dígito ENTRE
+  letras (`/\p{L}\d+\p{L}/` — "oj9EjUOO") mata el rescate (las cifras de producto van sueltas al
+  final: "FINA, 230", "MALLA 2KG"); en Mercadona NUNCA rescata (su columna de cantidad sostiene
+  sus líneas); y el rescate SÍ acepta la línea de PESO pendiente (granel ALDI: "PIMIENTO DULCE
+  ITALIAN 077201€" recupera su (500gr)). **Verificación:** Métrica final Mercadona 100%·100% /
+  ALDI 100%·95,2% — la calidad es la del corpus REAL, no del volcado de inspección; los problemas
+  quedan especificados en tests/ocr-ticket-parser.test.js (fixtures del texto de producción).
+
+---
+
+- `2026-10-22 · @AI-agent · #bugfix-ocr-dialogos-movil-descuadrados · síntoma reportado:` en el
+  PWA móvil (~390px) los DOS diálogos del escáner del ticket salen totalmente descuadrados: la
+  fila se abre con una retícula de SEIS columnas acartonadas y el NOMBRE del alimento queda
+  aplastado a 1 letra por línea (captura 50 de la sonda). **Causa:** el rework del descuelgue
+  (2026-10-21) puso en las celdas de la fila `grid-areas` de ESCRITORIO (`grid-area: 1/N`) y el
+  bloque `@media (max-width: 640px)` sólo cambiaba `grid-template-columns` — las areas
+  conservan su colocación explícita (misma especificidad; gana la que se declara DESPUÉS) y
+  las celdas del escritorio generan pistas implícitas trituradas: la propiedad móvil que no
+  REDECLARE las áreas no las vence.
+  **Arreglo:** el bloque móvil vuelve a la retícula de líneas del primer diseño (nada
+  aplastado) SOBREESCRIBIENDO cada area en el breakpoint, con el orden pedido por el usuario:
+  línea 1 = campos (cantidad/importancia/mínimo/incluir con su etiqueta encima), línea 2 =
+  nombre a línea completa, el sub al final; en Dudas el desplegable ocupa su línea completa
+  antes de los campos; en el diálogo 1 (flex) el swap sale por `order: -1`. **Verificación:**
+  e2e real en `e2e/dialogos-movil-reticula.mjs` (12 checks de geometría a 390px: 4 pistas
+  reales, campos encima del nombre, desplegable línea completa, sin desborde — capturas 51-52)
+  + suite completa verde (640/640).
+
+---
+
+- `2026-10-23 · @AI-agent · #bugfix-ocr-sub-movil-sobre-nombre · síntoma reportado:` en el PWA
+  móvil (≤640px), en las filas de DUDAS del diálogo 2 el tag de tipo («Cereal», «Verdura»,
+  «🏠 Producto de hogar»…) salía ENCIMA del campo del nombre — solapado con el input. **Causa:**
+  al añadir la línea propia del conmutador 🍎/🏠 (2026-10-22), la regla combinada del sub (`{ grid-area: 4 / 1 / 5 / -1 }` para
+  NUEVOS y DUDAS por igual) quedó en la línea 4 — la MISMA en la que vive el nombre de la fila
+  DUDA (su retícula tiene UNA línea más: desplegable + conmutador). **Arreglo:** regla propia
+  `.rev-fila-duda .rev-sub { grid-area: 5 / 1 / 6 / -1 }` tras las áreas de Dudas. La guardia
+  e2e sólo asertaba el sub bajo el nombre en NUEVOS — añadió el aserto de Dudas (14 checks).
+
+---
+
+- `2026-10-23 · @usuario · #bugfix-ocr-opciones-dudas-en-situ (REVERTIDO) · síntoma reportado:` el
+  desplegable «es nuevo: se define aquí» de la sección DUDAS desplegaba sus opciones en OTRO punto
+  de la pantalla con el modal desplazado. **Intento de arreglo (merge `76e6626`):** options EN
+  FLUJO con radios nativos en la fila (`fieldset.rev-opciones`). **Resolución final:** el
+  síntoma SÓLO se reproduce en ESCRITORIO con la vista emulada a móvil (DevTools) — en el móvil
+  real el popup nativo del `<select>` sale SIEMPRE bien (Brave y Safari en la PWA instalada), y
+  la persona prefería la implementación anterior → se REVIERTO el merge entero
+  (`git revert -m 1`, commit `882a4ff`): desplegable restaurado, doc y e2e de vuelta a la era
+  select, suite 643/643 verde. Si algún día urge posponer el popup en desktop-emulación,
+  re-aplicar revirtiendo el revert (los radios nacen baratos de ahí).
+
+---
+
+- `2026-10-23 · @AI-agent · #bugfix-ocr-duda-desktop-nombre-ancho · síntoma reportado:` en DESKTOP,
+  en la fila de DUDAS el nombre del producto quedaba exprimido (~74px) porque la columna fija del
+  desplegable devoraba 170px del ancho. **Arreglo:** el desplegable estrecha su columna a 104px —
+  el nombre (columna flexible `1fr`) pasa a 140px — y el POPUP nativo del `<select>` conserva su
+  tamaño al desplegar (se abre al ancho de la opción más larga, capa del navegador: la opción
+  entera se lee igual; el popup no es capturable por el harness, comportamiento nativo asumido).
+  De paso: `lineaContexto` ya no pinta comillas `“”` vacías cuando la línea del ticket no llega,
+  y el bloque (D) de `e2e/ocr-despensa.mjs` se moderniza a la era parser-first SOBRE EL
+  DESPLEGABLE (el revert del 2026-10-23 lo había devuelto al estancamiento pre-parser: llevaba
+  rojo desde el rework del 22). **Verificación:** suite 643/643, e2e
+  `dialogos-movil-reticula.mjs` (móvil intacto) y `ocr-despensa.mjs` completos en verde; capturas
+  57-58 (escritorio 1280/1000px).
+
+---
+
+- `2026-10-23 · @AI-agent · #bugfix-ocr-duda-movil-nombre-primero · petición del usuario: ` en el
+  PWA (≤640px) el bloque «De tu despensa» + desplegable abría la fila de DUDAS y el nombre quedaba
+  abajo. **Arreglo:** intercambio directo de las áreas 1↔4 de la retícula de la fila (el
+  NOMBRE sube a la línea 1, el desplegable baja a la 4) — resulta el orden pedido: Alimento+caja →
+  campos (cantidad/importancia/mínimo/incluir) → tipo 🍎/🏠 → desplegable «De tu despensa» → sub
+  (tag de categoría + línea del ticket) al final. NADA MÁS se mueve (retícula de NUEVOS intacta,
+  desktop con su plantilla propia). **Verificación:** e2e
+  `dialogos-movil-reticula.mjs` actualizado (asertos del nuevo orden + `nombrePrimeroEnDuda`) y
+  en verde, suite 643/643; capturas 51-52 + 59.
+
+---
+
+- `2026-10-23 · @AI-agent · #bugfix-ocr-nuevos-movil-nombre-primero · petición del usuario:` la
+  fila de NUEVOS mantenia el nombre abajo (campos arriba) — al revés del patrón de Dudas del
+  mismo día — y la etiqueta «Incluir» colgaba unos píxeles por debajo de
+  Cantidad/Importancia/Mínimo en LAS DOS secciones. **Arreglo:** mismo rostro que Dudas: el
+  NOMBRE sube a la línea 1 (campos → conmutador → sub detrás) y la FILA alinea al ARRIBA
+  (`align-items: start`) — el centrado vertical de la celda «Incluir» era el hueso (checkbox
+  de 24px vs inputs más altos): el check recupera su centrado frente a los campos con
+  `margin-top: 6px` y las 4 etiquetas quedan a la misma altura (Δ 0px medido). **Verificación:**
+  e2e `dialogos-movil-reticula.mjs` actualizado (nombrePrimero/enNueva, conmutador bajo los
+  campos, «Incluir» alineado ≤3px en ambas secciones), suite 643/643; capturas 51-52.
+- `2026-10-22 · @AI-agent · #feature/tutorial-demo-escaner · Síntoma:` el test de integración
+  RECORRIDO COMPLETO del tutorial fallaba al final: el anuncio recibía el repintado de un paso
+  ya pasado ("Siguiente" en lugar de "Terminar") y se veían "ecos" de pasos antiguos tras el
+  cierre. **Causa:** defecto PREEXISTENTE del arnés de test (`tests/boot.js`), no del app:
+  jsdom — incluso con `runScripts:"outside-only"` — dispara SU `DOMContentLoaded` natural cuando
+  el documento termina de parsearse, ASÍNCRONO tras el constructor; sumado al disparo manual del
+  arnés, el closure de `DOMContentLoaded` de `app.js` corría DOS veces en cada `bootApp()`
+  (doble sesión del tutorial, cada botón con su listener duplicado, dobles renders — los
+  recorridos que no atravesaban el final del guion no lo notaban). Verificado con sondas
+  temporales que en HEAD/develop el doble boot ya existía. **Arreglo:** el arnés CAPTURA ahora
+  los listeners de `DOMContentLoaded` que registran los scripts y el disparo manual los invoca
+  UNA sola vez (sincrónico); el evento natural de jsdom queda sin oyentes. Producción intacta.
+  **Verificación:** sondas (1 click → 1 llamada, antes 2) + suite completa 650 tests / 45
+  suites verdes + cobertura global 94/83.
+
+---
+
+- `2026-10-23 · @AI-agent · #final-refactor · Síntoma:` al partir el cierre de `app.js` en 4 vistas
+  de fábrica (`views/*.js`, `ctx` compartido) la suite cayó a 42 fallos/12 suites: `ReferenceError:
+  limpiarPaso is not defined` en la ficha de receta y el copiar métodos; `TypeError: ctx.badgeSyncHTML
+  is not a function` en el render inicial de recetas/innovación; `ReferenceError: Cannot access
+  'ctx' before initialization` en el clic de Sync y al regenerar la lista de la compra. **Causa:**
+  tres problemas de resolución de nombres del split: (1) los helpers de `modules/util.js`
+  (`limpiarPaso`, `formatoFechaCorta`) llegaban por destructuring SOLO al core y no a las vistas;
+  (2) `badgeSyncHTML` (molde de la vista copias) se publicaba en `ctx` AL FINAL de su fábrica,
+  demasiado tarde para las vistas que arrancan antes; (3) los `const ctx` locales que en el
+  cierre único eran sombra legítima (handler del sync `contextoSync(pass)`, contexto de la lista
+  de la compra) CHOCAN con el parámetro de la fábrica: el TDZ del shadow rompe cada referencia
+  previa de esa función. **Arreglo:** (1) el core publica `ctx.limpiarPaso` y
+  `ctx.formatoFechaCorta` y las vistas los leen por `ctx`; (2) `badgeSyncHTML` sube al CORE
+  (donde viven los moldes HTML) y se publica antes de iniciar las vistas; (3) las sombras se
+  renombran (`ctxSync`, `ctxCompra`) y los parámetros sync de
+  `encaminarResultado`/`abrirModalResolver` pasan de `ctx` a `ctxSync` (sus usos FACTORÍA quedan
+  como `ctx.modalContent`/`ctx.toast` y los BUZÓN como `ctxSync`). **Verificación:** suite
+  completa 675 tests / 47 suites verdes + cobertura global 94.32/83.68/98.45/97.01.
+
+---
+
+- `2026-10-24 · @AI-agent · #bugfix/scroll-caja-fuerte-pwa · Síntoma reportado (usuario):` en la
+  vista de CAJA FUERTE (Copia de seguridad) de la PWA se veía la BARRA del scroll del documento.
+  **Causa:** sus dos tarjetas miden ~283px más que el viewport (de ahí el scroll, correcto) y era
+  la ÚNICA scrollbar de la app sin esconder: la del NAV de pestañas (`scrollbar-width:none`),
+  la del `.modal-box` y la del nombre de alimento ya se ocultaban con el mismo precedente. Siendo
+  la barra del DOCUMENTO (el scrollport es `html`), no hay forma de apuntarla por menos que la
+  vista activa. **Arreglo:** en `style.css`, regla con `:has()` que esconde la barra SÓLO con la
+  vista de caja fuerte activa (`html:has(#view-backup.active) { scrollbar-width: none }` +
+  `::-webkit-scrollbar { display:none }` para Chromium viejo): la barra muere, el scroll NO —
+  táctil/rueda/teclado/botón flotante siguen vivos y las DEMÁS vistas conservan la barra nativa
+  (alcance exactamente el pedido; con WebKit sin `:has` la regla no aplica ⇒ degradación grácil).
+  **Verificación:** nuevo e2e repetible `node e2e/scroll-caja-fuerte.mjs` — 6 checks en Brave
+  real móvil (390×844): none con la caja activa, scroll vivo hasta el fondo (scrollTop 283),
+  alto del documento intacto, sin barra horizontal nueva, `auto` de vuelta en Alimentos y
+  re-ocultado al volver; suite completa 675/675 intacta; captura reports/ui-brave/scroll-caja-fuerte.
+

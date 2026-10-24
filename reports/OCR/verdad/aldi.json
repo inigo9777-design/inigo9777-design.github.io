@@ -1,0 +1,28 @@
+{
+  "cadena": "ALDI",
+  "archivo": "11,00 € 2).HEIC",
+  "nota": "Verdad del corpus real (reports/OCR, descartable). El total 7,16 € de KOMBUCHA cuadra 4×1,79 €: el pack '4x' viajó mangleado ('EX IDA') en la foto A y limpio ('4x 1,79€') en la cara de producción — calibración 2026-10-22. El LOMO ADOBADO es compra real a granel (0,330 kg cobrados) aunque su precio el OCR lo muerde. La CHAPATA: su pack '2 XADO? €' se leyó 'ZO <' en producción (qty irrecuperable esa cara).",
+  "items": [
+    { "nombre": "SPECIAL COSTILLAR", "qty": 1, "pesoKg": 0.68 },
+    { "nombre": "SPECIAL DELICIA PISTAC", "qty": 1 },
+    { "nombre": "GUANCIALE", "qty": 1 },
+    { "nombre": "PECH.POLLO FILETEADA", "qty": 1, "pesoKg": 0.506 },
+    { "nombre": "SOLOMILLO VÁCUNO", "qty": 1, "pesoKg": 0.267 },
+    { "nombre": "ESCAMAS DE TORREZNO", "qty": 1 },
+    { "nombre": "SPECIAL DUD BL FOIE GR", "qty": 1 },
+    { "nombre": "PAPADA IBERICA", "qty": 1 },
+    { "nombre": "LOMO IBERICO ADOBADO", "qty": 1, "pesoKg": 0.33 },
+    { "nombre": "KOMBUCHA NARANJA/F.ROJ", "qty": 4 },
+    { "nombre": "FILETES MELVA AC. OL.", "qty": 1 },
+    { "nombre": "MASA PIZZA FINA, 230", "qty": 1 },
+    { "nombre": "ECO PATATA MALLA 2KG", "qty": 1 },
+    { "nombre": "PIMIENTO DULCE ITALIAN", "qty": 1, "pesoKg": 0.11 },
+    { "nombre": "CALABACIN GRANEL", "qty": 1, "pesoKg": 0.29 },
+    { "nombre": "LECHE FRESCA ENTERA 1", "qty": 1 },
+    { "nombre": "PIMIENTO DULCE ROJO GR", "qty": 1, "pesoKg": 0.216 },
+    { "nombre": "ECO HUEVOS", "qty": 4 },
+    { "nombre": "PATATAS FRITAS AC. OLI", "qty": 2 },
+    { "nombre": "SPECIAL VIRUTAS DE PAL", "qty": 1 },
+    { "nombre": "MINI CHAPATA CRISTAL", "qty": 2 }
+  ]
+}

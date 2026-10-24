@@ -168,6 +168,19 @@ html {
 }
 html { overflow-x: hidden; }
 
+/* BUGFIX 2026-10-24 (#bugfix/scroll-caja-fuerte-pwa): en la vista de Caja fuerte (Copia de
+   seguridad) se VEÍA la barra del scroll del documento en el PWA: sus dos tarjetas miden
+   ~283px más que el viewport, la barra aparece ahí con más protagonismo que en las vistas
+   de listas largas y el rostro de la app ya esconde las demás (nav de pestañas .tabs,
+   .modal-box, nombre de alimento — mismo precedente). Se esconde SÓLO cuando esa vista está
+   activa: el scroll sigue vivo (táctil, rueda, teclado, botón flotante) y las demás vistas
+   conservan la barra nativa tal como estaban. scrollbar-width para Firefox/WebView moderno
+   y el ::-webkit-scrollbar para Chromium viejo. Con :has() sin soporte (iOS WebKit < 15.4)
+   la regla simplemente no aplica: degradación grácil = barra visible como siempre.
+   Nada de overflow: la barra muere, el scroll no. */
+html:has(#view-backup.active) { scrollbar-width: none; }
+html:has(#view-backup.active)::-webkit-scrollbar { display: none; }
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg);
@@ -607,10 +620,21 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .food-item.low.urg-orange { background: var(--amber-soft); }
 .food-item.low.urg-green  { background: var(--ok-soft); }
 
-.food-item input[type="checkbox"] { width: 24px; height: 24px; cursor: pointer; flex: 0 0 auto; }
-.food-item .food-name { flex: 1; font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
-.food-item.checked { opacity: 0.55; }
-.food-item.checked .food-name { text-decoration: line-through; }
+.food-item .food-edit { flex: 0 0 auto; }
+/* El nombre ocupa el ancho disponible en UNA sola línea: si no cabe, se lee con scroll
+   horizontal silencioso (title encima como atajo) — así qty y prioridad nunca
+   saltan a otra línea y todas las filas miden lo mismo. */
+.food-item .food-name {
+  flex: 1 1 0;
+  min-width: 0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.food-item .food-name::-webkit-scrollbar { display: none; }
+.food-item .food-qty,
+.food-item .food-score { flex: 0 0 auto; } /* píldoras siempre en su línea, jamás encogen */
 .food-item .food-qty {
   font-size: 0.84rem;
   font-weight: 600;
@@ -638,12 +662,11 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .food-item .food-score.urg-orange { background: var(--amber-soft); color: var(--amber); }
 .food-item .food-actions { display: flex; gap: 6px; flex: 0 0 auto; }
 
-/* Móvil estrecho: la fila del inventario pasa a 2 líneas para que el NOMBRE no se parta en
-   vertical (le quedaban ~60px y `overflow-wrap: anywhere` lo rompía carácter a carácter).
-   Línea 1: check + nombre (ancho de verdad) + qty + urgencia; línea 2: acciones a la derecha. */
+/* Móvil estrecho: la fila pasa a 2 líneas SÓLO para las acciones (a la derecha en su línea
+   propia). El nombre cabe siempre — scrollea en línea — y qty/prioridad no saltan. */
 @media (max-width: 600px) {
   .food-item { flex-wrap: wrap; row-gap: 8px; }
-  .food-item .food-name { flex: 1 1 auto; }
+  .food-item .food-name { flex: 1 1 0; }
   .food-item .food-actions { flex-basis: 100%; justify-content: flex-end; }
 }
 
@@ -652,6 +675,34 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .ocr-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 
 /* Modal de confirmación: cabecera de columnas + filas candidato (nombre editable + qty + min + importancia + incluir). */
+/* Banner de los diálogos DEMO del escáner en el tutorial (feature 2026-10-22): tono de marca
+   suave + filete del mismo color — se ve ANTES de que quizás se confirme algo: nada se guarda. */
+.ocr-demo-banner {
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-m);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-size: 0.88rem;
+  padding: 8px 12px;
+  margin: 0 0 12px;
+}
+.ocr-demo-banner strong { color: inherit; }
+
+/* Señal del PASE de la demo (2026-10-22): el botón que conduce la demo (Confirmar y revisar
+   el resto / Añadir a la despensa) pulsa con un aro de la marca — el mismo tono del aro del
+   foco del tutorial, para que "el elemento a tocar" se lea igual en los pasos que en los
+   diálogos. El texto-guía va en el párrafo intro de cada diálogo (sólo en modo demo). */
+.btn-demo-senal {
+  animation: pulso-demo-senal 1.5s ease-in-out infinite;
+}
+@keyframes pulso-demo-senal {
+  0%, 100% { box-shadow: 0 0 0 0 transparent, 0 0 0 3px var(--brand-soft); }
+  50%      { box-shadow: 0 0 0 0 transparent, 0 0 0 7px var(--brand-soft); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-demo-senal { animation: none; box-shadow: 0 0 0 4px var(--brand-soft); }   /* estático: sin pulso */
+}
+
 .ocr-cabecera {
   display: flex; gap: 10px; align-items: center;
   font-size: 0.78rem; color: var(--muted);
@@ -695,10 +746,12 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   padding: 0 14px 6px;
   font-size: 0.72rem; color: var(--muted);
 }
-.rev-cab-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
-.rev-cab-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
-.rev-cab-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
-.rev-cab-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
+.rev-cab-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 72px 62px; }
+/* DESKTOP (petición 2026-10-23): el desplegable estrecha su columna (170→104px) para que el
+   NOMBRE del producto respire — con la fija de 170 el nombre quedaba exprimido a ~70px. El
+   popup nativo del select se abre al ancho de la opción MÁS LARGA (capa del navegador), así
+   que la opción entera se lee igual al desplegar. Móvil no lo usa: redefine su plantilla. */
+.rev-cab-duda  { grid-template-columns: minmax(0, 1fr) 104px 84px 64px 64px 72px 62px; }
 .rev-cab-nueva > span, .rev-cab-duda > span { grid-row: 1; }   /* UNA línea de etiquetas, por orden */
 .rev-cab-nueva span:not(:first-child), .rev-cab-duda span:not(:first-child) { text-align: center; }
 .rev-fila-nueva, .rev-fila-duda {
@@ -709,17 +762,30 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   background: var(--card);
   margin-bottom: 8px;
 }
-.rev-fila-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 62px; }
-.rev-fila-duda  { grid-template-columns: minmax(0, 1fr) 170px 84px 64px 64px 62px; }
-/* Línea 1 = la del NOMBRE: el input y TODOS los campos comparten su misma línea horizontal
-   (centros alineados — nada «colgado» a media altura). Línea 2 = etiqueta + línea del ticket,
-   SOLO bajo la columna del alimento. En Dudas la columna 2 es el desplegable: los campos corridos. */
-.rev-fila-nueva .rev-campo-nombre, .rev-fila-duda .rev-campo-nombre { grid-area: 1 / 1; }
-.rev-fila-nueva .rev-campo-qty,     .rev-fila-duda .rev-campo-variante { grid-area: 1 / 2; }
-.rev-fila-nueva .rev-campo-score,   .rev-fila-duda .rev-campo-qty      { grid-area: 1 / 3; }
-.rev-fila-nueva .rev-campo-min,     .rev-fila-duda .rev-campo-score    { grid-area: 1 / 4; }
-.rev-fila-nueva .rev-campo-include, .rev-fila-duda .rev-campo-min      { grid-area: 1 / 5; }
-.rev-fila-duda .rev-campo-include { grid-area: 1 / 6; }
+.rev-fila-nueva { grid-template-columns: minmax(0, 1fr) 84px 64px 64px 72px 62px; }
+.rev-fila-duda  { grid-template-columns: minmax(0, 1fr) 104px 84px 64px 64px 72px 62px; }
+/* Celda envuelta (bugfix 2026-10-21): cada control va DENTRO de su propio <label> con un
+   micro-etiqueta encima (.rev-etiqueta). En escritorio la etiqueta va OCULTA — el nombre de la
+   columna lo pone la cabecera compartida, que calza con el ancho de la celda; en móvil (≤640px)
+   la cabecera se esconde y la etiqueta sale PEGADA a su campo (las propiedades ya no quedan
+   lejos de los inputs). */
+.rev-celda { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rev-celda-include, .rev-celda-variante, .rev-celda-cat { align-items: center; }
+/* Conmutador 🍎/🏠 de las filas nuevas (2026-10-22): los mini-botones son la MISMA voz del
+   conmutador del alta manual (.food-cat-btn) — relleno de marca en el estado pulsado. */
+.rev-celda-cat .food-cat-group { justify-content: center; }
+.rev-etiqueta { display: none; }
+/* Línea 1 = la del NOMBRE: la celda del input y TODAS las celdas de campos comparten su misma
+   línea horizontal (centros alineados — nada «colgado» a media altura). Línea 2 = etiqueta +
+   línea del ticket, SOLO bajo la columna del alimento. En Dudas la columna 2 es el
+   desplegable: los campos corridos. La colocación va por CELDA (el wrapper), no por el input. */
+.rev-fila-nueva .rev-celda-nombre, .rev-fila-duda .rev-celda-nombre { grid-area: 1 / 1; }
+.rev-fila-nueva .rev-celda-qty,     .rev-fila-duda .rev-celda-variante { grid-area: 1 / 2; }
+.rev-fila-nueva .rev-celda-score,   .rev-fila-duda .rev-celda-qty      { grid-area: 1 / 3; }
+.rev-fila-nueva .rev-celda-min,     .rev-fila-duda .rev-celda-score    { grid-area: 1 / 4; }
+.rev-fila-nueva .rev-celda-cat,     .rev-fila-duda .rev-celda-min      { grid-area: 1 / 5; }
+.rev-fila-nueva .rev-celda-include, .rev-fila-duda .rev-celda-cat      { grid-area: 1 / 6; }
+.rev-fila-duda .rev-celda-include { grid-area: 1 / 7; }
 .rev-fila-nueva .rev-sub, .rev-fila-duda .rev-sub {
   grid-area: 2 / 1;
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -729,9 +795,11 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .rev-campo-nombre, .rev-fila-nueva input[type="number"], .rev-fila-duda input[type="number"], .rev-fila-duda select {
   width: 100%; min-width: 0;
 }
-.rev-fila-nueva input[type="checkbox"], .rev-fila-duda input[type="checkbox"] { justify-self: center; }
+.rev-celda-include { justify-content: center; }
 .rev-fila-nueva input[type="number"]:disabled, .rev-fila-duda input[type="number"]:disabled { opacity: 0.55; }
 .rev-campo-nombre { cursor: text; }
+/* Diálogo 1 (exactos): fila flex — la celda no se estira, su campo conserva el calado heredado. */
+.ocr-item .rev-celda { flex: 0 0 auto; }
 
 /* Llegada de la confirmación del escáner: el Inventario actual destella una vez — el ojo cae
    donde acabaron los alimentos SIN que haga falta un toast que lo cuente. */
@@ -742,32 +810,57 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 .destello-suave { animation: destello-suave 2.1s ease-out 1; border-radius: var(--radius-m); }
 
-/* Móvil estrecho: el nombre (diálogo 1) en línea propia; en las retículas del diálogo 2 el
-   bloque del alimento ocupa TODA la anchura y los campos se reparten debajo — la cabecera
-   comparte esa misma plantilla estrecha, la etiqueta sigue encima de su campo. */
+/* Móvil estrecho: REVERSIÓN + modificación pedida (bugfix 2026-10-23): el rework del
+   descuelgue (2026-10-21) dejó en el escritorio unas grid-areas fijas (`grid-area: 1/N`)
+   que en el PWA instalado aplastaban el nombre a 1 letra por línea — su especificidad vence
+   a cualquier propiedad móvil que no las redeclare, así que aquí se Sobreescriben UNA A UNA.
+   Retícula de líneas con el orden pedido por el usuario: el NOMBRE del alimento PRIMERO en
+   las DOS secciones (línea 1), los campos de cantidad/importancia/mínimo/incluir en la
+   línea 2 (con su etiqueta encima), el conmutador 🍎/🏠 en la 3 (línea completa), el
+   desplegable «De tu despensa» en la 4 (sólo Dudas) y el sub (tag + línea del ticket) al
+   final. La fila alinea al ARRIBA: las etiquetas de los 4 campos a la misma altura. La
+   cabecera compartida sigue escondida: nombrada por micro-etiqueta. */
 @media (max-width: 640px) {
   .ocr-item { flex-wrap: wrap; row-gap: 8px; }
   .ocr-item .ocr-nombre { flex-basis: 100%; }
-  .rev-cab-nueva, .rev-fila-nueva, .rev-cab-duda, .rev-fila-duda {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) 44px;
-  }
-  .rev-cab-nueva .rev-col-alimento, .rev-cab-duda .rev-col-alimento { grid-column: 1 / -1; }
-  .rev-cab-duda > span:nth-child(2) { grid-column: 1 / -1; }   /* «De tu despensa»: línea propia */
-  .rev-cab-nueva > span, .rev-cab-duda > span { grid-row: auto; }   /* las etiquetas fluyen por filas */
-  .rev-fila-nueva .rev-campo-nombre, .rev-fila-duda .rev-campo-nombre { grid-column: 1 / -1; }
-  /* En estrecho: NUEVA = nombre (1), campos repartidos (2), etiqueta+línea (3);
-     DUDA = el desplegable gana línea completa propia (2) y el resto baja una fila. */
-  .rev-fila-nueva .rev-campo-qty     { grid-area: 2 / 1; }
-  .rev-fila-nueva .rev-campo-score   { grid-area: 2 / 2; }
-  .rev-fila-nueva .rev-campo-min     { grid-area: 2 / 3; }
-  .rev-fila-nueva .rev-campo-include { grid-area: 2 / 4; }
-  .rev-fila-nueva .rev-sub { grid-column: 1 / -1; grid-row: 3; }
-  .rev-fila-duda .rev-campo-variante { grid-column: 1 / -1; grid-row: 2; }
-  .rev-fila-duda .rev-campo-qty     { grid-area: 3 / 1; }
-  .rev-fila-duda .rev-campo-score   { grid-area: 3 / 2; }
-  .rev-fila-duda .rev-campo-min     { grid-area: 3 / 3; }
-  .rev-fila-duda .rev-campo-include { grid-area: 3 / 4; }
-  .rev-fila-duda .rev-sub { grid-column: 1 / -1; grid-row: 4; }
+  .ocr-cabecera, .rev-cab-nueva, .rev-cab-duda { display: none; }
+
+  .rev-fila-nueva, .rev-fila-duda { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 8px; align-items: start; }
+  /* NUEVOS (petición 2026-10-23): el nombre sube a la línea 1, los campos bajan a la 2 —
+     mismo rostro que DUDAS: nombre → campos → conmutador → sub. La fila alinea al ARRIBA
+     (align-items: start): las 4 etiquetas quedan a la MISMA altura — la celda «Incluir»
+     centrada verticalmente colgaba unos píxeles por su checkbox más bajo. */
+  .rev-fila-nueva .rev-celda-nombre  { grid-area: 1 / 1 / 2 / -1; }
+  .rev-fila-nueva .rev-celda-qty     { grid-area: 2 / 1; }
+  .rev-fila-nueva .rev-celda-score   { grid-area: 2 / 2; }
+  .rev-fila-nueva .rev-celda-min     { grid-area: 2 / 3; }
+  .rev-fila-nueva .rev-celda-include { grid-area: 2 / 4; }
+  .rev-fila-nueva .rev-celda-cat     { grid-area: 3 / 1 / 4 / -1; }
+  /* El conmutador 🍎/🏠 lleva su línea completa DEBAJO de los campos y antes del sub. */
+  .rev-fila-nueva .rev-sub, .rev-fila-duda .rev-sub { grid-area: 4 / 1 / 5 / -1; }
+  /* DUDAS (petición 2026-10-23): el nombre PRIMERO y el desplegable «De tu despensa» en la
+     línea 4 — orden: nombre → campos → tipo → desplegable → sub (tag + línea del ticket). */
+  .rev-fila-duda .rev-celda-nombre  { grid-area: 1 / 1 / 2 / -1; }
+  .rev-fila-duda .rev-celda-qty     { grid-area: 2 / 1; }
+  .rev-fila-duda .rev-celda-score   { grid-area: 2 / 2; }
+  .rev-fila-duda .rev-celda-min     { grid-area: 2 / 3; }
+  .rev-fila-duda .rev-celda-include { grid-area: 2 / 4; }
+  .rev-fila-duda .rev-celda-cat     { grid-area: 3 / 1 / 4 / -1; }
+  .rev-fila-duda .rev-celda-variante { grid-area: 4 / 1 / 5 / -1; }
+  /* El SUB de DUDAS baja UNA MÁS: la regla combinada lo dejó en la línea 4 — la MISMA del
+     desplegable. Su retícula tiene UNA línea más que la de NUEVOS: desplegable extra. */
+  .rev-fila-duda .rev-sub { grid-area: 5 / 1 / 6 / -1; }
+  /* Con el alineado al ARRIBA, el checkbox «Incluir» recupera su centrado vertical frente a
+     los campos de una línea (los inputs llevan más alto de caja que el checkbox de 24px). */
+  .rev-fila-nueva .rev-campo-include, .rev-fila-duda .rev-campo-include { margin-top: 6px; }
+  .rev-etiqueta { display: block; font-size: 0.68rem; color: var(--muted); text-align: center; }
+  /* Las etiquetas de los campos A TODO LO ANCHO abrazan a la izquierda (un "Mínimo" centrado
+     en toda la anchura despista de qué campo nombra). */
+  .rev-celda-nombre .rev-etiqueta, .rev-celda-variante .rev-etiqueta { text-align: left; }
+
+  /* Exacto (flex): campos PRIMERO — order −1 saca cantidad+incluir a la línea 1 y el nombre
+     (basis 100%) queda debajo; en las retículas grid no toca (la colocación explícita manda). */
+  .ocr-item .rev-celda-qty, .ocr-item .rev-celda-include { order: -1; }
 }
 
 /* ========== 11. TARJETAS DE ALERTA Y LA COMPRA ========== */
@@ -783,6 +876,9 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .alert-card.alert-orange h3 { color: var(--amber); }
 .alert-card.alert-green  { border-left-color: var(--ok); }
 .alert-card.alert-green h3  { color: var(--ok); }
+/* La compra (2026-10-21): su título va en el color del TEXTO (el mismo blanco de los items sin
+   prioridad) — el tinte verde queda en el borde de la tarjeta, no títulos de colores. */
+#shopping-list.alert-green h3 { color: var(--text); }
 
 .alert-card ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .alert-card li {
@@ -799,6 +895,10 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 .alert-card li.urg-red    { border-left-color: var(--red); }
 .alert-card li.urg-orange { border-left-color: var(--amber); }
 .alert-card li.urg-green  { border-left-color: var(--ok); }
+/* SEMÁFORO DE LA COMPRA POR PRIORIDAD (petición 2026-10-21): los ítems de la lista de la compra
+   SIN alimento registrado en el Inventario van en NEUTRO — el color del propio texto de la app
+   (var(--text), token presente en ambos temas: nada de hex suelto ni token nuevo que mantener). */
+.alert-card li.urg-neutral { border-left-color: var(--text); }
 .alert-card li .alert-name { flex: 0 0 auto; }
 .alert-card li .alert-meta { font-size: 0.8rem; color: var(--muted); }
 .alert-card li .alert-meta b { font-variant-numeric: tabular-nums; }
@@ -858,6 +958,10 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
 }
 
 .recipe-card {
+  /* Acolchado como variables locales: la banda de foto (ver abajo) SANGRA hasta el borde del
+     card con estos mismos números — si un día cambia el acolchado, la foto sigue calzando. */
+  --pad-arriba: 16px;
+  --pad-costados: 18px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -865,12 +969,49 @@ input[type="range"] { accent-color: var(--brand); cursor: pointer; padding: 0; }
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-l);
-  padding: 16px 18px 18px;
+  padding: var(--pad-arriba) var(--pad-costados) 18px;
   box-shadow: var(--shadow-1);
   cursor: pointer;
   transition: box-shadow 0.15s, border-color 0.15s, transform 0.15s;
 }
 .recipe-card:hover { box-shadow: var(--shadow-2); border-color: var(--border-strong); }
+
+/* La banda de FOTO (feature imagenes-recetas-cards, 2026-10-22) es el primer ancho completo del
+   card: sangra hasta el borde interior y redondea sólo arriba con el radio del card menos el
+   filete. Altura fija 16/10 con object-fit: cover — cada foto del catálogo encuadra su plato
+   dentro de un marco común para que la rejilla respire pareja. En tres de las cuatro superficies
+   el DOM nace con .recipe-actions delante del todo: el ORDEN visual lo restaura flexbox — foto
+   arriba, acciones abajo-derecha como pie del card (la foto siempre primer plato). */
+.recipe-photo {
+  order: -1;
+  display: block;
+  width: calc(100% + 2 * var(--pad-costados));
+  margin: calc(-1 * var(--pad-arriba)) calc(-1 * var(--pad-costados)) 0;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  background: var(--card-soft);          /* papel mientras llega el jpg (y soporte de la banda) */
+  border-bottom: 1px solid var(--border);
+  border-radius: calc(var(--radius-l) - 1px) calc(var(--radius-l) - 1px) 0 0;
+}
+.recipe-card .recipe-actions { order: 5; }
+
+/* Placeholder de las cards SIN foto del catálogo (recetas de usuario): nada de material calco —
+   la INICIAL del plato en la serif editorial sobre papel, un solo gesto. */
+.recipe-photo.recipe-foto-falta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.recipe-photo.recipe-foto-falta::before {
+  content: attr(data-letra);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 2.6rem;
+  color: var(--brand);
+  line-height: 1;
+  opacity: 0.75;
+}
 
 @media (prefers-reduced-motion: no-preference) {
   .recipe-card:hover { transform: translateY(-2px); }
@@ -1466,6 +1607,17 @@ html.scroll-candado { overflow: hidden; }
 .season-card .season-type.fruta  { background: var(--amber-soft); color: var(--amber); }
 .season-card .season-type.verdura { background: var(--ok-soft); color: var(--ok); }
 
+/* Móvil estrecho: visión de conjunto a un vistazo — al menos 3 productos por fila
+   (petición 2026-10-23) con la misma anatomía de card en versión compacta
+   (emoji menor, nombre pencils, píldora de tipo mínima). Desktop igual de ancho. */
+@media (max-width: 600px) {
+  .season-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .season-card { padding: 10px 6px; border-radius: var(--radius-m); min-width: 0; }
+  .season-card .season-emoji { font-size: 1.6rem; margin-bottom: 4px; }
+  .season-card .season-name { font-size: 0.84rem; line-height: 1.25; }
+  .season-card .season-type { margin-top: 5px; font-size: 0.62rem; padding: 1px 7px; }
+}
+
 /* ========== 16. UTILIDADES ========== */
 .hidden { display: none !important; }
 
@@ -1658,3 +1810,25 @@ html.scroll-candado { overflow: hidden; }
 }
 
 /* El tutorial (velo z 90) y el modal (z 100+) tapan al botón: z intermedio por el orden de capas. */
+
+/* ===== El TEXTO RECONOCIDO del escáner (requisito 95%): desplegable con el OCR crudo ===== */
+.ocr-crudo { margin-top: 10px; }
+.ocr-crudo summary { cursor: pointer; font-size: 0.82rem; color: var(--muted); }
+.ocr-crudo summary:hover, .ocr-crudo summary:focus { color: var(--text); }
+.ocr-crudo pre {
+  max-height: 220px; overflow: auto; margin: 6px 0 0; padding: 10px;
+  font-size: 0.76rem; line-height: 1.45; color: var(--muted);
+  background: var(--card-soft); border: 1px solid var(--border); border-radius: var(--radius-m);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+/* ===== PRODUCTOS DE HOGAR (etiqueta alimento/no-alimentario): sección aparte del inventario ===== */
+.hogar-seccion { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--border-strong); }
+.hogar-seccion h3 { margin: 0 0 4px; font-size: 1.02rem; }
+.food-score.cat-hogar { color: var(--muted); }   /* sin urgencia propia: el badge casa habla */
+.rev-celda input:disabled { color: var(--muted); background: var(--card-soft); opacity: .75; }
+
+/* Conmutador del formulario de alta (🍎 Alimento / 🏠 Hogar) */
+.food-cat-group { display: flex; align-items: center; gap: 6px; }
+.food-cat-btn { min-width: 24px; min-height: 24px; }
+.food-cat-btn[aria-pressed="true"] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-strong); }

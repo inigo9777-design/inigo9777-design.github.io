@@ -228,6 +228,15 @@ Los bugs ya resueltos que antes vivían aquí están MOVIDOS a `bugfix.md` (raí
 `#bugfix-pwa-no-refresca-cambios` (2026-10-19, caché de la PWA servía assets viejos).
 Aquí queda sólo la referencia, sin su marcha.
 
+- `2026-10-21 · @AI-agent · #feature-sync-plan-lista · Principio: L · Justificación:` contrato §5
+  del payload v2 RESTINGIDO por decisión de producto: el campo `weekmenu` ahora sólo transporta
+  el menú APROBADO (con todo: plan + needyFoods) — un preview no se exporta, se importa ni
+  participa del diff3 (regla `menu-semanal.weekmenuTransportable`, 14ª pública). El resto de
+  campos del payload queda igual. La regla de 1 línea se DUPLICA deliberadamente en
+  `backup.js` y `diff-merge.js` para mantener los módulos puros independientes (mismo
+  precedente que `claveIngredientes`). Cambio semántico probado: unit (menu-semanal,
+  merge-identidad, diff-merge) + integración (sync-ui, import-plan-lista).
+
 - `2026-10-21 · @AI-agent · #epic-ocr-despensa-camara · Principio: O, L · Justificación:` REWORK de la
   confirmación del escáner a petición del usuario (la compra ya está hecha: TODO se resuelve en los
   dos diálogos, dentro de Alimentos, sin tocar la lista de la compra): se RETIRAN de `ocr-despensa.js`
@@ -439,9 +448,26 @@ Aquí queda sólo la referencia, sin su marcha.
       prefijo de 1-2 letras. Firma de API SIN CAMBIO (1 función pública). Tests: unit en
       busqueda-recetas.test.js (describe 5) + e2e Brave real en e2e/buscador-prefijos.mjs.
 
+- `2026-10-22 · @AI-agent · #epic-ocr-despensa-camara · Principio: O · Justificación:` el shape §5
+  de Food gana un campo OPCIONAL aditivo `categoria:"hogar"` (etiqueta alimento/producto no
+  alimentario — productos del ticket que viven en el Inventario y sus alertas semanales, FUERA de
+  recetas/sugerencias/menú/lista): ausente = alimento, así que BACKUPS v2, sync diff3 y toda
+  carga vieja siguen sin tocar y el campo VIAJA en el payload sync/backup sin cambio de versión
+  (un campo irrelevante para el merge por identidad). La decisión vive en el módulo puro
+  `categoria-producto.js`; el consumo de cocina pasa por `categoria.alimentos(foods)` en app.js.
+  Mismo precedente del campo opcional `origen` en receta y del `triedKeys` en slot.
+
+- `2026-10-23 · @AI-agent · #final-refactor · Principio: D, cobertura §6 · Justificación:` las 4
+  vistas `views/*.js` NO son contabilizables en la cobertura de jest: corre el app vía `boot.js`
+  (eval del script, igual que `app.js` desde siempre), así que no existe un módulo que se requiera
+  directamente — el `collectCoverageFrom` las lista y la suite sigue midiendo las MISMAS cifras
+  globales de más atrás (los umbrales 70/65/70/70 no se tocan). La lógica DECISIONAL de cada
+  vista ya está testada en sus módulos puros (§6 Capa 1); lo que queda en views es wiring de
+  render/IO cubierto por las specs de integración Capa 2.
+
 ---
 
-## 9. Campaña de refactor `app.js` → módulos (estado, 2026-10-21)
+## 9. Campaña de refactor `app.js` → módulos (estado, 2026-10-23)
 
 Petición del usuario: revisar TODO `webapp/app.js` y llevar la lógica que quede inline a sus módulos,
 con tests. El barrido completo (2 745 líneas) confirma que las DECISIONES ya viven en `modules/`
@@ -452,7 +478,12 @@ que permanecen en `app.js` por diseño (§2-D, composition-root). Estado por ola
   `valoresPreviosDeCompra` + `validarCompraForm` → `menu-semanal.js`; `conciliarLote` +
   `resumenPorFuente` → `innovations.js`; `platosDelPlan` + `alternarColapso` (feature del plan
   plegable) → `menu-semanal.js`. Todo con specs co-locales y suite verde.
-- **Pendiente (wave 2, no empezada):** recolección de filas de los DIÁLOGOS del escáner → helpers
+- **Completado (wave 2, `feature/final-refactor` 2026-10-23):** el CIERRE de `app.js` se parte en
+  4 vistas de fábrica `views/{recetas,escaner,innovacion,copias}.js` con el `ctx` compartido
+  (patrón A de §3) — la descripción vive en `AGENTS.md` (bullet `views/…` de arquitectura; los
+  hallazgos de la revisión, en `reports/report.html`). `app.js` queda en ~930 líneas: tema,
+  nav, tutorial, Alimentos/temporada, el `ctx` y la solución de arranque.
+- **Pendiente (wave 3, no empezada):** recolección de filas de los DIÁLOGOS del escáner → helpers
   puros de `ocr-despensa.js` (el scraper DOM se queda, el reparto/comprobación se sube);
   alta manual de despensa (dedup exacto + inc/del) → módulo propio `modules/despensa.js` si crece;
   chips del preview de receta (dedup de ingredientes del textarea) → `recipe-analysis.js` o

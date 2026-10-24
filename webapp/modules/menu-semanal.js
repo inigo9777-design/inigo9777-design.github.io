@@ -4,8 +4,12 @@
 // API PÚBLICA CERRADA (13 funciones, sin fugas de helpers internos):
 //   shoppingListFor(needyFoods, foods, ctx?)  → dedup por MATCHER de tokens (NO subcadena-cruda) + COBERTURA
 //                                               contra el Inventario ACTUAL (petición 2026-10-21: sale el
-//                                               ítem cuyo alimento case con qty > SU min) + urgencia
-//                                               {name, qty:0, min:0, score:5, onDay?, daysUntil?, urgency:"red|orange|green"}
+//                                               ítem cuyo alimento case con qty > SU min) + urgencia por
+//                                               PRIORIDAD (bugfix 2026-10-21: el color lo manda el alimento
+//                                               registrado en casa — priority.urgencyLevel — y lo SIN registrar
+//                                               sale NEUTRO, urgency:"neutral")
+//                                               {name, qty/min/score REALES del alimento de casa o 0/0/5,
+//                                               onDay?, daysUntil?, urgency:"red|orange|green|neutral"}
 //   approveMenu(preview, cooked, today, cookEntryFor, uid) → { cooked, weekmenu } inmutables; ancla = FECHA de cada día×comida planificada
 //   markItemBought(foods, weekmenu, itemName, uid, now, compra?) → { foods, weekmenu, alreadyExists, actualizado? }
 //       con `compra = { qty, score, min }` (2026-10-18: la UI pregunta CUÁNTO se ha comprado, su importancia
@@ -42,6 +46,12 @@
 //                                        { ok:false, campo }  de app.js 2026-10-21: qty ≥1, min ≥0 (vacío =
 //                                                            sin min) y score 1–10; la vista sólo traduce
 //                                                            `campo` a su texto de error.
+//   weekmenuTransportable(weekmenu)      → weekmenu | null    — REGLA del transporte (petición 2026-10-21):
+//                                                            Sólo un plan APROBADO viaja por sync/copia, y
+//                                                            viaja ENTERO (plan + needyFoods = la lista de
+//                                                            la compra) para recuperarse en el otro
+//                                                            dispositivo. Preview no aprobado o estado
+//                                                            limpio → null (nada del plan se transporta).
 //
 // Nota de cambio (§8): `regenerateAfterCook` (regeneración COMPLETA al cocinar) se retira — cocinar desde el
 // menú ahora compone `cookEntry` + `swapSlotRecipe` en app.js: el plato entra en cooldown y SÓLO su slot
@@ -75,6 +85,28 @@
       return matcher.matchIngredientToFood(nombreA, nombreB);
     }
     return String(nombreA == null ? "" : nombreA).toLowerCase() === String(nombreB == null ? "" : nombreB).toLowerCase();
+  }
+
+  // Nivel de urgencia por PRIORIDAD (modules/priority.js: rojo 8–10 · naranja 6–7 · verde 1–5).
+  // Resolución por entorno igual que el matcher: namespace global en navegador, require relativo
+  // en Node/Jest. Sin priority disponible → copia fiel de sus umbrales (mismo contrato).
+  function resolvePriority() {
+    const global = typeof self !== "undefined" ? self : null;
+    if (global && global.MRCheff && global.MRCheff.priority) return global.MRCheff.priority;
+    if (typeof module !== "undefined" && module.exports) {
+      try { return require("./priority.js"); } catch { /* degradación real abajo */ }
+    }
+    return null;
+  }
+
+  function urgenciaPorPrioridad(score) {
+    const priority = resolvePriority();
+    if (priority && typeof priority.urgencyLevel === "function") return priority.urgencyLevel(score);
+    const s = Number(score == null ? 0 : score);
+    if (!Number.isFinite(s)) return "neutral";
+    if (s >= 8) return "red";
+    if (s >= 6) return "orange";
+    return "green";
   }
 
   // Clave de dedup por tokens (coherente con el matcher compartido; "Plátano" y "Plátanos" comparten clave).
@@ -114,17 +146,6 @@
     return Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000));
   }
 
-  // Regla de urgencia del usuario (feature 2026-10-18): se prepara mañana (o hoy) → ROJO;
-  // en 2-3 días → NARANJA; en 4 o más (o sin fecha) → VERDE.
-  const UMBRAL_ROJO = 1, UMBRAL_NARANJA = 3;
-
-  function urgenciaPorDias(n) {
-    if (n == null) return "green";
-    if (n <= UMBRAL_ROJO) return "red";
-    if (n <= UMBRAL_NARANJA) return "orange";
-    return "green";
-  }
-
   // ---------------------------------------------------------------------------
   // shoppingListFor — lista de la compra a partir de needyFoods:
   //   * dedup entre needy Y contra el aforo por MATCHER de tokens (fix del bug "Plátano" vs "Plátanos":
@@ -134,11 +155,17 @@
   //     que SU mínimo necesario (qty > min) — la persona viene CON EL TICKET y ya compró; si algo
   //     no estaba en la tienda, en casa quedará qty <= min y la fila SIGUE hasta satisfacerse.
   //     Con min 0/undefined basta tener qty > 0 (regla antigua para lo sin criterio de alerta).
-  //   * ctx opcional { plan, generatedOn, today }: ancla cada ítem a la FECHA MÁS PRÓXIMA en que
-  //     algún slot del plan lo necesita → onDay, daysUntil y urgency (red/orange/green) para que la
-  //     lista CAMBIE DE COLOR dinámicamente al acercarse la fecha de preparación. Sin ctx → sin
-  //     urgencia (urgency:"green", retro-compatible con las llamadas de 2 args).
-  //   * orden de salida: urgencia (rojo primero) → días hasta prep → nombre.
+  //   * SEMÁFORO DE LA COMPRA POR PRIORIDAD (petición 2026-10-21, bugfix del color mezclado):
+  //     el COLOR de la fila ya no lo manda la fecha del plan sino la PRIORIDAD del alimento en el
+  //     Inventario — registrado en casa (el matcher lo casa, aunque su qty siga ≤ min: eso es lo
+  //     que lo MANTIENE en la lista) → urgencyLevel de priority.js (rojo 8–10 · naranja 6–7 ·
+  //     verde 1–5) y la fila muestra SU qty/min/score reales; SIN registro en el Inventario
+  //     (fila de defecto qty 0 / min 0 / score 5) → urgency "neutral", el color neutro del propio
+  //     título de la sección (var(--text), .alert-card li.urg-neutral en style.css). Entre varios
+  //     alimentos de casa que casen decide el de MAYOR prioridad guardada (determinista por
+  //     contenido; empate → el primero). onDay/daysUntil se SIGUEN calculando: el metadato
+  //     "se usa el …" de la fila informativo y desempate del orden. Sin ctx → sin ancla de plan.
+  //   * orden de salida: urgencia (rojo primero, neutro último) → días hasta prep → nombre.
   // ---------------------------------------------------------------------------
   function shoppingListFor(needyFoods, foods, ctx) {
     const c = ctx || {};
@@ -159,19 +186,42 @@
       if (known.some(f => matchIngredienteAlimento(raw.name, f.name) && Number(f.qty) > minParaCobertura(f))) continue;
       seen.add(clave);
 
-      const fila = { name: raw.name, qty: 0, min: 0, score: 5 };
+      // COLOR por PRIORIDAD (gestión 2026-10-21): contra el Inventario COMPLETO (registro, no stock
+      // — un alimento con qty 0 pero registrado YA tiene su prioridad definida).
+      const enDespensa = alimentoRegistrado(raw.name, foods);
+      const scoreFila = (enDespensa && enDespensa.score != null) ? enDespensa.score : 5;   // defecto de la alta manual: 5
+      const fila = enDespensa
+        ? { name: raw.name,
+            qty: enDespensa.qty == null ? 0 : enDespensa.qty,
+            min: enDespensa.min == null ? 0 : enDespensa.min,
+            score: scoreFila,
+            urgency: urgenciaPorPrioridad(scoreFila) }
+        : { name: raw.name, qty: 0, min: 0, score: 5, urgency: "neutral" };
       if (Array.isArray(c.plan) && c.today) {
         const onDay = fechaMasProxima(raw.name, c.plan, c.generatedOn || c.today);
         const hasta = daysUntil(c.today, onDay);
         fila.onDay = onDay != null ? onDay : undefined;
         fila.daysUntil = hasta != null ? hasta : undefined;
-        fila.urgency = urgenciaPorDias(hasta);
-      } else {
-        fila.urgency = "green";   // retro-compatible: sin ancla de plan no hay semáforo
       }
       out.push(fila);
     }
     return ordenarPorUrgencia(out);
+  }
+
+  // Alimento de casa (Inventario COMPLETO, registro ≠ stock) que casa con el ítem por tokens; si
+  // casan varios manda el de MAYOR prioridad: pésimo caso para el color, sin depender del orden.
+  function alimentoRegistrado(nombre, foods) {
+    let mejor = null, mejorScore = -Infinity;
+    for (const f of Array.isArray(foods) ? foods : []) {
+      if (!f || !hayNombre(f.name)) continue;
+      if (!matchIngredienteAlimento(nombre, f.name)) continue;
+      const score = Number(f.score == null ? 0 : f.score);
+      if (mejor == null || (Number.isFinite(score) && score > mejorScore)) {
+        mejor = f;
+        mejorScore = Number.isFinite(score) ? score : mejorScore;
+      }
+    }
+    return mejor;
   }
 
   function hayNombre(name) { return String(name == null ? "" : name).trim() !== ""; }
@@ -199,8 +249,10 @@
     return mejor;
   }
 
+  // Peso de salida: rojo primero → naranja → verde → NEUTRO último (los sin prioridad definida
+  // van al final de la lista; petición 2026-10-21).
   function ordenarPorUrgencia(filas) {
-    const peso = { red: 0, orange: 1, green: 2 };
+    const peso = { red: 0, orange: 1, green: 2, neutral: 3 };
     return filas.slice().sort((a, b) => {
       const p = peso[a.urgency] - peso[b.urgency];
       if (p !== 0) return p;
@@ -542,7 +594,21 @@
     return { weekmenu: Object.assign({}, weekmenu, { colapsado: weekmenu.colapsado !== true }), cambiado: true };
   }
 
-  // API PÚBLICA CERRADA (§5/§8 — solo estas 13 funciones, sin fuga de helpers internos como defaultUid).
+  // ---------------------------------------------------------------------------
+  // weekmenuTransportable — REGLA del transporte del menú semanal (petición 2026-10-21):
+  // sólo un plan APROBADO viaja entre dispositivos (sync por buzón y copia de seguridad
+  // manual), y con TODA su información: plan[7×3] + needyFoods (la lista de la compra se
+  // recupera con sus ausentes pendientes). El preview (¡no aprobado!) y el estado limpio
+  // viajan como NADA (null): aprobar es lo que pone la semana en circulación — misma regla
+  // de `accionesMenuSlot`, la decisión es de negocio, no de vista. La usan app.js (snapshot
+  // del sync) y — réplica deliberada, módulos puros independientes, precedente
+  // `claveIngredientes` §8 — backup.js (export/import) y diff-merge.js (merge3).
+  // ---------------------------------------------------------------------------
+  function weekmenuTransportable(weekmenu) {
+    return (weekmenu && weekmenu.approved === true) ? weekmenu : null;
+  }
+
+  // API PÚBLICA CERRADA (§5/§8 — solo estas 14 funciones, sin fuga de helpers internos como defaultUid).
   return {
     shoppingListFor,
     approveMenu,
@@ -556,6 +622,7 @@
     clearMenu,
     accionesMenuSlot,
     platosDelPlan,
-    alternarColapso
+    alternarColapso,
+    weekmenuTransportable
   };
 });

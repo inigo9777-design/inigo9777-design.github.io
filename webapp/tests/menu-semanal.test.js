@@ -3,9 +3,10 @@
 // Nunca toca localStorage ni la vista. Los inyectables cookEntryFor/uid/now hacen que los tests sean 100 % reproducibles.
 // Cambio de contrato (feature 2026-10-18): plan = 7 días × 3 comidas (`meals[]`), `swapSlotRecipe` sustituye a
 // `regenerateAfterCook` (cocinar desde el menú = cookEntry + swap de SOLO ese hueco) y `shoppingListFor` añade
-// urgencia de compra (semáforo rojo/naranja/verde según la fecha de preparación).
+// urgencia de compra — SEMÁFORO POR PRIORIDAD desde el bugfix 2026-10-21: el color lo manda la prioridad del
+// alimento registrado en el Inventario (rojo 8–10 · naranja 6–7 · verde 1–5) y lo SIN registro va NEUTRO al final.
 
-const { shoppingListFor, approveMenu, markItemBought, markItemBoughtComo, candidatosDespensa, cookEntry, swapSlotRecipe, clearMenu, accionesMenuSlot, platosDelPlan, alternarColapso } = require("../modules/menu-semanal.js");
+const { shoppingListFor, approveMenu, markItemBought, markItemBoughtComo, candidatosDespensa, cookEntry, swapSlotRecipe, clearMenu, accionesMenuSlot, platosDelPlan, alternarColapso, weekmenuTransportable } = require("../modules/menu-semanal.js");
 
 // cookEntryFor determinista para tests (imita planner.cookEntryFor pero inyectable).
 function cookEntryFor(recipe, opts) {
@@ -39,23 +40,57 @@ function preview3Dias() {
 
 describe("modules/menu-semanal.js", () => {
 
-  describe("shoppingListFor — dedup por MATCHER de tokens + urgencia de compra (semáforo dinámico)", () => {
+  describe("shoppingListFor — dedup por MATCHER de tokens + SEMÁFORO POR PRIORIDAD (bugfix 2026-10-21)", () => {
     it("needyFoods vacío → [] sin lanzar", () => {
       expect(shoppingListFor([], [{ name: "Huevos", qty: 5 }])).toEqual([]);
       expect(shoppingListFor(undefined, [])).toEqual([]);
     });
 
-    it("needyFoods con ingredientes no en aforo → filas {qty:0, min:0, score:5, urgency:'green'} sin ctx", () => {
+    it("ítem SIN alimento registrado en el Inventario → fila de defecto con URGENCIA NEUTRAL", () => {
       const foods = [{ name: "Huevos", qty: 5, min: 1, score: 5 }];
       const needy = [{ name: "Merluza" }, { name: "Patatas" }];
       const out = shoppingListFor(needy, foods);
       expect(out).toHaveLength(2);
-      expect(out[0]).toEqual({ name: "Merluza", qty: 0, min: 0, score: 5, urgency: "green" });
-      expect(out[1]).toEqual({ name: "Patatas", qty: 0, min: 0, score: 5, urgency: "green" });
+      expect(out[0]).toEqual({ name: "Merluza", qty: 0, min: 0, score: 5, urgency: "neutral" });
+      expect(out[1]).toEqual({ name: "Patatas", qty: 0, min: 0, score: 5, urgency: "neutral" });
     });
 
-    it("con ctx { plan, generatedOn, today } cada fila lleva onDay/daysUntil/urgency (FIX del semáforo plano)", () => {
-      // TODAY es MARTES: "Lunes" ancla el 21 (9 días), "Miércoles" el 16 (1 día → ROJO).
+    it("ítem REGISTRADO en el Inventario (registro ≠ stock, qty puede seguir ≤ min) → color por SU prioridad y datos reales", () => {
+      const foods = [
+        { name: "Merluza congelada", qty: 1, min: 2, score: 9 },   // sin cubrir → SIGUE, rojo (9 ≥ 8)
+        { name: "Tomates", qty: 2, min: 4, score: 7 },             // sin cubrir → naranja (6–7)
+        { name: "Arroz", qty: 1, min: 3, score: 3 }                // sin cubrir → verde (1–5)
+      ];
+      const out = shoppingListFor([{ name: "Merluza" }, { name: "Tomates" }, { name: "Arroz" }], foods);
+      expect(out).toHaveLength(3);
+      const porNombre = Object.fromEntries(out.map(f => [f.name, f]));
+      // la fila muestra el qty/min/score REALES del alimento de casa (no los ceros de defecto)
+      expect(porNombre.Merluza).toEqual({ name: "Merluza", qty: 1, min: 2, score: 9, urgency: "red" });
+      expect(porNombre.Tomates).toEqual({ name: "Tomates", qty: 2, min: 4, score: 7, urgency: "orange" });
+      expect(porNombre.Arroz).toEqual({ name: "Arroz", qty: 1, min: 3, score: 3, urgency: "green" });
+      // orden de salida: rojo → naranja → verde
+      expect(out.map(f => f.name)).toEqual(["Merluza", "Tomates", "Arroz"]);
+    });
+
+    it("alimento registrado SIN criterio de alerta (score ausente) → importancia de defecto 5 → verde", () => {
+      const out = shoppingListFor([{ name: "Pan" }], [{ name: "Pan de barra", qty: 0 }]);
+      expect(out).toHaveLength(1);
+      expect(out[0]).toEqual({ name: "Pan", qty: 0, min: 0, score: 5, urgency: "green" });
+    });
+
+    it("si casan VARIOS alimentos de casa decide el de MAYOR prioridad (determinista por contenido)", () => {
+      const foods = [
+        { name: "Pan de barra", qty: 0, min: 1, score: 4 },
+        { name: "Pan de molde", qty: 0, min: 1, score: 8 }   // orden del array NO decide
+      ];
+      const out = shoppingListFor([{ name: "Pan" }], foods);
+      expect(out).toHaveLength(1);
+      expect(out[0].urgency).toBe("red");
+      expect(out[0].score).toBe(8);
+    });
+
+    it("con ctx { plan, generatedOn, today } el metadato onDay/daysUntil se sigue calculando (color aparte)", () => {
+      // TODAY es MARTES: "Lunes" ancla el 21 (9 días), "Miércoles" el 16 (1 día).
       const plan = [
         { dayLabel: "Lunes", meals: [mealComida("comida", "Tortilla", ["Huevos"], ["Cebollas"])] },
         { dayLabel: "Miércoles", meals: [mealComida("cena", "Crema", ["Calabaza"], ["Queso"])] }
@@ -64,32 +99,16 @@ describe("modules/menu-semanal.js", () => {
         plan, generatedOn: TODAY, today: TODAY
       });
       expect(out).toHaveLength(2);
-      // Queda anclado al MIÉRCOLES próximo (2030-01-16, mañana) → ROJO y PRIMERO en el orden.
+      // Queso ancla al MIÉRCOLES próximo (2030-01-16, mañana) y desempata el ORDEN por días.
       expect(out[0].name).toBe("Queso");
       expect(out[0].onDay).toBe("2030-01-16");
       expect(out[0].daysUntil).toBe(1);
-      expect(out[0].urgency).toBe("red");
-      // Cebollas ancla al LUNES siguiente (2030-01-21, a 6 días) → VERDE.
+      // sin registro en el Inventario → NEUTRO aunque el plan lo pida mañana (bugfix 2026-10-21)
+      expect(out[0].urgency).toBe("neutral");
       expect(out[1].name).toBe("Cebollas");
       expect(out[1].onDay).toBe("2030-01-21");
       expect(out[1].daysUntil).toBe(6);
-      expect(out[1].urgency).toBe("green");
-    });
-
-    it("urgencias según regla del usuario: mañana/hoy=red, 2-3 días=orange, ≥4=green", () => {
-      const hoy = "2030-01-15";   // martes
-      const plan = [
-        { dayLabel: "Martes", meals: [mealComida("comida", "R1", ["A"], ["Tomates"])] },   // ancla HOY (0 d) → red
-        { dayLabel: "Jueves", meals: [mealComida("comida", "R2", ["A"], ["Zumo"])] },      // ancla 17 (2 d) → orange
-        { dayLabel: "Sábado", meals: [mealComida("comida", "R3", ["A"], ["Arroz"])] }      // ancla 19 (4 d) → green
-      ];
-      const out = shoppingListFor([{ name: "Tomates" }, { name: "Zumo" }, { name: "Arroz" }], [], { plan, generatedOn: hoy, today: hoy });
-      const porNombre = Object.fromEntries(out.map(f => [f.name, f.urgency]));
-      expect(porNombre.Tomates).toBe("red");
-      expect(porNombre.Zumo).toBe("orange");
-      expect(porNombre.Arroz).toBe("green");
-      // el orden de salida es semáforo: rojos → naranjas → verdes
-      expect(out.map(f => f.name)).toEqual(["Tomates", "Zumo", "Arroz"]);
+      expect(out[1].urgency).toBe("neutral");
     });
 
     it("ítem pedido en VARIOS días se ancla a la fecha MÁS PRÓXIMA (la compra debe cubrir la primera)", () => {
@@ -101,7 +120,13 @@ describe("modules/menu-semanal.js", () => {
       const out = shoppingListFor([{ name: "Limones" }], [], { plan, generatedOn: TODAY, today: TODAY });
       expect(out).toHaveLength(1);
       expect(out[0].daysUntil).toBe(0);      // la MÁS próxima de las tres
-      expect(out[0].urgency).toBe("red");
+      expect(out[0].urgency).toBe("neutral"); // sin registro en casa → neutro (color por prioridad)
+    });
+
+    it("los ítems NEUTROS van al FINAL de la lista (los con prioridad mandan el orden)", () => {
+      const foods = [{ name: "Tomates", qty: 2, min: 4, score: 7 }];   // naranja
+      const out = shoppingListFor([{ name: "Merluza" }, { name: "Tomates" }, { name: "Arroz" }], foods);
+      expect(out.map(f => f.name)).toEqual(["Tomates", "Merluza", "Arroz"]);
     });
 
     it("ingrediente ya en aforo CON STOCK (dedup por tokens) → no se duplica; qty=0 SÍ queda en la compra", () => {
@@ -679,5 +704,31 @@ describe("validarCompraForm + valoresPreviosDeCompra — reglas del modal de com
       expect(valoresPreviosDeCompra({})).toEqual({ min: 1, score: 5 });
       expect(valoresPreviosDeCompra({ min: NaN, score: null })).toEqual({ min: 1, score: 5 });
     });
+  });
+});
+
+describe("weekmenuTransportable — REGLA del transporte del plan semanal (petición 2026-10-21)", () => {
+  const semanaAprobada = {
+    approved: true, generatedOn: "2026-10-21", plan: preview3Dias().plan,
+    needyFoods: [{ name: "Aceite", qty: 1, min: 0, score: 5 }]
+  };
+
+  it("sólo un plan APROBADO es transportable, y lo es ENTERO (misma referencia: plan + needyFoods viajan juntos)", () => {
+    expect(weekmenuTransportable(semanaAprobada)).toBe(semanaAprobada);
+    expect(weekmenuTransportable(semanaAprobada).needyFoods).toEqual([{ name: "Aceite", qty: 1, min: 0, score: 5 }]);
+  });
+
+  it("el PREVIEW (no aprobado) y el estado limpio NO viajan: null, como ausencia", () => {
+    expect(weekmenuTransportable(preview3Dias())).toBeNull();           // plan sin aprobar: nada del menú se transporta
+    expect(weekmenuTransportable({ approved: false, generatedOn: "2026-10-21", plan: [] })).toBeNull();
+    expect(weekmenuTransportable(null)).toBeNull();
+    expect(weekmenuTransportable(undefined)).toBeNull();
+    expect(weekmenuTransportable("roto")).toBeNull();
+    expect(weekmenuTransportable({ plan: [], needyFoods: [] })).toBeNull();   // sin flag approved no hay transporte
+  });
+
+  it("aprobar es lo que pone la semana en circulación: approveMenu produce un menu transportable", () => {
+    const { weekmenu } = approveMenu(preview3Dias(), [], TODAY, cookEntryFor, () => "uid-a");
+    expect(weekmenuTransportable(weekmenu)).toBe(weekmenu);
   });
 });

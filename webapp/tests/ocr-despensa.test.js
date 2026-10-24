@@ -139,8 +139,8 @@ describe("ocr-despensa — guardarCandidatos (contrato ticket: NADIE entra en la
     expect(foods).toEqual([]);                                // la despensa NO se inventa altas
     expect(actualizados).toBe(0);
     expect(nuevos).toEqual([
-      { nombre: "Leche", qty: 2, tipo: "lacteo" },
-      { nombre: "Huevos XL", qty: 12, tipo: "proteina" }
+      { nombre: "Leche", qty: 2, tipo: "lacteo", hogar: false },
+      { nombre: "Huevos XL", qty: 12, tipo: "proteina", hogar: false }
     ]);
   });
 
@@ -194,7 +194,7 @@ describe("ocr-despensa — guardarCandidatos (contrato ticket: NADIE entra en la
       deps
     );
     expect(actualizados).toBe(1);
-    expect(directos).toEqual([{ nombre: "Pollo", qty: 3, tipo: null }]);   // el repetidor del paso 1
+    expect(directos).toEqual([{ nombre: "Pollo", qty: 3, tipo: null, hogar: false }]);   // el repetidor del paso 1
     expect(dudosos).toHaveLength(0);
     expect(nuevos.map(n => n.nombre)).toEqual(["Cuscús"]);                 // el repetidor del paso 2
   });
@@ -269,7 +269,7 @@ describe("ocr-despensa — reparto con la despensa: exacto suma, dudoso, nuevo s
   test("dudoso ('Yogur' vs despensa 'Yogur natural') NO entra: sale para la revisión del diálogo", () => {
     const { foods, dudosos, nuevos } = ocrDespensa.guardarCandidatos(
       despensa, [{ nombre: "Yogur", qty: 4 }], { candidatosDespensa: variantes });
-    expect(dudosos).toEqual([{ nombre: "Yogur", qty: 4, tipo: null }]);
+    expect(dudosos).toEqual([{ nombre: "Yogur", qty: 4, tipo: null, hogar: false }]);
     expect(nuevos).toEqual([]);
     expect(foods.find(f => f.name === "Yogur natural").qty).toBe(2);   // la despensa SIN tocar
     expect(foods).toHaveLength(2);                                      // ni rastro de alta de "Yogur"
@@ -279,7 +279,7 @@ describe("ocr-despensa — reparto con la despensa: exacto suma, dudoso, nuevo s
     const { foods, nuevos, dudosos } = ocrDespensa.guardarCandidatos(
       despensa, [{ nombre: "Ajo", qty: 1 }], { candidatosDespensa: variantes });
     expect(dudosos).toEqual([]);
-    expect(nuevos).toEqual([{ nombre: "Ajo", qty: 1, tipo: null }]);
+    expect(nuevos).toEqual([{ nombre: "Ajo", qty: 1, tipo: null, hogar: false }]);
     expect(foods).toHaveLength(2);                                     // la despensa NO lo recoge (todavía)
   });
 
@@ -397,3 +397,49 @@ describe("ocr-despensa — confirmarRevision (el 2º diálogo escribe la revisi�
   });
 });
 
+
+describe("ocr-despensa — datosDemoEscaner (la demo del escáner en el tutorial, 2026-10-22)", () => {
+  const ticketParser = require("../modules/ocr-ticket-parser.js");
+  const categoria = require("../modules/categoria-producto.js");
+  const menuSemanal = require("../modules/menu-semanal.js");
+
+  const CANDIDATOS = (demo) => {
+    const parseo = ticketParser.parsearTicket(demo.texto);
+    return parseo.items.map(it => ({
+      nombre: it.nombre,
+      qty: it.qty,
+      tipo: (classify.classifyFood(it.nombre)) || null,
+      hogar: !!categoria.esProductoHogar(it.nombre)
+    }));
+  };
+
+  test("la despensa de juguete no se muta entre llamadas (clones frescos del mismo molde)", () => {
+    const a = ocrDespensa.datosDemoEscaner();
+    a.despensa[0].qty = 99;
+    a.despensa.pop();
+    const b = ocrDespensa.datosDemoEscaner();
+    expect(b.despensa.length).toBe(2);
+    expect(b.despensa[0].qty).toBe(1);
+    expect(b.texto.split("\n").length).toBe(3);
+    expect(b.texto).toContain("LECHE ENTERA");
+  });
+
+  test("el reparto real sobre los datos demo saca los DOS diálogos: un exacto, una duda y un nuevo hogar", () => {
+    const demo = ocrDespensa.datosDemoEscaner();
+    const previo = ocrDespensa.guardarCandidatos(demo.despensa, CANDIDATOS(demo).map(c => ({
+      nombre: c.nombre, qty: c.qty, tipo: c.tipo, hogar: c.hogar
+    })), {
+      uid: () => "uid-demo", ahora: 0,
+      candidatosDespensa: (nombre, despensa) => menuSemanal.candidatosDespensa(nombre, despensa)
+    });
+    expect(previo.directos.map(d => d.nombre)).toEqual(["Leche entera"]);  // diálogo 1 (exacto)
+    expect(previo.dudosos.map(d => d.nombre)).toEqual(["Yogur"]);          // desplegable de variantes
+    expect(previo.nuevos.map(d => d.nombre)).toEqual(["Gel higiene"]);     // conmutador 🍎/🏠 preseleccionado a hogar
+    expect(CANDIDATOS(demo).find(c => c.nombre === "Gel higiene").hogar).toBe(true);   // "higiene" ∈ diccionario de hogar
+    expect(ocrDespensa.pasosDeConfirmacion(previo)).toEqual(["despensa", "revisar"]);
+    // Las VARIANTES de la duda no viajan en la fila: el diálogo las saca al vuelo con el casador
+    // (misma máquina del "🛒 Despensa?" de la lista) — con la despensa demo sale "Yogur natural".
+    expect(menuSemanal.candidatosDespensa("YOGUR", demo.despensa).map(v => `${v.name} · tienes ${v.qty}`))
+      .toEqual(["Yogur natural · tienes 2"]);
+  });
+});

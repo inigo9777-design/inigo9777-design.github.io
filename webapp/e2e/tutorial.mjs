@@ -6,9 +6,12 @@
 // accionable se avanza tocando SU elemento (con los campos de formulario SILENCIADOS: el toque
 // avanza pero NO enfoca — el teclado del PWA no abre; el select de Temporada tampoco abre) y
 // cada paso informativo con el botón; (5) el aro envuelve al elemento (geometría), (6) el swipe
-// del viewpager NO cambia de vista durante la visita, (7) el guion completo (16 pasos) termina
-// y (8) los pasos de objetivo ALTO ("Mis recetas", "Buena fruta") muestran la tarjeta ENCIMA
-// del aro con el contenido vivo debajo — no tapando la lista/cuadrícula (petición 2026-10-21).
+// del viewpager NO cambia de vista durante la visita, (7) el guion completo (17 pasos, con la
+// DEMO del escáner dentro: dos diálogos de ejemplo con datos de prueba y NADA escrito en el
+// inventario — petición 2026-10-22) termina
+// y (8) los pasos de objetivo ALTO (inventario, "Mis recetas", lote de Innovación y "Buena
+// fruta") muestran la tarjeta ENCIMA del aro con el contenido vivo debajo — no tapando la
+// lista/cuadrícula (petición 2026-10-21, pantallazos de referencia del usuario).
 import { chromium } from "playwright-core";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -52,7 +55,15 @@ try {
     return false;
   };
 
-  // (1) PRIMERA VISITA: el tutorial se abre SOLO
+  // Geometría de los pasos de objetivo ALTO (tarjeta: "arriba"): la misma sonda para los
+  // cuatro pasos de lista larga — tarjeta encima del aro, arranque del contenido en media
+  // pantalla inferior y cabecera asomando atenuada (petición 2026-10-21).
+  const geoTresZonas = () => page.evaluate(() => {
+    const t = document.getElementById("tutorial-tarjeta").getBoundingClientRect();
+    const f = document.getElementById("tutorial-foco").getBoundingClientRect();
+    const bar = document.querySelector(".topbar").getBoundingClientRect();
+    return { cardTop: t.top, cardBottom: t.bottom, ringTop: f.top, topbarBottom: bar.bottom, vp: window.innerHeight };
+  });
   await page.goto(`http://localhost:${PUERTO}/`);
   await page.waitForSelector(".topbar .tab");
   await page.waitForSelector("#tutorial:not(.hidden)", { timeout: 5000 });
@@ -77,7 +88,7 @@ try {
   await page.waitForSelector("#tutorial:not(.hidden)", { timeout: 2000 });
   ok(true, "(3) el 🎓 reabre el tutorial cuando la persona quiera");
 
-  // (4) RECORRIDO REAL del guion (16 pasos): accionable = tocar su elemento; informativo = botón.
+  // (4) RECORRIDO REAL del guion (17 pasos): accionable = tocar su elemento; informativo = botón.
   await avanzaBoton();                                             // 1 bienvenida → 2 cabecera
   await avanzaBoton();                                             // 2 cabecera → 3 alimentos#1 (Empecemos)
   await esEsperaFocoFijo();
@@ -102,51 +113,99 @@ try {
   ok(focoInput !== "food-name", "(4c) el campo quedó SILENCIADO: sin focus (teclado del PWA fuera)");
   await page.screenshot({ path: path.join(OUT, "69-tutorial-alimentos.png") });
 
-  // 4 alimentos#2 → 5 inventario (informativo) → 6 recetas#1 (salto de vista)
+  // 4 alimentos#2 → 5 inventario (informativo + tarjeta ARRIBA) → 6 recetas... no: 6 = la DEMO
+  // del escáner; el salto de vista a Recetas llega al cerrar la demo de abajo.
   await C("#food-score");
-  await avanzaBoton();                                             // 5 → 6
   await esEsperaFocoFijo();
-  ok((await paso()).includes("Paso 6"), "(4d) salto a Recetas (crear receta, paso 6 de 16)");
-  ok(await page.$eval("#view-recipes", el => el.classList.contains("active")), "(4e) la vista cambió a Recetas");
+  ok((await paso()).includes("Paso 5"), "(4l) Inventario y alerta semanal (paso 5 de 17)");
+  const geoInv = await geoTresZonas();
+  ok(geoInv.cardBottom <= geoInv.ringTop + 2, "(4m) la tarjeta queda ENCIMA del aro del inventario (NO tapa la lista)");
+  ok(geoInv.ringTop > geoInv.vp * 0.45, "(4n) el arranque del inventario queda visible en media pantalla inferior");
+  ok(geoInv.cardTop >= geoInv.topbarBottom - 4, "(4o) la cabecera no queda tapada por la tarjeta");
+  await page.screenshot({ path: path.join(OUT, "74-tutorial-inventario.png") });
+  await avanzaBoton();                                             // 5 → 6 (la DEMO del escáner)
+  await esEsperaFocoFijo();
+  ok((await paso()).includes("Paso 6"), "(4d) paso DEMO del escáner (paso 6 de 17)");
 
-  // 6 recetas#1: el textarea se toca (silenciado: sin focus) → 7 buscador
+  // 6 DEMO del escáner (petición 2026-10-22): tocar el botón de foto NO abre el selector de
+  // ficheros real — el wiring lanza los DOS diálogos del OCR con datos de prueba (un exacto,
+  // una duda y un nuevo hogar) sobre una despensa de juguete; NADA se escribe en mrcheff.foods.
+  // El cierre de la demo (confirmar o Cancelar) devuelve el paso al tutorial.
+  const foodsAntes = await page.evaluate(() => localStorage.getItem("mrcheff.foods") || "[]");
+  await C("#btn-ocr-foto");
+  await page.waitForSelector("#modal:not(.hidden)", { timeout: 3000 });
+  const bannerDemo = await page.$eval(".ocr-demo-banner", el => el.textContent);
+  ok(bannerDemo.includes("nada se guarda"), "(4d1) el banner dice que la demo no guarda nada");
+  const intro1 = await page.$eval("#modal-content .muted", el => el.textContent);
+  ok(intro1.includes("toca Confirmar y revisar el resto"), "(4d1b) el intro guía el click para continuar");
+  const filaExacta = await page.$eval(".ocr-item .ocr-nombre", el => el.textContent);
+  ok(filaExacta.includes("LECHE ENTERA"), "(4d2) diálogo 1: el exacto del ticket de ejemplo (\"Ya tienes 1\")");
+  ok(await page.$eval("[data-confirmar-exactos]", el => el.classList.contains("btn-demo-senal")), "(4d2b) el botón del pase lleva la señal visual (aro que pulsa)");
+  await page.screenshot({ path: path.join(OUT, "76-tutorial-demo-dialogo1.png") });
+  await page.evaluate(() => document.querySelector("[data-confirmar-exactos]").click());
+  await page.waitForSelector(".rev-seccion", { timeout: 2000 });
+  const secciones = await page.$$eval(".rev-seccion h3", els => els.map(e => e.textContent.trim()));
+  ok(secciones.join(",") === "Nuevos,Dudas", "(4d3) diálogo 2: secciones Nuevos y Dudas");
+  const opcionesDuda = await page.$$eval(".rev-campo-variante option", els => els.map(e => e.textContent));
+  ok(opcionesDuda.some(t => t.includes("Yogur natural · tienes 2")), "(4d4) la duda ofrece la variante de la despensa de juguete");
+  // GEL HIGIENE es producto de HOGAR: nace preseleccionado en 🏠 y el intro guía el cierre.
+  const hogarPresel = await page.$eval(".rev-fila-nueva .rev-cat-btn[data-cat='hogar']", el => el.getAttribute("aria-pressed"));
+  ok(hogarPresel === "true", "(4d4b) GEL HIGIENE es hogar: conmutador nace en 🏠");
+  const nombreNuevo = await page.$eval(".rev-fila-nueva .rev-campo-nombre", el => el.value);
+  ok(nombreNuevo.includes("GEL HIGIENE"), "(4d4c) la fila nueva es GEL HIGIENE (del ticket de ejemplo)");
+  const intro2 = await page.$eval("#modal-content > p.muted", el => el.textContent);
+  ok(intro2.includes("toca Añadir a la despensa"), "(4d4d) el intro del diálogo 2 guía el click final");
+  ok(await page.$eval("[data-revision-guardar]", el => el.classList.contains("btn-demo-senal")), "(4d4e) el botón final también lleva la señal visual");
+  await page.screenshot({ path: path.join(OUT, "77-tutorial-demo-dialogo2.png") });
+  await page.evaluate(() => document.querySelector("[data-revision-guardar]").click());
+  await page.waitForSelector("#modal.hidden", { timeout: 2000, state: "attached" });
+  const foodsTras = await page.evaluate(() => localStorage.getItem("mrcheff.foods") || "[]");
+  ok(foodsTras === foodsAntes, "(4d5) confirmada la demo, el inventario queda EXACTAMENTE igual");
+  await esEsperaFocoFijo();
+  ok((await paso()).includes("Paso 7"), "(4e) cerrada la demo, el paso avanza a Recetas (7)");
+  ok(await page.$eval("#view-recipes", el => el.classList.contains("active")), "(4e2) la vista cambió a Recetas");
+
+  // 7 recetas#1: el textarea se toca (silenciado: sin focus) → 8 buscador
   await C("#recipe-desc");
   await esEsperaFocoFijo();
-  ok((await paso()).includes("Paso 7"), "(4f) buscador del catálogo (paso 7)");
+  ok((await paso()).includes("Paso 8"), "(4f) buscador del catálogo (paso 8)");
   const focoTexto = await page.evaluate(() => document.activeElement && document.activeElement.id);
   ok(focoTexto !== "recipe-desc", "(4g) el textarea también silenciado (tocar avanza, teclado nunca abre)");
   await page.screenshot({ path: path.join(OUT, "70-tutorial-recetas.png") });
 
-  // 7 buscador → 8 mis recetas (informativo + tarjeta ARRIBA) → 9 innovación#1
+  // 8 buscador → 9 mis recetas (informativo + tarjeta ARRIBA) → 10 innovación#1
   await C("#recipe-catalog-search");
   await esEsperaFocoFijo();
-  ok((await paso()).includes("Paso 8"), "(4h) Mis recetas y su origen (paso 8 de 16)");
+  ok((await paso()).includes("Paso 9"), "(4h) Mis recetas y su origen (paso 9 de 17)");
   // Geometría del paso de objetivo ALTO (petición 2026-10-21): la tarjeta flota ENCIMA del aro,
   // el arranque de la lista se asienta a media pantalla inferior Y la cabecera asoma atenuada.
-  const geoLista = await page.evaluate(() => {
-    const t = document.getElementById("tutorial-tarjeta").getBoundingClientRect();
-    const f = document.getElementById("tutorial-foco").getBoundingClientRect();
-    const bar = document.querySelector(".topbar").getBoundingClientRect();
-    return { cardTop: t.top, cardBottom: t.bottom, ringTop: f.top, topbarBottom: bar.bottom, vp: window.innerHeight };
-  });
+  const geoLista = await geoTresZonas();
   ok(geoLista.cardBottom <= geoLista.ringTop + 2, "(4i) la tarjeta queda ENCIMA del aro (la lista NO está tapada)");
   ok(geoLista.ringTop > geoLista.vp * 0.45, "(4j) el arranque de la lista vive por debajo de la mitad de la ventana, visible");
   ok(geoLista.cardTop >= geoLista.topbarBottom - 4, "(4k) arriba de la tarjeta asoma la cabecera (logo y clúster) atenuada");
   await page.screenshot({ path: path.join(OUT, "72-tutorial-mis-recetas.png") });
-  await avanzaBoton();                                             // 8 → 9
+  await avanzaBoton();                                             // 9 → 10
   await esEsperaFocoFijo();
-  ok((await paso()).includes("Paso 9"), "(5a) el guion salta a Innovación");
+  ok((await paso()).includes("Paso 10"), "(5a) el guion salta a Innovación");
 
   // innovación: el generador con despensa vacía avisa (toast honesto) y el paso avanza igual
   await C("#btn-generate-innov");
   await new Promise(r => setTimeout(r, 300));
   const aviso = await page.$eval("#toast", el => el.textContent);
   ok(aviso.includes("Añade alimentos"), "(5b) con despensa vacía el toast pide primero anotar alimentos");
-  await avanzaBoton();                                             // 10 lote (informativo) → 11 menú#1
+  // 10 lote (informativo + tarjeta ARRIBA): el lote/cuadrícula se mira SIN taparse
+  await esEsperaFocoFijo();
+  ok((await paso()).includes("Paso 11"), "(5c) Un lote listo para mirar (paso 11 de 17)");
+  const geoLote = await geoTresZonas();
+  ok(geoLote.cardBottom <= geoLote.ringTop + 2, "(5d) la tarjeta queda ENCIMA del aro del lote (NO tapa el listado)");
+  ok(geoLote.ringTop > geoLote.vp * 0.45, "(5e) el arranque del listado queda visible en media pantalla inferior");
+  ok(geoLote.cardTop >= geoLote.topbarBottom - 4, "(5f) la cabecera no queda tapada por la tarjeta");
+  await page.screenshot({ path: path.join(OUT, "75-tutorial-lote.png") });
+  await avanzaBoton();                                             // 11 lote (informativo) → 12 menú#1
   await esEsperaFocoFijo();
 
   // (6) el swipe del viewpager NO cambia de vista durante la visita (guard del wiring)
-  ok((await paso()).includes("Paso 11"), "(6a) el guion llega a Sugerencias y menú (paso 11)");
+  ok((await paso()).includes("Paso 12"), "(6a) el guion llega a Sugerencias y menú (paso 12)");
   const vistaAntes = await page.$eval(".view.active", el => el.id);
   await page.evaluate(() => {                                      // gesto táctil sintético sobre .content
     const mkTouch = (tipo, x) => new TouchEvent(tipo, {
@@ -163,7 +222,7 @@ try {
   ok(vistaAntes === vistaTras, "(6) swipe durante la visita no cambia de vista (" + vistaTras + " se queda)");
   await page.screenshot({ path: path.join(OUT, "71-tutorial-menu.png") });
 
-  // 11 menú#1 → 12 menú#2 → 13 aprobar (informativo) → 14 temporada#1
+  // 12 menú#1 → 13 menú#2 → 14 aprobar (informativo) → 15 temporada#1
   await C("#btn-suggest-generate");
   await esEsperaFocoFijo();
   await C("#btn-menu-generate");
@@ -171,17 +230,12 @@ try {
   await esEsperaFocoFijo();
   ok(await page.$eval("#view-seasonal", el => el.classList.contains("active")), "(7a) última pantalla: Temporada");
 
-  // 14 temporada#1 → 15 cuadrícula (informativo + tarjeta ARRIBA) → 16 listo (Terminar)
+  // 15 temporada#1 → 16 cuadrícula (informativo + tarjeta ARRIBA) → 17 listo (Terminar)
   await C("#season-month");                                        // click del select → avanza
   const focoSelect = await page.evaluate(() => document.activeElement && document.activeElement.id);
   ok(focoSelect !== "season-month", "(7c) el select quedó SILENCIADO: sin focus no abre la lista de meses");
   await esEsperaFocoFijo();
-  const geoGrid = await page.evaluate(() => {
-    const t = document.getElementById("tutorial-tarjeta").getBoundingClientRect();
-    const f = document.getElementById("tutorial-foco").getBoundingClientRect();
-    const bar = document.querySelector(".topbar").getBoundingClientRect();
-    return { cardTop: t.top, cardBottom: t.bottom, ringTop: f.top, topbarBottom: bar.bottom, vp: window.innerHeight };
-  });
+  const geoGrid = await geoTresZonas();
   ok(geoGrid.cardBottom <= geoGrid.ringTop + 2, "(7d) \"Buena fruta\": tarjeta encima del aro, cuadrícula viva debajo");
   ok(geoGrid.ringTop > geoGrid.vp * 0.45, "(7e) el arranque de la cuadrícula queda visible en el tercio inferior");
   ok(geoGrid.cardTop >= geoGrid.topbarBottom - 4, "(7f) la cabecera no queda tapada por la tarjeta");
@@ -192,7 +246,7 @@ try {
   ok(cta === "Terminar", "(7b) el último paso dice Terminar");
   await avanzaBoton();
   await page.waitForSelector("#tutorial.hidden", { timeout: 2000, state: "attached" });
-  ok(true, "(7) recorrido completo terminado (16 pasos) y cerrado");
+  ok(true, "(7) recorrido completo terminado (17 pasos) y cerrado");
 
   await browser.close();
 } catch (e) {
