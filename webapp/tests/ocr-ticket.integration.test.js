@@ -477,14 +477,23 @@ describe("Escáner → la lista de la compra DINÁMICA se repinta en cada confir
     // y «Semillas» SIN registro en el Inventario → neutra, SIEMPRE al final.
     expect(filas(document)).toEqual(["Yogur", "Pan", "Semillas de calabaza"]);   // aún sin comprar
 
+    // La OTRA cara de la copy del diálogo (2026-10-24): el aviso de REPUESTOS de la semana
+    // también libera al alimento cubierto — el mismo repinta (renderWeeklyAlert) tras cada
+    // confirmación: la compra suma y, con más de lo que hace falta, el alimento sale solo.
+    const restock = () => [...document.querySelectorAll("#weekly-alert .alert-row .alert-name strong")].map(e => e.textContent);
+    expect(restock()).toEqual(["Yogur natural", "Pan"]);        // ambos piden reposición (qty <= min)
+
     document.querySelector("[data-confirmar-exactos]").click();             // diálogo 1: Pan +1 (qty 1 → 2)
     expect(filas(document)).toEqual(["Yogur", "Semillas de calabaza"]);     // Pan: 2 > su min 1 → SALE ya
+    expect(restock()).toEqual(["Yogur natural"]);                            // también del aviso semanal
 
     const sel = document.getElementById("rev-variante-1");
     sel.value = "a1";                                                        // la duda del Yogur → su variante
     sel.dispatchEvent(new window.Event("change", { bubbles: true }));
     document.querySelector("[data-revision-guardar]").click();               // diálogo 2: Yogur +2 (2 → 4)
     expect(filas(document)).toEqual(["Semillas de calabaza"]);               // Yogur: 4 > 3; Semillas: la tienda no la tenía
+    expect(restock()).toEqual([]);                                           // Yogur cubierto: aviso vacío
+    expect(document.getElementById("weekly-alert").classList.contains("hidden")).toBe(true);
 
     // needyFoods PERSISTE íntegro: el borrado es de la Card (en vivo), no del plan — si el ítem
     // se vuelve a gastar, la fila reaparece (sólo el ✅ comprado lo retira pa siempre).

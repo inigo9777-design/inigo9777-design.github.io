@@ -583,7 +583,9 @@
           <h2>🎫 ${pasos.length > 1 ? "1 de 2 · " : ""}Ya lo tienes en el inventario</h2>
           <p class="muted">Del ticket, estos ya estaban en tu Inventario actual. La cantidad es la que
               leí del ticket: ajústala si hace falta y confirma — la compra <strong>suma</strong> a lo
-              que había y la alerta de cada alimento queda como estaba.${demoDeTutorial ? " Para continuar, toca <strong>Confirmar y revisar el resto</strong>." : ""}</p>
+              que había: su IMPORTANCIA y su mínimo quedan como estaban y, con más de lo que hacía
+              falta en casa, el alimento <strong>sale solo</strong> del aviso de repuestos de esta
+              semana y de la lista de la compra.${demoDeTutorial ? " Para continuar, toca <strong>Confirmar y revisar el resto</strong>." : ""}</p>
           <div class="ocr-cabecera" aria-hidden="true">
             <span>Alimento</span><span>Cantidad</span><span>Incluir</span>
           </div>
@@ -609,8 +611,10 @@
           ? `<div class="rev-seccion">
               <h3>Dudas</h3>
               <p class="muted">¿Es la misma cosa que ya tienes con otro nombre? Elige de tu despensa el
-                  alimento al que pertenece esta compra (se suma a él y su alerta no se toca) o
-                  quédate la opción "es nuevo" para darlo de alta con lo escrito en la misma fila.</p>
+                  alimento al que pertenece esta compra (se suma a él: su alerta no se toca y, si
+                  cubre lo que faltaba, sale igual del aviso de repuestos de esta semana y de la
+                  lista de la compra) o quédate la opción "es nuevo" para darlo de alta con lo
+                  escrito en la misma fila.</p>
               <div class="rev-cab-duda" aria-hidden="true">
                 <span class="rev-col-alimento">Alimento</span>
                 <span>De tu despensa</span>
@@ -622,7 +626,10 @@
           : "";
         cuerpo = `
           <h2>🎫 ${pasos.length > 1 ? "2 de 2 · " : ""}Añade lo nuevo y resuelve las dudas</h2>
-          <p class="muted">Todo lo confirmado aquí acaba en tu Inventario actual (sin pasar por la lista de la compra).${demoDeTutorial ? " Para continuar, toca <strong>Añadir a la despensa</strong>." : ""}</p>
+          <p class="muted">Todo lo confirmado aquí acaba directamente en tu Inventario actual (no hace
+              cola en la lista de la compra): al subir lo que hay en casa, cuando ya tienes más de lo
+              que hace falta el alimento <strong>sale solo</strong> del aviso de repuestos de esta
+              semana y de la lista de la compra.${demoDeTutorial ? " Para continuar, toca <strong>Añadir a la despensa</strong>." : ""}</p>
           ${seccionNuevos}${seccionDudas}`;
       }
       const esFaseExactos = pasoNombre === "despensa";
