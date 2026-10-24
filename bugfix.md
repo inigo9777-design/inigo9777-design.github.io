@@ -322,3 +322,21 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   como `ctx.modalContent`/`ctx.toast` y los BUZÓN como `ctxSync`). **Verificación:** suite
   completa 675 tests / 47 suites verdes + cobertura global 94.32/83.68/98.45/97.01.
 
+---
+
+- `2026-10-24 · @AI-agent · #bugfix/scroll-caja-fuerte-pwa · Síntoma reportado (usuario):` en la
+  vista de CAJA FUERTE (Copia de seguridad) de la PWA se veía la BARRA del scroll del documento.
+  **Causa:** sus dos tarjetas miden ~283px más que el viewport (de ahí el scroll, correcto) y era
+  la ÚNICA scrollbar de la app sin esconder: la del NAV de pestañas (`scrollbar-width:none`),
+  la del `.modal-box` y la del nombre de alimento ya se ocultaban con el mismo precedente. Siendo
+  la barra del DOCUMENTO (el scrollport es `html`), no hay forma de apuntarla por menos que la
+  vista activa. **Arreglo:** en `style.css`, regla con `:has()` que esconde la barra SÓLO con la
+  vista de caja fuerte activa (`html:has(#view-backup.active) { scrollbar-width: none }` +
+  `::-webkit-scrollbar { display:none }` para Chromium viejo): la barra muere, el scroll NO —
+  táctil/rueda/teclado/botón flotante siguen vivos y las DEMÁS vistas conservan la barra nativa
+  (alcance exactamente el pedido; con WebKit sin `:has` la regla no aplica ⇒ degradación grácil).
+  **Verificación:** nuevo e2e repetible `node e2e/scroll-caja-fuerte.mjs` — 6 checks en Brave
+  real móvil (390×844): none con la caja activa, scroll vivo hasta el fondo (scrollTop 283),
+  alto del documento intacto, sin barra horizontal nueva, `auto` de vuelta en Alimentos y
+  re-ocultado al volver; suite completa 675/675 intacta; captura reports/ui-brave/scroll-caja-fuerte.
+

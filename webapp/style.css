@@ -168,6 +168,19 @@ html {
 }
 html { overflow-x: hidden; }
 
+/* BUGFIX 2026-10-24 (#bugfix/scroll-caja-fuerte-pwa): en la vista de Caja fuerte (Copia de
+   seguridad) se VEÍA la barra del scroll del documento en el PWA: sus dos tarjetas miden
+   ~283px más que el viewport, la barra aparece ahí con más protagonismo que en las vistas
+   de listas largas y el rostro de la app ya esconde las demás (nav de pestañas .tabs,
+   .modal-box, nombre de alimento — mismo precedente). Se esconde SÓLO cuando esa vista está
+   activa: el scroll sigue vivo (táctil, rueda, teclado, botón flotante) y las demás vistas
+   conservan la barra nativa tal como estaban. scrollbar-width para Firefox/WebView moderno
+   y el ::-webkit-scrollbar para Chromium viejo. Con :has() sin soporte (iOS WebKit < 15.4)
+   la regla simplemente no aplica: degradación grácil = barra visible como siempre.
+   Nada de overflow: la barra muere, el scroll no. */
+html:has(#view-backup.active) { scrollbar-width: none; }
+html:has(#view-backup.active)::-webkit-scrollbar { display: none; }
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg);
