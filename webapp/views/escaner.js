@@ -611,7 +611,7 @@
           ? `<div class="rev-seccion">
               <h3>Dudas</h3>
               <p class="muted">¿Es la misma cosa que ya tienes con otro nombre? Elige de tu despensa el
-                  alimento al que pertenece esta compra (se suma a él: su alerta no se toca y, si
+                  alimento al que pertenece esta compra (se suma a él: su prioridad no se toca y, si
                   cubre lo que faltaba, sale igual del aviso de repuestos de esta semana y de la
                   lista de la compra) o quédate la opción "es nuevo" para darlo de alta con lo
                   escrito en la misma fila.</p>
@@ -626,8 +626,7 @@
           : "";
         cuerpo = `
           <h2>🎫 ${pasos.length > 1 ? "2 de 2 · " : ""}Añade lo nuevo y resuelve las dudas</h2>
-          <p class="muted">Todo lo confirmado aquí acaba directamente en tu Inventario actual (no hace
-              cola en la lista de la compra): al subir lo que hay en casa, cuando ya tienes más de lo
+          <p class="muted">Todo lo confirmado aquí acaba directamente en tu Inventario actual. Al subir lo que hay en casa, cuando ya tienes más de lo
               que hace falta el alimento <strong>sale solo</strong> del aviso de repuestos de esta
               semana y de la lista de la compra.${demoDeTutorial ? " Para continuar, toca <strong>Añadir a la despensa</strong>." : ""}</p>
           ${seccionNuevos}${seccionDudas}`;
