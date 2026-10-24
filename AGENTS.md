@@ -35,13 +35,28 @@ Single-page, six-tab app loaded via `index.html`. Script order (order matters): 
 it but still before the DOM-ready event fires) → `modules/…` (`priority`, `classify`,
 `recipe-analysis`, catalog data, `origen-recetas`, `fotos-recetas` + su data, `innovations`, `util`, `backup`,
 `ingredient-matching`, `sync-crypto`, `diff-merge`, `sync`, `planner`, `menu-semanal`, `recipe-missing`,
-`recipe-editor`, `swipe-tabs`). `app.js`
+`recipe-editor`, `swipe-tabs`) → `views/…` (`recetas`, `escaner`, `innovacion`, `copias`, feature
+`final-refactor` 2026-10-23). `app.js`
 is the composition-root, sectioned by `// ===== SECTION =====` banners. Files:
 
 - **data.js** — static seasonal data; exposes `window.MR_CHEFF_DATA = { MESES, TEMPORADA }`. `app.js`
   depends on this having run first (keep the script order).
 - **app.js** — composition-root: event wiring, persistence glue and HTML molds only; the domain
   logic lives in `modules/` (see below). Sectioned by banner.
+- **`views/…` (feature `final-refactor`, 2026-10-23):** las CUATRO vistas de wiring del cierre
+  antiguo de `app.js` ahora son FÁBRICAS `window.MRCheff.views.<nombre>(ctx)` (patrón A de
+  CODING_STANDARDS, §3): `recetasModal` (vista Recetas + buscador del catálogo + la infra del
+  MODAL común), `escanerOcr` (escáner del ticket OCR + sus 2 diálogos), `innovacionSugerencias`
+  (Innovación + Sugerencias/menú 7×3 + lista de la compra) y `copiasSeguridad` (Copia de
+  seguridad + Sync). El DOMContentLoaded de `app.js` crea el **`ctx` compartido** (estado mutable
+  `foods/recipes/innovations/weeklyMenu/recetasDirty/…` + helpers publicados) y llama a las 4 en
+  orden: **recetasModal PRIMERO** (dueña del modal común que las demás piden por `ctx`); el resto
+  del acceso es SIEMPRE por `ctx.X` EN VIVO (sin destructuring), así el orden no condiciona. Las
+  function-declarations se publican anticipadamente al abrir la fábrica (hoisting) para colmar las
+  llamadas de init de las vistas siguientes; los MOLDES de HTML (`badgeSyncHTML`) viven en el
+  core y se publican antes de iniciar las vistas. Nota de cobertura: las vistas corren vía
+  `boot.js` (eval del script) como `app.js`, así que jest NO las contabiliza en cobertura
+  (`collectCoverageFrom` las lista igualmente; los umbrales globales 70/65/70/70 no varían).
 - **style.css** — hand-written CSS (no framework); desde 2026-10-18 es un **sistema tokenizado**: todo color
   vive en `:root` (claro) / `[data-theme="dark"]` (oscuro), **ningún componente usa hex sueltos**; añadir un
   color nuevo = añadir token en ambos temas (con `color-scheme` nativo por tema). Tipografía: Georgia (serif

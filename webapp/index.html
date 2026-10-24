@@ -447,6 +447,14 @@
          posicionamiento son wiring de app.js. Si el tag faltara, la app funciona normal y sólo
          no hay tutorial (botón 🎓 inerte, guard embutido en app.js). -->
     <script src="modules/tutorial.js"></script>
+    <!-- Vistas extraídas de app.js (refactor final 2026-10-23): fábricas de vista que
+         reciben el contexto compartido por argumento en el arranque de app.js.
+         El orden de CARGA no decide el de EJECUCIÓN: app.js llama a cada fábrica
+         pasándole `ctx` (recetasModal primero — es la dueña del modal común). -->
+    <script src="views/recetas.js"></script>
+    <script src="views/escaner.js"></script>
+    <script src="views/innovacion.js"></script>
+    <script src="views/copias.js"></script>
 
     <noscript>Mr Cheff necesita JavaScript: toda la lógica funciona en tu navegador, sin servidor.</noscript>
     <script>

@@ -300,3 +300,25 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   UNA sola vez (sincrónico); el evento natural de jsdom queda sin oyentes. Producción intacta.
   **Verificación:** sondas (1 click → 1 llamada, antes 2) + suite completa 650 tests / 45
   suites verdes + cobertura global 94/83.
+
+---
+
+- `2026-10-23 · @AI-agent · #final-refactor · Síntoma:` al partir el cierre de `app.js` en 4 vistas
+  de fábrica (`views/*.js`, `ctx` compartido) la suite cayó a 42 fallos/12 suites: `ReferenceError:
+  limpiarPaso is not defined` en la ficha de receta y el copiar métodos; `TypeError: ctx.badgeSyncHTML
+  is not a function` en el render inicial de recetas/innovación; `ReferenceError: Cannot access
+  'ctx' before initialization` en el clic de Sync y al regenerar la lista de la compra. **Causa:**
+  tres problemas de resolución de nombres del split: (1) los helpers de `modules/util.js`
+  (`limpiarPaso`, `formatoFechaCorta`) llegaban por destructuring SOLO al core y no a las vistas;
+  (2) `badgeSyncHTML` (molde de la vista copias) se publicaba en `ctx` AL FINAL de su fábrica,
+  demasiado tarde para las vistas que arrancan antes; (3) los `const ctx` locales que en el
+  cierre único eran sombra legítima (handler del sync `contextoSync(pass)`, contexto de la lista
+  de la compra) CHOCAN con el parámetro de la fábrica: el TDZ del shadow rompe cada referencia
+  previa de esa función. **Arreglo:** (1) el core publica `ctx.limpiarPaso` y
+  `ctx.formatoFechaCorta` y las vistas los leen por `ctx`; (2) `badgeSyncHTML` sube al CORE
+  (donde viven los moldes HTML) y se publica antes de iniciar las vistas; (3) las sombras se
+  renombran (`ctxSync`, `ctxCompra`) y los parámetros sync de
+  `encaminarResultado`/`abrirModalResolver` pasan de `ctx` a `ctxSync` (sus usos FACTORÍA quedan
+  como `ctx.modalContent`/`ctx.toast` y los BUZÓN como `ctxSync`). **Verificación:** suite
+  completa 675 tests / 47 suites verdes + cobertura global 94.32/83.68/98.45/97.01.
+

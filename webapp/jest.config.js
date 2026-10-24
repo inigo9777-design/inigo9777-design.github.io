@@ -30,7 +30,8 @@ module.exports = {
     "<rootDir>/modules/ocr-foto.js",
     "<rootDir>/modules/ocr-ticket-parser.js",
     "<rootDir>/modules/categoria-producto.js",
-    "<rootDir>/modules/fotos-recetas.js"
+    "<rootDir>/modules/fotos-recetas.js",
+    "<rootDir>/views/*.js"
   ],
   coverageThreshold: {
     global: { statements: 70, branches: 65, functions: 70, lines: 70 }
