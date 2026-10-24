@@ -596,7 +596,7 @@
               <h3>Nuevos</h3>
               <p class="muted">Nada de esto está en tu Inventario actual: define en cada fila su IMPORTANCIA
                   (prioridad para avisarte) y su MÍNIMO, junto al nombre y la cantidad — al confirmar
-                  entran en la despensa con esa alerta. El conmutador TIPO decide si la compra es
+                  entran en la despensa con esos datos. El conmutador TIPO decide si la compra es
                   comida (🍎) o un producto de 🏠 HOGAR (detergente, papel…): los de hogar no piden
                   criterio, avisan cuando se agoten.</p>
               <div class="rev-cab-nueva" aria-hidden="true">
