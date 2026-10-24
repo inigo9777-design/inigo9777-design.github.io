@@ -145,6 +145,27 @@ italiana" (see `modules/origen-recetas.js` below).
   - Verificación: unit `tests/fotos-recetas.test.js` (9), integración jsdom
     `tests/fotos-recetas.integration.test.js` (5), e2e Brave real `e2e/fotos-recetas.mjs`
     (capturas reports/ui-brave/78).
+- **La línea "⚠️ Falta / ✅ en casa" en TODAS las tarjetas de receta (feature `falta-ingredientes-cards`, petición 2026-10-24):**
+  el plan semanal ya contaba lo que faltaba fuera (hueco) y dentro (ficha); las DEMÁS tarjetas de receta quedaron
+  a medias. Ahora las cards de **Mis Recetas + resultados del buscador del catálogo** (views/recetas.js), **Innovación**
+  y **Card 1 "Sugerencia de hoy"** (views/innovacion.js) llevan la MISMA línea que el hueco del plan — "⚠️ Falta: A, B"
+  en rojo si falta algo o "✅ Todos los ingredientes en casa" en verde — y la FICHA (modal de detalle) marca los
+  "⚠️ No lo tienes" por ingrediente DESDE TODAS las vistas (antes sólo si se abría desde Sugerencias/Menú con
+  `{highlightMissing}`; la bandera se retira, se marca siempre).
+  - Un solo lugar calcula bien: la 3ª pública de `recipe-missing.js`, `nombresFaltantes(receta, aforo)` (los nombres
+    en el orden del array, misma regla estricta qty>0 que `marcarFaltantes`). El MOLDE es
+    `faltanEnCasaHTML(rec)` en innovacion.js, publicado por ctx (precedente `fotoRecetaHTML`): guard débil si el
+    módulo no cargara, aforo = `ctx.despensaCocina()` (los PRODUCTOS DE HOGAR no cubren cocinar) con fallback a
+    ctx.foods. Los huecos del plan INTACTOS: siguen usando el `missing` del snapshot del plan (generación).
+  - REPINTADO tras suceso de despensa: el hook único `ctx.renderShoppingListTrasDespensa` (alta manual, ➕/➖/🗑,
+    los dos diálogos del OCR, import) repinta AHORA también las tres listas de cards — comprar lo que faltaba saca
+    el alimento de la línea AL INSTANTE. Card 1 recuerda su lote vivo (`loteSugerencias`) para el repintado; el
+    botón "Limpiar" lo vacía también (si no, el lote limpiado reaparecería en el siguiente suceso).
+  - Verificación: unit `tests/recipe-missing.test.js` (+4 de `nombresFaltantes`), integración jsdom
+    `tests/falta-ingredientes-cards.integration.test.js` (6: Falta+verde en Mis Recetas, ideas de Innovación,
+    hogar-no-cubre-cocina, ficha marcada desde Mis Recetas, repintado AL INSTANTE tras ➕, línea en cada card de
+    Card 1 + limpio no reaparece) y e2e Brave real `e2e/falta-ingredientes-cards.mjs` (10 checks, capturas
+    reports/ui-brave/82-*).
 - **Comportamiento móvil (PWA, feature 2026-10-18):** (1) **Viewpager**: deslizar horizontal DENTRO
   de `.content` cambia a la vista vecina (wrap entre las 5 del nav; el tab lateral de backup NO
   entra en el carrusel) — decisión en el módulo puro `modules/swipe-tabs.js`, wiring touch +
@@ -375,7 +396,8 @@ italiana" (see `modules/origen-recetas.js` below).
   accionesMenuSlot — el 🍳 del menu sólo en plan aprobado, platosDelPlan y alternarColapso — plegar/
   desplegar la semana APROBADA, petición 2026-10-21) ·
   `recipe-editor.js` (buildDraft, validateDraft, estaGuardada, applyEdit, patchPlan) · `recipe-missing.js`
-  (qué ingredientes faltan para el modal) · `backup.js` · **`busqueda-recetas.js`** (buscador del
+  (qué ingredientes faltan: `marcarFaltantes` para el modal + `nombresFaltantes` para las cards, 3ª pública
+  2026-10-24) · `backup.js` · **`busqueda-recetas.js`** (buscador del
   catálogo: texto libre → resultado por TÍTULO SÓLO, exacto x3 / prefijo x2 — fix 2026-10-20:
   los ingredientes ya no puntúan —, reutiliza matching de tokens del matcher compartido,
   orden estable y límite ctx.limite) · **`origen-recetas.js`** (etiqueta/sello de origen:

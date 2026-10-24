@@ -465,6 +465,14 @@ Aquí queda sólo la referencia, sin su marcha.
   vista ya está testada en sus módulos puros (§6 Capa 1); lo que queda en views es wiring de
   render/IO cubierto por las specs de integración Capa 2.
 
+- `2026-10-24 · @AI-agent · #feature-falta-ingredientes-cards · Principio: O · Justificación:` la
+  API CERRADA de `recipe-missing.js` (2 públicas) se amplía ADITIVAMENTE a 3 con
+  `nombresFaltantes(receta, aforo)`: la línea "⚠️ Falta / ✅ en casa" de las tarjetas de receta
+  (Mis Recetas, buscador, Innovación, Card 1) y la ficha marcada desde TODAS las vistas
+  necesitan los NOMBRES de los faltantes — la decisión pertenece al módulo puro (§3) y reutiliza
+  `marcarFaltantes` tal cual, sin reimprimir la regla en la vista. Shapes §5 intactos (ningún
+  campo añadido). Marcha en AGENTS.md (bullet `falta-ingredientes-cards`).
+
 ---
 
 ## 9. Campaña de refactor `app.js` → módulos (estado, 2026-10-23)

@@ -11,6 +11,7 @@
     ctx.tagMenuSlotHTML = tagMenuSlotHTML;
     ctx.origenAlGuardar = origenAlGuardar;
     ctx.fotoRecetaHTML = fotoRecetaHTML;
+    ctx.faltanEnCasaHTML = faltanEnCasaHTML;   // molde de la línea "⚠️ Falta / ✅ en casa" — lo piden las cards de recetas también
     ctx.renderInnovations = renderInnovations;
     ctx.renderWeeklyMenu = renderWeeklyMenu;
     ctx.renderShoppingList = renderShoppingList;
@@ -85,6 +86,23 @@
       return `<div class="recipe-photo recipe-foto-falta" data-letra="${ctx.escapeHTML(letra)}" aria-hidden="true"></div>`;
     }
     return `<img class="recipe-photo" src="${ctx.escapeHTML(ruta)}" alt="" loading="lazy" decoding="async" aria-hidden="true">`;
+  }
+
+  // Línea de la tarjetа con la DESPENSA VIVA (2026-10-24, petición del usuario — las del menú ya la
+  // tenían): "⚠️ Falta: A, B" en rojo o la verde "✅ Todos los ingredientes en casa", la MISMA cara
+  // en las cards de Recetas, Innovación y Sugerencias y en la ficha (modal). La DECISIÓN de qué
+  // falta vive en el módulo puro recipe-missing (misma regla estricta qty>0 que el modal — un solo
+  // lugar calcula bien); aquí sólo el molde. Guard débil: si el módulo no cargara, la línea no sale
+  // y la card queda como siempre. El aforo es la DESPENSA DE COCINA (los productos de hogar no
+  // cubren ingredientes de plato).
+  function faltanEnCasaHTML(rec) {
+    const modulo = window.MRCheff.recipeMissing;
+    if (!modulo || typeof modulo.nombresFaltantes !== "function") return "";
+    const aforo = typeof ctx.despensaCocina === "function" ? ctx.despensaCocina() : ctx.foods;
+    const faltan = modulo.nombresFaltantes(rec, aforo);
+    return faltan.length
+      ? `<div class="innov-uses" style="color:var(--danger);">⚠️ Falta: ${faltan.map(ctx.escapeHTML).join(", ")}</div>`
+      : `<div class="innov-uses" style="color:var(--accent);">✅ Todos los ingredientes en casa</div>`;
   }
 
   const innovApi = window.MRCheff.innovations;   // módulo puro del generador + conciliación (modules/ctx.innovations.js)
@@ -171,7 +189,8 @@
           ${ctx.badgeSyncHTML(i)}
           ${i.source === "curada" ? "" : `<span class="tag tag-${ctx.escapeHTML(String(i.source))}">${SOURCE_LABEL[i.source] || "Nueva"}</span>`}
         </div>
-        ${Array.isArray(i.uses) && i.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${i.uses.map(ctx.escapeHTML).join(" · ")}</div>` : ""}`;
+        ${Array.isArray(i.uses) && i.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${i.uses.map(ctx.escapeHTML).join(" · ")}</div>` : ""}
+        ${ctx.faltanEnCasaHTML(i)}`;
       card.addEventListener("click", (e) => {
         if (e.target.closest("[data-del], [data-save], [data-edit]")) return;
         ctx.openRecipeModal(i);
@@ -225,6 +244,7 @@
   const btnSuggestClear = ctx.$("#btn-suggest-clear");
   const suggestList = ctx.$("#suggest-list");
   const suggestEmpty = ctx.$("#suggest-empty");
+  let loteSugerencias = [];   // el lote actualmente en Card 1 (memoria del repintado de despensa — se llena al renderizar)
   const catalogoEspanol = window.MRCheff.recetasEspanolas || [];
   const planner = window.MRCheff.planner;
   const menuSemanal = window.MRCheff.menuSemanal;
@@ -234,6 +254,7 @@
   ctx.menuSemanal = menuSemanal;
 
   function renderSuggestCards(ideas) {
+    loteSugerencias = Array.isArray(ideas) ? ideas.slice() : [];   // memoria del lote VIVO: el gancho de despensa lo repinta (línea Falta/todo-en-casa)
     suggestList.innerHTML = "";
     if (!Array.isArray(ideas) || ideas.length === 0) {
       suggestEmpty.classList.remove("hidden");
@@ -257,7 +278,8 @@
           ${ctx.badgeSyncHTML(idea)}
         ${tagClasicoHTML(idea, SOURCE_LABEL.sugerenciaHoy)}
         </div>
-        ${Array.isArray(idea.uses) && idea.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${idea.uses.map(ctx.escapeHTML).join(" · ")}</div>` : ""}`;
+        ${Array.isArray(idea.uses) && idea.uses.length ? `<div class="innov-uses">🥣 Usa de tu casa: ${idea.uses.map(ctx.escapeHTML).join(" · ")}</div>` : ""}
+        ${ctx.faltanEnCasaHTML(idea)}`;
       card.addEventListener("click", (e) => {
         if (e.target.closest("[data-cook], [data-edit]")) return;
         ctx.openRecipeModal(idea, { highlightMissing: true });
@@ -331,6 +353,7 @@
 
   btnSuggestClear.addEventListener("click", () => {
     suggestList.innerHTML = "";
+    loteSugerencias = [];   // la memoria del lote también se vacía (si no, el repintado de despensa lo haría reaparecer)
     cursoresSugerencia = { desayuno: 0, comida: 0, cena: 0 };   // la rotación también empieza de cero
     clicksSugerencia = 0;
     suggestEmpty.classList.remove("hidden");
@@ -550,8 +573,15 @@
   // (shoppingListFor: alimento que case con qty > SU min); aquí sólo se cuenta TODOS los sucesos
   // que pueden moverla: alta OCR (los dos diálogos), alta manual del formulario, ➕➖/🗑 del
   // inventario y el import del backup — sin olvidar el ✅ comprado, que ya la repintaba.
+  // (2026-10-24) El MISMO suceso de despensa respira ahora en las TARJETAS de receta: la línea
+  // "⚠️ Falta / ✅ Todos los ingredientes en casa" compró lo que faltaba → las tres
+  // listas de cards (Mis Recetas, ideas de Innovación y el lote Sugerenciado) se repintan al
+  // momento, igual que la Card 3 — una sola llamada desde cualquier suceso.
   function renderShoppingListTrasDespensa() {
     if (ctx.weeklyMenu && ctx.weeklyMenu.approved) renderShoppingList();
+    if (typeof ctx.renderRecipes === "function") ctx.renderRecipes();
+    renderInnovations();
+    if (loteSugerencias.length) renderSuggestCards(loteSugerencias);
   }
 
   function renderShoppingList() {
