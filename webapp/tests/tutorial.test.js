@@ -171,24 +171,33 @@ describe("tutorial — bloque INNOVACIÓN (épica tutorial-interactivo)", () => 
 });
 
 describe("tutorial — bloque SUGERENCIAS Y MENÚ (épica tutorial-interactivo)", () => {
-  it("la vista suggest trae 3 pasos consecutivos y tras los de Innovación", () => {
+  it("la vista suggest trae 4 pasos consecutivos y tras los de Innovación", () => {
     const porVista = tut.pasosDeVista("suggest");
-    expect(porVista.length).toBe(3);
+    expect(porVista.length).toBe(4);
     expect(porVista.every(p => p.vista === "suggest")).toBe(true);
     const ids = tut.PASOS.map(p => p.id);
     expect(ids.indexOf("menu-hoy")).toBe(ids.indexOf("innovacion-lote") + 1);   // sigue a Innovación
-    expect(ids.slice(ids.indexOf("menu-hoy"), ids.indexOf("menu-hoy") + 3).join(","))
-      .toBe("menu-hoy,menu-semana,menu-aprobar");
+    expect(ids.slice(ids.indexOf("menu-hoy"), ids.indexOf("menu-hoy") + 4).join(","))
+      .toBe("menu-hoy,menu-semana,menu-aprobar,menu-compra");
   });
 
-  it("contrato: sugerir y menú accionables; aprobar es informativo (botón deshabilitado al llegar)", () => {
-    const [p1, p2, p3] = tut.pasosDeVista("suggest");
+  it("contrato: sugerir y menú accionables; aprobar y la LISTA DE LA COMPRA informativos", () => {
+    const [p1, p2, p3, p4] = tut.pasosDeVista("suggest");
     expect(p1.selector).toBe("#btn-suggest-generate");
     expect(p1.accionable).toBe(true);
     expect(p2.selector).toBe("#btn-menu-generate");
     expect(p2.accionable).toBe(true);
     expect(p3.selector).toBe("#btn-menu-approve");
     expect(p3.accionable).toBe(false);
+    // Paso nuevo (2026-10-24): la Card 3 en su momento — informativo, apunta a la lista y
+    // con tarjeta ARRIBA: es un objetivo ALTO (la lista nace bajo la semana, su arranque
+    // se asienta al 60% de la ventana). La lista no existe (sin plan aprobado) ⇒ el wiring
+    // la trata de objetivo invisible: velo completo + tarjeta centrada.
+    expect(p4.id).toBe("menu-compra");
+    expect(p4.selector).toBe("#shopping-list");
+    expect(p4.accionable).toBe(false);
+    expect(p4.tarjeta).toBe("arriba");
+    expect(p4.texto).not.toContain("semáforo");   // sin tecnicismos en la explicación
   });
 });
 
@@ -198,7 +207,7 @@ describe("tutorial — bloque TEMPORADA (épica tutorial-interactivo)", () => {
     expect(porVista.length).toBe(2);
     expect(porVista.every(p => p.vista === "seasonal")).toBe(true);
     const ids = tut.PASOS.map(p => p.id);
-    expect(ids.indexOf("temporada-mes")).toBe(ids.indexOf("menu-aprobar") + 1);   // última pantalla del tour
+    expect(ids.indexOf("temporada-mes")).toBe(ids.indexOf("menu-compra") + 1);   // última pantalla del tour
     expect(ids.slice(ids.indexOf("temporada-mes"), ids.indexOf("temporada-mes") + 2).join(","))
       .toBe("temporada-mes,temporada-grid");
   });

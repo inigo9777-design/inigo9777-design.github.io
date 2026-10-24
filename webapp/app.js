@@ -239,7 +239,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const anchoVP = window.innerWidth || document.documentElement.clientWidth;
     const altoVP = window.innerHeight || document.documentElement.clientHeight;
     const MARGEN = 8;                     // aire del aro alrededor del elemento señalado
-    if (!objetivo) {                      // sin objetivo: VELO COMPLETO (toda la ventana atenuada) + tarjeta centrada
+    // Objetivo INVISIBLE (existe pero mide 0×0 — la lista de la compra #shopping-list no nace
+    // hasta aprobar un plan, el paso menu-compra de 2026-10-24): mismo camino que sin objetivo,
+    // velo completo + tarjeta centrada; un aro de 0×0 pegado a la esquina sería basura visual.
+    // El mismo código pinta el aro sobre la lista REAL si la visita se reabre con 🎓 el día que
+    // ya hay plan aprobado. Doble chequeo de "invisible": la clase `hidden` de la app (la
+    // misma que jsdom resuelve sin layout) y, en navegador, la geometría real 0×0 de
+    // offsetWidth — el falso "todo invisible" de jsdom (tiges a 0) lo evita hayLayout.
+    const hayLayout = (document.documentElement.clientWidth || document.body.clientWidth) > 0;
+    const objetivoInvisible = !!objetivo && (objetivo.classList.contains("hidden")
+      || (hayLayout && objetivo.offsetWidth === 0 && objetivo.offsetHeight === 0));
+    if (!objetivo || objetivoInvisible) {
+      // sin objetivo: VELO COMPLETO (toda la ventana atenuada) + tarjeta centrada
       Object.assign(tutorialVelos.arriba.style, { top: "0px", height: altoVP + "px" });   // left/right son 0 por CSS: cubre el ancho entero
       Object.assign(tutorialVelos.izquierda.style, { width: "0px" });
       Object.assign(tutorialVelos.derecha.style, { left: anchoVP + "px", width: "0px" });
@@ -319,7 +330,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // elemento se asienta al ~60% de la ventana: la tarjeta flota entre la cabecera y el aro,
     // y el contenido del paso se ve vivo debajo (el scroll por JS, window.scrollTo, porque
     // scrollIntoView no enseña "dónde debe quedar el tope").
-    if (objetivo) {
+    if (objetivo && (objetivo.offsetWidth || objetivo.offsetHeight)) {   // sube/salta sólo si el objetivo se ve (invisible ⇒ el reposicionado cae en tarjeta centrada)
       const reduce = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (paso.tarjeta === "arriba") {
         const altoVP = window.innerHeight || document.documentElement.clientHeight;

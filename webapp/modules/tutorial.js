@@ -98,7 +98,7 @@
       id: "alimentos-escaner-demo",
       vista: "foods", selector: "#btn-ocr-foto", accionable: true, demo: "escaner",
       titulo: "Escanea el ticket: no teclees la compra",
-      texto: "Fotografías el ticket del super (o la nevera) y la app lee lo comprado con sus cantidades: te lo enseño con dos diálogos de ejemplo y datos de prueba — en la demo NADA se guarda en tu inventario. Toca el botón de foto.",
+      texto: "Fotografías el ticket del super y la app lee lo comprado con sus cantidades. Te lo enseño con un ejemplo: nada se guarda en tu inventario. Toca el botón de foto.",
     },
   ];
   const PASOS_RECETAS = [
@@ -106,7 +106,7 @@
       id: "recetas-crear",
       vista: "recipes", selector: "#recipe-desc", accionable: true,
       titulo: "Crea recetas con tus palabras",
-      texto: "Describe aquí lo que has cocinado como lo contarías a un amigo y la app saca tus ingredientes y tus pasos en orden — interpretado en tu dispositivo, sin redes. Toca el campo para seguir.",
+      texto: "Describe aquí lo que has cocinado como lo contarías a un amigo y la app saca tus ingredientes y tus pasos en orden. Nada sale de tu móvil. Toca el campo para seguir.",
     },
     {
       id: "recetas-catalogo",
@@ -127,13 +127,13 @@
       id: "innovacion-generador",
       vista: "innovation", selector: "#btn-generate-innov", accionable: true,
       titulo: "Ideas del catálogo, no combinaciones al vuelo",
-      texto: "Aquí Mr Cheff te propone platos reales ordenados por su encaje con tu despensa: el nº de ideas (4 a 20) y el sesgo (mezcla, platos nuevos o parecidos) se ajustan en esta misma fila. Toca Generar ideas y verás.",
+      texto: "Aquí Mr Cheff te propone platos reales ordenados por su encaje con tu despensa: puedes elegir cuántas ideas quieres (4 a 20) y qué buscar — mezcla, platos nuevos o parecidos a los tuyos — en esta misma fila. Toca Generar ideas y verás.",
     },
     {
       id: "innovacion-lote",
       vista: "innovation", selector: "#innovation-list", accionable: false, tarjeta: "arriba",
       titulo: "Un lote listo para mirar",
-      texto: "Cada tarjeta es una receta real con sus ingredientes a juego con lo que has anotado: ábrela para la ficha completa y guárdala con ⭐ si te convence — pasa a Mis recetas y ya cuenta en el plan de la semana. (Con la despensa vacía el generador te dirá antes de apuntar algo en Alimentos.)",
+      texto: "Cada tarjeta es una receta real con sus ingredientes a juego con lo que has anotado: ábrela para la ficha completa y guárdala con ⭐ si te convence — pasa a Mis recetas y ya cuenta en el plan de la semana. (Con la despensa vacía, la app te pedirá primero anotar algo en Alimentos.)",
       cta: "Siguiente",
     },
   ];
@@ -154,7 +154,14 @@
       id: "menu-aprobar",
       vista: "suggest", selector: "#btn-menu-approve", accionable: false,
       titulo: "Aprobar el plan y la compra",
-      texto: "Cuando la semana te guste, \"Aprobar plan\" la fija: desbloquea el 🍳 Cocinar de cada comida y crea abajo la lista de la compra, con semáforo por fecha (rojo hoy, verde si corre).",
+      texto: "Cuando la semana te guste, \"Aprobar plan\" la fija: desbloquea el 🍳 Cocinar de cada comida y crea abajo la lista de la compra.",
+      cta: "Siguiente",
+    },
+    {
+      id: "menu-compra",
+      vista: "suggest", selector: "#shopping-list", accionable: false, tarjeta: "arriba",
+      titulo: "La lista de la compra",
+      texto: "Al aprobar, justo debajo de la semana nace la lista de lo que te falta para cocinarla: lo urgente arriba, y sin repetir lo que ya tengas en casa. Al volver del súper, márcalo ✅ Comprado y la lista se limpia. (Si aún no has aprobado ningún plan, aparece en cuanto lo hagas.)",
       cta: "Siguiente",
     },
   ];

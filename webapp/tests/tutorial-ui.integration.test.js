@@ -302,7 +302,7 @@ describe("tutorial interactivo — pantalla SUGERENCIAS Y MENÚ (plan real de la
     const bienvenida = tut.PASOS[0];
     const menu = tut.pasosDeVista("suggest");
     const listo = tut.PASOS[tut.PASOS.length - 1];
-    tut.PASOS.splice(0, tut.PASOS.length, bienvenida, ...menu, listo);
+    tut.PASOS.splice(0, tut.PASOS.length, bienvenida, ...menu, listo);   // bienvenida + MENÚ×4 + listo = 6
     const avanzar = app.document.getElementById("tutorial-avanzar");
     avanzar.click();                                             // bienvenida → sugerencias#1 (SALTA a suggest)
     await dormir(60);
@@ -310,13 +310,17 @@ describe("tutorial interactivo — pantalla SUGERENCIAS Y MENÚ (plan real de la
     app.document.getElementById("btn-suggest-generate").click(); // sugerencias REALES
     await dormir(60);
     expect(app.document.getElementById("suggest-list").children.length).toBeGreaterThan(0);
-    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 3 de 5");
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("Paso 3 de 6");
     app.document.getElementById("btn-menu-generate").click();    // el plan 7×3 real
     await dormir(60);
     expect(app.document.getElementById("menu-plan-list").classList.contains("hidden")).toBe(false);
     expect(app.document.getElementById("menu-plan-list").children.length).toBeGreaterThan(0);
     expect(app.document.getElementById("menu-status").classList.contains("hidden")).toBe(false);
-    expect(app.document.getElementById("tutorial-pista").classList.contains("hidden")).toBe(true);  // último informativo
+    expect(app.document.getElementById("tutorial-pista").classList.contains("hidden")).toBe(true);  // aprobar es informativo
+    avanzar.click();                                             // → la lista de la compra (aún sin nacer)
+    await dormir(60);
+    expect(app.document.getElementById("tutorial-pista").classList.contains("hidden")).toBe(true);  // también informativa
+    expect(app.document.getElementById("tutorial-tarjeta").classList.contains("tutorial-centrado")).toBe(true);   // sin plan aprobado ⇒ objetivo invisible ⇒ velo completo
     avanzar.click();                                             // → listo
     expect(avanzar.textContent).toBe("Terminar");
     avanzar.click();                                             // cierre + visto
@@ -351,9 +355,10 @@ describe("tutorial interactivo — pantalla TEMPORADA (cierre del tour por 5 vis
     await dormir(700);
     const avanzar = app.document.getElementById("tutorial-avanzar");
     // El guion real ya está completo: bienvenida → cabecera → Alimentos×4 (anotar, importancia,
-    // inventario y la DEMO del escáner) → Recetas×3 → Innovación×2 → Menú×3 → Temporada×2 →
-    // listo (Terminar) = 17 pasos.
-    expect(app.window.MRCheff.tutorial.totalPasos()).toBe(17);
+    // inventario y la DEMO del escáner) → Recetas×3 → Innovación×2 → Menú×4 (hoy, semana,
+    // aprobar y la LISTA DE LA COMPRA, ainda sin nacer en 1ª visita) → Temporada×2 →
+    // listo (Terminar) = 18 pasos.
+    expect(app.window.MRCheff.tutorial.totalPasos()).toBe(18);
     // bienvenida: tarjeta centrada sin foco (estado del molde por defecto)
     expect(app.document.getElementById("tutorial-tarjeta").classList.contains("tutorial-centrado")).toBe(true);
     // Cabecera
@@ -394,13 +399,15 @@ describe("tutorial interactivo — pantalla TEMPORADA (cierre del tour por 5 vis
     app.document.getElementById("btn-suggest-generate").click();
     await dormir(70);
     expect(app.document.getElementById("view-suggest").classList.contains("active")).toBe(true);
-    app.document.getElementById("btn-menu-generate").click();
-    avanzar.click();                                             // aprobar (informativo)
+    app.document.getElementById("btn-menu-generate").click();    // el plan 7×3 real (click accionable: avanza al paso de aprobar)
+    avanzar.click();                                             // → la LISTA DE LA COMPRA (paso 15: informativa y aún sin nacer en 1ª visita)
     await dormir(70);
-    // Temporada: último salto de vista
-    app.document.getElementById("season-month").click();
-    expect(app.document.getElementById("view-seasonal").classList.contains("active")).toBe(true);
-    avanzar.click();                                             // cuadrícula informativa
+    expect(app.document.getElementById("tutorial-anuncio").textContent).toContain("La lista de la compra");
+    expect(app.document.getElementById("tutorial-tarjeta").classList.contains("tutorial-centrado")).toBe(true);   // sin plan aprobado ⇒ objetivo invisible ⇒ velo completo + tarjeta centrada
+    avanzar.click();                                             // → Temporada (último salto de vista: el paso ya activa la vista)
+    await dormir(70);
+    expect(app.document.getElementById("view-seasonal").classList.contains("active")).toBe(true);   // el salto de vista final lo ejecuta el paso temporada-mes
+    avanzar.click();                                             // → cuadrícula (informativa, tarjeta ARRIBA)
     avanzar.click();                                             // → listo (Terminar)
     expect(avanzar.textContent).toBe("Terminar");
     avanzar.click();                                             // cierre + visto

@@ -231,14 +231,27 @@ italiana" (see `modules/origen-recetas.js` below).
   por hover/foco/activo. La agarra la auditoría `e2e/pwa-accesibilidad.mjs` (check 6).
   (9) **Tutorial interactivo de entrada** (feature 2026-10-20, epic `tutorial-interactivo`):
   visita guiada POR DENTRO de la app para la primera vez (la app nace vacía y sin pistas): el
-  guion (17 pasos: bienvenida+cabecera, 4 en Alimentos —anotar, importancia, inventario y la
-  DEMO del escáner—, 3 por cada otra vista principal —Recetas/Sugerencias y menú—, 2 para
-  Innovación y Temporada, cierre) vive en el módulo PURO `modules/tutorial.js`
+  guion (**18 pasos desde 2026-10-24**: bienvenida+cabecera, 4 en Alimentos —anotar, importancia,
+  inventario y la DEMO del escáner—, 3 en Recetas, 2 en Innovación, **4 en Sugerencias y menú —
+  hoy, semana, aprobar y la LISTA DE LA COMPRA (paso `menu-compra`, petición del usuario: "el
+  paso de la lista de la compra cuando toque", justo tras aprobar, donde nace la Card 3)—**,
+  2 en Temporada, cierre) vive en el módulo PURO `modules/tutorial.js`
   (PASOS por grupos + máquina de sesión; contrato `pasoValido`; pasos con `vista`/`selector`/
   `accionable`/`titulo`/`texto`/`cta`). El wiring está en app.js (sección TUTORIAL): velo
   semitransparente de 4 rectángulos + "foco" con aro de marca sobre el elemento del paso +
   tarjeta explicativa; los pasos accionables avanzan TOCANDO el elemento REAL (el toque ejecuta
-  su función: generar ideas/lote/plan…) y los informativos muestran botón. **DEMO del escáner
+  su función: generar ideas/lote/plan…) y los informativos muestran botón. **Objetivo INVISIBLE
+  (2026-10-24):** un paso puede apuntar a un elemento que EXISTE pero mide 0×0 ese día — la
+  lista de la compra `#shopping-list` no nace hasta aprobar un plan —: `tutorialReposicionar`
+  lo trata como objetivo ausente (velo completo + tarjeta centrada, mismo camino que `!objetivo`;
+  el chequeo es la clase `hidden` de la app —jsdom la resuelve— o geometría real 0×0 en
+  navegador, con guardia `hayLayout` para no confundir el falso "todo a 0" de jsdom) y el
+  repaint salta el scroll/scrollIntoView del paso. Así el paso degrada grácil en la 1ª visita y,
+  al reabrir con 🎓 un día con plan aprobado, el MISMO código pinta el aro sobre la lista REAL.
+  **Textos sin tecnicismos (2026-10-24, petición del usuario):** la redacción del guion no
+  habla de "diálogos", "sesgo", "generador", "nº", "sin redes" ni "interpretado" — lenguaje de
+  cocina; la demo del escáner explica SOLO tickets (fuera la mención "o la nevera"). **DEMO del
+  escáner
   del ticket (petición 2026-10-22, paso `alimentos-escaner-demo`, 4º de Alimentos):** el guion
   enseña el OCR con los DOS diálogos de confirmación REALES y DATOS DE PRUEBA que NO se escriben
   en el inventario — "es sólo explicativo". El paso lleva el campo opcional `demo: "escaner"`
@@ -293,11 +306,12 @@ italiana" (see `modules/origen-recetas.js` below).
   `tests/tutorial-ui.integration.test.js` (auto-apertura, X/Escape/Terminar, reabrir, flujo
   accionable con GUION INYECTADO en la ventana = desacoplado del contenido que crece la épica,
   silencio de campos y del select, los dos diálogos de la demo con asertos de "nada escrito",
-  recorrido completo 17 pasos) y e2e Brave real
-  `e2e/tutorial.mjs` (42 checks: auto-apertura, segunda visita silenciosa, 🎓, recorrido
+  recorrido completo 18 pasos) y e2e Brave real
+  `e2e/tutorial.mjs` (56 checks: auto-apertura, segunda visita silenciosa, 🎓, recorrido
   completo con mouse+coords, campos silenciados sin focus, la demo del escáner con banner +
-  inventario intacto + capturas 76-77, geometría de las tres zonas en los
-  cuatro pasos altos, swipe inmóvil; sirviendo por http://localhost:8617 con python3
+  inventario intacto + capturas 76-77, el paso de la COMPRA en sus dos caras —sin nacer:
+  tarjeta centrada 78; con plan aprobado: aro sobre la lista real 79—, geometría de las
+  tres zonas en los cuatro pasos altos, swipe inmóvil; sirviendo por http://localhost:8617 con python3
   porque file:// no auto-abre).
   (10) **Botón flotante "subir al principio"** (feature 2026-10-21, petición del usuario): con
   listas verticales muy largas, al bajar MÁS de una pantallita (`window.innerHeight` de umbral)
