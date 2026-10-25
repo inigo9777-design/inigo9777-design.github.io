@@ -155,7 +155,7 @@
         <section id="view-recipes" class="view">
             <div class="card">
                 <h2>Crear Receta</h2>
-                <p class="muted">Describe la receta con tus palabras: Mr Cheff lee tu texto y saca, en orden, los <strong>ingredientes que mencionas</strong> y los <strong>pasos que describes</strong> — claro y conciso, sin pasos genéricos. <span class="tag">Análisis del texto · sin red</span>: todo se interpreta localmente con heurísticas en español, sin IA externa ni conexión.</p>
+                <p class="muted">Describe la receta con tus palabras: Mr Cheff lee tu texto y saca, en orden, los <strong>ingredientes que mencionas</strong> y los <strong>pasos que describes</strong> — claro y conciso, sin pasos genéricos. <span class="tag">Análisis del texto · sin red</span>: todo se interpreta localmente con heurísticas en español, sin conexión.</p>
                 <textarea id="recipe-desc" rows="4" placeholder="Ej: Tomé dos huevos, los bati con sal y cociné en la sartén con un poco de aceite hasta que estuvieron cuajados..." aria-label="Descripción de lo que has cocinado"></textarea>
                 <div class="row-form">
                     <select id="recipe-meal" aria-label="Momento del día">
@@ -190,7 +190,7 @@
 
             <div class="card">
                 <h2>🔎 Buscador del catálogo</h2>
-                <p class="muted">Busca en las 200 recetas del catálogo curado por título, y ya sale aunque escribas menos letras ("tortilla patatas", "croqu"…). Click en una para verla.</p>
+                <p class="muted">Busca en las 200 recetas del catálogo curado por título.</p>
                 <div class="toolbar">
                     <input type="text" id="recipe-catalog-search" placeholder="Escribe para buscar en el catálogo…" autocomplete="off" aria-label="Buscar en el catálogo de recetas">
                 </div>
@@ -218,7 +218,7 @@
         <section id="view-innovation" class="view">
             <div class="card">
                 <h2>Innovación</h2>
-                <p class="muted">Mr Cheff te propone <strong>recetas españolas reales</strong> de un catálogo curado, ordenadas por lo que mejor encaja con <strong>lo que ya tienes en casa y la cocina que sueles hacer</strong>. Puedes pedir más o menos ideas y ajustar el sesgo: mezcla equilibrada, descubrir platos nuevos/distintos a los que repites, o priorizar parientes cercanos de lo que ya manejas bien. Cada lote incluye un toque de serendipia para no quedarse siempre en lo mismo.</p>
+                <p class="muted">Mr Cheff te propone <strong>recetas españolas reales</strong> de un catálogo curado, ordenadas por lo que mejor encaja con <strong>lo que ya tienes en casa y la comida que sueles hacer</strong>. Puedes pedir más o menos ideas y ajustar el sesgo: mezcla equilibrada, descubrir platos nuevos/distintos a los que repites, o priorizar parientes cercanos de lo que ya manejas bien. Cada lote incluye un toque de serendipia para no quedarse siempre en lo mismo.</p>
                 <div class="row-form">
                     <div class="qty-group">
                         <label for="innov-count">Ideas por lote: <span id="innov-count-val">8</span></label>
@@ -258,7 +258,7 @@
             <!-- ---------- Card 1: recetas que SÍ se pueden cocinar hoy ---------- -->
             <div class="card">
                 <h2>🍳 Se puede cocinar hoy</h2>
-                <p class="muted">Recetas con <strong>todos sus ingredientes ya en tu aforo (con cantidad real &gt; 0)</strong>,
+                <p class="muted">Recetas con <strong>todos sus ingredientes ya en tu inventario (con cantidad real &gt; 0)</strong>,
                     ordenadas por cuánto aprovechas de casa. Las que has preparado esta semana quedan apartadas un tiempo
                     (durante 7 días) para no repetir. Pulsa "🍳 Cocinar hoy" para anotarlo.</p>
                 <div class="row-form">
