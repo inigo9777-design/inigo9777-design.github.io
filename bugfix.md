@@ -340,3 +340,14 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   alto del documento intacto, sin barra horizontal nueva, `auto` de vuelta en Alimentos y
   re-ocultado al volver; suite completa 675/675 intacta; captura reports/ui-brave/scroll-caja-fuerte.
 
+
+- `2026-10-25 · @AI-agent · #bugfix/favicon-tabs · Síntoma reportado (usuario):` el icono de
+  Mr Cheff NO salía en las tabs del navegador en la PWA servida
+  (https://inigo9777-design.github.io/webapp/ — tab genérica).
+  **Causa:** `index.html` no llevaba ningún `<link rel="icon">` — sólo apple-touch-icon y
+  manifest — así que el navegador caía a pedir `/favicon.ico` en la RAÍZ del dominio, que en
+  GitHub Pages es 404 (esta app se sirve bajo `/webapp/`; el favicon vive fuera de la mkapa app-shell).
+  **Arreglo:** `<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">`
+  con ruta RELATIVA (una ruta absoluta `/icons/…` rompería bajo el sub-directorio de Pages).
+  **Verificación:** servido con el layout real de Pages el head resuelve
+  `…/webapp/icons/icon-192.png` → 200 image/png (Brave headless); suite 685/685 intacta.
