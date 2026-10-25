@@ -351,3 +351,18 @@ Formato: `YYYY-MM-DD · @autor · #rama · Síntoma / Causa / Arreglo / Verifica
   con ruta RELATIVA (una ruta absoluta `/icons/…` rompería bajo el sub-directorio de Pages).
   **Verificación:** servido con el layout real de Pages el head resuelve
   `…/webapp/icons/icon-192.png` → 200 image/png (Brave headless); suite 685/685 intacta.
+
+- `2026-10-25 · @AI-agent · #bugfix/favicon-redondeado · Afinación del favicon (petición del
+  usuario con ejemplo):` la tab ya sacaba el icono pero CUADRADO y con el tablero de
+  transparencia HORNEADO en los píxeles — `icons/icon-192.png` y `icon-512.png` están
+  aplanados a RGB sin alfa (colorType 2), así que el patrón era literal de la imagen.
+  **Arreglo:** nuevo asset `icons/favicon-192.png` — el arte sobre tile BLANCO con esquinas
+  redondeadas a ~25% del lado y alfa REAL fuera del radio (colorType 6). Generado por canvas
+  en Brave headless SIN dependencias nuevas: los dos colores del tablero se leen de las
+  esquinas (±10 de tolerancia) → blanco, trabajo a 4× (768px) y downscale con smoothing high
+  para el borde anti-aliased. `index.html` apunta el `<link rel="icon">` a él; los iconos del
+  manifest (192/512) quedan INTACTOS (el launcher de Android los enmascara; iOS redondea por
+  su cuenta el apple-touch-icon).
+  **Verificación:** sonda de píxeles — 4 esquinas alfa 0, centro y borde del tile alfa 255;
+  y servido con el layout real de Pages el head resuelve `…/webapp/icons/favicon-192.png` →
+  200 image/png con colorType 6.
