@@ -16,6 +16,11 @@
          en iOS el "Añadir a pantalla de inicio" usa el apple-touch-icon. Sin área data funciona igual. -->
     <link rel="manifest" href="manifest.webmanifest">
     <meta name="theme-color" content="#1b1913">
+    <!-- Favicon de la PESTAÑA del navegador (bugfix 2026-10-25): faltaba el <link rel="icon">
+         y los navegadores pedían /favicon.ico en la RAÍZ del dominio (404 en GitHub Pages, que
+         sirve esta app desde /webapp/) — en las tabs salía el icono genérico. Ruta RELATIVA:
+         el sitio vive bajo /webapp/ y una ruta absoluta /icons/... rompería ahí. -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Mr Cheff">
@@ -255,7 +260,7 @@
                 <h2>🍳 Se puede cocinar hoy</h2>
                 <p class="muted">Recetas con <strong>todos sus ingredientes ya en tu aforo (con cantidad real &gt; 0)</strong>,
                     ordenadas por cuánto aprovechas de casa. Las que has preparado esta semana quedan apartadas un tiempo
-                    (cooldown de 7 días) para no repetir. Pulsa "🍳 Cocinar hoy" para anotarlo.</p>
+                    (durante 7 días) para no repetir. Pulsa "🍳 Cocinar hoy" para anotarlo.</p>
                 <div class="row-form">
                     <button id="btn-suggest-generate" class="btn primary">↻ Sugerir ahora</button>
                     <button id="btn-suggest-clear" class="btn ghost">Limpiar</button>
@@ -270,9 +275,9 @@
                 <h2>📅 Menú semanal</h2>
                 <p class="muted">Un plan de 7 días (Lunes a Domingo) con desayuno, comida y cena cada día,
                     respetando lo que ya cocinaste esta semana. En cada comida puedes usar 🍳 Cocinar (anota lo
-                    cocinado y renueva sólo ese hueco) o 🔄 Cambiar si no te convence el plato de ese día. Si
-                    activas la opción de abajo, Mr Cheff también rellena las comidas en las que no tienes todo el
-                    ingrediente necesario y te lo deja anotado como pendiente a comprar.</p>
+                    cocinado y no lo vuelve a mostrar en 7 días) o 🔄 Cambiar si no te convence el plato de ese día. Si
+                    activas la opción de abajo, Mr Cheff también rellena las comidas en las que no tienes todos los
+                    ingredientes necesarios y te lo deja anotado como pendiente a comprar.</p>
                 <label class="check-inline">
                     <input type="checkbox" id="menu-include-unavailable" checked>
                     Incluir aunque no estén ahora disponibles (se añaden como pendientes de compra) — recomendado activada para que la semana salga completa
