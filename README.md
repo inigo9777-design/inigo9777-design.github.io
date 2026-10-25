@@ -11,6 +11,8 @@ Mantén un inventario actualizado de los alimentos que tienes en casa. La aplica
 - Cada alimento tiene una `puntuación de 1 a 10` que indica qué tan indispensable es.
 - Basándose en esa puntuación, Mr Cheff te avisa **cuándo es necesario ir a reponer** un alimento.
 - Control sencillo para saber siempre qué tienes y qué necesitas comprar.
+- Los productos **no alimentarios** (detergente, higiene…) viven aparte, fuera de todo lo de cocina, con su propia sección 🏠.
+- **🎫 Escáner del ticket de la compra**: fotografía el ticket del súper y los productos se confirman en dos diálogos dentro de la misma pestaña — los que ya están en tu inventario **suman lo comprado** y lo nuevo se define al momento (nombre, cantidad, importancia y mínimo). La foto nunca sale de tu dispositivo.
 
 ## 📝 Recetas Estructuradas + Buscador del Catálogo
 
@@ -18,7 +20,8 @@ Cada vez que cocines algo, descríbelo con tus palabras y Mr Cheff lo convierte 
 
 - Etiqueta cada receta como `Desayuno`, `Comida` o `Cena`, revisa el modal antes de guardarla y **✏️ Edita** cualquier receta guardada (título, ingredientes, pasos) cuando cambie tu costumbre.
 - Se almacenan de forma permanente para consultarlas en el futuro.
-- **🔎 Buscador del catálogo**: además, hay un catálogo curado de **200 platos españoles e italianos** — busca por `título` o por `ingrediente` y abre el detalle en el modal con un click. Con **match por prefijo** basta con las primeras letras: «croqu», «gamb» o «tortill» ya sacan Croquetas, Gambas al ajillo o Tortilla, sin escribir la palabra completa.
+- **🔎 Buscador del catálogo**: además, hay un catálogo curado de **200 platos españoles e italianos** — busca por `título` y basta con las primeras letras: «croqu», «gamb» o «tortill» ya sacan Croquetas, Gambas al ajillo o Tortilla, sin escribir la palabra completa. Abre el detalle en el modal con un click.
+- **⚠️ Falta / ✅ en casa**: cada tarjeta de receta (Mis Recetas, buscador, Innovación y la Sugerencia de hoy) y el modal de detalle te avisan al instante de qué ingredientes **no tienes** — comprar lo que faltaba quita el aviso en el momento.
 - **Badge de origen**: toda receta que se vea en la app (catálogo, plan, modal) lleva su sello `Receta española` / `Receta italiana`. Si guardas una copia (⭐ o ✏️), el origen se **sella en el momento del guardado** y no cambia si luego renombras.
 
 ## 🗓️ Sugerencias y Menú Semanal
@@ -28,7 +31,7 @@ La pestaña `Sugerencias y menú` turna un **lote rotado de recetas** que puedes
 - **Aprobar el plan** fija cada receta a su día: cada cocinada entra en un `cooldown de 7 días` para no repetir platos a las pocas horas; además, las recetas guardadas en `Mis Recetas` quedan fuera de los huecos hasta que las borres.
 - Por cada hueco del plan: **🍳 Cocinar** anota la cocción y cambia ese slot (sin regenerar el plan entero) o **🔄 Cambiar** recorre el ranking sin oscilar.
 - El botón **🍳 Cocinar hoy** del detalle de la receta es el único que lleva **consejo del chef**: en móvil manténlo pulsado un momento y suéltalo sin cocinar, o pásale el ratón en escritorio, y aparecerá una **píldora de consejo** con pistas antes de poner los fogones.
-- La **lista de la compra** se dedup por ingredientes y lleva **semáforo por fecha de preparación**: `rojo` hoy/mañana, `naranja` 2–3 días, `verde` 4+ — orden × urgencia.
+- La **lista de la compra** se dedup por ingredientes y el **color de cada fila lo manda la prioridad del alimento en tu inventario**: `rojo` indispensable, `naranja` importante, `verde` se puede esperar (sin registro, la fila sale neutral al final). Y solo desaparece cuando hay en casa **más unidades que el mínimo necesario**: lo que se vuelve a gastar reaparece.
 - Al marcar **✅ comprado**, pregunta cuánto has comprado, su importancia y el mínimo para la alerta: nada se cuela sin datos; si el alimento ya estaba, se actualiza con lo nuevo.
 - Y si un ingrediente de la lista ya lo tienes en casa con **otro nombre** («Jamón serrano» frente a «Jamón ibérico»), aparece el botón **🛒 Despensa?**: eliges la variante (o nada) y la compra se anota **en ese alimento de tu despensa**, sin crear uno nuevo.
 
@@ -56,6 +59,7 @@ Sin tiendas de aplicaciones: la webapp es una **PWA completa** — manifest, ser
 - **Escritorio** (Brave / Chrome / Edge): ⋮ → `Guardar y compartir` → **Instalar página como aplicación…**
 - **iPhone**: Safari → Compartir → **Añadir a pantalla de inicio**.
 - **En móvil**, desliza a los lados para cambiar de pestaña: cada vista **recuerda dónde te quedaste** al volver; pulsar la categoría del menú superior, en cambio, te sube arriba con una animación suave.
+- **La primera vez**, una visita guiada por dentro de la app te enseña lo esencial (anotar alimentos, escanear un ticket en demo, guardar recetas, aprobar tu semana); se puede revisar cuando quieras con el botón 🎓 de la cabecera.
 - Una vez instalada, abre a pantalla completa con icono y nombre propios, y funciona **sin internet** (el app-shell y tus datos están en el dispositivo; la importación/exportación de copias te permite mover el estado entre ellos).
 
 > Todo vive en tu dispositivo: una vez instalada no necesita conexión para nada de lo esencial.
