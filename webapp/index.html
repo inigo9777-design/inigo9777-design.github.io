@@ -19,8 +19,12 @@
     <!-- Favicon de la PESTAÑA del navegador (bugfix 2026-10-25): faltaba el <link rel="icon">
          y los navegadores pedían /favicon.ico en la RAÍZ del dominio (404 en GitHub Pages, que
          sirve esta app desde /webapp/) — en las tabs salía el icono genérico. Ruta RELATIVA:
-         el sitio vive bajo /webapp/ y una ruta absoluta /icons/... rompería ahí. -->
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+         el sitio vive bajo /webapp/ y una ruta absoluta /icons/... rompería ahí.
+         Afinación (2026-10-25): favicon-192.png es EL ARTE sobre tile blanco con esquinas
+         redondeadas (alfa real, ~25% del lado como el ejemplo pedido); se genera desde
+         icon-192.png (aplanado a RGB con el tablero horneado) por canvas en navegador. Los
+         iconos del manifest (192/512) quedan INTACTOS: Android los enmascara el launcher. -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/favicon-192.png">
     <link rel="apple-touch-icon" href="icons/icon-192.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Mr Cheff">
